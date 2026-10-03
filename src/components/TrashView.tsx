@@ -2,7 +2,12 @@ import { useApp } from '@/store/app'
 
 export function TrashView() {
   const { objects, restore, purge } = useApp()
-  const trashed = objects.filter((o) => o.deleted_at)
+  // On n'affiche que les pages « de tête » : leurs sous-pages reviennent avec elles.
+  const trashed = objects.filter((o) => {
+    if (!o.deleted_at) return false
+    const parent = objects.find((p) => p.id === o.parent_id)
+    return !(parent && parent.deleted_at === o.deleted_at)
+  })
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">

@@ -28,3 +28,11 @@
 - Anciennes pages (champ texte de la phase 0) converties automatiquement.
 - Colonnes : paquet @blocknote/xl-multi-column sous licence GPL-3 (usage perso, non distribué : OK).
 - Reste : étapes 2 à 6 de la phase 1.
+
+## 2026-10-03 — Phase 1, étape 2 : pages imbriquées (v0.3.0)
+- Sous-pages (bouton + au survol d'une page), flèche pour déplier / replier (état mémorisé).
+- Glisser-déposer dans la barre latérale : bord haut = avant, bord bas = après, milieu = dedans. Impossible de déplacer une page dans elle-même.
+- Icône (emoji) et couverture (dégradés, couleurs ou image importée) ; chemin de la page (fil d'Ariane).
+- Corbeille : une page emporte ses sous-pages et les ramène à la restauration.
+- Fenêtre : dragDropEnabled=false pour que le glisser-déposer HTML fonctionne dans Windows.
+- Incident : un BOM ajouté par un script avait cassé la fabrication de v0.2.0 (corrigé en v0.2.1).

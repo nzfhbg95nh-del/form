@@ -9,10 +9,10 @@ export async function createSqlRepo(): Promise<Repo> {
     async listObjects() {
       return db.select<ObjectRow[]>('SELECT * FROM objects ORDER BY position, created_at')
     },
-    async createPage() {
+    async createPage(parentId: string | null = null) {
       const t = now()
       const row: ObjectRow = {
-        id: crypto.randomUUID(), type: 'page', parent_id: null, title: '', icon: null,
+        id: crypto.randomUUID(), type: 'page', parent_id: parentId, title: '', icon: null,
         cover: null, properties: '{}', content: null, position: Date.now(), is_favorite: 0,
         created_at: t, updated_at: t, deleted_at: null,
       }

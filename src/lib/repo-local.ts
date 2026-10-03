@@ -10,10 +10,10 @@ export function createLocalRepo(): Repo {
 
   return {
     async listObjects() { return load() },
-    async createPage() {
+    async createPage(parentId: string | null = null) {
       const t = new Date().toISOString()
       const row: ObjectRow = {
-        id: crypto.randomUUID(), type: 'page', parent_id: null, title: '', icon: null,
+        id: crypto.randomUUID(), type: 'page', parent_id: parentId, title: '', icon: null,
         cover: null, properties: '{}', content: null, position: Date.now(), is_favorite: 0,
         created_at: t, updated_at: t, deleted_at: null,
       }
