@@ -18,3 +18,7 @@
 **Reste pour finir la phase 0**
 - Victor installe le .msi, crée une page, redémarre l'app et vérifie qu'elle est toujours là.
 - Victor choisit un dossier de sauvegarde et teste « Sauvegarder maintenant ».
+
+## 2026-10-03 — Phase 0 validée
+- Victor a installé le .msi v0.1.0 : pages, redémarrage, sauvegarde, thème, corbeille et favoris fonctionnent.
+- Prochaine étape : phase 1 (le Notion), en attente du plan validé.
