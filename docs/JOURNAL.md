@@ -22,3 +22,9 @@
 ## 2026-10-03 — Phase 0 validée
 - Victor a installé le .msi v0.1.0 : pages, redémarrage, sauvegarde, thème, corbeille et favoris fonctionnent.
 - Prochaine étape : phase 1 (le Notion), en attente du plan validé.
+
+## 2026-10-03 — Phase 1, étape 1 : éditeur de blocs (v0.2.0)
+- BlockNote en français : menu /, titres, listes, cases à cocher, citations, séparateurs, code, toggles, images (enregistrées dans la base), callouts, colonnes.
+- Anciennes pages (champ texte de la phase 0) converties automatiquement.
+- Colonnes : paquet @blocknote/xl-multi-column sous licence GPL-3 (usage perso, non distribué : OK).
+- Reste : étapes 2 à 6 de la phase 1.

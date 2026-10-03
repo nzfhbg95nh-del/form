@@ -1,27 +1,25 @@
 import { useEffect, useRef, useState } from 'react'
 import { Star, Trash2 } from 'lucide-react'
+import { PageEditor } from '@/components/PageEditor'
 import { useApp } from '@/store/app'
-
-function readText(content: string | null): string {
-  if (!content) return ''
-  try {
-    return JSON.parse(content).text ?? ''
-  } catch {
-    return ''
-  }
-}
 
 export function PageView() {
   const { objects, selectedId, update, trash, createPage } = useApp()
   const page = objects.find((o) => o.id === selectedId && !o.deleted_at)
   const [title, setTitle] = useState('')
-  const [text, setText] = useState('')
   const timer = useRef<number | undefined>(undefined)
+  const pending = useRef<{ id: string; patch: Parameters<typeof update>[1] } | null>(null)
 
   // On ne recharge les champs que lorsqu'on change de page, pas à chaque frappe.
   useEffect(() => {
+    // Si on quitte une page pendant les 400 ms d'attente, on enregistre tout de suite.
+    const p = pending.current
+    if (p && p.id !== page?.id) {
+      window.clearTimeout(timer.current)
+      pending.current = null
+      void update(p.id, p.patch)
+    }
     setTitle(page?.title ?? '')
-    setText(readText(page?.content ?? null))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page?.id])
 
@@ -38,8 +36,14 @@ export function PageView() {
 
   // Enregistrement automatique 400 ms après la dernière frappe.
   const saveLater = (patch: Parameters<typeof update>[1]) => {
+    // On cumule titre + contenu pour qu'une frappe n'annule jamais l'enregistrement de l'autre.
+    pending.current = { id: page.id, patch: { ...(pending.current?.id === page.id ? pending.current.patch : {}), ...patch } }
     window.clearTimeout(timer.current)
-    timer.current = window.setTimeout(() => void update(page.id, patch), 400)
+    timer.current = window.setTimeout(() => {
+      const p = pending.current
+      pending.current = null
+      if (p) void update(p.id, p.patch)
+    }, 400)
   }
 
   return (
@@ -69,15 +73,13 @@ export function PageView() {
         }}
         className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
       />
-      <textarea
-        value={text}
-        placeholder="Écris ici… (l'éditeur de blocs façon Notion arrive en phase 1)"
-        onChange={(e) => {
-          setText(e.target.value)
-          saveLater({ content: JSON.stringify({ text: e.target.value }) })
-        }}
-        className="mt-6 h-[60vh] w-full resize-none bg-transparent text-base leading-relaxed outline-none placeholder:text-[var(--fg-muted)]"
-      />
+      <div className="mt-4 -mx-12">
+        <PageEditor
+          key={page.id}
+          initial={page.content}
+          onChange={(json) => saveLater({ content: json })}
+        />
+      </div>
     </div>
   )
 }
