@@ -1,0 +1,84 @@
+import { useEffect, useState } from 'react'
+import { open, save } from '@tauri-apps/plugin-dialog'
+import { backupFileName, joinPath, todayISO } from '@/lib/backup'
+import { isTauri } from '@/lib/repo'
+import { useApp } from '@/store/app'
+
+export function SettingsView() {
+  const repo = useApp((s) => s.repo)
+  const [dir, setDir] = useState<string | null>(null)
+  const [last, setLast] = useState<string | null>(null)
+  const [msg, setMsg] = useState<string | null>(null)
+  const desktop = isTauri()
+
+  useEffect(() => {
+    void repo?.getSetting('backup_dir').then(setDir)
+    void repo?.getSetting('last_backup_date').then(setLast)
+  }, [repo])
+
+  const run = async (fn: () => Promise<string | void>) => {
+    try {
+      const m = await fn()
+      if (m) setMsg(m)
+    } catch (e) {
+      setMsg(`Erreur : ${String(e)}`)
+    }
+  }
+
+  const chooseFolder = () =>
+    run(async () => {
+      const chosen = await open({ directory: true, title: 'Dossier de sauvegarde (OneDrive, Google Drive…)' })
+      if (typeof chosen === 'string' && repo) {
+        await repo.setSetting('backup_dir', chosen)
+        setDir(chosen)
+        return 'Dossier enregistré. La sauvegarde se fera automatiquement une fois par jour.'
+      }
+    })
+
+  const backupNow = () =>
+    run(async () => {
+      if (!repo || !dir) return
+      // Nom avec l'heure pour pouvoir sauvegarder plusieurs fois le même jour.
+      const n = new Date()
+      const stamp = `${String(n.getHours()).padStart(2, '0')}h${String(n.getMinutes()).padStart(2, '0')}m${String(n.getSeconds()).padStart(2, '0')}`
+      await repo.backupTo(joinPath(dir, backupFileName(`${todayISO()}-${stamp}`)))
+      return 'Sauvegarde effectuée.'
+    })
+
+  const exportAll = () =>
+    run(async () => {
+      if (!repo) return
+      const target = await save({
+        title: 'Exporter toutes mes données',
+        defaultPath: backupFileName(todayISO()),
+        filters: [{ name: 'Base Form', extensions: ['db'] }],
+      })
+      if (target) {
+        await repo.backupTo(target)
+        return 'Export terminé.'
+      }
+    })
+
+  const btn = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+
+  return (
+    <div className="mx-auto max-w-3xl px-12 py-10">
+      <h1 className="mb-6 text-3xl font-bold">Réglages</h1>
+
+      <h2 className="mb-2 text-lg font-semibold">Sauvegarde</h2>
+      {!desktop && (
+        <p className="mb-3 text-sm text-[var(--fg-muted)]">La sauvegarde n'est disponible que dans l'application Windows.</p>
+      )}
+      <p className="mb-3 text-sm">
+        Dossier : <strong>{dir ?? 'aucun dossier choisi'}</strong>
+        {last && <span className="text-[var(--fg-muted)]"> — dernière sauvegarde automatique : {last}</span>}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button className={btn} disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
+        <button className={btn} disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
+        <button className={btn} disabled={!desktop} onClick={exportAll}>Exporter tout</button>
+      </div>
+      {msg && <p className="mt-3 text-sm">{msg}</p>}
+    </div>
+  )
+}

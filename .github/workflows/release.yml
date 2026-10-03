@@ -1,0 +1,41 @@
+name: Fabriquer l'installateur Windows
+
+# Se lance quand on pose une étiquette de version, par exemple v0.1.0.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - run: npm test
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Form ${{ github.ref_name }}'
+          releaseBody: "Installateur Windows (.msi) : télécharge le fichier .msi ci-dessous, puis double-clique dessus."
+          releaseDraft: false
+          prerelease: false
