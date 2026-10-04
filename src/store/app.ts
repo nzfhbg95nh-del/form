@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
-import { defaultSchema, parseValues, type Schema } from '@/lib/database'
+import { defaultSchema, parseSchema, parseValues, type Schema } from '@/lib/database'
 import { splitCapture } from '@/lib/capture'
 import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
@@ -15,6 +15,7 @@ import {
   blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
   type Draft,
 } from '@/lib/invoices'
+import { configProblems, fetchMail, loadMailConfig, mailSchema, newMailItems, rowFromMail } from '@/lib/mail'
 import { recipeBlocks, type AiMode, type AiTask, type Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
@@ -124,6 +125,9 @@ interface AppState {
   assistantMode: AiMode | null
   setAssistant(mode: AiMode | null): void
   createRecipePage(recipe: Recipe): Promise<void>
+  /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
+  syncMail(): Promise<number>
+  openMail(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
   addTasksFromAi(tasks: AiTask[], dbId: string | null): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
@@ -153,6 +157,16 @@ async function createDraft(set: SetFn, get: () => AppState, draft: Draft) {
     openInvoiceId: draft.invoice.id,
     view: 'invoices',
   }))
+}
+
+/** Crée la base « Courrier » si elle n'existe pas encore. */
+async function ensureMailDb(repo: Repo, set: SetFn): Promise<ObjectRow> {
+  const db = await repo.createPage(null, 'database', JSON.stringify(mailSchema()))
+  const patch = { title: 'Courrier', icon: '📬' }
+  await repo.updateObject(db.id, patch)
+  const full = { ...db, ...patch }
+  set((s) => ({ objects: [...s.objects, full] }))
+  return full
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -512,6 +526,36 @@ export const useApp = create<AppState>((set, get) => ({
 
   setAssistant(mode) {
     set({ assistantMode: mode })
+  },
+
+  async syncMail() {
+    const repo = get().repo
+    if (!repo) return 0
+    const config = await loadMailConfig(repo)
+    const problems = configProblems(config)
+    if (problems.length > 0) throw new Error(problems.join(' '))
+    const items = await fetchMail(config, true, 100)
+    const { objects } = get()
+    const db = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'mail')
+    // Un message déjà classé (même mis à la corbeille) ne revient jamais.
+    const known = new Set(objects.filter((o) => o.type === 'row' && o.parent_id === db?.id).map((o) => String(parseValues(o.properties).mid ?? '')))
+    const fresh = newMailItems(items, known)
+    if (fresh.length === 0) return 0
+    const target = db ?? (await ensureMailDb(repo, set))
+    for (const m of fresh) {
+      const row = rowFromMail(m)
+      const created = await repo.createPage(target.id, 'row', JSON.stringify(row.values))
+      await repo.updateObject(created.id, { title: row.title })
+      set((s) => ({ objects: [...s.objects, { ...created, title: row.title }] }))
+    }
+    return fresh.length
+  },
+
+  async openMail() {
+    const repo = get().repo
+    if (!repo) return
+    const db = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'mail')
+    get().select((db ?? (await ensureMailDb(repo, set))).id)
   },
 
   async createRecipePage(recipe) {

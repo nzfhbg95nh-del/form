@@ -85,7 +85,7 @@ export interface Schema {
   columns: Column[]
   views: ViewConfig[]
   /** Base de tâches (kind = tasks) : surveillée par les rappels. */
-  kind?: 'tasks'
+  kind?: 'tasks' | 'mail'
 }
 
 /** La colonne « Nom » existe toujours : c'est le titre de chaque ligne. */

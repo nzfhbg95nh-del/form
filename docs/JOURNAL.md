@@ -159,3 +159,15 @@ Points ouverts : adresse de domiciliation, SIRET, mention pour clients belges (�
 - Tests : 144 au total (détection de données sensibles, masquage, lecture des réponses).
 - ATTENTION : le code Rust (keyring, reqwest) n'a pas pu être compilé sur le PC de Victor ; le premier test réel passera par la fabrication GitHub puis par une vraie clé.
 - Prochaine étape : 3 (courrier SeDomicilier par IMAP).
+
+## 2026-10-04 — Phase 3, étape 3 : courrier SeDomicilier par IMAP (v0.17.0)
+- Réglages > Courrier : fournisseur (Gmail / Outlook / autre), serveur IMAP (connexion chiffrée port 993 uniquement), adresse, dossier, mot de passe (d'application) rangé dans le coffre Windows, expéditeurs reconnus (défaut : « sedomicilier »), mots d'objet facultatifs, nombre de messages examinés (200), relève automatique (au démarrage + toutes les 30 min).
+- Lecture SEULE (code Rust `mail.rs`, crates imap + mailparse + native-tls) : dossier ouvert avec EXAMINE, messages lus avec BODY.PEEK (jamais marqués lus), rien déplacé / supprimé / envoyé. Le contenu complet n'est lu que pour les messages reconnus (≤ 25 Mo) : aperçu de 600 caractères + noms des pièces jointes. Les pièces jointes elles-mêmes ne sont PAS téléchargées.
+- Base « Courrier » (type de base `mail`, créée automatiquement, 📬) : Date, Expéditeur, Statut (À traiter / Traité), Pièces jointes, Aperçu ; vues « À traiter » et « Tout le courrier » ; bouton « Relever le courrier » ; entrée « Courrier » dans « Mon entreprise ». Un message déjà classé (même mis à la corbeille) n'est jamais recréé (identifiant de message conservé).
+- Bouton « Tester et voir les derniers e-mails » : liste les 30 derniers messages avec ✓ sur ceux qui seraient classés, pour régler les filtres sans avoir besoin d'un exemple.
+- Notification Windows « Nouveau courrier » à la relève automatique.
+- Tests : 151 (réglages, filtres, absence de doublons, schéma). Le code Rust n'a PAS pu être compilé / essayé sur le PC de Victor : à valider avec la fabrication GitHub puis une vraie boîte Gmail.
+- À régler avec Victor : l'expéditeur réel des e-mails SeDomicilier (par défaut « sedomicilier »).
+
+### Phase 3 : bilan
+Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâches, confidentialité), courrier IMAP. « Fini quand » : Victor n'ouvre plus Pinterest pour ses références.

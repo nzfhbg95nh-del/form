@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AiSettings } from '@/components/AiSettings'
 import { CgvSettings, CompanySettings } from '@/components/CompanySettings'
+import { MailSettings } from '@/components/MailSettings'
 import { GeneralSettings } from '@/components/SettingsView'
 
 const TABS = [
@@ -8,6 +9,7 @@ const TABS = [
   { id: 'company', label: 'Entreprise' },
   { id: 'cgv', label: 'CGV' },
   { id: 'ai', label: 'Assistant IA' },
+  { id: 'mail', label: 'Courrier' },
 ] as const
 
 export function SettingsPage() {
@@ -29,6 +31,7 @@ export function SettingsPage() {
       {tab === 'company' && <CompanySettings />}
       {tab === 'cgv' && <CgvSettings />}
       {tab === 'ai' && <AiSettings />}
+      {tab === 'mail' && <MailSettings />}
     </div>
   )
 }

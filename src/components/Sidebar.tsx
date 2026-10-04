@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
 } from 'lucide-react'
 import { PageMenu } from '@/components/PageMenu'
 import { childrenOf, type DropZone } from '@/lib/tree'
@@ -195,7 +195,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, theme, toggleTheme,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, theme, toggleTheme,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -239,6 +239,9 @@ export function Sidebar() {
         </Item>
         <Item active={view === 'payments'} onClick={() => show('payments')}>
           <Banknote size={14} /> Paiements
+        </Item>
+        <Item onClick={() => void openMail()}>
+          <Mail size={14} /> Courrier
         </Item>
 
         {favorites.length > 0 && (

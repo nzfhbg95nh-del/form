@@ -311,6 +311,25 @@ function AddView({ schema, onChange, onCreated }: { schema: Schema; onChange: (s
   )
 }
 
+function SyncMailButton() {
+  const syncMail = useApp((s) => s.syncMail)
+  const [busy, setBusy] = useState(false)
+  const run = async () => {
+    setBusy(true)
+    let text: string
+    try {
+      const n = await syncMail()
+      text = n === 0 ? 'Aucun nouveau courrier.' : `${n} nouveau${n > 1 ? 'x' : ''} courrier${n > 1 ? 's' : ''} !`
+    } catch (e) {
+      text = e instanceof Error ? e.message : String(e)
+    }
+    setBusy(false)
+    useApp.setState({ toast: text })
+    window.setTimeout(() => useApp.setState({ toast: null }), 4000)
+  }
+  return <button className={btn} disabled={busy} onClick={() => void run()}>📬 {busy ? 'Relève en cours…' : 'Relever le courrier'}</button>
+}
+
 export function DatabaseView({ db }: { db: ObjectRow }) {
   const { objects, update, saveSchema } = useApp()
   const schema = parseSchema(db.properties)
@@ -386,6 +405,7 @@ export function DatabaseView({ db }: { db: ObjectRow }) {
           {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} />}
         </div>
         <div className="flex-1" />
+        {schema.kind === 'mail' && <SyncMailButton />}
         <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
 

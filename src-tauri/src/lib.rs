@@ -1,4 +1,5 @@
 mod gemini;
+mod mail;
 mod secrets;
 
 use tauri::{Emitter, Manager};
@@ -81,7 +82,9 @@ pub fn run() {
             secrets::secret_exists,
             secrets::secret_delete,
             gemini::gemini_generate,
-            gemini::gemini_models
+            gemini::gemini_models,
+            mail::mail_fetch,
+            mail::mail_test
         ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de Form");
