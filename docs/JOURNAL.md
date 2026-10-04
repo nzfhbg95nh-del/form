@@ -279,3 +279,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Ajouter une icône » et « Ajouter une image de couverture » (avec leur pictogramme) apparaissent au survol du titre. Pas de « Ajouter un commentaire » : les commentaires n'existent pas dans Form.
 - Le guide « premier client » (v0.29.0) est retiré à la demande de Victor : composant, logique et tests supprimés.
 - Tests : 191.
+
+## 2026-10-05 — Tarifs sans archivage (v0.30.1)
+- Page Tarifs : plus de case « Afficher les archivés » ni de bouton « Archiver ». À la place, « Supprimer » (avec confirmation) dans la fiche d'un tarif.
+- Supprimer un tarif ne touche pas aux devis et factures déjà faits : leurs lignes gardent leur propre copie du libellé, de l'unité et du prix. L'archivage reste disponible pour les clients (leurs documents doivent rester rattachés à eux).

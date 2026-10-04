@@ -137,6 +137,9 @@ export async function createSqlRepo(): Promise<Repo> {
       const row = service as unknown as Record<string, unknown>
       await db.execute(buildUpsert('services', SERVICE_COLUMNS), SERVICE_COLUMNS.map((c) => row[c] ?? null))
     },
+    async deleteService(id: string) {
+      await db.execute('DELETE FROM services WHERE id = $1', [id])
+    },
     async listObjects() {
       return db.select<ObjectRow[]>('SELECT * FROM objects ORDER BY position, created_at')
     },

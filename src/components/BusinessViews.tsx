@@ -41,8 +41,8 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
   title: string
   query: string
   setQuery: (q: string) => void
-  showArchived: boolean
-  setShowArchived: (v: boolean) => void
+  showArchived?: boolean
+  setShowArchived?: (v: boolean) => void
   onNew: () => void
   newLabel: string
 }) {
@@ -51,9 +51,11 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
       <h1 className="mb-4 text-3xl font-bold">{title}</h1>
       <div className="mb-3 flex items-center gap-3">
         <input className={field + ' max-w-xs'} placeholder="Rechercher…" value={query} onChange={(e) => setQuery(e.target.value)} />
-        <label className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)]">
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Afficher les archivés
-        </label>
+        {setShowArchived && (
+          <label className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)]">
+            <input type="checkbox" checked={!!showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Afficher les archivés
+          </label>
+        )}
         <div className="flex-1" />
         <button className={primary + ' flex items-center gap-1'} onClick={onNew}><Plus size={14} /> {newLabel}</button>
       </div>
@@ -173,6 +175,7 @@ export function ClientsView() {
 
 function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boolean; onClose: () => void }) {
   const saveService = useApp((s) => s.saveService)
+  const deleteService = useApp((s) => s.deleteService)
   const [s, setS] = useState<Service>(initial)
   const [price, setPrice] = useState(isNew ? '' : centsToInput(initial.unit_price_cents))
   const cents = parseEuros(price)
@@ -204,8 +207,16 @@ function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boo
         <button className={secondary} onClick={onClose}>Annuler</button>
         <div className="flex-1" />
         {!isNew && (
-          <button className={secondary} onClick={() => void done({ archived_at: s.archived_at ? null : new Date().toISOString() })}>
-            {s.archived_at ? 'Désarchiver' : 'Archiver'}
+          <button
+            className={secondary + ' text-red-500'}
+            title="Les devis et factures déjà faits gardent leurs lignes."
+            onClick={() => {
+              if (window.confirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) {
+                void deleteService(s.id).then(onClose)
+              }
+            }}
+          >
+            Supprimer
           </button>
         )}
       </div>
@@ -216,17 +227,15 @@ function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boo
 export function ServicesView() {
   const { services, editing, setEditing } = useApp()
   const [query, setQuery] = useState('')
-  const [showArchived, setShowArchived] = useState(false)
   const q = normalize(query).trim()
   const shown = services
-    .filter((s) => showArchived || !s.archived_at)
     .filter((s) => q === '' || normalize(`${s.label} ${s.description}`).includes(q))
     .sort((a, b) => a.label.localeCompare(b.label, 'fr'))
   const edited = editing?.kind === 'service' ? (editing.id ? services.find((s) => s.id === editing.id) : newService()) : undefined
 
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
-      <Toolbar title="Tarifs" query={query} setQuery={setQuery} showArchived={showArchived} setShowArchived={setShowArchived} newLabel="Nouveau tarif" onNew={() => setEditing({ kind: 'service', id: null })} />
+      <Toolbar title="Tarifs" query={query} setQuery={setQuery} newLabel="Nouveau tarif" onNew={() => setEditing({ kind: 'service', id: null })} />
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--fg-muted)]">
@@ -238,8 +247,8 @@ export function ServicesView() {
         </thead>
         <tbody>
           {shown.map((s) => (
-            <tr key={s.id} onClick={() => setEditing({ kind: 'service', id: s.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', s.archived_at && 'opacity-50')}>
-              <td className="py-2 pr-3 font-medium">{s.label || 'Sans libellé'}{s.archived_at && ' (archivée)'}</td>
+            <tr key={s.id} onClick={() => setEditing({ kind: 'service', id: s.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
+              <td className="py-2 pr-3 font-medium">{s.label || 'Sans libellé'}</td>
               <td className="max-w-xs truncate pr-3 text-[var(--fg-muted)]">{s.description}</td>
               <td className="pr-3 text-right tabular-nums">{formatEuros(s.unit_price_cents)}</td>
               <td>{s.unit}</td>
