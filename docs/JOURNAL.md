@@ -295,3 +295,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Personnaliser » : monter, descendre, retirer, et « Ajouter un widget » (plusieurs blocs-notes ou bases possibles). Disposition mémorisée dans le réglage `home_widgets` ; notes dans `home_note_<id>`.
 - Logique dans `src/lib/home.ts`. Tests : 197.
 - Non fait : widgets en colonnes côte à côte / glisser-déposer, nom de l'utilisateur dans le bonjour, agenda (pas de calendrier dans Form), widget graphique du chiffre d'affaires.
+
+## 2026-10-05 — Accueil : glisser-déposer et calendrier (v0.32.0)
+- Glisser-déposer des widgets : dans « Personnaliser », on attrape un widget (poignée ⋮⋮ ou n'importe où sur le bloc) et on le dépose avant ou après un autre ; un trait bleu montre l'endroit. Les flèches ↑ ↓ restent disponibles.
+- Nouveau widget « Calendrier » : grille du mois (lundi en premier), navigation par mois, « Aujourd'hui », un point par type d'événement ; un clic sur un jour liste ses événements, un clic sur un événement l'ouvre.
+- Événements : lignes de toutes les bases ayant une propriété « Date » (courrier exclu), tâches non terminées, échéances des factures émises non payées, fin de validité des devis envoyés.
+- Logique dans `src/lib/homeCalendar.ts` et `reorderWidget`. Tests : 200.
+- Non fait : créer un événement depuis le calendrier de l'accueil (on le fait dans une base avec une vue Calendrier), vue semaine, synchronisation avec un agenda externe.

@@ -1,7 +1,7 @@
 import { isSystemDatabase } from './database'
 import type { ObjectRow } from './types'
 
-export type WidgetType = 'recents' | 'favorites' | 'summary' | 'tasks' | 'note' | 'database'
+export type WidgetType = 'recents' | 'favorites' | 'summary' | 'tasks' | 'note' | 'database' | 'calendar'
 
 /** Un bloc de la page d'accueil. `dbId` : la base affichée par un widget « Base de données ». */
 export interface Widget {
@@ -14,6 +14,7 @@ export const WIDGET_TYPES: { type: WidgetType; label: string; help: string }[] =
   { type: 'recents', label: 'Pages récentes', help: 'Les dernières pages modifiées' },
   { type: 'favorites', label: 'Favoris', help: 'Tes pages favorites' },
   { type: 'summary', label: 'Résumé de l’activité', help: 'Encaissé, à encaisser, devis en attente' },
+  { type: 'calendar', label: 'Calendrier', help: 'Tâches, échéances de factures, devis et dates de tes bases' },
   { type: 'tasks', label: 'Tâches du jour', help: 'Les tâches à faire aujourd’hui ou en retard' },
   { type: 'note', label: 'Bloc-notes', help: 'Un petit texte libre' },
   { type: 'database', label: 'Base de données épinglée', help: 'Les premières lignes d’une de tes bases' },
@@ -64,6 +65,16 @@ export function moveWidget(list: Widget[], id: string, direction: -1 | 1): Widge
   const next = [...list]
   ;[next[i], next[j]] = [next[j], next[i]]
   return next
+}
+
+/** Déplace un widget juste avant ou juste après un autre (glisser-déposer). */
+export function reorderWidget(list: Widget[], id: string, targetId: string, place: 'before' | 'after'): Widget[] {
+  if (id === targetId) return list
+  const moving = list.find((w) => w.id === id)
+  if (!moving || !list.some((w) => w.id === targetId)) return list
+  const rest = list.filter((w) => w.id !== id)
+  const at = rest.findIndex((w) => w.id === targetId) + (place === 'after' ? 1 : 0)
+  return [...rest.slice(0, at), moving, ...rest.slice(at)]
 }
 
 export const greeting = (hour: number) => (hour >= 18 || hour < 4 ? 'Bonsoir' : 'Bonjour')

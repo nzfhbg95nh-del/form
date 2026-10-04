@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { addWidget, DEFAULT_WIDGETS, databaseRows, favoritePages, greeting, moveWidget, parseWidgets, recentPages, removeWidget } from './home'
+import { reorderWidget, addWidget, DEFAULT_WIDGETS, databaseRows, favoritePages, greeting, moveWidget, parseWidgets, recentPages, removeWidget } from './home'
 import type { ObjectRow } from './types'
 
 const obj = (id: string, extra: Partial<ObjectRow> = {}): ObjectRow => ({
@@ -30,6 +30,15 @@ describe('widgets de la page d’accueil', () => {
     expect(moveWidget(DEFAULT_WIDGETS, 'recents', 1).map((w) => w.id)).toEqual(['favorites', 'recents', 'summary', 'tasks'])
     expect(moveWidget(DEFAULT_WIDGETS, 'inconnu', 1)).toEqual(DEFAULT_WIDGETS)
     expect(removeWidget(DEFAULT_WIDGETS, 'summary').map((w) => w.id)).toEqual(['recents', 'favorites', 'tasks'])
+  })
+
+  it('déplace un widget avant ou après un autre (glisser-déposer)', () => {
+    const ids = (l: ReturnType<typeof reorderWidget>) => l.map((w) => w.id)
+    expect(ids(reorderWidget(DEFAULT_WIDGETS, 'tasks', 'recents', 'before'))).toEqual(['tasks', 'recents', 'favorites', 'summary'])
+    expect(ids(reorderWidget(DEFAULT_WIDGETS, 'recents', 'summary', 'after'))).toEqual(['favorites', 'summary', 'recents', 'tasks'])
+    expect(ids(reorderWidget(DEFAULT_WIDGETS, 'favorites', 'favorites', 'after'))).toEqual(['recents', 'favorites', 'summary', 'tasks'])
+    expect(reorderWidget(DEFAULT_WIDGETS, 'inconnu', 'tasks', 'before')).toEqual(DEFAULT_WIDGETS)
+    expect(reorderWidget(DEFAULT_WIDGETS, 'tasks', 'inconnu', 'before')).toEqual(DEFAULT_WIDGETS)
   })
 
   it('dit bonjour le jour et bonsoir le soir', () => {
