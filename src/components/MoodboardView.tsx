@@ -34,7 +34,8 @@ const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 t
 // Presse-papiers interne : copier / coller des éléments de la toile.
 let internalClip: { stamp: string; items: BoardItem[] } | null = null
 
-export function MoodboardView({ board }: { board: ObjectRow }) {
+/** `compact` : version allégée pour le cadre d'une page (juste Images et Ajuster, sans barre du bas ni palette). */
+export function MoodboardView({ board, compact = false }: { board: ObjectRow; compact?: boolean }) {
   const initial = useMemo(() => parseBoard(board.content), [board.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const repo = useApp((s) => s.repo)
   const boardId = board.id
@@ -597,13 +598,19 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
       {items.length === 0 && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center" style={{ color: textColor, opacity: 0.55 }}>
           <div>
-            <div className="mb-2 text-2xl font-semibold">Dépose tes images ici</div>
-            <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note<br />molette = zoom · clic molette ou Espace + glisser = déplacer la toile</div>
+            <div className={compact ? 'text-base font-semibold' : 'mb-2 text-2xl font-semibold'}>Dépose tes images ici</div>
+            {!compact && <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note<br />molette = zoom · clic molette ou Espace + glisser = déplacer la toile</div>}
           </div>
         </div>
       )}
 
       {/* Barre d'outils */}
+      {compact ? (
+        <div data-ui className="absolute left-2 top-2 flex items-center gap-1.5">
+          <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()}><ImagePlus size={14} className="mr-1 inline" />Images</button>
+          <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
+        </div>
+      ) : (
       <div data-ui className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
         <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()}><ImagePlus size={14} className="mr-1 inline" />Images</button>
         <button className={bar} title="Nouvelle note" onClick={() => { const c = viewCenter(); addNote({ x: c.x - 110, y: c.y - 70 }) }}><StickyNote size={14} className="mr-1 inline" />Note</button>
@@ -618,6 +625,7 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
           <button key={b} title={b === 'theme' ? 'Fond de l’application' : 'Couleur de fond'} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: bg === b ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
         ))}
       </div>
+      )}
       <input ref={colorInput} type="color" className="hidden" onChange={(e) => { const c = viewCenter(); const s = makeSwatch({ x: c.x - 60, y: c.y - 60 }, e.target.value); commitItems([...itemsRef.current, s]); setSelection(new Set([s.id])) }} />
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { void addFiles(Array.from(e.target.files ?? []), viewCenter()); e.target.value = '' }} />
 
@@ -643,6 +651,7 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
       )}
 
       {/* Zoom et message */}
+      {!compact && (
       <div data-ui className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-[var(--fg)]">
         <button className={bar} onClick={() => setView((v) => zoomAt(v, 0.8, { x: size.w / 2, y: size.h / 2 }))}>−</button>
         <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)} %</span>
@@ -652,9 +661,10 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
+      )}
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
-      {paletteOpen && (
+      {paletteOpen && !compact && (
         <div data-ui data-scroll className="absolute right-3 top-3 max-h-[80%] w-52 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
           <div className="mb-2 text-xs font-semibold uppercase text-[var(--fg-muted)]">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
           {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
