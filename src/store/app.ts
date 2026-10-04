@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { defaultSchema, parseValues, type Schema } from '@/lib/database'
+import { PAGE_TEMPLATES } from '@/lib/templates'
+import { tasksSchema } from '@/lib/tasks'
 import { computeMove, descendantsOf, type DropZone } from '@/lib/tree'
 import type { ObjectPatch, ObjectRow, Repo } from '@/lib/types'
 
@@ -41,6 +43,8 @@ interface AppState {
   toggleExpanded(id: string, value?: boolean): void
   createPage(parentId?: string | null): Promise<void>
   createDatabase(parentId?: string | null): Promise<void>
+  createTasks(): Promise<void>
+  createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
   saveSchema(databaseId: string, schema: Schema): Promise<void>
@@ -107,6 +111,25 @@ export const useApp = create<AppState>((set, get) => ({
     const db = await repo.createPage(parentId, 'database', JSON.stringify(defaultSchema()))
     if (parentId) get().toggleExpanded(parentId, true)
     set((s) => ({ objects: [...s.objects, db], selectedId: db.id, view: 'page' }))
+  },
+
+  async createTasks() {
+    const repo = get().repo
+    if (!repo) return
+    const db = await repo.createPage(null, 'database', JSON.stringify(tasksSchema()))
+    const patch = { title: 'Tâches', icon: '✅' }
+    await repo.updateObject(db.id, patch)
+    set((s) => ({ objects: [...s.objects, { ...db, ...patch }], selectedId: db.id, view: 'page' }))
+  },
+
+  async createFromTemplate(templateId) {
+    const repo = get().repo
+    const tpl = PAGE_TEMPLATES.find((t) => t.id === templateId)
+    if (!repo || !tpl) return
+    const page = await repo.createPage(null)
+    const patch = { title: tpl.title(), icon: tpl.icon, content: JSON.stringify(tpl.content) }
+    await repo.updateObject(page.id, patch)
+    set((s) => ({ objects: [...s.objects, { ...page, ...patch }], selectedId: page.id, view: 'page' }))
   },
 
   async createRow(databaseId, values) {

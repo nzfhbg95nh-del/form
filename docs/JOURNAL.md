@@ -50,3 +50,10 @@
 - Propriété « Relation » (lien vers les lignes d'une autre base, y compris la même) et « Fichiers » (enregistrés dans la base, 10 Mo max chacun).
 - Tests : groupements et grille du calendrier.
 - Reste de la phase 1 : étape 4 (tâches + rappels + modèles de pages), 5 (Ctrl+K, capture rapide), 6 (import Notion).
+
+## 2026-10-04 — Phase 1, étape 4 : tâches, rappels, modèles de pages (v0.6.0)
+- Menu « Nouveau… » dans la barre latérale : page vide, note rapide, recette, projet, base de données vide, base de tâches.
+- Base de tâches prête à l'emploi : Statut (À faire / En cours / Fait), Échéance, Priorité ; vues « À faire » (triée par échéance, sans les tâches faites), Kanban, Calendrier.
+- Rappels : notification Windows (plugin Tauri notification) pour les tâches dont l'échéance est aujourd'hui ou dépassée. Vérification au démarrage, toutes les 30 min et au retour de la fenêtre ; une tâche n'est rappelée qu'une fois par jour ; interrupteur + bouton de test dans Réglages. Fonctionne seulement app ouverte.
+- Tests : recherche des tâches à rappeler, anti-doublon, texte de la notification.
+- Reste de la phase 1 : étape 5 (Ctrl+K, capture rapide par raccourci global), étape 6 (import Notion).

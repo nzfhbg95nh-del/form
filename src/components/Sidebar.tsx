@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { ChevronRight, Database, FileText, Moon, Plus, Settings, Sun, Trash2 } from 'lucide-react'
+import { CheckSquare, ChevronRight, Database, FileText, Moon, Plus, Settings, Sun, Trash2 } from 'lucide-react'
+import { PAGE_TEMPLATES } from '@/lib/templates'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
@@ -114,7 +115,8 @@ function TreeItem({
 }
 
 export function Sidebar() {
-  const { objects, view, show, select, selectedId, createPage, createDatabase, theme, toggleTheme } = useApp()
+  const { objects, view, show, select, selectedId, createPage, createDatabase, createTasks, createFromTemplate, theme, toggleTheme } = useApp()
+  const [menu, setMenu] = useState(false)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const roots = childrenOf(objects, null)
   const favorites = objects.filter((o) => (o.type === 'page' || o.type === 'database') && !o.deleted_at && o.is_favorite)
@@ -140,12 +142,27 @@ export function Sidebar() {
         {roots.map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} />)}
         {roots.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
       </div>
-      <Item onClick={() => void createPage()}>
-        <Plus size={14} /> Nouvelle page
-      </Item>
-      <Item onClick={() => void createDatabase()}>
-        <Database size={14} /> Nouvelle base de données
-      </Item>
+      <div className="relative">
+        <Item onClick={() => setMenu(!menu)}>
+          <Plus size={14} /> Nouveau…
+        </Item>
+        {menu && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={() => setMenu(false)} />
+            <div className="absolute bottom-full left-0 z-20 mb-1 w-56 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-lg">
+              <Item onClick={() => { setMenu(false); void createPage() }}><FileText size={14} /> Page vide</Item>
+              {PAGE_TEMPLATES.map((t) => (
+                <Item key={t.id} onClick={() => { setMenu(false); void createFromTemplate(t.id) }}>
+                  <span className="w-3.5 text-center">{t.icon}</span> {t.label}
+                </Item>
+              ))}
+              <div className="my-1 border-t border-[var(--border)]" />
+              <Item onClick={() => { setMenu(false); void createDatabase() }}><Database size={14} /> Base de données vide</Item>
+              <Item onClick={() => { setMenu(false); void createTasks() }}><CheckSquare size={14} /> Base de tâches</Item>
+            </div>
+          </>
+        )}
+      </div>
 
       <div className="mt-2 border-t border-[var(--border)] pt-2">
         <Item active={view === 'trash'} onClick={() => show('trash')}>

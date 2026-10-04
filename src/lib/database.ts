@@ -84,6 +84,8 @@ export function makeView(type: ViewType): ViewConfig {
 export interface Schema {
   columns: Column[]
   views: ViewConfig[]
+  /** Base de tâches (kind = tasks) : surveillée par les rappels. */
+  kind?: 'tasks'
 }
 
 /** La colonne « Nom » existe toujours : c'est le titre de chaque ligne. */

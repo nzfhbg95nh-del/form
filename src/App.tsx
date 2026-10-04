@@ -4,11 +4,14 @@ import { PageView } from '@/components/PageView'
 import { SettingsView } from '@/components/SettingsView'
 import { Sidebar } from '@/components/Sidebar'
 import { TrashView } from '@/components/TrashView'
+import { useReminders } from '@/lib/useReminders'
 import { useApp } from '@/store/app'
 
 export default function App() {
   const { init, view, error, backupMessage, repo, objects, selectedId } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
+
+  useReminders()
 
   useEffect(() => {
     void init()

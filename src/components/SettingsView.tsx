@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { backupFileName, joinPath, todayISO } from '@/lib/backup'
+import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
 
@@ -9,11 +10,13 @@ export function SettingsView() {
   const [dir, setDir] = useState<string | null>(null)
   const [last, setLast] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
+  const [reminders, setReminders] = useState(true)
   const desktop = isTauri()
 
   useEffect(() => {
     void repo?.getSetting('backup_dir').then(setDir)
     void repo?.getSetting('last_backup_date').then(setLast)
+    void repo?.getSetting('reminders_enabled').then((v) => setReminders(v !== '0'))
   }, [repo])
 
   const run = async (fn: () => Promise<string | void>) => {
@@ -64,6 +67,29 @@ export function SettingsView() {
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
       <h1 className="mb-6 text-3xl font-bold">Réglages</h1>
+
+      <h2 className="mb-2 text-lg font-semibold">Rappels de tâches</h2>
+      <label className="mb-2 flex items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={reminders}
+          onChange={(e) => {
+            setReminders(e.target.checked)
+            void repo?.setSetting('reminders_enabled', e.target.checked ? '1' : '0')
+          }}
+        />
+        Me prévenir par une notification Windows quand une tâche arrive à échéance
+      </label>
+      <p className="mb-2 text-xs text-[var(--fg-muted)]">
+        Les rappels ne fonctionnent que lorsque Form est ouvert. Une tâche n'est rappelée qu'une fois par jour.
+      </p>
+      <button
+        className="mb-8 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40"
+        disabled={!desktop}
+        onClick={() => void run(async () => ((await notify('Form', 'Les notifications fonctionnent.')) ? 'Notification envoyée.' : "Impossible d'envoyer la notification : vérifie que Windows autorise les notifications pour Form."))}
+      >
+        Envoyer une notification de test
+      </button>
 
       <h2 className="mb-2 text-lg font-semibold">Sauvegarde</h2>
       {!desktop && (
