@@ -235,3 +235,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Le cadre `/moodboard` utilise une version allégée : seulement « Images » et « Ajuster » (on peut toujours déposer ou coller des images, double-cliquer pour une note, zoomer à la molette, déplacer la toile) ; plus de barre du bas, de palette, d'organisation, de fonds.
 - Poignée en bas du cadre : glisser pour agrandir ou réduire (160 à 1600 px), hauteur mémorisée dans la page. Remplace les boutons Agrandir / Réduire.
 - « Ouvrir en pleine page ↗ » ouvre la version complète.
+
+## 2026-10-05 — Finitions façon Notion (v0.25.0)
+- Menu « ⋯ » de la page (en haut à droite) : police (par défaut, serif, mono), texte réduit, pleine largeur, verrouiller la page (lecture seule, titre compris), copier le lien, dupliquer, exporter en Markdown (boîte « Enregistrer sous »). Réglages gardés dans `properties.ui` de la page (autres propriétés intactes) ; non proposés pour les lignes de base de données.
+- Mentions : taper `@` puis le nom d'une page ouvre une liste (sans accents, 10 résultats) ; la mention est un lien cliquable au milieu du texte (bloc en ligne `mention`), qui suit le titre et l'icône de la page.
+- Bloc « Table des matières » (menu /, mot « sommaire ») : titres de la page (niveaux 1 à 4, indentés), cliquables, mis à jour pendant la frappe.
+- Tests : 185 (réglages de page, noms de fichiers d'export).
+- Non fait, à prioriser : bases de données intégrées dans une page, rétroliens (« mentionné dans »), aperçu de lien web, équation, bouton, export PDF, onglet « Icônes », partage/publication (hors sujet : app locale).

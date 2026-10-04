@@ -32,3 +32,11 @@ body {
   background: rgba(77, 163, 255, 0.22);
   border-radius: 4px;
 }
+
+/* Texte réduit (option « Texte réduit » du menu d'une page). */
+.page-small .bn-editor {
+  font-size: 14px;
+}
+.page-small .bn-editor [data-content-type='heading'] {
+  zoom: 0.9;
+}

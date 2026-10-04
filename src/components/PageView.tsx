@@ -8,6 +8,8 @@ import { PageEditor } from '@/components/PageEditor'
 import { CoverPicker, coverStyle, IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
 import { Icon } from '@/components/Icon'
+import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
+import { parsePageStyle } from '@/lib/pageStyle'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
@@ -58,6 +60,8 @@ export function PageView({ pageId }: { pageId?: string }) {
       if (p) void update(p.id, p.patch)
     }, 400)
   }
+
+  const ui = page.type === 'row' ? parsePageStyle(null) : parsePageStyle(page.properties)
 
   // Chemin de la page : Parent › Sous-parent
   const trail: string[] = []
@@ -139,7 +143,10 @@ export function PageView({ pageId }: { pageId?: string }) {
         />
       )}
       {page.cover && <div className="h-48 w-full" style={coverStyle(page.cover)} />}
-      <div className="mx-auto max-w-3xl px-12 py-8">
+      <div
+        className={'mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '')}
+        style={{ '--bn-font-family': pageFontFamily(ui.font), fontFamily: pageFontFamily(ui.font) } as React.CSSProperties}
+      >
         {trail.length > 0 && (
           <div className="mb-3 flex flex-wrap gap-1 text-xs text-[var(--fg-muted)]">
             {trail.map((id) => {
@@ -154,10 +161,12 @@ export function PageView({ pageId }: { pageId?: string }) {
         )}
         <div className="mb-2 flex items-center justify-between">
           <div className="flex gap-1 text-[var(--fg-muted)]">
-            <IconPicker value={page.icon} onChange={(icon) => void update(page.id, { icon })} />
-            <CoverPicker value={page.cover} onChange={(cover) => void update(page.id, { cover })} />
+            {!ui.locked && <IconPicker value={page.icon} onChange={(icon) => void update(page.id, { icon })} />}
+            {!ui.locked && <CoverPicker value={page.cover} onChange={(cover) => void update(page.id, { cover })} />}
+            {ui.locked && <span className="px-2 py-1 text-sm">🔒 Page verrouillée</span>}
           </div>
           <div className="flex gap-1">
+            {page.type !== 'row' && <PageStyleMenu page={page} editorRef={editorRef} />}
             <button
               title="Favori"
               onClick={() => void update(page.id, { is_favorite: page.is_favorite ? 0 : 1 })}
@@ -177,6 +186,7 @@ export function PageView({ pageId }: { pageId?: string }) {
         {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
         <input
           value={title}
+          readOnly={ui.locked}
           placeholder="Sans titre"
           onChange={(e) => {
             setTitle(e.target.value)
@@ -211,7 +221,7 @@ export function PageView({ pageId }: { pageId?: string }) {
           )
         })()}
         <div className="-mx-12 mt-4">
-          <PageEditor key={page.id} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
+          <PageEditor key={page.id} editable={!ui.locked} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
       </div>
     </div>
