@@ -135,7 +135,7 @@ interface AppState {
   createTasks(): Promise<void>
   createMoodboard(): Promise<void>
   /** Crée un moodboard enfant de la page (sans l'ouvrir) pour l'intégrer dans son contenu ; renvoie son identifiant. */
-  createEmbeddedMoodboard(parentId: string | null): Promise<string | null>
+  createEmbeddedChild(parentId: string | null, kind: 'page' | 'database' | 'moodboard'): Promise<string | null>
   /** Fenêtre de l'assistant IA : null = fermée. */
   assistantMode: AiMode | null
   setAssistant(mode: AiMode | null): void
@@ -607,15 +607,17 @@ export const useApp = create<AppState>((set, get) => ({
     get().select(board.id)
   },
 
-  async createEmbeddedMoodboard(parentId) {
+  async createEmbeddedChild(parentId, kind) {
     const repo = get().repo
     if (!repo) return null
-    const board = await repo.createPage(parentId, 'moodboard')
-    const patch = { title: 'Moodboard', icon: '🖼️' }
-    await repo.updateObject(board.id, patch)
+    const created = kind === 'database'
+      ? await repo.createPage(parentId, 'database', JSON.stringify(defaultSchema()))
+      : kind === 'moodboard' ? await repo.createPage(parentId, 'moodboard') : await repo.createPage(parentId)
+    const patch = kind === 'moodboard' ? { title: 'Moodboard', icon: '🖼️' } : {}
+    if (kind === 'moodboard') await repo.updateObject(created.id, patch)
     if (parentId) get().toggleExpanded(parentId, true)
-    set((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
-    return board.id
+    set((s) => ({ objects: [...s.objects, { ...created, ...patch }] }))
+    return created.id
   },
 
   setAssistant(mode) {

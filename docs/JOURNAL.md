@@ -217,3 +217,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Menu « / » > « Moodboard » : insère dans la page un cadre contenant un moodboard complet (mêmes outils que la page moodboard). Le moodboard est une vraie page enfant de la page courante (visible dans la barre latérale), donc rien n'est dupliqué.
 - Dans le cadre : « Agrandir / Réduire » (440 ou 760 px de haut) et « Ouvrir en pleine page ↗ » qui ouvre le même moodboard dans l'espace entier. Si le moodboard est supprimé, le cadre l'indique.
 - Non testé : copie d'une page contenant un cadre (le cadre pointe alors vers le même moodboard).
+
+## 2026-10-05 — Menu « / » façon Notion (v0.23.0)
+- Nouveau menu `/` compact : sections (Blocs de base, Médias, Base de données), icône, nom, raccourci à droite, pied « Fermer le menu · esc ».
+- Contenu : Texte, Titres 1 à 4, listes (puces, numérotée, tâches, tâche avec statut), menu déroulant, Page, Encadré, Citation, Tableau, Séparateur, Code, titres déroulants 1 à 3, 2 à 5 colonnes, Image, Vidéo, Audio, Fichier, Moodboard, Base de données – Pleine page.
+- « Page » et « Base de données – Pleine page » créent une page enfant et insèrent un lien (bloc `subpage`) qui l'ouvre, comme Notion.
+- Correctif : le clic de souris sur un élément du menu ne faisait rien (le menu se fermait à l'appui). Le bloc est maintenant inséré dès l'appui. Le menu passait aussi derrière le cadre moodboard : corrigé.
+- Pas repris de Notion (pas d'équivalent dans Form pour l'instant) : bases intégrées dans la page, vues liées, graphiques, formulaire, table des matières, équation, bouton, aperçu de lien web, blocs synchronisés, onglets, aperçu à droite au survol.
