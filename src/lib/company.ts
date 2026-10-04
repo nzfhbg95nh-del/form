@@ -96,13 +96,10 @@ export function cleanSiret(value: string): string {
   return value.replace(/\D/g, '')
 }
 
-/** Clé de contrôle des SIRET (algorithme de Luhn). Les SIRET de La Poste font exception. */
-export function siretChecksumOk(siret: string): boolean {
-  const s = cleanSiret(siret)
-  if (s.length !== 14) return false
-  if (s.startsWith('356000000')) return [...s].reduce((a, c) => a + Number(c), 0) % 5 === 0
+/** Algorithme de Luhn : sert de clé de contrôle aux SIREN et SIRET. */
+export function luhnOk(digits: string): boolean {
   let total = 0
-  for (const [i, c] of [...s].reverse().entries()) {
+  for (const [i, c] of [...digits].reverse().entries()) {
     let d = Number(c)
     if (i % 2 === 1) {
       d *= 2
@@ -111,6 +108,19 @@ export function siretChecksumOk(siret: string): boolean {
     total += d
   }
   return total % 10 === 0
+}
+
+/** Clé de contrôle des SIRET. Les SIRET de La Poste font exception. */
+export function siretChecksumOk(siret: string): boolean {
+  const s = cleanSiret(siret)
+  if (s.length !== 14) return false
+  if (s.startsWith('356000000')) return [...s].reduce((a, c) => a + Number(c), 0) % 5 === 0
+  return luhnOk(s)
+}
+
+export function sirenChecksumOk(siren: string): boolean {
+  const s = cleanSiret(siren)
+  return s.length === 9 && luhnOk(s)
 }
 
 /** Mentions légales qui manquent pour pouvoir ÉMETTRE une facture (un brouillon reste possible). */

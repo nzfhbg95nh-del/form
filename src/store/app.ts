@@ -7,9 +7,16 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
-import type { ObjectPatch, ObjectRow, Repo } from '@/lib/types'
+import { withDerivedSiren } from '@/lib/business'
+import type { Client, ObjectPatch, ObjectRow, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services'
+
+/** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
+export interface Editing {
+  kind: 'client' | 'service'
+  id: string | null
+}
 export type Theme = 'light' | 'dark'
 
 function initialTheme(): Theme {
@@ -35,6 +42,12 @@ const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database'
 interface AppState {
   repo: Repo | null
   objects: ObjectRow[]
+  clients: Client[]
+  services: Service[]
+  editing: Editing | null
+  setEditing(e: Editing | null): void
+  saveClient(client: Client): Promise<void>
+  saveService(service: Service): Promise<void>
   /** Page affichée = celle de l'onglet actif. */
   selectedId: string | null
   tabs: Tabs
@@ -86,6 +99,9 @@ interface AppState {
 export const useApp = create<AppState>((set, get) => ({
   repo: null,
   objects: [],
+  clients: [],
+  services: [],
+  editing: null,
   selectedId: null,
   tabs: { ids: [], active: 0 },
   peekId: null,
@@ -106,9 +122,10 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
+      const [clients, services] = await Promise.all([repo.listClients(), repo.listServices()])
       const first = objects.find((o) => !o.deleted_at && isPageLike(o))
       set({
-        repo, objects,
+        repo, objects, clients, services,
         selectedId: first?.id ?? null,
         tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
       })
@@ -194,6 +211,30 @@ export const useApp = create<AppState>((set, get) => ({
 
   show(view) {
     set({ view })
+  },
+
+  setEditing(editing) {
+    set({ editing })
+  },
+
+  async saveClient(client) {
+    const repo = get().repo
+    if (!repo) return
+    const saved = { ...withDerivedSiren(client), updated_at: new Date().toISOString() }
+    await repo.saveClient(saved)
+    set((s) => ({
+      clients: s.clients.some((c) => c.id === saved.id) ? s.clients.map((c) => (c.id === saved.id ? saved : c)) : [...s.clients, saved],
+    }))
+  },
+
+  async saveService(service) {
+    const repo = get().repo
+    if (!repo) return
+    const saved = { ...service, updated_at: new Date().toISOString() }
+    await repo.saveService(saved)
+    set((s) => ({
+      services: s.services.some((x) => x.id === saved.id) ? s.services.map((x) => (x.id === saved.id ? saved : x)) : [...s.services, saved],
+    }))
   },
 
   toggleExpanded(id, value) {

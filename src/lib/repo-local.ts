@@ -1,4 +1,4 @@
-import type { ObjectPatch, ObjectRow, Repo } from './types'
+import type { Client, ObjectPatch, ObjectRow, Repo, Service } from './types'
 
 /** Version « navigateur » : sert uniquement à tester l'interface sans l'app Windows. */
 export function createLocalRepo(): Repo {
@@ -8,7 +8,24 @@ export function createLocalRepo(): Repo {
   const save = (r: ObjectRow[]) => localStorage.setItem(K, JSON.stringify(r))
   const settings = (): Record<string, string> => JSON.parse(localStorage.getItem(S) ?? '{}')
 
+  const table = <T extends { id: string }>(key: string) => ({
+    list: (): T[] => JSON.parse(localStorage.getItem(key) ?? '[]'),
+    upsert(row: T) {
+      const rows = this.list()
+      const i = rows.findIndex((r) => r.id === row.id)
+      if (i >= 0) rows[i] = row
+      else rows.push(row)
+      localStorage.setItem(key, JSON.stringify(rows))
+    },
+  })
+  const clients = table<Client>('form-dev-clients')
+  const services = table<Service>('form-dev-services')
+
   return {
+    async listClients() { return clients.list() },
+    async saveClient(c: Client) { clients.upsert(c) },
+    async listServices() { return services.list() },
+    async saveService(s: Service) { services.upsert(s) },
     async listObjects() { return load() },
     async createPage(parentId: string | null = null, type = 'page', properties = '{}') {
       const t = new Date().toISOString()

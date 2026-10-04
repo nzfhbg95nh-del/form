@@ -10,6 +10,12 @@ pub fn run() {
         description: "objets_et_reglages",
         sql: include_str!("../migrations/001_objets_et_reglages.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 2,
+        description: "clients_et_prestations",
+        sql: include_str!("../migrations/002_clients_et_prestations.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()

@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { ClientsView, ServicesView } from '@/components/BusinessViews'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
@@ -82,6 +83,8 @@ export default function App() {
             {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : <PageView />)}
             {view === 'trash' && <TrashView />}
             {view === 'settings' && <SettingsPage />}
+            {view === 'clients' && <ClientsView />}
+            {view === 'services' && <ServicesView />}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>

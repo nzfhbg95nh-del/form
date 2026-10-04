@@ -1,11 +1,26 @@
 import Database from '@tauri-apps/plugin-sql'
-import type { ObjectPatch, ObjectRow, Repo } from './types'
+import { buildUpsert, CLIENT_COLUMNS, SERVICE_COLUMNS } from './sql'
+import type { Client, ObjectPatch, ObjectRow, Repo, Service } from './types'
 
 export async function createSqlRepo(): Promise<Repo> {
   const db = await Database.load('sqlite:form.db')
   const now = () => new Date().toISOString()
 
   return {
+    async listClients() {
+      return db.select<Client[]>('SELECT * FROM clients ORDER BY lower(company_name || name)')
+    },
+    async saveClient(client: Client) {
+      const row = client as unknown as Record<string, unknown>
+      await db.execute(buildUpsert('clients', CLIENT_COLUMNS), CLIENT_COLUMNS.map((c) => row[c] ?? null))
+    },
+    async listServices() {
+      return db.select<Service[]>('SELECT * FROM services ORDER BY lower(label)')
+    },
+    async saveService(service: Service) {
+      const row = service as unknown as Record<string, unknown>
+      await db.execute(buildUpsert('services', SERVICE_COLUMNS), SERVICE_COLUMNS.map((c) => row[c] ?? null))
+    },
     async listObjects() {
       return db.select<ObjectRow[]>('SELECT * FROM objects ORDER BY position, created_at')
     },

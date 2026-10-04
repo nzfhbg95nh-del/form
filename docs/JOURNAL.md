@@ -83,3 +83,12 @@
 - Modèles de Victor (devis rose, facture bleue, acompte blanc) : à reproduire en PDF aux étapes 3 et 4, avec TVA remplacée par la mention de franchise, « date d'échéance » + « date de la prestation », pénalités / 40 € / escompte en bas des factures, sans bloc de signature sur les factures.
 - Tests : mention de TVA, SIRET (clé de contrôle), champs obligatoires, CGV.
 - Prochaine étape : 2 (clients et catalogue de prestations).
+
+## 2026-10-04 — Phase 2, étape 2 : clients et prestations (v0.10.0)
+- Nouvelle section « Mon entreprise » dans la barre latérale : Clients, Prestations.
+- Clients : professionnel / particulier, raison sociale, nom, SIREN (déduit du SIRET), SIRET, n° de TVA intracommunautaire, adresse, pays, e-mail, téléphone, contact, notes. Contrôle des clés SIREN/SIRET, avertissement pour clients hors France et rappel du SIREN obligatoire en 2027. Archivage au lieu de suppression (un client archivé reste sur ses documents).
+- Prestations : libellé, description, prix HT, unité (jour, heure, forfait, pièce, mois). Les prix sont stockés en CENTIMES (entiers) ; saisie « 1 234,50 » acceptée.
+- Les clients et prestations apparaissent dans la recherche Ctrl+K.
+- Base : migration 2 (tables `clients` et `services`). Un test exécute vraiment les migrations dans SQLite (module node:sqlite) pour ne jamais casser le démarrage ; la fabrication GitHub passe en Node 24 pour ça.
+- Tests : 54 au total (montants, clients, recherche, migrations SQL).
+- Prochaine étape : 3 (devis).
