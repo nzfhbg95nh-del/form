@@ -246,3 +246,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-05 — Prestation Couture (v0.26.0)
 - Nouvelle prestation « Couture » : 12 € / heure (confection, retouches, réparations), ajoutée une seule fois au catalogue, y compris pour une installation existante (réglage `default_couture_seeded`, identifiant fixe `default-couture`). Modifiable ou supprimable dans « Prestations » : une suppression n'est pas recréée.
 - Tests : 186.
+
+## 2026-10-05 — Bases de données intégrées dans les pages (v0.27.0)
+- Menu / > « Base de données – Intégrée » : crée une base (page enfant) et l'affiche dans un cadre au milieu de la page, avec toutes ses vues (tableau, liste, kanban, calendrier, galerie), filtres, tris, colonnes et lignes. Titre discret éditable, « Ouvrir en pleine page ↗ ».
+- C'est la même base que la version pleine page : tout ce qu'on change d'un côté apparaît de l'autre. Si la base est supprimée, le cadre l'indique.
+- Non fait : lier une base EXISTANTE (vue liée), pour l'instant chaque cadre crée une nouvelle base.
