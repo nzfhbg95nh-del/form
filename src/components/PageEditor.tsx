@@ -18,7 +18,7 @@ import {
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
 import {
-  CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, Lightbulb, List,
+  CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List,
   ListChecks, ListCollapse, ListOrdered, ListTree, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
@@ -41,11 +41,12 @@ const CALLOUT_BG: Record<string, [string, string]> = {
 // Bloc « Encadré » : une phrase mise en avant dans un cadre, avec une icône (cliquable pour la changer) et une couleur.
 function CalloutIcon({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   return (
-    <span contentEditable={false} data-callout-icon-wrap className="mt-0.5 shrink-0">
+    // Sans icône : le cadre reste vide (comme dans Notion) ; le sélecteur reste joignable par « Modifier l'icône ».
+    <span contentEditable={false} data-callout-icon-wrap className={value ? 'mt-0.5 shrink-0' : 'absolute left-3 top-3 h-0 w-0 overflow-visible'}>
       <IconPicker
         value={value}
         onChange={(v) => onChange(v ?? '')}
-        trigger={value ? <Icon value={value} size={22} /> : <span className="text-[var(--fg-muted)]">☺</span>}
+        trigger={value ? <Icon value={value} size={22} /> : <span className="block h-0 w-0" />}
       />
     </span>
   )
@@ -70,7 +71,8 @@ const createCallout = createReactBlockSpec(
         <div
           style={{
             display: 'flex',
-            gap: 10,
+            position: 'relative',
+            gap: props.block.props.emoji ? 10 : 0,
             width: '100%',
             padding: '12px 14px',
             borderRadius: 6,
@@ -321,6 +323,16 @@ const schema = withMultiColumn(
   }),
 )
 
+/** Pictogramme « T dans un carré arrondi » de l'encadré, comme dans Notion. */
+function CalloutGlyph() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="4" />
+      <path d="M8.5 9V8h7v1M12 8v8M10.5 16h3" />
+    </svg>
+  )
+}
+
 type Cur = { id: string; content?: unknown }
 
 /** Le bloc où l'on vient de taper « / » (à relever tout de suite, avant tout travail asynchrone). */
@@ -368,7 +380,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'todo', title: 'Tâche avec statut', aliases: ['tâche', 'tache', 'todo', 'en cours', 'statut', 'progression'], group: B, icon: ico(CircleDot), onItemClick: put({ type: 'todo' }) },
     { key: 'toggle', title: 'Menu déroulant', aliases: ['déroulant', 'deroulant', 'toggle', 'repliable', 'dépliant'], group: B, icon: ico(ListCollapse), badge: '>', onItemClick: viaDefault('toggle_list') },
     { key: 'subpage', title: 'Page', aliases: ['page', 'sous-page', 'nouvelle page'], group: B, icon: ico(FileText), onItemClick: embed('page', 'subpage') },
-    { key: 'callout', title: 'Encadré', aliases: ['encadré', 'encadre', 'callout', 'note', 'info'], group: B, icon: ico(Lightbulb), onItemClick: put({ type: 'callout' }) },
+    { key: 'callout', title: 'Encadré', aliases: ['encadré', 'encadre', 'callout', 'note', 'info'], group: B, icon: <CalloutGlyph />, onItemClick: put({ type: 'callout' }) },
     { key: 'quote', title: 'Citation', aliases: ['citation', 'quote', 'extrait'], group: B, icon: ico(QuoteIcon), badge: '"', onItemClick: viaDefault('quote') },
     { key: 'table', title: 'Tableau', aliases: ['tableau', 'table'], group: B, icon: ico(TableIcon), onItemClick: viaDefault('table') },
     { key: 'divider', title: 'Séparateur', aliases: ['séparateur', 'separateur', 'diviseur', 'ligne', 'divider'], group: B, icon: ico(Minus), badge: '---', onItemClick: viaDefault('divider') },

@@ -283,3 +283,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-05 — Tarifs sans archivage (v0.30.1)
 - Page Tarifs : plus de case « Afficher les archivés » ni de bouton « Archiver ». À la place, « Supprimer » (avec confirmation) dans la fiche d'un tarif.
 - Supprimer un tarif ne touche pas aux devis et factures déjà faits : leurs lignes gardent leur propre copie du libellé, de l'unité et du prix. L'archivage reste disponible pour les clients (leurs documents doivent rester rattachés à eux).
+
+## 2026-10-05 — Encadré : pictogramme, icône retirable, texte d'aide (v0.30.2)
+- Menu / : l'Encadré a le pictogramme « T dans un carré arrondi » comme Notion.
+- Icône supprimée (Supprimer dans le sélecteur) : le cadre reste vide, sans icône ni espace ; « Modifier l'icône » (menu ⋮⋮) la remet.
+- Encadré vide : texte d'aide « Tapez « / » pour afficher les commandes » (pas de « Espace pour l'IA » : pas d'IA dans l'éditeur).

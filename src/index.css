@@ -45,3 +45,14 @@ body {
 .bn-block-content[data-content-type='callout'][data-background-color] {
   background-color: transparent !important;
 }
+
+/* Encadré vide : texte d'aide, comme dans Notion. */
+.bn-block-content[data-content-type='callout'] [data-node-view-wrapper]:has(> .ProseMirror-trailingBreak:only-child)::before {
+  content: 'Tapez « / » pour afficher les commandes';
+  float: left;
+  height: 0;
+  white-space: nowrap;
+  color: var(--fg-muted);
+  opacity: 0.7;
+  pointer-events: none;
+}
