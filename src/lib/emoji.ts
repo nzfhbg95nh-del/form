@@ -65,7 +65,7 @@ export const SKIN_TONES = ['👋', '👋🏻', '👋🏼', '👋🏽', '👋🏾
 
 /** Nom du fichier image d'un emoji : codes Unicode en minuscules séparés par des tirets (« 1f468-200d-1f4bb »). */
 export function imageName(emoji: string): string {
-  return Array.from(emoji).map((c) => c.codePointAt(0)!.toString(16)).join('-')
+  return Array.from(emoji).map((c) => c.codePointAt(0)!.toString(16).padStart(4, '0')).join('-')
 }
 
 /** Même nom sans le sélecteur de présentation FE0F (certains fichiers n'en ont pas). */
@@ -98,8 +98,14 @@ export function randomEmoji(all: EmojiItem[], rand = Math.random): string {
   return pool[Math.floor(rand() * pool.length)]?.unicode ?? '📄'
 }
 
+/** Emojis très utiles dans un encadré, proposés en tête du sélecteur (comme dans Notion). */
+export const CALLOUT_EMOJIS = ['💡', '👉', '☝️', '👌', '🔑', '🚧', '⚠️', '🔥', '📌', '✂️', '❓', '🚫', '⛔', '⏰', '☎️', '🚨', '♻️', '✅', '🔒', '📎', '📖', '🗣️', '➡️', '📣', '🛠️', '⚙️']
+
+/** Emojis récents (Unicode 16) dont Apple n'a pas encore publié le dessin : mieux vaut ne pas les proposer. */
+const NO_APPLE_ARTWORK = new Set(['1FAEA', '1FAEF', '1FAC8', '1FACD', '1F6D8', '1FA8A', '1FA8E', '1F9D1-200D-1FA70'])
+
 /** Charge la liste française complète (en un second temps, pour ne pas alourdir le démarrage). */
 export async function loadEmojiData(): Promise<EmojiItem[]> {
   const mod = await import('emojibase-data/fr/compact.json')
-  return (mod.default as unknown as EmojiItem[]).filter((e) => e.group !== undefined && e.group !== 2)
+  return (mod.default as unknown as EmojiItem[]).filter((e) => e.group !== undefined && e.group !== 2 && !NO_APPLE_ARTWORK.has(e.hexcode))
 }
