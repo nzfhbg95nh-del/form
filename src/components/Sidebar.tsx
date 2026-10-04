@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
@@ -212,6 +212,9 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
       <AppMenu />
+      <Item active={view === 'home'} onClick={() => show('home')}>
+        <Home size={14} /> Accueil
+      </Item>
       <Item onClick={() => setSearch(true)}>
         <Search size={14} /> Rechercher
         <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
