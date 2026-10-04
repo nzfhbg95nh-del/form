@@ -15,9 +15,10 @@ import {
   blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
   type Draft,
 } from '@/lib/invoices'
-import type { Client, Invoice, InvoiceLine, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
+import { isSettled } from '@/lib/payments'
+import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -59,6 +60,10 @@ interface AppState {
   invoices: Invoice[]
   invoiceLines: InvoiceLine[]
   openInvoiceId: string | null
+  payments: Payment[]
+  /** Encaisse un paiement ; la facture passe en « payée » quand tout est réglé. */
+  addPayment(payment: Payment): Promise<void>
+  deletePayment(id: string): Promise<void>
   openInvoice(id: string | null): void
   createStandardInvoice(): Promise<void>
   createDepositInvoice(quoteId: string): Promise<void>
@@ -154,6 +159,7 @@ export const useApp = create<AppState>((set, get) => ({
   invoices: [],
   invoiceLines: [],
   openInvoiceId: null,
+  payments: [],
   editing: null,
   selectedId: null,
   tabs: { ids: [], active: 0 },
@@ -175,12 +181,12 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
-      const [clients, services, company, quotes, quoteLines, invoices, invoiceLines] = await Promise.all([
-        repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(),
+      const [clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments] = await Promise.all([
+        repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
       const first = objects.find((o) => !o.deleted_at && isPageLike(o))
       set({
-        repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines,
+        repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
         selectedId: first?.id ?? null,
         tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
       })
@@ -278,6 +284,28 @@ export const useApp = create<AppState>((set, get) => ({
 
   openInvoice(id) {
     set({ openInvoiceId: id, view: 'invoices' })
+  },
+
+  async addPayment(payment) {
+    const { repo, invoices, invoiceLines } = get()
+    const invoice = invoices.find((i) => i.id === payment.invoice_id)
+    if (!repo || !invoice) return
+    await repo.addPayment(payment)
+    const payments = await repo.listPayments()
+    if (invoice.status !== 'paid' && isSettled(invoice, invoices, invoiceLines, payments)) await repo.setInvoiceStatus(invoice.id, 'paid')
+    set({ payments, invoices: await repo.listInvoices() })
+  },
+
+  async deletePayment(id) {
+    const { repo, invoices, invoiceLines, payments: before } = get()
+    const payment = before.find((p) => p.id === id)
+    if (!repo || !payment) return
+    await repo.deletePayment(id)
+    const payments = await repo.listPayments()
+    const invoice = invoices.find((i) => i.id === payment.invoice_id)
+    // Si ce paiement soldait la facture, elle redevient « émise ».
+    if (invoice && invoice.status === 'paid' && !isSettled(invoice, invoices, invoiceLines, payments)) await repo.setInvoiceStatus(invoice.id, 'issued')
+    set({ payments, invoices: await repo.listInvoices() })
   },
 
   async createStandardInvoice() {

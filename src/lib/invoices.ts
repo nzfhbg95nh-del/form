@@ -9,19 +9,20 @@ export const KIND_LABELS: Record<InvoiceKind, string> = {
   credit: 'Avoir',
 }
 
-export type DisplayStatus = 'draft' | 'issued' | 'paid' | 'overdue' | 'credit'
+export type DisplayStatus = 'draft' | 'issued' | 'paid' | 'overdue' | 'credit' | 'cancelled'
 
 export const DISPLAY_LABELS: Record<DisplayStatus, string> = {
-  draft: 'Brouillon', issued: 'Émise', paid: 'Payée', overdue: 'En retard', credit: 'Avoir émis',
+  draft: 'Brouillon', issued: 'Émise', paid: 'Payée', overdue: 'En retard', credit: 'Avoir émis', cancelled: 'Annulée (avoir)',
 }
 export const DISPLAY_COLORS: Record<DisplayStatus, string> = {
-  draft: '#e3e2e0', issued: '#d3e5ef', paid: '#dbeddb', overdue: '#ffe2dd', credit: '#e8deee',
+  draft: '#e3e2e0', issued: '#d3e5ef', paid: '#dbeddb', overdue: '#ffe2dd', credit: '#e8deee', cancelled: '#e3e2e0',
 }
 
 /** Le statut affiché : « en retard » n'est pas enregistré, il se déduit de la date d'échéance. */
-export function displayStatus(inv: Invoice, today: string): DisplayStatus {
+export function displayStatus(inv: Invoice, today: string, fullyCredited = false): DisplayStatus {
   if (inv.status === 'draft') return 'draft'
   if (inv.kind === 'credit') return 'credit'
+  if (fullyCredited) return 'cancelled'
   if (inv.status === 'paid') return 'paid'
   return inv.due_date < today ? 'overdue' : 'issued'
 }

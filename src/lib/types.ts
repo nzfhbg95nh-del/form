@@ -127,6 +127,19 @@ export interface InvoiceLine {
   unit_price_cents: number
 }
 
+export type PaymentMethod = 'transfer' | 'card' | 'cash' | 'cheque' | 'other'
+
+export interface Payment {
+  id: string
+  invoice_id: string
+  paid_on: string
+  /** Montant encaissé en centimes (toujours positif). */
+  amount_cents: number
+  method: PaymentMethod
+  note: string
+  created_at: string
+}
+
 export interface AuditEntry {
   id: number
   at: string
@@ -156,6 +169,11 @@ export interface IssueQuoteInput {
 }
 
 export interface Repo {
+  listPayments(): Promise<Payment[]>
+  /** Enregistre un encaissement (refusé sur un brouillon ou un avoir). */
+  addPayment(payment: Payment): Promise<void>
+  /** Supprime un paiement : l'opération est inscrite au journal. */
+  deletePayment(id: string): Promise<void>
   listInvoices(): Promise<Invoice[]>
   listInvoiceLines(): Promise<InvoiceLine[]>
   saveInvoiceDraft(invoice: Invoice, lines: InvoiceLine[]): Promise<void>

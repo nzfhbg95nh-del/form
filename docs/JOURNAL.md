@@ -116,3 +116,12 @@
 - Statut « en retard » déduit de l'échéance (non enregistré). « Payée » : étape 5 (paiements).
 - Tests : 90 au total (arrondis symétriques des avoirs, acompte + solde, avoirs cumulés, chronologie, déclencheurs et journal exécutés dans SQLite).
 - Prochaine étape : 5 (paiements, relances, livre des recettes).
+
+## 2026-10-04 — Phase 2, étape 5 : paiements, relances, livre des recettes (v0.13.0)
+- Section « Paiements » : onglet « À encaisser » (reste dû, retard en jours, totaux, boutons Encaisser / Relancer) et onglet « Livre des recettes ».
+- Encaissement : date, montant (par défaut le reste dû, plafonné au reste dû), moyen (virement, carte, espèces, chèque, autre), note. Paiements partiels acceptés ; la facture passe en « Payée » quand tout est encaissé, et redevient « Émise » si on supprime le paiement qui la soldait. Un avoir réduit le montant dû ; une facture annulée en totalité par avoir est « Annulée (avoir) ».
+- Paiements gérés dans la base (migration 5) : refusés sur brouillon et sur avoir, montant > 0, non modifiables (suppression puis nouvelle saisie), chaque ajout / suppression inscrit au journal d'audit par déclencheurs SQL.
+- Relances : à l'échéance + 7 jours (réglable), Form prépare un e-mail (objet et texte modifiables dans Réglages > Entreprise > Relances, mots remplacés automatiquement) : « Ouvrir dans ma messagerie » (mailto via plugin opener) ou « Copier le message ». RIEN n'est envoyé par Form ; chaque préparation est inscrite au journal. Notification Windows quotidienne « N factures à relancer » (comme pour les tâches, app ouverte).
+- Livre des recettes : encaissements d'une année en ordre chronologique (date, client, n° de facture, moyen, montant), total, histogramme par mois, export CSV (Excel français : ; et virgule décimale, BOM UTF-8) et export PDF.
+- Tests : 102 au total (reste dû, avoirs, factures à relancer, message de relance, livre, CSV, déclencheurs de paiement dans SQLite).
+- Prochaine étape : 6 (tableau de bord, plafonds de CA et seuil de franchise de TVA).

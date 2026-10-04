@@ -4,6 +4,7 @@ import {
   companyWarnings, defaultCompany, loadCompany, missingForIssuing, saveCompany, vatMention, type Company,
 } from '@/lib/company'
 import { DEFAULT_CGV, DEFAULT_CGV_DATE } from '@/lib/cgv'
+import { REMINDER_FIELDS } from '@/lib/payments'
 import { todayISO } from '@/lib/backup'
 import { useApp } from '@/store/app'
 
@@ -52,7 +53,7 @@ export function CompanySettings() {
   const text = (key: 'legalName' | 'tradeName' | 'statusMention' | 'siret' | 'street' | 'postalCode' | 'city' | 'country' | 'phone' | 'email' | 'iban' | 'bic') => (
     <input className={field} value={company[key]} onChange={(e) => set(key, e.target.value)} />
   )
-  const num = (key: 'paymentDays' | 'quoteValidityDays' | 'depositPercent' | 'recoveryFee') => (
+  const num = (key: 'paymentDays' | 'quoteValidityDays' | 'depositPercent' | 'recoveryFee' | 'reminderAfterDays') => (
     <input
       className={field}
       type="number"
@@ -147,6 +148,18 @@ export function CompanySettings() {
         <input type="checkbox" checked={company.foreignClientMentionConfirmed} onChange={(e) => set('foreignClientMentionConfirmed', e.target.checked)} />
         Cette mention a été confirmée par un comptable
       </label>
+
+      <h2 className="mb-2 mt-4 text-lg font-semibold">Relances de paiement</h2>
+      <p className="mb-2 text-xs text-[var(--fg-muted)]">
+        Form te propose de relancer une facture impayée quelques jours après son échéance. Il prépare le message : c'est toi qui l'envoies. Mots remplacés automatiquement : {REMINDER_FIELDS.join(' ')}.
+      </p>
+      <Row label="Proposer une relance après (jours de retard)">{num('reminderAfterDays')}</Row>
+      <Row label="Objet du message">
+        <input className={field} value={company.reminderSubject} onChange={(e) => set('reminderSubject', e.target.value)} />
+      </Row>
+      <Row label="Texte du message">
+        <textarea className={field + ' h-48 text-xs'} value={company.reminderBody} onChange={(e) => set('reminderBody', e.target.value)} />
+      </Row>
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Logo</h2>
       <div className="mb-6 flex items-center gap-3">

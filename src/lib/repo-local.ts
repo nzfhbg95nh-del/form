@@ -1,5 +1,5 @@
 import { nextNumber } from './quotes'
-import type { AuditEntry, Client, Invoice, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
+import type { AuditEntry, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 /** Version « navigateur » : sert uniquement à tester l'interface sans l'app Windows. */
 export function createLocalRepo(): Repo {
@@ -19,6 +19,7 @@ export function createLocalRepo(): Repo {
       localStorage.setItem(key, JSON.stringify(rows))
     },
   })
+  const payments = table<Payment>('form-dev-payments')
   const invoices = table<Invoice>('form-dev-invoices')
   const invoiceLines = table<InvoiceLine>('form-dev-invoice-lines')
   const readAudit = (): AuditEntry[] => JSON.parse(localStorage.getItem('form-dev-audit') ?? '[]')
@@ -32,6 +33,21 @@ export function createLocalRepo(): Repo {
   const services = table<Service>('form-dev-services')
 
   return {
+    async listPayments() { return payments.list() },
+    async addPayment(payment: Payment) {
+      const invoice = invoices.list().find((i) => i.id === payment.invoice_id)
+      if (!invoice?.number || invoice.kind === 'credit') throw new Error('Un paiement ne peut être enregistré que sur une facture émise (pas sur un avoir).')
+      if (payment.amount_cents <= 0) throw new Error('Le montant doit être positif.')
+      payments.upsert(payment)
+      addAudit({ entity: 'invoice', entity_id: invoice.id, number: invoice.number, action: 'payment', detail: `Paiement de ${(payment.amount_cents / 100).toFixed(2)} EUR reçu le ${payment.paid_on} (${payment.method})` })
+    },
+    async deletePayment(id: string) {
+      const payment = payments.list().find((p) => p.id === id)
+      if (!payment) return
+      localStorage.setItem('form-dev-payments', JSON.stringify(payments.list().filter((p) => p.id !== id)))
+      const invoice = invoices.list().find((i) => i.id === payment.invoice_id)
+      addAudit({ entity: 'invoice', entity_id: payment.invoice_id, number: invoice?.number ?? null, action: 'payment_deleted', detail: `Paiement supprimé : ${(payment.amount_cents / 100).toFixed(2)} EUR du ${payment.paid_on} (${payment.method})` })
+    },
     async listInvoices() { return invoices.list() },
     async listInvoiceLines() { return invoiceLines.list() },
     async saveInvoiceDraft(invoice: Invoice, lines: InvoiceLine[]) {

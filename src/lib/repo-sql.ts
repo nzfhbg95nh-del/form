@@ -1,12 +1,22 @@
 import Database from '@tauri-apps/plugin-sql'
-import { buildUpsert, CLIENT_COLUMNS, INVOICE_COLUMNS, INVOICE_LINE_COLUMNS, ISSUE_INVOICE_SQL, ISSUE_QUOTE_SQL, QUOTE_COLUMNS, QUOTE_LINE_COLUMNS, SERVICE_COLUMNS } from './sql'
-import type { AuditEntry, Client, Invoice, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
+import { buildInsert, buildUpsert, CLIENT_COLUMNS, PAYMENT_COLUMNS, INVOICE_COLUMNS, INVOICE_LINE_COLUMNS, ISSUE_INVOICE_SQL, ISSUE_QUOTE_SQL, QUOTE_COLUMNS, QUOTE_LINE_COLUMNS, SERVICE_COLUMNS } from './sql'
+import type { AuditEntry, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 export async function createSqlRepo(): Promise<Repo> {
   const db = await Database.load('sqlite:form.db')
   const now = () => new Date().toISOString()
 
   return {
+    async listPayments() {
+      return db.select<Payment[]>('SELECT * FROM payments ORDER BY paid_on, created_at')
+    },
+    async addPayment(payment: Payment) {
+      const p = payment as unknown as Record<string, unknown>
+      await db.execute(buildInsert('payments', PAYMENT_COLUMNS), PAYMENT_COLUMNS.map((c) => p[c] ?? null))
+    },
+    async deletePayment(id: string) {
+      await db.execute('DELETE FROM payments WHERE id = $1', [id])
+    },
     async listInvoices() {
       return db.select<Invoice[]>('SELECT * FROM invoices ORDER BY created_at DESC')
     },

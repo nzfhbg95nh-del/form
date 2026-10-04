@@ -32,6 +32,10 @@ export interface Company {
   foreignClientMentionConfirmed: boolean
   cgv: string
   cgvDate: string
+  /** Relance de paiement : nombre de jours après l'échéance, objet et texte du message (voir REMINDER_FIELDS). */
+  reminderAfterDays: number
+  reminderSubject: string
+  reminderBody: string
 }
 
 /**
@@ -64,6 +68,21 @@ export function defaultCompany(): Company {
     foreignClientMentionConfirmed: false,
     cgv: DEFAULT_CGV,
     cgvDate: DEFAULT_CGV_DATE,
+    reminderAfterDays: 7,
+    reminderSubject: 'Rappel de paiement : facture {numero}',
+    reminderBody: [
+      'Bonjour,',
+      '',
+      "Sauf erreur de ma part, la facture {numero} d'un montant de {montant}, échue le {echeance}, n'a pas encore été réglée ({retard} de retard).",
+      '',
+      'Pourriez-vous procéder au règlement par virement sur le compte suivant :',
+      'IBAN {iban}',
+      '',
+      "Si le paiement a déjà été effectué, merci de ne pas tenir compte de ce message.",
+      '',
+      'Cordialement,',
+      '{entreprise}',
+    ].join('\n'),
   }
 }
 

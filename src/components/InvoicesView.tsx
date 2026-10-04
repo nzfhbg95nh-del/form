@@ -10,6 +10,8 @@ import type { InvoicePdfData } from '@/lib/pdf/invoicePdf'
 import { savePdf } from '@/lib/pdf/savePdf'
 import { addDays, formatDateFr, lineTotalCents } from '@/lib/quotes'
 import { todayISO } from '@/lib/backup'
+import { isFullyCredited, remainingCents } from '@/lib/payments'
+import { InvoicePayments } from '@/components/PaymentParts'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import { LineRow } from '@/components/QuotesView'
@@ -41,7 +43,8 @@ export function InvoicesView() {
   if (openInvoiceId) return <InvoiceEditor key={openInvoiceId} id={openInvoiceId} onBack={() => openInvoice(null)} />
 
   const today = todayISO()
-  const shown = invoices.filter((i) => (status === 'all' || displayStatus(i, today) === status) && (kind === 'all' || i.kind === kind))
+  const st = (i: Invoice) => displayStatus(i, today, isFullyCredited(i, invoices, invoiceLines))
+  const shown = invoices.filter((i) => (status === 'all' || st(i) === status) && (kind === 'all' || i.kind === kind))
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Factures</h1>
@@ -74,7 +77,7 @@ export function InvoicesView() {
           {shown.map((i) => {
             const client = clients.find((c) => c.id === i.client_id)
             const total = invoiceTotalCents(invoiceLines.filter((l) => l.invoice_id === i.id))
-            const st = displayStatus(i, today)
+            const status = st(i)
             return (
               <tr key={i.id} onClick={() => openInvoice(i.id)} className="cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
                 <td className="py-2 pr-3 font-medium">{i.number ?? <span className="text-[var(--fg-muted)]">Brouillon</span>}</td>
@@ -83,7 +86,7 @@ export function InvoicesView() {
                 <td className="pr-3">{formatDateFr(i.issue_date)}</td>
                 <td className="pr-3">{i.kind === 'credit' ? '—' : formatDateFr(i.due_date)}</td>
                 <td className="pr-3 text-right tabular-nums">{formatEuros(total)}</td>
-                <td className="pl-3"><Chip label={DISPLAY_LABELS[st]} color={DISPLAY_COLORS[st]} /></td>
+                <td className="pl-3"><Chip label={DISPLAY_LABELS[status]} color={DISPLAY_COLORS[status]} /></td>
               </tr>
             )
           })}
@@ -123,7 +126,7 @@ function ActivityLog({ id, version }: { id: string; version: string }) {
 
 function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
   const store = useApp()
-  const { clients, services, company, invoices, invoiceLines, quotes, repo } = store
+  const { clients, services, company, invoices, invoiceLines, quotes, repo, payments } = store
   const stored = invoices.find((i) => i.id === id)
   const [invoice, setInvoice] = useState<Invoice | null>(stored ?? null)
   const [lines, setLines] = useState<InvoiceLine[]>(() => invoiceLines.filter((l) => l.invoice_id === id).sort((a, b) => a.position - b.position))
@@ -181,7 +184,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
   if (!invoice) return <div className="p-10"><button className={secondary} onClick={onBack}>← Retour</button><p className="mt-4">Cette facture n'existe plus.</p></div>
 
   const today = todayISO()
-  const st = displayStatus(invoice, today)
+  const st = displayStatus(invoice, today, isFullyCredited(invoice, invoices, invoiceLines))
   const patch = (p: Partial<Invoice>) => { dirty.current = true; setInvoice({ ...invoice, ...p }) }
   const patchLines = (next: InvoiceLine[]) => { dirty.current = true; setLines(next) }
   const run = async (fn: () => Promise<unknown>) => {
@@ -324,7 +327,8 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
 
         {preview && pdfData && <PdfPreview data={pdfData} />}
-        {locked && <ActivityLog id={invoice.id} version={version + invoice.status} />}
+        {locked && !credit && <InvoicePayments invoice={invoice} remaining={remainingCents(invoice, invoices, invoiceLines, payments)} />}
+        {locked && <ActivityLog id={invoice.id} version={version + invoice.status + payments.length} />}
       </div>
     </div>
   )

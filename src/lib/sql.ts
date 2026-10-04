@@ -55,3 +55,9 @@ export const ISSUE_INVOICE_SQL = `UPDATE invoices SET
   status = 'issued', issue_date = $2, due_date = $3, snapshot = $4, updated_at = $5
 WHERE id = $6 AND number IS NULL
   AND NOT EXISTS (SELECT 1 FROM invoices WHERE number LIKE $1 || '%' AND issue_date > $2)`
+
+export const PAYMENT_COLUMNS = ['id', 'invoice_id', 'paid_on', 'amount_cents', 'method', 'note', 'created_at'] as const
+
+export function buildInsert(table: string, columns: readonly string[]): string {
+  return `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map((_, i) => `$${i + 1}`).join(', ')})`
+}

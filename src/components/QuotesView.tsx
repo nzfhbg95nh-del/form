@@ -4,6 +4,7 @@ import { centsToInput, clientDisplayName, formatEuros, parseEuros, parseSignedEu
 import { vatMention } from '@/lib/company'
 import { DISPLAY_COLORS, DISPLAY_LABELS, displayStatus, invoiceTotalCents, KIND_LABELS } from '@/lib/invoices'
 import { todayISO } from '@/lib/backup'
+import { isFullyCredited } from '@/lib/payments'
 import {
   blockersToSend, depositCents, formatDateFr, formatQuantity, isDraft, lineTotalCents, newLine, parseQuantity, parseSnapshot,
   quoteTotalCents, STATUS_COLORS, STATUS_LABELS, addDays,
@@ -403,7 +404,7 @@ function QuoteBilling({ quote }: { quote: Quote }) {
       <h2 className="mb-2 text-lg font-semibold">Facturation</h2>
       {linked.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Aucune facture pour ce devis.</p>}
       {linked.map((i) => {
-        const st = displayStatus(i, today)
+        const st = displayStatus(i, today, isFullyCredited(i, invoices, invoiceLines))
         return (
           <button key={i.id} onClick={() => openInvoice(i.id)} className="mb-1 flex w-full items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
             <span className="w-32 font-medium">{i.number ?? 'Brouillon'}</span>

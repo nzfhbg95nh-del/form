@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Briefcase, CheckSquare, FileSignature, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, FileSignature, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
 } from 'lucide-react'
 import { PageMenu } from '@/components/PageMenu'
 import { childrenOf, type DropZone } from '@/lib/tree'
@@ -229,6 +229,9 @@ export function Sidebar() {
         </Item>
         <Item active={view === 'invoices'} onClick={() => show('invoices')}>
           <Receipt size={14} /> Factures
+        </Item>
+        <Item active={view === 'payments'} onClick={() => show('payments')}>
+          <Banknote size={14} /> Paiements
         </Item>
 
         {favorites.length > 0 && (

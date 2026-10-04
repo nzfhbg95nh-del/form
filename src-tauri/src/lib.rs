@@ -28,12 +28,19 @@ pub fn run() {
         description: "factures",
         sql: include_str!("../migrations/004_factures.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 5,
+        description: "paiements",
+        sql: include_str!("../migrations/005_paiements.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_opener::init())
         .plugin(
             // Capture rapide : Ctrl + Alt + N, même quand Form n'est pas au premier plan.
             tauri_plugin_global_shortcut::Builder::new()
