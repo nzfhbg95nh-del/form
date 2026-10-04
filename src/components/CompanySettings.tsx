@@ -24,6 +24,7 @@ function useCompany() {
   const save = async (next: Company) => {
     if (!repo) return
     await saveCompany(repo, next)
+    useApp.getState().setCompany(next)
     setSaved(next)
     setMessage('Modifications enregistrées.')
     window.setTimeout(() => setMessage(null), 2500)

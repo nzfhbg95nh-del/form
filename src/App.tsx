@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { ClientsView, ServicesView } from '@/components/BusinessViews'
+import { QuotesView } from '@/components/QuotesView'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
@@ -85,6 +86,7 @@ export default function App() {
             {view === 'settings' && <SettingsPage />}
             {view === 'clients' && <ClientsView />}
             {view === 'services' && <ServicesView />}
+            {view === 'quotes' && <QuotesView />}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>

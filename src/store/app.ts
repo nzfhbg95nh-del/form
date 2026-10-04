@@ -8,9 +8,12 @@ import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
 import { withDerivedSiren } from '@/lib/business'
-import type { Client, ObjectPatch, ObjectRow, Repo, Service } from '@/lib/types'
+import { defaultCompany, loadCompany, type Company } from '@/lib/company'
+import { todayISO } from '@/lib/backup'
+import { blockersToSend, buildSnapshot, newLine, newQuote, numberPrefix } from '@/lib/quotes'
+import type { Client, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -44,6 +47,19 @@ interface AppState {
   objects: ObjectRow[]
   clients: Client[]
   services: Service[]
+  company: Company
+  quotes: Quote[]
+  quoteLines: QuoteLine[]
+  /** Devis ouvert dans l'éditeur (null = on voit la liste). */
+  openQuoteId: string | null
+  setCompany(company: Company): void
+  openQuote(id: string | null): void
+  createQuote(): Promise<void>
+  saveQuoteDraft(quote: Quote, lines: QuoteLine[]): Promise<void>
+  issueQuote(id: string): Promise<void>
+  setQuoteStatus(id: string, status: Exclude<QuoteStatus, 'draft'>): Promise<void>
+  deleteDraftQuote(id: string): Promise<void>
+  duplicateQuote(id: string): Promise<void>
   editing: Editing | null
   setEditing(e: Editing | null): void
   saveClient(client: Client): Promise<void>
@@ -101,6 +117,10 @@ export const useApp = create<AppState>((set, get) => ({
   objects: [],
   clients: [],
   services: [],
+  company: defaultCompany(),
+  quotes: [],
+  quoteLines: [],
+  openQuoteId: null,
   editing: null,
   selectedId: null,
   tabs: { ids: [], active: 0 },
@@ -122,10 +142,12 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
-      const [clients, services] = await Promise.all([repo.listClients(), repo.listServices()])
+      const [clients, services, company, quotes, quoteLines] = await Promise.all([
+        repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(),
+      ])
       const first = objects.find((o) => !o.deleted_at && isPageLike(o))
       set({
-        repo, objects, clients, services,
+        repo, objects, clients, services, company, quotes, quoteLines,
         selectedId: first?.id ?? null,
         tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
       })
@@ -215,6 +237,83 @@ export const useApp = create<AppState>((set, get) => ({
 
   setEditing(editing) {
     set({ editing })
+  },
+
+  setCompany(company) {
+    set({ company })
+  },
+
+  openQuote(id) {
+    set({ openQuoteId: id, view: 'quotes' })
+  },
+
+  async createQuote() {
+    const repo = get().repo
+    if (!repo) return
+    const quote = newQuote(get().company, todayISO())
+    await repo.saveQuoteDraft(quote, [])
+    set((s) => ({ quotes: [quote, ...s.quotes], openQuoteId: quote.id, view: 'quotes' }))
+  },
+
+  async saveQuoteDraft(quote, lines) {
+    const repo = get().repo
+    if (!repo) return
+    const saved = { ...quote, updated_at: new Date().toISOString() }
+    const ordered = lines.map((l, i) => ({ ...l, quote_id: quote.id, position: i }))
+    await repo.saveQuoteDraft(saved, ordered)
+    set((s) => ({
+      quotes: s.quotes.some((q) => q.id === saved.id) ? s.quotes.map((q) => (q.id === saved.id ? saved : q)) : [saved, ...s.quotes],
+      quoteLines: [...s.quoteLines.filter((l) => l.quote_id !== saved.id), ...ordered],
+    }))
+  },
+
+  async issueQuote(id) {
+    const { repo, quotes, quoteLines, clients, company } = get()
+    const quote = quotes.find((q) => q.id === id)
+    if (!repo || !quote) return
+    const lines = quoteLines.filter((l) => l.quote_id === id)
+    const client = clients.find((c) => c.id === quote.client_id)
+    const blockers = blockersToSend(quote, lines, client, company)
+    if (blockers.length > 0 || !client) throw new Error(blockers.join(' '))
+    const number = await repo.issueQuote({
+      id,
+      prefix: numberPrefix('D', quote.issue_date),
+      issueDate: quote.issue_date,
+      validUntil: quote.valid_until,
+      snapshot: buildSnapshot(company, client, quote.issue_date),
+    })
+    const issued = await repo.listQuotes()
+    set({ quotes: issued })
+    set({ toast: `Devis ${number} envoyé.` })
+    window.setTimeout(() => set({ toast: null }), 3000)
+  },
+
+  async setQuoteStatus(id, status) {
+    const repo = get().repo
+    if (!repo) return
+    await repo.setQuoteStatus(id, status)
+    set({ quotes: await repo.listQuotes() })
+  },
+
+  async deleteDraftQuote(id) {
+    const repo = get().repo
+    if (!repo) return
+    await repo.deleteDraftQuote(id)
+    set((s) => ({
+      quotes: s.quotes.filter((q) => q.id !== id),
+      quoteLines: s.quoteLines.filter((l) => l.quote_id !== id),
+      openQuoteId: s.openQuoteId === id ? null : s.openQuoteId,
+    }))
+  },
+
+  async duplicateQuote(id) {
+    const { quotes, quoteLines, repo, company } = get()
+    const source = quotes.find((q) => q.id === id)
+    if (!repo || !source) return
+    const fresh = { ...newQuote(company, todayISO()), client_id: source.client_id, title: source.title, deposit_percent: source.deposit_percent, payment_days: source.payment_days, included_revisions: source.included_revisions, notes: source.notes }
+    const lines = quoteLines.filter((l) => l.quote_id === id).map((l, i) => ({ ...newLine(fresh.id, i), service_id: l.service_id, label: l.label, description: l.description, quantity_milli: l.quantity_milli, unit: l.unit, unit_price_cents: l.unit_price_cents }))
+    await get().saveQuoteDraft(fresh, lines)
+    set({ openQuoteId: fresh.id, view: 'quotes' })
   },
 
   async saveClient(client) {

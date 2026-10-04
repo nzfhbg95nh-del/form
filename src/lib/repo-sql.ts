@@ -1,12 +1,50 @@
 import Database from '@tauri-apps/plugin-sql'
-import { buildUpsert, CLIENT_COLUMNS, SERVICE_COLUMNS } from './sql'
-import type { Client, ObjectPatch, ObjectRow, Repo, Service } from './types'
+import { buildUpsert, CLIENT_COLUMNS, ISSUE_QUOTE_SQL, QUOTE_COLUMNS, QUOTE_LINE_COLUMNS, SERVICE_COLUMNS } from './sql'
+import type { Client, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 export async function createSqlRepo(): Promise<Repo> {
   const db = await Database.load('sqlite:form.db')
   const now = () => new Date().toISOString()
 
   return {
+    async listQuotes() {
+      return db.select<Quote[]>('SELECT * FROM quotes ORDER BY created_at DESC')
+    },
+    async listQuoteLines() {
+      return db.select<QuoteLine[]>('SELECT * FROM quote_lines ORDER BY quote_id, position')
+    },
+    async saveQuoteDraft(quote: Quote, lines: QuoteLine[]) {
+      const q = quote as unknown as Record<string, unknown>
+      // « WHERE number IS NULL » : un devis déjà numéroté n'est jamais écrasé.
+      const result = await db.execute(buildUpsert('quotes', QUOTE_COLUMNS, 'quotes.number IS NULL'), QUOTE_COLUMNS.map((c) => q[c] ?? null))
+      if (result.rowsAffected === 0) throw new Error('Ce devis a déjà été envoyé : il ne peut plus être modifié.')
+      for (const line of lines) {
+        const l = line as unknown as Record<string, unknown>
+        await db.execute(buildUpsert('quote_lines', QUOTE_LINE_COLUMNS), QUOTE_LINE_COLUMNS.map((c) => l[c] ?? null))
+      }
+      if (lines.length === 0) {
+        await db.execute('DELETE FROM quote_lines WHERE quote_id = $1', [quote.id])
+      } else {
+        const marks = lines.map((_, i) => `$${i + 2}`).join(', ')
+        await db.execute(`DELETE FROM quote_lines WHERE quote_id = $1 AND id NOT IN (${marks})`, [quote.id, ...lines.map((l) => l.id)])
+      }
+    },
+    async issueQuote(input: IssueQuoteInput) {
+      await db.execute(ISSUE_QUOTE_SQL, [input.prefix, input.issueDate, input.validUntil, input.snapshot, now(), input.id])
+      const rows = await db.select<{ number: string | null }[]>('SELECT number FROM quotes WHERE id = $1', [input.id])
+      const number = rows[0]?.number
+      if (!number || !number.startsWith(input.prefix)) throw new Error("Le devis n'a pas pu être envoyé (déjà numéroté ?).")
+      return number
+    },
+    async setQuoteStatus(id: string, status: Exclude<QuoteStatus, 'draft'>) {
+      await db.execute('UPDATE quotes SET status = $1, updated_at = $2 WHERE id = $3 AND number IS NOT NULL', [status, now(), id])
+    },
+    async deleteDraftQuote(id: string) {
+      const rows = await db.select<{ number: string | null }[]>('SELECT number FROM quotes WHERE id = $1', [id])
+      if (rows[0]?.number) throw new Error('Un devis numéroté ne peut pas être supprimé.')
+      await db.execute('DELETE FROM quote_lines WHERE quote_id = $1', [id])
+      await db.execute('DELETE FROM quotes WHERE id = $1 AND number IS NULL', [id])
+    },
     async listClients() {
       return db.select<Client[]>('SELECT * FROM clients ORDER BY lower(company_name || name)')
     },

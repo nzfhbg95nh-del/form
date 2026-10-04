@@ -16,11 +16,18 @@ pub fn run() {
         description: "clients_et_prestations",
         sql: include_str!("../migrations/002_clients_et_prestations.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 3,
+        description: "devis",
+        sql: include_str!("../migrations/003_devis.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(tauri_plugin_fs::init())
         .plugin(
             // Capture rapide : Ctrl + Alt + N, même quand Form n'est pas au premier plan.
             tauri_plugin_global_shortcut::Builder::new()

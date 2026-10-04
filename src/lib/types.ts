@@ -54,7 +54,58 @@ export interface Service {
   archived_at: string | null
 }
 
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'refused'
+
+export interface Quote {
+  id: string
+  /** Vide tant que le devis est un brouillon ; attribué à l'envoi, jamais modifié ensuite. */
+  number: string | null
+  status: QuoteStatus
+  client_id: string | null
+  title: string
+  issue_date: string
+  valid_until: string
+  deposit_percent: number
+  payment_days: number
+  included_revisions: number | null
+  notes: string
+  /** Photo figée (entreprise, client, mention de TVA) prise à l'envoi. */
+  snapshot: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface QuoteLine {
+  id: string
+  quote_id: string
+  position: number
+  service_id: string | null
+  label: string
+  description: string
+  /** Quantité en millièmes : 1 jour = 1000, 2,5 jours = 2500. */
+  quantity_milli: number
+  unit: string
+  unit_price_cents: number
+}
+
+export interface IssueQuoteInput {
+  id: string
+  /** Début du numéro, par exemple « D-2026- ». */
+  prefix: string
+  issueDate: string
+  validUntil: string
+  snapshot: string
+}
+
 export interface Repo {
+  listQuotes(): Promise<Quote[]>
+  listQuoteLines(): Promise<QuoteLine[]>
+  /** Enregistre un brouillon et ses lignes. Refuse si le devis a déjà un numéro. */
+  saveQuoteDraft(quote: Quote, lines: QuoteLine[]): Promise<void>
+  /** Attribue le prochain numéro libre (continu, sans trou) et fige le devis. Renvoie le numéro. */
+  issueQuote(input: IssueQuoteInput): Promise<string>
+  setQuoteStatus(id: string, status: Exclude<QuoteStatus, 'draft'>): Promise<void>
+  deleteDraftQuote(id: string): Promise<void>
   listClients(): Promise<Client[]>
   saveClient(client: Client): Promise<void>
   listServices(): Promise<Service[]>

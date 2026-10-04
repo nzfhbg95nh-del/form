@@ -92,3 +92,14 @@
 - Base : migration 2 (tables `clients` et `services`). Un test exécute vraiment les migrations dans SQLite (module node:sqlite) pour ne jamais casser le démarrage ; la fabrication GitHub passe en Node 24 pour ça.
 - Tests : 54 au total (montants, clients, recherche, migrations SQL).
 - Prochaine étape : 3 (devis).
+
+## 2026-10-04 — Phase 2, étape 3 : devis (v0.11.0)
+- Section « Devis » : liste (filtre par statut) et éditeur. Brouillon -> Envoyé -> Accepté / Refusé.
+- Lignes : libellé, détails, quantité (décimales ok), unité, prix unitaire ; depuis le catalogue ou à la main ; monter/descendre/supprimer. Total HT, mention de franchise de TVA, acompte (30 % par défaut). Enregistrement automatique des brouillons.
+- Numérotation D-2026-001 : attribuée À L'ENVOI uniquement, en UNE requête SQL (plus grand numéro de l'année + 1) => continue, sans trou, sans doublon ; index UNIQUE. (Écart avec CLAUDE.md : pas de table `number_sequences`, la séquence est déduite des documents émis, ce qui est atomique.)
+- Verrouillage au niveau de la base (déclencheurs SQL) : un devis numéroté ne peut plus être modifié (contenu, lignes) ni supprimé ; seul le statut change. Photo figée à l'envoi (entreprise, client, mention de TVA, CGV).
+- Envoi bloqué tant que : pas de client, pas de ligne, libellé vide, dates incohérentes, Réglages > Entreprise incomplets (SIRET...). Brouillon et PDF restent toujours possibles.
+- PDF (react-pdf, police IBM Plex Mono) fidèle au modèle rose de Victor + CGV en pages suivantes ; aperçu dans l'app et bouton « Télécharger le PDF » (boîte « Enregistrer sous »).
+- Montants : tout en centimes ; quantités en millièmes ; calculs en entiers (arrondi demi vers le haut). Tests : calculs, numérotation, verrous SQL (migrations exécutées dans SQLite) — 69 tests.
+- Plugin fs ajouté (écriture du PDF). CSP : frame-src blob: pour l'aperçu.
+- Prochaine étape : 4 (factures d'acompte, de solde, avoirs ; modèles bleu et blanc).
