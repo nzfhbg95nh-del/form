@@ -121,6 +121,11 @@ export function parseValues(properties: string): Record<string, unknown> {
   }
 }
 
+/** Bases « système » (le courrier) : elles ont leur propre entrée dans « Mon entreprise » et n'apparaissent pas dans les pages. */
+export function isSystemDatabase(o: { type: string; properties: string }): boolean {
+  return o.type === 'database' && parseSchema(o.properties).kind === 'mail'
+}
+
 export function allColumns(schema: Schema): Column[] {
   return [TITLE_COLUMN, ...schema.columns]
 }

@@ -1,3 +1,4 @@
+import { isSystemDatabase } from './database'
 import type { ObjectRow } from './types'
 
 export type DropZone = 'before' | 'after' | 'into'
@@ -7,7 +8,7 @@ const bySort = (a: ObjectRow, b: ObjectRow) => a.position - b.position || a.crea
 /** Enfants directs (non supprimés) d'une page, dans l'ordre d'affichage. */
 export function childrenOf(objects: ObjectRow[], parentId: string | null): ObjectRow[] {
   return objects
-    .filter((o) => (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !o.deleted_at && (o.parent_id ?? null) === parentId)
+    .filter((o) => (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !o.deleted_at && !isSystemDatabase(o) && (o.parent_id ?? null) === parentId)
     .sort(bySort)
 }
 

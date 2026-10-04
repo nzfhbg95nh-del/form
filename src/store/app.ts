@@ -20,7 +20,7 @@ import { recipeBlocks, type AiMode, type AiTask, type Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'mail'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -110,6 +110,19 @@ interface AppState {
   init(): Promise<void>
   select(id: string, opts?: { newTab?: boolean }): void
   activate(index: number): void
+  /** Historique de navigation (flèches Précédent / Suivant). */
+  navBack: string[]
+  navForward: string[]
+  goBack(): void
+  goForward(): void
+  /** Onglets fermés récemment, pour « Rouvrir le dernier onglet fermé ». */
+  closedTabs: string[]
+  reopenTab(): void
+  cycleTab(delta: 1 | -1): void
+  sidebarHidden: boolean
+  toggleSidebar(): void
+  zoom: number
+  setZoom(zoom: number): void
   closeTabAt(index: number): void
   openPeek(id: string): void
   closePeek(): void
@@ -195,6 +208,11 @@ export const useApp = create<AppState>((set, get) => ({
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
+  navBack: [],
+  navForward: [],
+  closedTabs: [],
+  sidebarHidden: localStorage.getItem('form-sidebar-hidden') === '1',
+  zoom: Number(localStorage.getItem('form-zoom') ?? '1') || 1,
   searchOpen: false,
   searchNewTab: false,
   assistantMode: null,
@@ -203,6 +221,7 @@ export const useApp = create<AppState>((set, get) => ({
 
   async init() {
     applyTheme(get().theme)
+    if (get().zoom !== 1) document.documentElement.style.zoom = String(get().zoom)
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
@@ -243,8 +262,59 @@ export const useApp = create<AppState>((set, get) => ({
       expanded[p.parent_id] = true
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
+    const previous = get().selectedId
     const tabs = openTab(get().tabs, id, opts?.newTab)
-    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded })
+    // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
+    const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
+    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
+  },
+
+  goBack() {
+    const { navBack, selectedId, tabs } = get()
+    const target = navBack[navBack.length - 1]
+    if (!target) return
+    const next = openTab(tabs, target, false)
+    set({ tabs: next, selectedId: currentId(next), view: 'page', navBack: navBack.slice(0, -1), navForward: selectedId ? [...get().navForward, selectedId] : get().navForward })
+  },
+
+  goForward() {
+    const { navForward, selectedId, tabs } = get()
+    const target = navForward[navForward.length - 1]
+    if (!target) return
+    const next = openTab(tabs, target, false)
+    set({ tabs: next, selectedId: currentId(next), view: 'page', navForward: navForward.slice(0, -1), navBack: selectedId ? [...get().navBack, selectedId] : get().navBack })
+  },
+
+  reopenTab() {
+    const closed = get().closedTabs
+    const id = closed[closed.length - 1]
+    if (!id || !get().objects.some((o) => o.id === id && !o.deleted_at)) {
+      set({ closedTabs: closed.slice(0, -1) })
+      return
+    }
+    const tabs = openTab(get().tabs, id, true)
+    set({ tabs, selectedId: currentId(tabs), view: 'page', closedTabs: closed.slice(0, -1) })
+  },
+
+  cycleTab(delta) {
+    const { tabs } = get()
+    if (tabs.ids.length < 2) return
+    const index = (tabs.active + delta + tabs.ids.length) % tabs.ids.length
+    const next = activateTab(tabs, index)
+    set({ tabs: next, selectedId: currentId(next), view: 'page' })
+  },
+
+  toggleSidebar() {
+    const sidebarHidden = !get().sidebarHidden
+    localStorage.setItem('form-sidebar-hidden', sidebarHidden ? '1' : '0')
+    set({ sidebarHidden })
+  },
+
+  setZoom(zoom) {
+    const z = Math.min(2, Math.max(0.5, Math.round(zoom * 100) / 100))
+    localStorage.setItem('form-zoom', String(z))
+    document.documentElement.style.zoom = z === 1 ? '' : String(z)
+    set({ zoom: z })
   },
 
   activate(index) {
@@ -253,8 +323,9 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   closeTabAt(index) {
+    const closedId = get().tabs.ids[index]
     const tabs = closeTab(get().tabs, index)
-    set({ tabs, selectedId: currentId(tabs) })
+    set({ tabs, selectedId: currentId(tabs), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs })
   },
 
   openPeek(id) {
@@ -567,10 +638,8 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   async openMail() {
-    const repo = get().repo
-    if (!repo) return
-    const db = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'mail')
-    get().select((db ?? (await ensureMailDb(repo, set))).id)
+    // Le courrier a sa propre vue, comme Clients ou Prestations : ce n'est pas une page.
+    set({ view: 'mail' })
   },
 
   async createRecipePage(recipe) {

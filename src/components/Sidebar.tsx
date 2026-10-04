@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
 } from 'lucide-react'
+import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
+import { isSystemDatabase } from '@/lib/database'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { cn } from '@/lib/utils'
@@ -200,7 +202,7 @@ export function Sidebar() {
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
-  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard'))
+  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !isSystemDatabase(o))
   const roots = childrenOf(objects, null)
   const favorites = live.filter((o) => o.is_favorite)
   const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
@@ -208,7 +210,7 @@ export function Sidebar() {
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
-      <div className="px-2 py-2 text-base font-semibold">Form</div>
+      <AppMenu />
       <Item onClick={() => setSearch(true)}>
         <Search size={14} /> Rechercher
         <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
@@ -240,7 +242,7 @@ export function Sidebar() {
         <Item active={view === 'payments'} onClick={() => show('payments')}>
           <Banknote size={14} /> Paiements
         </Item>
-        <Item onClick={() => void openMail()}>
+        <Item active={view === 'mail'} onClick={() => void openMail()}>
           <Mail size={14} /> Courrier
         </Item>
 
@@ -266,23 +268,35 @@ export function Sidebar() {
       </div>
 
       <div className="relative">
-        <Item onClick={() => setNewMenu(!newMenu)}>
-          <Plus size={14} /> Nouveau…
-        </Item>
+        <div className="flex items-center gap-0.5">
+          <div className="min-w-0 flex-1">
+            <Item onClick={() => void createPage()}>
+              <Plus size={14} /> Nouvelle page
+            </Item>
+          </div>
+          <button
+            title="Autres types : base de données, moodboard, modèles…"
+            aria-label="Autres types de pages"
+            onClick={() => setNewMenu(!newMenu)}
+            className="rounded p-1.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+          >
+            <ChevronDown size={14} />
+          </button>
+        </div>
         {newMenu && (
           <>
             <div className="fixed inset-0 z-10" onClick={() => setNewMenu(false)} />
-            <div className="absolute bottom-full left-0 z-20 mb-1 w-56 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-lg">
-              <Item onClick={() => { setNewMenu(false); void createPage() }}><FileText size={14} /> Page vide</Item>
+            <div className="absolute bottom-full left-0 z-20 mb-1 w-60 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-lg">
+              <Item onClick={() => { setNewMenu(false); void createMoodboard() }}><Images size={14} /> Moodboard</Item>
+              <Item onClick={() => { setNewMenu(false); void createDatabase() }}><Database size={14} /> Base de données</Item>
+              <Item onClick={() => { setNewMenu(false); void createTasks() }}><CheckSquare size={14} /> Base de tâches</Item>
+              <div className="my-1 border-t border-[var(--border)]" />
+              <div className="px-2 pb-0.5 pt-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Modèles (facultatif)</div>
               {PAGE_TEMPLATES.map((t) => (
                 <Item key={t.id} onClick={() => { setNewMenu(false); void createFromTemplate(t.id) }}>
                   <span className="w-3.5 text-center">{t.icon}</span> {t.label}
                 </Item>
               ))}
-              <div className="my-1 border-t border-[var(--border)]" />
-              <Item onClick={() => { setNewMenu(false); void createMoodboard() }}><Images size={14} /> Moodboard</Item>
-              <Item onClick={() => { setNewMenu(false); void createDatabase() }}><Database size={14} /> Base de données vide</Item>
-              <Item onClick={() => { setNewMenu(false); void createTasks() }}><CheckSquare size={14} /> Base de tâches</Item>
             </div>
           </>
         )}

@@ -3,6 +3,7 @@ import { Briefcase, Database, FilePlus2, FileText, Images, Rows3, Search, Users 
 import { searchBusiness } from '@/lib/business'
 import { coverStyle } from '@/components/PagePickers'
 import { extractText, groupByRecency, searchObjects, type SearchHit } from '@/lib/search'
+import { parsePageLink } from '@/lib/windowActions'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 
@@ -28,7 +29,13 @@ export function SearchPalette() {
   const [index, setIndex] = useState(0)
   const list = useRef<HTMLDivElement>(null)
 
-  const hits = useMemo<SearchHit[]>(() => searchObjects(objects, query, query.trim() ? 30 : 40), [objects, query])
+  const hits = useMemo<SearchHit[]>(() => {
+    // Un lien copié avec « Copier le lien vers la page actuelle » ouvre directement la page.
+    const linked = parsePageLink(query)
+    const target = linked ? objects.find((o) => o.id === linked && !o.deleted_at) : undefined
+    if (target) return [{ object: target, score: 100, snippet: null, path: [] }]
+    return searchObjects(objects, query, query.trim() ? 30 : 40)
+  }, [objects, query])
   const business = useMemo<Entry[]>(
     () => searchBusiness(clients, services, query).map((b) => ({ type: b.kind, id: b.id, title: b.title, subtitle: b.subtitle }) as Entry),
     [clients, services, query],

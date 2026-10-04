@@ -1,11 +1,14 @@
-import { Plus, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, PanelLeft, Plus, X } from 'lucide-react'
 import { useApp } from '@/store/app'
 
 export function TabBar() {
-  const { tabs, objects, view, activate, closeTabAt, setSearch } = useApp()
+  const { tabs, objects, view, activate, closeTabAt, setSearch, goBack, goForward, navBack, navForward, toggleSidebar } = useApp()
 
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto border-b border-[var(--border)] bg-[var(--bg-side)] px-1 pt-1">
+      <button title="Afficher / masquer la barre latérale (Ctrl+\)" onClick={toggleSidebar} className="mb-0.5 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"><PanelLeft size={16} /></button>
+      <button title="Précédent (Alt+←)" disabled={navBack.length === 0} onClick={goBack} className="mb-0.5 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
+      <button title="Suivant (Alt+→)" disabled={navForward.length === 0} onClick={goForward} className="mb-0.5 mr-1 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
       {tabs.ids.map((id, i) => {
         const o = objects.find((x) => x.id === id)
         const active = view === 'page' && i === tabs.active

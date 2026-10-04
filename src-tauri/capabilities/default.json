@@ -3,5 +3,5 @@
   "identifier": "default",
   "description": "Droits de la fenêtre principale",
   "windows": ["main"],
-  "permissions": ["core:default", "sql:default", "sql:allow-execute", "dialog:default", "notification:default", "fs:allow-write-file", "opener:default", "core:window:allow-set-always-on-top"]
+  "permissions": ["core:default", "sql:default", "sql:allow-execute", "dialog:default", "notification:default", "fs:allow-write-file", "opener:default", "core:window:allow-set-always-on-top", "core:window:allow-minimize", "core:window:allow-toggle-maximize", "core:window:allow-set-fullscreen", "core:window:allow-is-fullscreen", "core:window:allow-close"]
 }

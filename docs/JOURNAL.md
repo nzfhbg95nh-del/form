@@ -191,3 +191,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Listes de tâches : nouveau bloc « Tâche avec statut » (menu /) à trois états À faire / En cours / Fait (clic sur la case pour changer) ; la liste à cases à cocher normale reste disponible.
 - Barre latérale : « + » avant « ⋯ » sur chaque page.
 - Tests : 170.
+
+## 2026-10-04 — Courrier, nouvelle page, menu d'application (v0.20.0)
+- Courrier : vue à part (comme Clients / Prestations), plus une page. La base « Courrier » est masquée des Pages, Récentes et Favoris ; la vue liste les courriers (date, expéditeur, objet, pièces jointes, aperçu dépliable), filtre « À traiter / Tout », recherche, bouton « Relever le courrier », statut cliquable À traiter / Traité.
+- Barre latérale : « + Nouvelle page » crée directement une page vide ; la flèche à côté ouvre moodboard, base de données, base de tâches et les modèles (note rapide, recette, projet), devenus facultatifs.
+- Menu d'application façon Notion (clic sur « Form » en haut de la barre latérale) : Fichier (nouvel onglet, rouvrir le dernier onglet fermé Ctrl+Maj+T, fermer l'onglet Ctrl+W, imprimer, quitter), Modifier (annuler, rétablir, couper, copier, copier le lien Ctrl+L / le nom de la page Alt+Ctrl+L, coller, tout sélectionner), Afficher (recharger, barre latérale Ctrl+\, zoom Ctrl++ / Ctrl+- / Ctrl+0, plein écran F11), Historique (précédent / suivant, Alt+← / Alt+→), Fenêtre (réduire, onglet précédent / suivant, agrandir), Aide (à propos, ID d'installation).
+- Barre d'onglets : boutons barre latérale, précédent, suivant. Lien « form://page/… » collable dans Ctrl+K pour rouvrir une page.
+- Volontairement absent : « Nouvelle fenêtre » (deux fenêtres modifiant les mêmes données risquent de s'écraser), outils de développement, « Réinitialiser et effacer toutes les données locales » (trop dangereux).
