@@ -310,3 +310,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Demi-largeur : un widget peut occuper la moitié de la ligne ; deux widgets « demi » se placent côte à côte (bouton à côté des flèches).
 - Tests : 203.
 - Non fait : tâches avec heure, déplacer un événement d'un jour à l'autre par glisser-déposer dans le calendrier, synchronisation avec un agenda externe.
+
+## 2026-10-05 — Événements dans le calendrier de l'accueil (v0.33.1)
+- Sous le calendrier, on choisit « Événement » (par défaut) ou « Tâche » avant d'ajouter. Un événement n'est plus une tâche : pas de statut, pas de rappel.
+- Les événements vont dans une base « Agenda » 📅 (créée au premier ajout : Nom, Date, Notes ; vues Calendrier et Tableau), visible dans les pages et modifiable comme n'importe quelle base. Point vert dans le calendrier, étiquette « Événement ».
+- Schéma `kind: 'agenda'`. Tests : 203.

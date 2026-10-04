@@ -74,7 +74,7 @@ function QuickNote({ id }: { id: string }) {
 }
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-const KIND_DOT: Record<CalendarKind, string> = { task: '#e0a100', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6' }
+const KIND_DOT: Record<CalendarKind, string> = { event: '#10b981', task: '#e0a100', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6' }
 const MODE_KEY = 'form-home-calendar-mode'
 type CalMode = 'month' | 'week' | 'agenda'
 const MODES: { id: CalMode; label: string }[] = [{ id: 'month', label: 'Mois' }, { id: 'week', label: 'Semaine' }, { id: 'agenda', label: 'Agenda' }]
@@ -83,7 +83,7 @@ const shortDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString
 
 /** Calendrier : vue Mois, Semaine ou Agenda (liste compacte des prochaines dates prévues). Un clic sur un jour permet d'y ajouter une tâche. */
 function CalendarWidget() {
-  const { objects, invoices, quotes, select, show, addTasksFromAi } = useApp()
+  const { objects, invoices, quotes, select, show, addTasksFromAi, addCalendarEvent } = useApp()
   const todayIso = isoDate(new Date())
   const [mode, setMode] = useState<CalMode>(() => {
     try {
@@ -96,6 +96,7 @@ function CalendarWidget() {
   const [day, setDay] = useState<string>(todayIso)
   const [cursor, setCursor] = useState({ year: Number(todayIso.slice(0, 4)), month: Number(todayIso.slice(5, 7)) - 1 })
   const [draft, setDraft] = useState('')
+  const [addKind, setAddKind] = useState<'event' | 'task'>('event')
   const events = useMemo(() => collectEvents(objects, invoices, quotes), [objects, invoices, quotes])
   const byDate = useMemo(() => groupByDate(events), [events])
   const tasksDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'tasks')
@@ -118,7 +119,8 @@ function CalendarWidget() {
     const title = draft.trim()
     if (!title) return
     const target = mode === 'agenda' ? todayIso : day
-    void addTasksFromAi([{ title, due: target, priority: null }], tasksDb?.id ?? null, false).then(() => setDraft(''))
+    const done = addKind === 'event' ? addCalendarEvent(title, target) : addTasksFromAi([{ title, due: target, priority: null }], tasksDb?.id ?? null, false)
+    void done.then(() => setDraft(''))
   }
 
   const nav = 'rounded p-1 hover:bg-[var(--bg-hover)]'
@@ -134,12 +136,17 @@ function CalendarWidget() {
     </button>
   )
   const adder = (
-    <div className="mt-2 flex gap-2">
+    <div className="mt-2 flex flex-wrap gap-2">
+      <div className="flex rounded border border-[var(--border)] p-0.5" role="group" aria-label="Type d’élément à ajouter">
+        {([['event', 'Événement'], ['task', 'Tâche']] as const).map(([id, label]) => (
+          <button key={id} aria-pressed={addKind === id} onClick={() => setAddKind(id)} className={cn('rounded px-2 py-0.5 text-xs', addKind === id ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}>{label}</button>
+        ))}
+      </div>
       <input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
-        placeholder={mode === 'agenda' ? 'Ajouter une tâche pour aujourd’hui…' : `Ajouter une tâche le ${shortDay(day)}…`}
+        placeholder={`${addKind === 'event' ? 'Nouvel événement' : 'Nouvelle tâche'} ${mode === 'agenda' ? 'aujourd’hui' : `le ${shortDay(day)}`}…`}
         className="min-w-0 flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
       />
       <button onClick={addTask} disabled={!draft.trim()} className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white disabled:opacity-40">Ajouter</button>

@@ -14,6 +14,8 @@ describe('calendrier de l’accueil', () => {
     obj('base', { type: 'database', properties: schema(undefined) }),
     obj('taches', { type: 'database', properties: schema('tasks') }),
     obj('courrier', { type: 'database', properties: schema('mail') }),
+    obj('agenda', { type: 'database', properties: schema('agenda') }),
+    obj('e1', { type: 'row', parent_id: 'agenda', title: 'Anniversaire', properties: JSON.stringify({ d: '2026-10-20' }) }),
     obj('r1', { type: 'row', parent_id: 'base', title: 'Rendez-vous', properties: JSON.stringify({ d: '2026-10-12' }) }),
     obj('r2', { type: 'row', parent_id: 'base', title: 'Sans date', properties: '{}' }),
     obj('r3', { type: 'row', parent_id: 'base', title: 'Supprimée', properties: JSON.stringify({ d: '2026-10-12' }), deleted_at: '2026-10-02T00:00:00Z' }),
@@ -36,6 +38,7 @@ describe('calendrier de l’accueil', () => {
     expect(events.map((e) => [e.date, e.kind, e.title])).toEqual([
       ['2026-10-07', 'task', 'Appeler Marie'],
       ['2026-10-12', 'row', 'Rendez-vous'],
+      ['2026-10-20', 'event', 'Anniversaire'],
       ['2026-10-30', 'invoice', 'Échéance de la facture F-2026-001'],
       ['2026-11-03', 'quote', 'Fin de validité du devis D-2026-001'],
     ])
@@ -57,7 +60,7 @@ describe('calendrier de l’accueil', () => {
 
   it('liste les prochains jours qui ont quelque chose de prévu', () => {
     const events = collectEvents(objects, invoices, quotes)
-    expect(upcomingByDate(events, '2026-10-08').map((g) => g.date)).toEqual(['2026-10-12', '2026-10-30', '2026-11-03'])
+    expect(upcomingByDate(events, '2026-10-08').map((g) => g.date)).toEqual(['2026-10-12', '2026-10-20', '2026-10-30', '2026-11-03'])
     expect(upcomingByDate(events, '2026-10-07', 2).map((g) => g.events.length)).toEqual([1, 1])
     expect(upcomingByDate(events, '2027-01-01')).toEqual([])
   })
