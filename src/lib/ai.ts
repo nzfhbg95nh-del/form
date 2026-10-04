@@ -239,3 +239,53 @@ export async function askGemini(mode: AiMode, text: string, model: string, today
   }
   return invoke<string>('gemini_generate', { model, system: systemPrompt(mode, today), prompt: text, schema: responseSchema(mode) })
 }
+
+// ───────────────────────── Icônes de page (emoji suggérés, image dessinée) ─────────────────────────
+
+export const IMAGE_MODEL = 'gemini-2.5-flash-image'
+
+declare global {
+  interface Window {
+    /** Essais dans le navigateur uniquement : simule les réponses de Gemini pour les icônes. */
+    __FORM_ICON_MOCK?: (kind: 'emoji' | 'image', text: string) => Promise<string>
+  }
+}
+
+export const iconAiAvailable = () => isTauri() || !!window.__FORM_ICON_MOCK
+
+/** Garde seulement de vrais emojis (un seul symbole chacun), sans doublon. */
+export function parseEmojiList(raw: string): string[] {
+  const d = parseJson(raw)
+  const list = Array.isArray(d.emojis) ? d.emojis : []
+  const seg = typeof Intl !== 'undefined' && 'Segmenter' in Intl ? new Intl.Segmenter('fr', { granularity: 'grapheme' }) : null
+  const out: string[] = []
+  for (const item of list) {
+    const e = str(item)
+    if (!e || !/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(e)) continue
+    if (seg && Array.from(seg.segment(e)).length !== 1) continue
+    if (!out.includes(e)) out.push(e)
+  }
+  if (out.length === 0) throw new Error("Gemini n'a proposé aucun emoji. Reformule ta description.")
+  return out.slice(0, 12)
+}
+
+/** Demande à Gemini quelques emojis qui illustrent une description (après un clic de l'utilisateur). */
+export async function suggestEmojis(text: string, model: string): Promise<string[]> {
+  if (!isTauri()) {
+    if (window.__FORM_ICON_MOCK) return parseEmojiList(await window.__FORM_ICON_MOCK('emoji', text))
+    throw new Error("L'assistant IA n'est disponible que dans l'application Windows.")
+  }
+  const system = "Tu proposes des emojis Unicode standard qui illustrent bien la description donnée. Réponds uniquement avec le JSON demandé : jusqu'à 12 emojis, un seul symbole par entrée, du plus pertinent au moins pertinent."
+  const schema = { type: 'OBJECT', properties: { emojis: { type: 'ARRAY', items: S } }, required: ['emojis'] }
+  return parseEmojiList(await invoke<string>('gemini_generate', { model, system, prompt: text, schema }))
+}
+
+/** Fait dessiner une icône à Gemini : renvoie une image (data URL). */
+export async function generateIconImage(text: string, model: string = IMAGE_MODEL): Promise<string> {
+  if (!isTauri()) {
+    if (window.__FORM_ICON_MOCK) return window.__FORM_ICON_MOCK('image', text)
+    throw new Error("L'assistant IA n'est disponible que dans l'application Windows.")
+  }
+  const prompt = `Une icône carrée, simple et lisible en petit, fond uni ou transparent, style illustration plate et douce, sans aucun texte : ${text}`
+  return invoke<string>('gemini_image', { model, prompt })
+}

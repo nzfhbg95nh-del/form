@@ -1,10 +1,12 @@
 {
   "name": "form",
   "private": true,
-  "version": "0.20.0",
+  "version": "0.21.0",
   "type": "module",
   "scripts": {
+    "predev": "node scripts/copy-emoji.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/copy-emoji.mjs",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",

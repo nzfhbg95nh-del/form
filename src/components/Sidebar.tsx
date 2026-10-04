@@ -10,6 +10,7 @@ import { PAGE_TEMPLATES } from '@/lib/templates'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
+import { Icon } from '@/components/Icon'
 
 function Item({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -30,7 +31,7 @@ function Label({ children }: { children: React.ReactNode }) {
 }
 
 function PageIcon({ page }: { page: ObjectRow }) {
-  if (page.icon) return <span className="w-4 shrink-0 text-center">{page.icon}</span>
+  if (page.icon) return <Icon value={page.icon} size={16} />
   if (page.type === 'moodboard') return <Images size={14} className="shrink-0 text-[var(--fg-muted)]" />
   return page.type === 'database'
     ? <Database size={14} className="shrink-0 text-[var(--fg-muted)]" />
@@ -294,7 +295,7 @@ export function Sidebar() {
               <div className="px-2 pb-0.5 pt-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Modèles (facultatif)</div>
               {PAGE_TEMPLATES.map((t) => (
                 <Item key={t.id} onClick={() => { setNewMenu(false); void createFromTemplate(t.id) }}>
-                  <span className="w-3.5 text-center">{t.icon}</span> {t.label}
+                  <Icon value={t.icon} size={14} /> {t.label}
                 </Item>
               ))}
             </div>

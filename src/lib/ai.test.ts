@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeUnit, parseLines, parseRecipe, parseTasks, recipeBlocks, responseSchema, systemPrompt } from './ai'
+import { normalizeUnit, parseEmojiList, parseLines, parseRecipe, parseTasks, recipeBlocks, responseSchema, systemPrompt } from './ai'
 import { detectSensitive, planSend, redactContacts, summarize } from './sensitive'
 
 describe('informations sensibles avant envoi à Google', () => {
@@ -113,5 +113,16 @@ describe('réponses de Gemini vérifiées', () => {
     for (const mode of ['recipe', 'lines', 'tasks'] as const) {
       expect((responseSchema(mode) as { type: string }).type).toBe('OBJECT')
     }
+  })
+})
+
+describe('emojis proposés par Gemini', () => {
+  it('garde seulement de vrais emojis, un par entrée, sans doublon', () => {
+    const raw = JSON.stringify({ emojis: ['🐒', '🐒', 'abc', '🏺', '🐒🏺', ' 🎨 ', 42] })
+    expect(parseEmojiList(raw)).toEqual(['🐒', '🏺', '🎨'])
+  })
+  it('refuse une réponse sans emoji', () => {
+    expect(() => parseEmojiList(JSON.stringify({ emojis: ['x'] }))).toThrow()
+    expect(() => parseEmojiList('pas du json')).toThrow()
   })
 })

@@ -83,6 +83,7 @@ pub fn run() {
             secrets::secret_delete,
             gemini::gemini_generate,
             gemini::gemini_models,
+            gemini::gemini_image,
             mail::mail_fetch,
             mail::mail_test
         ])
