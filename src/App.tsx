@@ -3,6 +3,7 @@ import { ClientsView, ServicesView } from '@/components/BusinessViews'
 import { InvoicesView } from '@/components/InvoicesView'
 import { PaymentsView } from '@/components/PaymentsView'
 import { QuotesView } from '@/components/QuotesView'
+import { DashboardView } from '@/components/DashboardView'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
@@ -91,6 +92,7 @@ export default function App() {
             {view === 'quotes' && <QuotesView />}
             {view === 'invoices' && <InvoicesView />}
             {view === 'payments' && <PaymentsView />}
+            {view === 'dashboard' && <DashboardView />}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>

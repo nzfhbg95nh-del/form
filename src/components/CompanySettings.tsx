@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { centsToInput, parseEuros } from '@/lib/business'
 import { readFileAsDataUrl } from '@/lib/content'
 import {
   companyWarnings, defaultCompany, loadCompany, missingForIssuing, saveCompany, vatMention, type Company,
@@ -11,6 +12,20 @@ import { useApp } from '@/store/app'
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
 const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
+
+/** Champ de montant en euros, enregistré en centimes. */
+function MoneyInput({ value, onChange }: { value: number; onChange: (cents: number) => void }) {
+  const [text, setText] = useState(centsToInput(value))
+  const ok = parseEuros(text) !== null
+  return (
+    <input
+      className={field + (ok ? '' : ' border-red-500')}
+      value={text}
+      onChange={(e) => setText(e.target.value)}
+      onBlur={() => { const c = parseEuros(text); if (c !== null) onChange(c); else setText(centsToInput(value)) }}
+    />
+  )
+}
 
 function useCompany() {
   const repo = useApp((s) => s.repo)
@@ -147,6 +162,21 @@ export function CompanySettings() {
       <label className="mb-3 flex items-center gap-2 text-sm">
         <input type="checkbox" checked={company.foreignClientMentionConfirmed} onChange={(e) => set('foreignClientMentionConfirmed', e.target.checked)} />
         Cette mention a été confirmée par un comptable
+      </label>
+
+      <h2 className="mb-2 mt-4 text-lg font-semibold">Plafonds et seuils (alertes du tableau de bord)</h2>
+      <div className="mb-2 rounded border border-yellow-500/50 bg-yellow-500/10 p-2 text-xs">
+        ⚠ Ces montants sont des valeurs de départ pour une activité de <strong>prestations de services</strong>. Ils changent selon les lois de finances :
+        <strong> vérifie-les sur service-public.fr ou avec un comptable</strong>, corrige-les si besoin, puis coche la case de confirmation.
+      </div>
+      <div className="grid grid-cols-3 gap-x-4">
+        <Row label="Plafond de CA micro-entreprise (€)"><MoneyInput value={company.microCeilingCents} onChange={(v) => set('microCeilingCents', v)} /></Row>
+        <Row label="Seuil de franchise de TVA (€)"><MoneyInput value={company.vatBaseCents} onChange={(v) => set('vatBaseCents', v)} /></Row>
+        <Row label="Seuil de TVA majoré (€)"><MoneyInput value={company.vatMajoredCents} onChange={(v) => set('vatMajoredCents', v)} /></Row>
+      </div>
+      <label className="mb-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={company.thresholdsConfirmed} onChange={(e) => set('thresholdsConfirmed', e.target.checked)} />
+        J'ai vérifié ces montants
       </label>
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Relances de paiement</h2>

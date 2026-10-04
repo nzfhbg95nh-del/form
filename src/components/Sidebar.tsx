@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, FileSignature, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, FileSignature, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
 } from 'lucide-react'
 import { PageMenu } from '@/components/PageMenu'
 import { childrenOf, type DropZone } from '@/lib/tree'
@@ -218,6 +218,9 @@ export function Sidebar() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <Label>Mon entreprise</Label>
+        <Item active={view === 'dashboard'} onClick={() => show('dashboard')}>
+          <LayoutDashboard size={14} /> Tableau de bord
+        </Item>
         <Item active={view === 'clients'} onClick={() => show('clients')}>
           <Users size={14} /> Clients
         </Item>

@@ -36,6 +36,14 @@ export interface Company {
   reminderAfterDays: number
   reminderSubject: string
   reminderBody: string
+  /**
+   * Plafonds en centimes. Valeurs de départ à VÉRIFIER (elles changent selon les lois de finances) :
+   * l'alerte ne s'affiche comme fiable qu'après confirmation.
+   */
+  microCeilingCents: number
+  vatBaseCents: number
+  vatMajoredCents: number
+  thresholdsConfirmed: boolean
 }
 
 /**
@@ -68,6 +76,10 @@ export function defaultCompany(): Company {
     foreignClientMentionConfirmed: false,
     cgv: DEFAULT_CGV,
     cgvDate: DEFAULT_CGV_DATE,
+    microCeilingCents: 7770000,
+    vatBaseCents: 3750000,
+    vatMajoredCents: 4125000,
+    thresholdsConfirmed: false,
     reminderAfterDays: 7,
     reminderSubject: 'Rappel de paiement : facture {numero}',
     reminderBody: [

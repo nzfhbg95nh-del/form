@@ -125,3 +125,15 @@
 - Livre des recettes : encaissements d'une année en ordre chronologique (date, client, n° de facture, moyen, montant), total, histogramme par mois, export CSV (Excel français : ; et virgule décimale, BOM UTF-8) et export PDF.
 - Tests : 102 au total (reste dû, avoirs, factures à relancer, message de relance, livre, CSV, déclencheurs de paiement dans SQLite).
 - Prochaine étape : 6 (tableau de bord, plafonds de CA et seuil de franchise de TVA).
+
+## 2026-10-04 — Phase 2, étape 6 : tableau de bord et plafonds (v0.14.0)
+- « Tableau de bord » (premier élément de « Mon entreprise ») : encaissé du mois et de l'année, facturé de l'année, total à encaisser et part en retard, devis en attente / brouillons, tâches du jour (tâches arrivées à échéance de la base de tâches), liste des impayés (avec nombre à relancer), histogramme des encaissements par mois, bandeau si les mentions obligatoires manquent.
+- Plafonds : barres de progression pour le plafond de CA de la micro-entreprise et la franchise de TVA (seuil de base + seuil majoré). Orange à 80 %, rouge au-delà. Le CA suivi est le CA ENCAISSÉ (livre des recettes).
+- Les montants des plafonds sont des PARAMÈTRES (Réglages > Entreprise > Plafonds et seuils), valeurs de départ pour des prestations de services : 77 700 € / 37 500 € / 41 250 €. À VÉRIFIER par Victor (service-public.fr ou comptable) puis case « J'ai vérifié ces montants » ; tant que non confirmés, l'alerte est affichée comme indicative et aucune notification n'est envoyée.
+- Notification Windows (une fois par niveau et par année) quand un plafond approche ou est dépassé, si les montants sont confirmés.
+- Les messages restent prudents : « à vérifier avec un comptable », jamais de conseil fiscal définitif.
+- Tests : 108 au total (CA par mois / année, facturé net d'avoirs, niveaux de plafond, devis en attente).
+
+### Phase 2 : bilan
+Réglages entreprise et CGV, clients et prestations, devis, factures (acompte / solde / avoir), paiements, relances, livre des recettes, tableau de bord. « Fini quand » : Victor émet une vraie facture avec l'app (il lui manque son SIRET et l'adresse de domiciliation).
+Points ouverts : adresse de domiciliation, SIRET, mention pour clients belges (à valider par un comptable), clause de juridiction (Tournai) des CGV, vérification des plafonds.

@@ -18,7 +18,7 @@ import {
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
