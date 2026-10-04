@@ -154,12 +154,15 @@ export function sirenChecksumOk(siren: string): boolean {
   return s.length === 9 && luhnOk(s)
 }
 
-/** Mentions légales qui manquent pour pouvoir ÉMETTRE une facture (un brouillon reste possible). */
-export function missingForIssuing(company: Company): string[] {
+/**
+ * Mentions légales qui manquent pour pouvoir ÉMETTRE une facture (un brouillon reste possible).
+ * Pour un devis, le SIRET n'est pas exigé (`needSiret: false`) : on peut chiffrer avant de l'avoir reçu.
+ */
+export function missingForIssuing(company: Company, opts: { needSiret?: boolean } = {}): string[] {
   const missing: string[] = []
   if (!company.legalName.trim()) missing.push('Nom légal')
   if (!company.statusMention.trim()) missing.push('Mention « Entrepreneur individuel »')
-  if (cleanSiret(company.siret).length !== 14) missing.push('SIRET (14 chiffres)')
+  if (opts.needSiret !== false && cleanSiret(company.siret).length !== 14) missing.push('SIRET (14 chiffres)')
   if (!company.street.trim() || !company.postalCode.trim() || !company.city.trim()) missing.push('Adresse complète')
   return missing
 }

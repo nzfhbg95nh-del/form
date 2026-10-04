@@ -74,7 +74,8 @@ describe('envoi du devis', () => {
 
   it("liste tout ce qui bloque l'envoi", () => {
     const problems = blockersToSend({ ...quote, valid_until: '2026-01-01' }, [{ ...line, label: ' ' }], undefined, defaultCompany())
-    expect(problems).toHaveLength(4) // client, libellé, date de validité, réglages de l'entreprise
+    expect(problems).toHaveLength(3) // client, libellé, date de validité (le SIRET manquant ne bloque pas un devis)
+    expect(blockersToSend(quote, [line], client, { ...defaultCompany(), legalName: '' })).toHaveLength(1)
     expect(blockersToSend(quote, [], client, company)).toEqual(['Ajoute au moins une ligne.'])
   })
 

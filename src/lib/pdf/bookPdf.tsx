@@ -15,7 +15,7 @@ function BookPage({ d }: { d: BookPdfData }) {
   const fields: [string, string][] = [
     ['Document', `Livre des recettes ${d.year}`],
     ['Établi par', d.company.legalName],
-    ['SIRET', d.company.siret || 'XXXXXXXXXXXXXX'],
+    ['SIRET', d.company.siret || "en cours d'obtention"],
   ]
   const cols = { date: 62, client: 150, invoice: 80, method: 90, amount: 70 }
 

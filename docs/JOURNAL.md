@@ -207,3 +207,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les images Apple sont protégées par un droit d'auteur : usage privé et personnel uniquement ; à remplacer par un jeu libre (Twemoji, Noto) si Form est un jour distribué ou vendu.
 - Tests : 180 (liste, recherche, teintes, noms de fichiers, récents, réponses Gemini).
 - Non vérifié sur Windows réel : l'appel `gemini_image` (compilation Rust uniquement par la CI, nom du modèle d'image susceptible de changer).
+
+## 2026-10-05 — Devis possibles sans SIRET (v0.21.1)
+- Un devis peut être envoyé sans SIRET (les autres mentions restent exigées : nom légal, mention EI, adresse). Le PDF affiche « SIRET : en cours d'obtention ».
+- Une facture reste bloquée sans SIRET : mention légale obligatoire, et une facture émise est verrouillée et numérotée sans trou (impossible de la corriger ensuite). Brouillons de facture toujours possibles.
+- Tests : 181.
