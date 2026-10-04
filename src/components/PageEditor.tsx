@@ -1,9 +1,10 @@
-import { useState } from 'react'
-import { BlockNoteSchema, defaultBlockSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
+import { useEffect, useState } from 'react'
+import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { fr } from '@blocknote/core/locales'
 import { BlockNoteView } from '@blocknote/mantine'
 import {
   createReactBlockSpec,
+  createReactInlineContentSpec,
   getDefaultReactSlashMenuItems,
   SuggestionMenuController,
   useCreateBlockNote,
@@ -16,12 +17,14 @@ import {
 import '@blocknote/mantine/style.css'
 import {
   CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, Lightbulb, List,
-  ListChecks, ListCollapse, ListOrdered, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
+  ListChecks, ListCollapse, ListOrdered, ListTree, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
 } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
+import { normalize } from '@/lib/search'
+import { isSystemDatabase } from '@/lib/database'
 import { useApp } from '@/store/app'
 
 // Bloc « Callout » : une phrase mise en avant dans un encadré avec un emoji.
@@ -199,11 +202,78 @@ const createSubpageBlock = createReactBlockSpec(
   { render: (props) => <SubpageLink pageId={props.block.props.pageId} /> },
 )
 
-const schema = withMultiColumn(
-  BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock() } }),
+type Ed = BlockNoteEditor<never, never, never>
+
+// Bloc « Table des matières » : liste cliquable des titres de la page, mise à jour pendant la frappe.
+type HeadingRef = { id: string; level: number; text: string }
+
+function collectHeadings(blocks: unknown[], out: HeadingRef[] = []): HeadingRef[] {
+  for (const b of blocks as { id: string; type: string; props?: { level?: number }; content?: unknown; children?: unknown[] }[]) {
+    if (b.type === 'heading' && Array.isArray(b.content)) {
+      const text = (b.content as { text?: string }[]).map((c) => c.text ?? '').join('').trim()
+      if (text) out.push({ id: b.id, level: Math.min(b.props?.level ?? 1, 4), text })
+    }
+    if (b.children?.length) collectHeadings(b.children, out)
+  }
+  return out
+}
+
+function TableOfContents({ editor }: { editor: Ed }) {
+  const [heads, setHeads] = useState<HeadingRef[]>(() => collectHeadings(editor.document))
+  useEffect(() => editor.onChange(() => setHeads(collectHeadings(editor.document))), [editor])
+  return (
+    <nav contentEditable={false} aria-label="Table des matières" className="w-full py-1 text-sm">
+      {heads.length === 0 && <div className="text-[var(--fg-muted)]">Ajoute des titres à la page : ils apparaîtront ici.</div>}
+      {heads.map((h) => (
+        <button
+          key={h.id}
+          type="button"
+          onClick={() => document.querySelector(`[data-id="${h.id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="block w-full truncate rounded px-1 py-0.5 text-left text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+          style={{ paddingLeft: 4 + (h.level - 1) * 16 }}
+        >
+          {h.text}
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+const createTocBlock = createReactBlockSpec(
+  { type: 'toc', propSchema: {}, content: 'none' },
+  { render: (props) => <TableOfContents editor={props.editor as unknown as Ed} /> },
 )
 
-type Ed = BlockNoteEditor<never, never, never>
+// Mention « @ » : un lien vers une autre page, au milieu d'une phrase.
+function MentionLink({ pageId }: { pageId: string }) {
+  const page = useApp((s) => s.objects.find((o) => o.id === pageId))
+  const select = useApp((s) => s.select)
+  if (!page || page.deleted_at) return <span className="text-[var(--fg-muted)]">Page supprimée</span>
+  return (
+    <span
+      role="link"
+      tabIndex={0}
+      onClick={(e) => { e.preventDefault(); select(page.id) }}
+      className="cursor-pointer rounded px-0.5 font-medium underline decoration-[var(--border)] underline-offset-2 hover:bg-[var(--bg-hover)]"
+    >
+      <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={15} className="mr-1 align-text-bottom" />
+      {page.title || 'Sans titre'}
+    </span>
+  )
+}
+
+const createMention = createReactInlineContentSpec(
+  { type: 'mention', propSchema: { pageId: { default: '' } }, content: 'none' },
+  { render: (props) => <MentionLink pageId={props.inlineContent.props.pageId} /> },
+)
+
+const schema = withMultiColumn(
+  BlockNoteSchema.create({
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock() },
+    inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
+  }),
+)
+
 type Cur = { id: string; content?: unknown }
 
 /** Le bloc où l'on vient de taper « / » (à relever tout de suite, avant tout travail asynchrone). */
@@ -267,12 +337,29 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
+    { key: 'toc', title: 'Table des matières', aliases: ['table', 'matières', 'matieres', 'sommaire', 'toc', 'plan'], group: 'Blocs avancés', icon: ico(ListTree), onItemClick: put({ type: 'toc' }) },
     { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },
     { key: 'db', title: 'Base de données – Pleine page', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau'], group: 'Base de données', icon: ico(Database), onItemClick: embed('database', 'subpage') },
   ]
 }
 
-export function PageEditor({ pageId, initial, onChange, editorRef }: { pageId?: string; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
+/** Pages proposées après « @ » (recherche sans accents, 10 résultats). */
+function mentionItems(editor: Ed, currentId: string | null, query: string): SlashItem[] {
+  const q = normalize(query)
+  return useApp.getState().objects
+    .filter((o) => (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !o.deleted_at && !isSystemDatabase(o) && o.id !== currentId)
+    .filter((o) => normalize(o.title || 'Sans titre').includes(q))
+    .slice(0, 10)
+    .map((o) => ({
+      key: o.id,
+      title: o.title || 'Sans titre',
+      group: 'Lier à une page',
+      icon: <Icon value={o.icon ?? (o.type === 'database' ? '📊' : o.type === 'moodboard' ? '🖼️' : '📄')} size={18} />,
+      onItemClick: () => editor.insertInlineContent([{ type: 'mention', props: { pageId: o.id } }, ' '] as never),
+    }))
+}
+
+export function PageEditor({ pageId, initial, onChange, editorRef, editable = true }: { pageId?: string; editable?: boolean; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
   const theme = useApp((s) => s.theme)
 
   const editor = useCreateBlockNote({
@@ -290,12 +377,18 @@ export function PageEditor({ pageId, initial, onChange, editorRef }: { pageId?: 
       editor={editor}
       theme={theme}
       slashMenu={false}
+      editable={editable}
       onChange={() => onChange(JSON.stringify(editor.document))}
     >
       <SuggestionMenuController
         triggerCharacter="/"
         suggestionMenuComponent={SlashMenu as never}
         getItems={async (query) => filterSuggestionItems(buildSlashItems(editor as never, pageId ?? null) as never, query) as never}
+      />
+      <SuggestionMenuController
+        triggerCharacter="@"
+        suggestionMenuComponent={SlashMenu as never}
+        getItems={async (query) => mentionItems(editor as never, pageId ?? null, query) as never}
       />
     </BlockNoteView>
   )
