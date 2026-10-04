@@ -266,3 +266,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-05 — « Prestations » devient « Tarifs » (v0.28.2)
 - La page, le bouton de la barre latérale, « Nouveau tarif » et le menu « + Depuis mes tarifs… » des devis et factures utilisent le mot « Tarifs ». Les données ne changent pas.
 - La carte « Mes tarifs » du tableau de bord est retirée (les tarifs ne vivent que dans la page Tarifs).
+
+## 2026-10-05 — Guide « premier client » (v0.29.0)
+- Carte en haut du tableau de bord : 9 étapes cochées automatiquement d'après les données (entreprise remplie, client, devis créé, envoyé, accepté, SIRET, facture d'acompte, facture de solde, paiement). L'étape en cours est en surbrillance avec une aide courte et un bouton qui ouvre la bonne page.
+- « Masquer le guide » (mémorisé dans le réglage `guide_hidden`) ; le lien « Afficher le guide » le ramène.
+- L'étape SIRET est placée avant les factures : les devis n'en ont pas besoin (v0.21.1).
+- Logique dans `src/lib/guide.ts`. Tests : 193.
