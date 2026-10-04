@@ -251,3 +251,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Menu / > « Base de données – Intégrée » : crée une base (page enfant) et l'affiche dans un cadre au milieu de la page, avec toutes ses vues (tableau, liste, kanban, calendrier, galerie), filtres, tris, colonnes et lignes. Titre discret éditable, « Ouvrir en pleine page ↗ ».
 - C'est la même base que la version pleine page : tout ce qu'on change d'un côté apparaît de l'autre. Si la base est supprimée, le cadre l'indique.
 - Non fait : lier une base EXISTANTE (vue liée), pour l'instant chaque cadre crée une nouvelle base.
+
+## 2026-10-05 — Encadré complet et menu de bloc façon Notion (v0.28.0)
+- Poignée ⋮⋮ d'un bloc (clic) : menu avec le type du bloc, Transformer en (texte, titres 1-3, listes, tâche avec statut, menu déroulant, citation, encadré), Couleur (texte et fond), Modifier l'icône (encadré), Copier le lien du bloc, Dupliquer, Supprimer, et le nombre de mots et de caractères de la page.
+- Encadré : icône cliquable (sélecteur d'emojis complet, ou retirée), 9 couleurs de fond (claires ou foncées selon le thème) et couleurs de texte.
+- Lien de bloc : `form://page/<page>#<bloc>` ; collé dans Ctrl+K, ouvre la page et fait défiler jusqu'au bloc.
+- Tests : 189.
+- Non fait : texte sur plusieurs blocs dans un encadré (listes, images dedans), Déplacer vers…, Commenter, Suggérer des modifications, Demander à l'IA depuis le menu (l'assistant IA existe déjà dans la barre latérale).

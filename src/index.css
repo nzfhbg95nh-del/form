@@ -40,3 +40,8 @@ body {
 .page-small .bn-editor [data-content-type='heading'] {
   zoom: 0.9;
 }
+
+/* L'encadré peint lui-même son fond (couleur choisie dans le menu du bloc) : on retire celui de l'éditeur. */
+.bn-block-content[data-content-type='callout'][data-background-color] {
+  background-color: transparent !important;
+}

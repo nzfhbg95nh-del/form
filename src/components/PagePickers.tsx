@@ -50,7 +50,7 @@ function EmojiButton({ e, onPick, label }: { e: string; onPick: (e: string) => v
   )
 }
 
-export function IconPicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
+export function IconPicker({ value, onChange, trigger }: { value: string | null; onChange: (v: string | null) => void; trigger?: React.ReactNode }) {
   const repo = useApp((st) => st.repo)
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<PickerTab>('emoji')
@@ -111,9 +111,13 @@ export function IconPicker({ value, onChange }: { value: string | null; onChange
 
   return (
     <div className="relative inline-block">
-      <button className={btn} onClick={() => setOpen(!open)}>
-        {value ? 'Changer l’icône' : '☺ Ajouter une icône'}
-      </button>
+      {trigger ? (
+        <button type="button" data-callout-icon className="rounded p-0.5 hover:bg-[var(--bg-hover)]" aria-label="Changer l’icône" onClick={() => setOpen(!open)}>{trigger}</button>
+      ) : (
+        <button className={btn} onClick={() => setOpen(!open)}>
+          {value ? 'Changer l’icône' : '☺ Ajouter une icône'}
+        </button>
+      )}
       {open && (
         <div className={pop + ' p-0'} style={{ width: 380 }} role="dialog" aria-label="Choisir une icône">
           <div className="flex items-center border-b border-[var(--border)] px-2">
