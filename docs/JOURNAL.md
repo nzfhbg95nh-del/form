@@ -262,3 +262,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-05 — Mes tarifs sur le tableau de bord (v0.28.1)
 - Carte « Mes tarifs » sur le tableau de bord : chaque prestation active avec son prix et son unité (300 € / jour, 12 € / heure...), lien « Modifier mes prestations ».
 - Rappel : le catalogue sert à remplir les lignes des devis et factures (copie des libellé, description, unité, prix au moment de l'ajout ; modifier un prix plus tard ne change jamais un document existant).
+
+## 2026-10-05 — « Prestations » devient « Tarifs » (v0.28.2)
+- La page, le bouton de la barre latérale, « Nouveau tarif » et le menu « + Depuis mes tarifs… » des devis et factures utilisent le mot « Tarifs ». Les données ne changent pas.
+- La carte « Mes tarifs » du tableau de bord est retirée (les tarifs ne vivent que dans la page Tarifs).

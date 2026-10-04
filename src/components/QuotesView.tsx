@@ -303,7 +303,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
             <button className={secondary} onClick={() => patchLines([...lines, newLine(quote.id, lines.length)])}><Plus size={14} className="mr-1 inline" /> Ligne vide</button>
             <button className={secondary} onClick={() => setAi(true)}>✨ Lignes depuis un texte</button>
             <select className={field + ' max-w-xs'} value="" onChange={(e) => e.target.value && addService(e.target.value)}>
-              <option value="">+ Depuis le catalogue de prestations…</option>
+              <option value="">+ Depuis mes tarifs…</option>
               {services.filter((s) => !s.archived_at).map((s) => <option key={s.id} value={s.id}>{s.label} — {formatEuros(s.unit_price_cents)} / {s.unit}</option>)}
             </select>
           </div>

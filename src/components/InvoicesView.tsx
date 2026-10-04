@@ -327,7 +327,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
               const s = services.find((x) => x.id === e.target.value)
               if (s) patchLines([...lines, newInvoiceLine(invoice.id, lines.length, { service_id: s.id, label: s.label, description: s.description, unit: s.unit, unit_price_cents: s.unit_price_cents })])
             }}>
-              <option value="">+ Depuis le catalogue de prestations…</option>
+              <option value="">+ Depuis mes tarifs…</option>
               {services.filter((s) => !s.archived_at).map((s) => <option key={s.id} value={s.id}>{s.label} — {formatEuros(s.unit_price_cents)} / {s.unit}</option>)}
             </select>
           </div>
