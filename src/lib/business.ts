@@ -30,6 +30,11 @@ export function defaultServices(): Service[] {
   ]
 }
 
+/** Prestations ajoutées dans une mise à jour (une seule fois, aussi pour les installations existantes). */
+export function couturePrestations(): Service[] {
+  return [{ ...newService(), id: 'default-couture', label: 'Couture', description: 'Travaux de couture : confection, retouches, réparations.', unit_price_cents: 1200, unit: 'heure' }]
+}
+
 export function clientDisplayName(c: Client): string {
   return c.company_name.trim() || c.name.trim() || 'Sans nom'
 }

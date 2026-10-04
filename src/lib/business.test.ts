@@ -114,4 +114,9 @@ describe('prestations de départ', () => {
     expect(services.map((s) => [s.label, s.unit_price_cents, s.unit])).toEqual([['Graphisme', 30000, 'jour'], ['CGI', 35000, 'jour']])
     expect(services.map((s) => s.id)).toEqual(['default-graphisme', 'default-cgi'])
   })
+
+  it('ajoute la couture à 12 euros de l heure', async () => {
+    const { couturePrestations } = await import('./business')
+    expect(couturePrestations().map((s) => [s.id, s.label, s.unit_price_cents, s.unit])).toEqual([['default-couture', 'Couture', 1200, 'heure']])
+  })
 })
