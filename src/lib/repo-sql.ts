@@ -7,6 +7,12 @@ export async function createSqlRepo(): Promise<Repo> {
   const now = () => new Date().toISOString()
 
   return {
+    async insertObject(row: ObjectRow) {
+      await db.execute(
+        'INSERT INTO objects (id, type, parent_id, title, icon, cover, properties, content, position, is_favorite, created_at, updated_at, deleted_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)',
+        [row.id, row.type, row.parent_id, row.title, row.icon, row.cover, row.properties, row.content, row.position, row.is_favorite, row.created_at, row.updated_at, row.deleted_at],
+      )
+    },
     async listBoardAssets(boardId: string) {
       return db.select<BoardAsset[]>('SELECT * FROM board_assets WHERE board_id = $1 ORDER BY created_at', [boardId])
     },

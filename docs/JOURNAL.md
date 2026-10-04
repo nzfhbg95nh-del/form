@@ -171,3 +171,13 @@ Points ouverts : adresse de domiciliation, SIRET, mention pour clients belges (�
 
 ### Phase 3 : bilan
 Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâches, confidentialité), courrier IMAP. « Fini quand » : Victor n'ouvre plus Pinterest pour ses références.
+
+## 2026-10-04 — Import Notion (v0.18.0)
+- Réglages > Import Notion : on choisit le .zip d'un export Notion « Markdown & CSV » (ZIP emboîtés acceptés). Form analyse (pages, bases, lignes, images, avertissements), affiche l'arborescence, puis importe avec une barre de progression.
+- Tout arrive dans une page « Import Notion du <date> » (déplaçable). L'import ne fait qu'AJOUTER : rien d'existant n'est modifié ni supprimé. Réimporter le même export ne crée pas de doublons (identifiant Notion de 32 caractères conservé dans `properties.notion_id`).
+- Pages : hiérarchie reconstruite d'après les dossiers ; Markdown converti par l'analyseur de BlockNote (titres, listes, cases à cocher, citations, tableaux, code, images) ; encarts <aside> -> citations, toggles -> titre en gras, colonnes aplaties ; images intégrées (réduites à 2400 px) ou ignorées (case à décocher).
+- Bases de données : CSV « _all » (toutes les colonnes) -> base Form ; types devinés (texte, nombre, date FR/EN, case à cocher, lien, choix unique / multiple) ; lignes reliées à leur page Markdown par le titre ; propriétés de tête de page retirées (déjà dans le CSV).
+- Non repris (l'export Notion ne les contient pas ou Form ne les gère pas) : icônes et couvertures, vues (kanban, calendrier, filtres), relations et formules (importées en texte), liens internes entre pages (texte), blocs « synchronisés ».
+- Aucun code Windows ajouté (tout en TypeScript) : pas de risque de compilation nouveau.
+- Tests : 168 (CSV, noms et chemins, dates, types, préparation du Markdown, plan d'import sur un export fabriqué).
+- À valider avec l'export RÉEL de Victor : la structure exacte des exports Notion varie un peu (noms de dossiers, CSV).

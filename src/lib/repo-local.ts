@@ -36,6 +36,7 @@ export function createLocalRepo(): Repo {
   const writeAssets = (a: BoardAsset[]) => localStorage.setItem('form-dev-assets', JSON.stringify(a))
 
   return {
+    async insertObject(row: ObjectRow) { save([...load(), row]) },
     async listBoardAssets(boardId: string) { return readAssets().filter((a) => a.board_id === boardId) },
     async saveBoardAsset(asset: BoardAsset) {
       writeAssets([...readAssets().filter((a) => !(a.board_id === asset.board_id && a.id === asset.id)), asset])

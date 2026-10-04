@@ -128,6 +128,8 @@ interface AppState {
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
   syncMail(): Promise<number>
   openMail(): Promise<void>
+  /** Recharge toutes les pages depuis la base (après un import). */
+  reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
   addTasksFromAi(tasks: AiTask[], dbId: string | null): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
@@ -549,6 +551,11 @@ export const useApp = create<AppState>((set, get) => ({
       set((s) => ({ objects: [...s.objects, { ...created, title: row.title }] }))
     }
     return fresh.length
+  },
+
+  async reloadObjects() {
+    const repo = get().repo
+    if (repo) set({ objects: await repo.listObjects() })
   },
 
   async openMail() {

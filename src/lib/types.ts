@@ -182,6 +182,8 @@ export interface IssueQuoteInput {
 }
 
 export interface Repo {
+  /** Insère un objet complet d'un seul coup (import). */
+  insertObject(row: ObjectRow): Promise<void>
   listBoardAssets(boardId: string): Promise<BoardAsset[]>
   saveBoardAsset(asset: BoardAsset): Promise<void>
   /** Supprime les images d'un moodboard (ou seulement celles dont on donne les identifiants). */
