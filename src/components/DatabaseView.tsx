@@ -192,7 +192,7 @@ function ColumnMenu({ col, schema, objects, onChange }: { col: Column; schema: S
                 />
                 <p className="mb-2 text-xs text-[var(--fg-muted)]">
                   Type : {PROP_TYPES.find((t) => t.type === col.type)?.label.split(' (')[0]}
-                  {col.type === 'relation' && ` → ${target ? target.title || 'Sans titre' : 'base introuvable'}`}
+                  {col.type === 'relation' && ` → ${target ? target.title || 'Nouvelle page' : 'base introuvable'}`}
                 </p>
                 {(col.type === 'select' || col.type === 'multiselect') &&
                   (col.options ?? []).map((o) => (
@@ -271,7 +271,7 @@ function AddColumn({ db, schema, objects, onChange }: { db: ObjectRow; schema: S
             </select>
             {type === 'relation' && (
               <select className={input + ' mb-2 w-full'} value={target} onChange={(e) => setTarget(e.target.value)}>
-                {databases.map((d) => <option key={d.id} value={d.id}>{d.title || 'Sans titre'}</option>)}
+                {databases.map((d) => <option key={d.id} value={d.id}>{d.title || 'Nouvelle page'}</option>)}
               </select>
             )}
             <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={add}>Ajouter</button>

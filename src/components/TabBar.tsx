@@ -21,7 +21,7 @@ export function TabBar() {
           >
             <button onClick={() => activate(i)} className="flex min-w-0 items-center gap-1.5">
               <Icon value={o?.icon ?? (o?.type === 'database' ? '📊' : '📄')} size={15} />
-              <span className="truncate">{o?.title || 'Sans titre'}</span>
+              <span className="truncate">{o?.title || 'Nouvelle page'}</span>
             </button>
             <button
               title="Fermer l'onglet"

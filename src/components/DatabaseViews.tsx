@@ -50,7 +50,7 @@ function RowTitle({ row }: { row: ObjectRow }) {
   return (
     <span className="truncate">
       {row.icon && <Icon value={row.icon} size={16} className="mr-1 align-text-bottom" />}
-      {row.title || 'Sans titre'}
+      {row.title || 'Nouvelle page'}
     </span>
   )
 }
@@ -166,7 +166,7 @@ export function GalleryView({ db, schema, rows, change }: ViewProps) {
               {!row.cover && <Icon value={row.icon} size={40} />}
             </div>
             <div className="p-2">
-              <div className="truncate text-sm font-medium">{row.title || 'Sans titre'}</div>
+              <div className="truncate text-sm font-medium">{row.title || 'Nouvelle page'}</div>
               <div className="mt-1"><ChoiceChips row={row} schema={schema} /></div>
             </div>
           </button>
@@ -279,7 +279,7 @@ export function CalendarView({ db, schema, view, rows }: ViewProps) {
             </div>
             {(byDate.get(day.date) ?? []).map((r) => (
               <button key={r.id} onClick={() => select(r.id)} className="mt-0.5 block w-full truncate rounded bg-[var(--bg-hover)] px-1 py-0.5 text-left text-xs hover:underline">
-                {r.title || 'Sans titre'}
+                {r.title || 'Nouvelle page'}
               </button>
             ))}
           </div>
@@ -290,7 +290,7 @@ export function CalendarView({ db, schema, view, rows }: ViewProps) {
           <div className="mb-1 text-xs font-semibold text-[var(--fg-muted)]">Sans date ({undated.length})</div>
           {undated.map((r) => (
             <button key={r.id} onClick={() => select(r.id)} className="mr-2 rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs hover:underline">
-              {r.title || 'Sans titre'}
+              {r.title || 'Nouvelle page'}
             </button>
           ))}
         </div>

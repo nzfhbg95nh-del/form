@@ -778,7 +778,7 @@ export const useApp = create<AppState>((set, get) => ({
         properties = properties.split('__self__').join(copy.id)
       }
       const patch: ObjectPatch = {
-        title: isRoot ? `${src.title || 'Sans titre'} (copie)` : src.title,
+        title: isRoot ? `${src.title || 'Nouvelle page'} (copie)` : src.title,
         icon: src.icon, cover: src.cover, content: src.content,
         properties,
         position: isRoot ? src.position + 1 : src.position,

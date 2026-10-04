@@ -80,7 +80,7 @@ export default function App() {
         const page = st.objects.find((o) => o.id === st.selectedId)
         if (page) {
           e.preventDefault()
-          void copyText(page.title || 'Sans titre').then(() => useApp.setState({ toast: 'Nom copié.' }))
+          void copyText(page.title || 'Nouvelle page').then(() => useApp.setState({ toast: 'Nom copié.' }))
           window.setTimeout(() => useApp.setState({ toast: null }), 2500)
         }
       } else if (e.key === 'F11') {

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Image as ImageIcon, Smile } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { DEFAULT_MODEL, generateIconImage, iconAiAvailable, suggestEmojis } from '@/lib/ai'
 import { readFileAsDataUrl } from '@/lib/content'
@@ -115,7 +116,7 @@ export function IconPicker({ value, onChange, trigger }: { value: string | null;
         <button type="button" data-callout-icon className="rounded p-0.5 hover:bg-[var(--bg-hover)]" aria-label="Changer l’icône" onClick={() => setOpen(!open)}>{trigger}</button>
       ) : (
         <button className={btn} onClick={() => setOpen(!open)}>
-          {value ? 'Changer l’icône' : '☺ Ajouter une icône'}
+          <Smile size={14} className="mr-1.5 inline align-text-bottom" />{value ? 'Changer l’icône' : 'Ajouter une icône'}
         </button>
       )}
       {open && (
@@ -263,7 +264,7 @@ export function CoverPicker({ value, onChange }: { value: string | null; onChang
   return (
     <div className="relative inline-block">
       <button className={btn} onClick={() => setOpen(!open)}>
-        {value ? 'Changer la couverture' : '🖼 Ajouter une couverture'}
+        <ImageIcon size={14} className="mr-1.5 inline align-text-bottom" />{value ? 'Changer la couverture' : 'Ajouter une image de couverture'}
       </button>
       {open && (
         <div className={pop} style={{ width: 280 }}>

@@ -15,7 +15,7 @@ export function TrashView() {
       {trashed.length === 0 && <p className="text-[var(--fg-muted)]">La corbeille est vide.</p>}
       {trashed.map((p) => (
         <div key={p.id} className="flex items-center justify-between border-b border-[var(--border)] py-2">
-          <span>{p.title || 'Sans titre'}</span>
+          <span>{p.title || 'Nouvelle page'}</span>
           <span className="flex gap-3 text-sm">
             <button className="text-[var(--accent)]" onClick={() => restore(p.id)}>Restaurer</button>
             <button

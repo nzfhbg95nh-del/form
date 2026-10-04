@@ -42,7 +42,7 @@ export function SearchPalette() {
     () => searchBusiness(clients, services, query).map((b) => ({ type: b.kind, id: b.id, title: b.title, subtitle: b.subtitle }) as Entry),
     [clients, services, query],
   )
-  const toEntry = (h: SearchHit): Entry => ({ type: 'page', id: h.object.id, title: h.object.title || 'Sans titre', object: h.object, path: h.path.join(' / ') })
+  const toEntry = (h: SearchHit): Entry => ({ type: 'page', id: h.object.id, title: h.object.title || 'Nouvelle page', object: h.object, path: h.path.join(' / ') })
 
   // Affichage : sans recherche, « Nouvelle page » puis les pages récentes par date ; avec recherche, les résultats.
   const sections = useMemo(() => {
@@ -110,7 +110,7 @@ export function SearchPalette() {
         {o.cover ? <div className="h-24 w-full" style={coverStyle(o.cover)} /> : <div className="h-14 w-full bg-[var(--bg-side)]" />}
         <div className="px-6 pb-4">
           <div className="-mt-5 mb-2 flex h-11 w-11 items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg)] text-2xl shadow-sm"><PageGlyph o={o} /></div>
-          <div className="mb-1 text-lg font-semibold">{o.title || 'Sans titre'}</div>
+          <div className="mb-1 text-lg font-semibold">{o.title || 'Nouvelle page'}</div>
           {active.path && <div className="mb-2 text-xs text-[var(--fg-muted)]">{active.path}</div>}
           {o.type === 'database' && <div className="text-sm text-[var(--fg-muted)]">Base de données · {kids} ligne{kids > 1 ? 's' : ''}</div>}
           {o.type === 'moodboard' && <div className="text-sm text-[var(--fg-muted)]">Moodboard</div>}

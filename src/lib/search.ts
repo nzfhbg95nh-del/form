@@ -47,7 +47,7 @@ function pathOf(objects: ObjectRow[], o: ObjectRow): string[] {
   const seen = new Set<string>()
   for (let p = objects.find((x) => x.id === o.parent_id); p && !seen.has(p.id); p = objects.find((x) => x.id === p!.parent_id)) {
     seen.add(p.id)
-    path.unshift(p.title || 'Sans titre')
+    path.unshift(p.title || 'Nouvelle page')
   }
   return path
 }
