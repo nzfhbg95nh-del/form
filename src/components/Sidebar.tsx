@@ -75,7 +75,7 @@ function RenameInput({ page }: { page: ObjectRow }) {
     <input
       ref={ref}
       defaultValue={page.title}
-      placeholder="Sans titre"
+      placeholder="Nouvelle page"
       onBlur={() => done(true)}
       onKeyDown={(e) => {
         if (e.key === 'Enter') done(true)
@@ -154,7 +154,7 @@ function TreeItem({
         ) : (
           <button {...handlers} className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <PageIcon page={page} />
-            <span className="truncate">{page.title || 'Sans titre'}</span>
+            <span className="truncate">{page.title || 'Nouvelle page'}</span>
           </button>
         )}
         {page.type === 'page' && (
@@ -191,7 +191,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
       )}
     >
       <PageIcon page={page} />
-      <span className="truncate">{page.title || 'Sans titre'}</span>
+      <span className="truncate">{page.title || 'Nouvelle page'}</span>
     </button>
   )
 }

@@ -239,7 +239,7 @@ function SubpageLink({ pageId }: { pageId: string }) {
       className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-[var(--bg-hover)]"
     >
       <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={18} />
-      <span className="font-medium underline decoration-[var(--border)] underline-offset-2">{page.title || 'Sans titre'}</span>
+      <span className="font-medium underline decoration-[var(--border)] underline-offset-2">{page.title || 'Nouvelle page'}</span>
     </button>
   )
 }
@@ -304,7 +304,7 @@ function MentionLink({ pageId }: { pageId: string }) {
       className="cursor-pointer rounded px-0.5 font-medium underline decoration-[var(--border)] underline-offset-2 hover:bg-[var(--bg-hover)]"
     >
       <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={15} className="mr-1 align-text-bottom" />
-      {page.title || 'Sans titre'}
+      {page.title || 'Nouvelle page'}
     </span>
   )
 }
@@ -396,11 +396,11 @@ function mentionItems(editor: Ed, currentId: string | null, query: string): Slas
   const q = normalize(query)
   return useApp.getState().objects
     .filter((o) => (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !o.deleted_at && !isSystemDatabase(o) && o.id !== currentId)
-    .filter((o) => normalize(o.title || 'Sans titre').includes(q))
+    .filter((o) => normalize(o.title || 'Nouvelle page').includes(q))
     .slice(0, 10)
     .map((o) => ({
       key: o.id,
-      title: o.title || 'Sans titre',
+      title: o.title || 'Nouvelle page',
       group: 'Lier à une page',
       icon: <Icon value={o.icon ?? (o.type === 'database' ? '📊' : o.type === 'moodboard' ? '🖼️' : '📄')} size={18} />,
       onItemClick: () => editor.insertInlineContent([{ type: 'mention', props: { pageId: o.id } }, ' '] as never),

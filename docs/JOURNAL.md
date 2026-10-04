@@ -272,3 +272,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Masquer le guide » (mémorisé dans le réglage `guide_hidden`) ; le lien « Afficher le guide » le ramène.
 - L'étape SIRET est placée avant les factures : les devis n'en ont pas besoin (v0.21.1).
 - Logique dans `src/lib/guide.ts`. Tests : 193.
+
+## 2026-10-05 — Nouvelle page façon Notion, guide retiré (v0.30.0)
+- Barre du haut de chaque page : chemin (parents / page), « Dernière modification : à l'instant / il y a 5 min / hier à 00:53 », menu ⋯, favori, corbeille. Collée en haut quand on fait défiler.
+- Une page sans titre s'appelle « Nouvelle page » (titre, barre latérale, onglets, recherche, déplacer, liens…).
+- « Ajouter une icône » et « Ajouter une image de couverture » (avec leur pictogramme) apparaissent au survol du titre. Pas de « Ajouter un commentaire » : les commentaires n'existent pas dans Form.
+- Le guide « premier client » (v0.29.0) est retiré à la demande de Victor : composant, logique et tests supprimés.
+- Tests : 191.

@@ -134,7 +134,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
             <p className="mb-2 text-sm text-[var(--fg-muted)]">{HINTS[mode]}</p>
             <textarea className={field + ' h-44 text-sm'} value={text} placeholder="Colle ton texte ici…" onChange={(e) => setText(e.target.value)} autoFocus />
             {page && (
-              <button className={secondary + ' mt-2'} onClick={() => setText(extractText(page.content))}>Utiliser le texte de la page « {page.title || 'Sans titre'} »</button>
+              <button className={secondary + ' mt-2'} onClick={() => setText(extractText(page.content))}>Utiliser le texte de la page « {page.title || 'Nouvelle page'} »</button>
             )}
 
             {text.trim() !== '' && (

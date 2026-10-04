@@ -35,7 +35,7 @@ export function PageStyleMenu({ page, editorRef }: { page: ObjectRow; editorRef:
     const editor = editorRef.current
     if (!editor) return
     const body = await editor.blocksToMarkdownLossy(editor.document as never)
-    const text = `# ${page.title || 'Sans titre'}\n\n${body}`
+    const text = `# ${page.title || 'Nouvelle page'}\n\n${body}`
     const saved = await saveBlob(new Blob([text], { type: 'text/markdown;charset=utf-8' }), exportFileName(page.title, 'md'), { name: 'Markdown', extensions: ['md'] })
     if (saved) say('Page exportée.')
   }

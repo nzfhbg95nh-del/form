@@ -121,7 +121,7 @@ function RelationPicker({ col, value, onChange }: { col: Column; value: unknown;
           const t = objects.find((o) => o.id === id)
           return t && !t.deleted_at ? (
             <button key={id} onClick={() => select(id)} className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs hover:underline">
-              {t.title || 'Sans titre'}
+              {t.title || 'Nouvelle page'}
             </button>
           ) : null
         })}
@@ -136,7 +136,7 @@ function RelationPicker({ col, value, onChange }: { col: Column; value: unknown;
             {targets.length === 0 && <p className="text-sm text-[var(--fg-muted)]">La base liée n'a aucune ligne.</p>}
             {targets.map((t) => (
               <button key={t.id} onClick={() => toggle(t.id)} className="flex w-full justify-between rounded px-1.5 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
-                <span className="truncate">{t.title || 'Sans titre'}</span>
+                <span className="truncate">{t.title || 'Nouvelle page'}</span>
                 {selected.includes(t.id) && <span>✓</span>}
               </button>
             ))}

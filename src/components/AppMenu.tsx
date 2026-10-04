@@ -52,7 +52,7 @@ export function AppMenu() {
       { label: 'Couper', shortcut: 'Ctrl+X', action: edit('cut') },
       { label: 'Copier', shortcut: 'Ctrl+C', action: edit('copy') },
       { label: 'Copier le lien vers la page actuelle', shortcut: 'Ctrl+L', disabled: !page, action: async () => { if (page && (await copyText(pageLink(page.id)))) say('Lien copié : colle-le dans la recherche (Ctrl+K) pour revenir à cette page.') } },
-      { label: 'Copier le nom de la page actuelle', shortcut: 'Alt+Ctrl+L', disabled: !page, action: async () => { if (page && (await copyText(page.title || 'Sans titre'))) say('Nom copié.') } },
+      { label: 'Copier le nom de la page actuelle', shortcut: 'Alt+Ctrl+L', disabled: !page, action: async () => { if (page && (await copyText(page.title || 'Nouvelle page'))) say('Nom copié.') } },
       { label: 'Coller', shortcut: 'Ctrl+V', action: paste },
       { label: '', separator: true },
       { label: 'Tout sélectionner', shortcut: 'Ctrl+A', action: edit('selectAll') },

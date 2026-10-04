@@ -1,6 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Check } from 'lucide-react'
-import { guideSteps, nextStep } from '@/lib/guide'
+import { useMemo } from 'react'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { todayISO } from '@/lib/backup'
 import { missingForIssuing } from '@/lib/company'
@@ -55,51 +53,6 @@ const VAT_TEXT: Record<VatLevel, string> = {
   over_majored: 'Seuil majoré dépassé : la TVA peut devenir due. À vérifier sans attendre avec un comptable.',
 }
 
-/** Guide « premier client » : les étapes, cochées toutes seules d'après ce qui existe déjà. */
-function FirstClientGuide() {
-  const { repo, company, clients, quotes, invoices, payments, show } = useApp()
-  const [hidden, setHidden] = useState<boolean | null>(null)
-  useEffect(() => {
-    void repo?.getSetting('guide_hidden').then((v) => setHidden(v === '1'))
-  }, [repo])
-  const steps = useMemo(() => guideSteps({ company, clientCount: clients.length, quotes, invoices, payments }), [company, clients, quotes, invoices, payments])
-  const next = nextStep(steps)
-  const doneCount = steps.filter((s) => s.done).length
-  const setHide = (v: boolean) => {
-    setHidden(v)
-    void repo?.setSetting('guide_hidden', v ? '1' : '0')
-  }
-  if (hidden === null) return null
-  if (hidden) {
-    return <div className="mb-4"><Link onClick={() => setHide(false)}>Afficher le guide « premier client »</Link></div>
-  }
-  return (
-    <Card title={`Guide : premier client (${doneCount}/${steps.length})`} className="mb-4">
-      <ol className="space-y-1">
-        {steps.map((s) => {
-          const current = s.id === next?.id
-          return (
-            <li key={s.id} className={cn('flex items-start gap-3 rounded px-2 py-1.5', current && 'bg-[var(--bg-hover)]')}>
-              <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border', s.done ? 'border-transparent bg-[var(--accent)] text-white' : 'border-[var(--border)]')}>
-                {s.done && <Check size={12} />}
-              </span>
-              <div className="min-w-0 flex-1">
-                <div className={cn('text-sm font-medium', s.done && 'text-[var(--fg-muted)] line-through')}>{s.title}</div>
-                {current && <div className="text-xs text-[var(--fg-muted)]">{s.help}</div>}
-              </div>
-              {current && <button className="shrink-0 rounded bg-[var(--accent)] px-2.5 py-1 text-xs text-white" onClick={() => show(s.view)}>{s.action}</button>}
-            </li>
-          )
-        })}
-      </ol>
-      <div className="mt-2 flex items-center justify-between">
-        <span className="text-xs text-[var(--fg-muted)]">{next ? 'Prochaine étape en surbrillance.' : 'Bravo : ton premier client est facturé et payé.'}</span>
-        <Link onClick={() => setHide(true)}>Masquer le guide</Link>
-      </div>
-    </Card>
-  )
-}
-
 export function DashboardView() {
   const { payments, invoices, invoiceLines, quotes, quoteLines, objects, clients, company, show, select, openInvoice } = useApp()
   const today = todayISO()
@@ -138,8 +91,6 @@ export function DashboardView() {
           Pour pouvoir émettre de vraies factures, il manque encore : <strong>{missing.join(', ')}</strong>. <Link onClick={() => show('settings')}>Ouvrir les réglages</Link>
         </div>
       )}
-
-      <FirstClientGuide />
 
       <div className="mb-4 grid grid-cols-4 gap-4">
         <Card title="Encaissé ce mois-ci"><Kpi label={MONTHS[month - 1]} value={formatEuros(data.collectedMonth)} /></Card>

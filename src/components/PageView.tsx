@@ -8,6 +8,7 @@ import { PageEditor } from '@/components/PageEditor'
 import { CoverPicker, coverStyle, IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
 import { Icon } from '@/components/Icon'
+import { displayTitle, lastEditText } from '@/lib/lastEdit'
 import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
 import { parsePageStyle } from '@/lib/pageStyle'
 
@@ -142,58 +143,53 @@ export function PageView({ pageId }: { pageId?: string }) {
           style={{ left: Math.min(marquee.x1, marquee.x2), top: Math.min(marquee.y1, marquee.y2), width: Math.abs(marquee.x2 - marquee.x1), height: Math.abs(marquee.y2 - marquee.y1) }}
         />
       )}
+      <div className="sticky top-0 z-10 flex items-center gap-2 bg-[var(--bg)]/90 px-4 py-1.5 text-sm backdrop-blur">
+        <div className="flex min-w-0 flex-1 items-center gap-1 truncate text-[var(--fg-muted)]">
+          {trail.map((id) => {
+            const p = objects.find((o) => o.id === id)!
+            return (
+              <span key={id} className="flex shrink-0 items-center gap-1">
+                <button className="flex items-center gap-1 hover:text-[var(--fg)] hover:underline" onClick={() => select(id)}><Icon value={p.icon} size={14} />{displayTitle(p.title)}</button>
+                <span>/</span>
+              </span>
+            )
+          })}
+          <span className="flex min-w-0 items-center gap-1 text-[var(--fg)]"><Icon value={page.icon} size={14} /><span className="truncate">{displayTitle(page.title)}</span></span>
+          {ui.locked && <span className="ml-2 shrink-0 text-xs">🔒 Verrouillée</span>}
+        </div>
+        <span className="hidden shrink-0 text-xs text-[var(--fg-muted)] sm:inline">Dernière modification : {lastEditText(page.updated_at)}</span>
+        <div className="flex shrink-0 gap-0.5">
+          {page.type !== 'row' && <PageStyleMenu page={page} editorRef={editorRef} />}
+          <button title="Favori" onClick={() => void update(page.id, { is_favorite: page.is_favorite ? 0 : 1 })} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
+            <Star size={16} className={page.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-[var(--fg-muted)]'} />
+          </button>
+          <button title="Mettre à la corbeille" onClick={() => void trash(page.id)} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
+            <Trash2 size={16} className="text-[var(--fg-muted)]" />
+          </button>
+        </div>
+      </div>
       {page.cover && <div className="h-48 w-full" style={coverStyle(page.cover)} />}
       <div
         className={'mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '')}
         style={{ '--bn-font-family': pageFontFamily(ui.font), fontFamily: pageFontFamily(ui.font) } as React.CSSProperties}
       >
-        {trail.length > 0 && (
-          <div className="mb-3 flex flex-wrap gap-1 text-xs text-[var(--fg-muted)]">
-            {trail.map((id) => {
-              const p = objects.find((o) => o.id === id)!
-              return (
-                <span key={id}>
-                  <button className="hover:underline" onClick={() => select(id)}><Icon value={p.icon} size={14} className="mr-1 align-text-bottom" />{p.title || 'Sans titre'}</button> ›
-                </span>
-              )
-            })}
-          </div>
-        )}
-        <div className="mb-2 flex items-center justify-between">
-          <div className="flex gap-1 text-[var(--fg-muted)]">
+        <div className="group">
+          <div className="mb-2 flex gap-1 text-[var(--fg-muted)] opacity-0 transition-opacity focus-within:opacity-100 group-hover:opacity-100">
             {!ui.locked && <IconPicker value={page.icon} onChange={(icon) => void update(page.id, { icon })} />}
             {!ui.locked && <CoverPicker value={page.cover} onChange={(cover) => void update(page.id, { cover })} />}
-            {ui.locked && <span className="px-2 py-1 text-sm">🔒 Page verrouillée</span>}
           </div>
-          <div className="flex gap-1">
-            {page.type !== 'row' && <PageStyleMenu page={page} editorRef={editorRef} />}
-            <button
-              title="Favori"
-              onClick={() => void update(page.id, { is_favorite: page.is_favorite ? 0 : 1 })}
-              className="rounded p-1.5 hover:bg-[var(--bg-hover)]"
-            >
-              <Star size={16} className={page.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-[var(--fg-muted)]'} />
-            </button>
-            <button
-              title="Mettre à la corbeille"
-              onClick={() => void trash(page.id)}
-              className="rounded p-1.5 hover:bg-[var(--bg-hover)]"
-            >
-              <Trash2 size={16} className="text-[var(--fg-muted)]" />
-            </button>
-          </div>
-        </div>
-        {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
+          {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
         <input
           value={title}
           readOnly={ui.locked}
-          placeholder="Sans titre"
+          placeholder="Nouvelle page"
           onChange={(e) => {
             setTitle(e.target.value)
             saveLater({ title: e.target.value })
           }}
           className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
         />
+        </div>
         {page.type === 'row' && (() => {
           const db = objects.find((o) => o.id === page.parent_id)
           if (!db) return null
