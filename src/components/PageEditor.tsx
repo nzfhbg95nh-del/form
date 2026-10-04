@@ -6,6 +6,8 @@ import {
   createReactBlockSpec,
   createReactInlineContentSpec,
   getDefaultReactSlashMenuItems,
+  SideMenu,
+  SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
 } from '@blocknote/react'
@@ -19,7 +21,9 @@ import {
   CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, Lightbulb, List,
   ListChecks, ListCollapse, ListOrdered, ListTree, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
 } from 'lucide-react'
+import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
+import { IconPicker } from '@/components/PagePickers'
 import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
@@ -28,32 +32,56 @@ import { normalize } from '@/lib/search'
 import { isSystemDatabase } from '@/lib/database'
 import { useApp } from '@/store/app'
 
-// Bloc « Callout » : une phrase mise en avant dans un encadré avec un emoji.
+// Couleurs de fond / de texte des blocs (mêmes noms que ceux du menu « Couleur » de l'éditeur).
+const CALLOUT_BG: Record<string, [string, string]> = {
+  gray: ['#ebeced', '#373737'], brown: ['#e9e5e3', '#452a21'], red: ['#fbe4e4', '#5c1a1a'], orange: ['#f6e9d9', '#5a3a14'],
+  yellow: ['#fbf3db', '#5a4b1a'], green: ['#ddedea', '#1c4036'], blue: ['#ddebf1', '#1b3a55'], purple: ['#eae4f2', '#3b2a5a'], pink: ['#f4dfeb', '#5a2742'],
+}
+
+// Bloc « Encadré » : une phrase mise en avant dans un cadre, avec une icône (cliquable pour la changer) et une couleur.
+function CalloutIcon({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <span contentEditable={false} data-callout-icon-wrap className="mt-0.5 shrink-0">
+      <IconPicker
+        value={value}
+        onChange={(v) => onChange(v ?? '')}
+        trigger={value ? <Icon value={value} size={22} /> : <span className="text-[var(--fg-muted)]">☺</span>}
+      />
+    </span>
+  )
+}
+
 const createCallout = createReactBlockSpec(
   {
     type: 'callout',
     propSchema: {
       textAlignment: defaultProps.textAlignment,
+      textColor: defaultProps.textColor,
+      backgroundColor: defaultProps.backgroundColor,
       emoji: { default: '💡' },
     },
     content: 'inline',
   },
   {
-    render: (props) => (
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          width: '100%',
-          padding: '12px 14px',
-          borderRadius: 6,
-          background: 'var(--bg-hover)',
-        }}
-      >
-        <span contentEditable={false}>{props.block.props.emoji}</span>
-        <div ref={props.contentRef} style={{ flex: 1 }} />
-      </div>
-    ),
+    render: (props) => {
+      const dark = useApp.getState().theme === 'dark'
+      const bg = CALLOUT_BG[props.block.props.backgroundColor]
+      return (
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            width: '100%',
+            padding: '12px 14px',
+            borderRadius: 6,
+            background: bg ? bg[dark ? 1 : 0] : 'var(--bg-hover)',
+          }}
+        >
+          <CalloutIcon value={props.block.props.emoji} onChange={(emoji) => props.editor.updateBlock(props.block, { props: { emoji } } as never)} />
+          <div ref={props.contentRef} style={{ flex: 1, minWidth: 0 }} />
+        </div>
+      )
+    },
   },
 )
 
@@ -397,9 +425,11 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       editor={editor}
       theme={theme}
       slashMenu={false}
+      sideMenu={false}
       editable={editable}
       onChange={() => onChange(JSON.stringify(editor.document))}
     >
+      <SideMenuController sideMenu={(sideProps) => <SideMenu {...sideProps} dragHandleMenu={BlockMenu} />} />
       <SuggestionMenuController
         triggerCharacter="/"
         suggestionMenuComponent={SlashMenu as never}

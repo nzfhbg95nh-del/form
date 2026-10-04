@@ -34,4 +34,4 @@ export async function copyText(text: string): Promise<boolean> {
 
 /** Lien interne vers une page de Form (à coller dans la recherche Ctrl+K). */
 export const pageLink = (id: string) => `form://page/${id}`
-export const parsePageLink = (text: string): string | null => /^form:\/\/page\/([\w-]+)$/.exec(text.trim())?.[1] ?? null
+export const parsePageLink = (text: string): string | null => /^form:\/\/page\/([\w-]+)(?:#[\w-]+)?$/.exec(text.trim())?.[1] ?? null

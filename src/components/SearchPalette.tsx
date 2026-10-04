@@ -3,6 +3,7 @@ import { Briefcase, Database, FilePlus2, FileText, Images, Rows3, Search, Users 
 import { searchBusiness } from '@/lib/business'
 import { coverStyle } from '@/components/PagePickers'
 import { extractText, groupByRecency, searchObjects, type SearchHit } from '@/lib/search'
+import { parseBlockLink } from '@/lib/blocks'
 import { parsePageLink } from '@/lib/windowActions'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
@@ -61,7 +62,12 @@ export function SearchPalette() {
     if (!entry) return
     setSearch(false)
     if (entry.type === 'new') void createPage(null, newTab)
-    else if (entry.type === 'page') select(entry.id, { newTab })
+    else if (entry.type === 'page') {
+      select(entry.id, { newTab })
+      // Lien vers un bloc précis : on fait défiler jusqu'à lui.
+      const blockId = parseBlockLink(query)?.blockId
+      if (blockId) window.setTimeout(() => document.querySelector(`[data-id="${blockId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500)
+    }
     else {
       show(entry.type === 'client' ? 'clients' : 'services')
       setEditing({ kind: entry.type, id: entry.id })
