@@ -147,7 +147,8 @@ interface AppState {
   /** Recharge toutes les pages depuis la base (après un import). */
   reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
-  addTasksFromAi(tasks: AiTask[], dbId: string | null): Promise<void>
+  /** `open: false` : on reste où l'on est (l'accueil) au lieu d'ouvrir la base de tâches. */
+  addTasksFromAi(tasks: AiTask[], dbId: string | null, open?: boolean): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
@@ -685,7 +686,7 @@ export const useApp = create<AppState>((set, get) => ({
     get().select(page.id)
   },
 
-  async addTasksFromAi(tasks, dbId) {
+  async addTasksFromAi(tasks, dbId, open = true) {
     const repo = get().repo
     if (!repo) return
     let target = dbId
@@ -704,7 +705,7 @@ export const useApp = create<AppState>((set, get) => ({
       await repo.updateObject(row.id, { title: t.title })
       set((s) => ({ objects: [...s.objects, { ...row, title: t.title }] }))
     }
-    get().select(target)
+    if (open) get().select(target)
   },
 
   async createTasks() {
