@@ -288,3 +288,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Menu / : l'Encadré a le pictogramme « T dans un carré arrondi » comme Notion.
 - Icône supprimée (Supprimer dans le sélecteur) : le cadre reste vide, sans icône ni espace ; « Modifier l'icône » (menu ⋮⋮) la remet.
 - Encadré vide : texte d'aide « Tapez « / » pour afficher les commandes » (pas de « Espace pour l'IA » : pas d'IA dans l'éditeur).
+
+## 2026-10-05 — Page d'accueil avec widgets (v0.31.0)
+- Nouvelle vue « Accueil » (première entrée de la barre latérale, affichée au démarrage) : « Bonjour / Bonsoir » et la date, puis des widgets.
+- Widgets : Pages récentes (cartes), Favoris, Résumé de l'activité (encaissé du mois et de l'année, à encaisser, devis en attente — cliquables), Tâches du jour, Bloc-notes (texte libre enregistré tout seul), Base de données épinglée (les 8 dernières lignes d'une base au choix).
+- « Personnaliser » : monter, descendre, retirer, et « Ajouter un widget » (plusieurs blocs-notes ou bases possibles). Disposition mémorisée dans le réglage `home_widgets` ; notes dans `home_note_<id>`.
+- Logique dans `src/lib/home.ts`. Tests : 197.
+- Non fait : widgets en colonnes côte à côte / glisser-déposer, nom de l'utilisateur dans le bonjour, agenda (pas de calendrier dans Form), widget graphique du chiffre d'affaires.
