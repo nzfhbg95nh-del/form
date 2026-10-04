@@ -14,6 +14,8 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
+import { Icon } from '@/components/Icon'
+import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
 import { useApp } from '@/store/app'
 
@@ -98,8 +100,52 @@ const createTodo = createReactBlockSpec(
   },
 )
 
+// Bloc « Moodboard » : un moodboard complet dans un cadre de la page. C'est une vraie page moodboard
+// (enfant de la page courante) : le bouton « Plein écran » l'ouvre dans l'espace entier.
+function MoodboardFrame({ boardId, tall, onToggleTall }: { boardId: string; tall: boolean; onToggleTall: () => void }) {
+  const board = useApp((s) => s.objects.find((o) => o.id === boardId))
+  const select = useApp((s) => s.select)
+  const frame = 'rounded px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
+  if (!board || board.deleted_at) {
+    return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Ce moodboard a été supprimé.</div>
+  }
+  return (
+    <div contentEditable={false} className="w-full overflow-hidden rounded-md border border-[var(--border)]">
+      <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
+        <Icon value={board.icon ?? '🖼️'} size={14} />
+        <span className="flex-1 truncate font-medium">{board.title || 'Moodboard'}</span>
+        <button type="button" className={frame} onClick={onToggleTall}>{tall ? 'Réduire' : 'Agrandir'}</button>
+        <button type="button" className={frame} onClick={() => select(board.id)}>Ouvrir en pleine page ↗</button>
+      </div>
+      <div style={{ height: tall ? 760 : 440 }}>
+        <MoodboardView key={board.id} board={board} />
+      </div>
+    </div>
+  )
+}
+
+const createMoodboardBlock = createReactBlockSpec(
+  {
+    type: 'moodboard',
+    propSchema: {
+      boardId: { default: '' },
+      tall: { default: false },
+    },
+    content: 'none',
+  },
+  {
+    render: (props) => (
+      <MoodboardFrame
+        boardId={props.block.props.boardId}
+        tall={props.block.props.tall}
+        onToggleTall={() => props.editor.updateBlock(props.block, { props: { tall: !props.block.props.tall } } as never)}
+      />
+    ),
+  },
+)
+
 const schema = withMultiColumn(
-  BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo() } }),
+  BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock() } }),
 )
 
 /** Remplace la ligne vide où l'on vient de taper « / » par le bloc choisi, sinon l'insère juste après. */
@@ -110,7 +156,7 @@ function putBlock(editor: BlockNoteEditor<never, never, never>, block: Record<st
   else editor.insertBlocks([block as never], current as never, 'after')
 }
 
-export function PageEditor({ initial, onChange, editorRef }: { initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
+export function PageEditor({ pageId, initial, onChange, editorRef }: { pageId?: string; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
   const theme = useApp((s) => s.theme)
 
   const editor = useCreateBlockNote({
@@ -143,6 +189,17 @@ export function PageEditor({ initial, onChange, editorRef }: { initial: string |
                 group: 'Autres',
                 subtext: 'Une phrase mise en avant',
                 onItemClick: () => putBlock(editor as never, { type: 'callout' }),
+              },
+              {
+                title: 'Moodboard',
+                aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'tableau', 'images'],
+                group: 'Médias',
+                subtext: 'Un moodboard dans un cadre (ouvrable en pleine page)',
+                onItemClick: () => {
+                  void useApp.getState().createEmbeddedMoodboard(pageId ?? null).then((id) => {
+                    if (id) putBlock(editor as never, { type: 'moodboard', props: { boardId: id } })
+                  })
+                },
               },
               {
                 title: 'Tâche avec statut',

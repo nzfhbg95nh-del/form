@@ -134,6 +134,8 @@ interface AppState {
   createDatabase(parentId?: string | null): Promise<void>
   createTasks(): Promise<void>
   createMoodboard(): Promise<void>
+  /** Crée un moodboard enfant de la page (sans l'ouvrir) pour l'intégrer dans son contenu ; renvoie son identifiant. */
+  createEmbeddedMoodboard(parentId: string | null): Promise<string | null>
   /** Fenêtre de l'assistant IA : null = fermée. */
   assistantMode: AiMode | null
   setAssistant(mode: AiMode | null): void
@@ -603,6 +605,17 @@ export const useApp = create<AppState>((set, get) => ({
     await repo.updateObject(board.id, patch)
     set((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
     get().select(board.id)
+  },
+
+  async createEmbeddedMoodboard(parentId) {
+    const repo = get().repo
+    if (!repo) return null
+    const board = await repo.createPage(parentId, 'moodboard')
+    const patch = { title: 'Moodboard', icon: '🖼️' }
+    await repo.updateObject(board.id, patch)
+    if (parentId) get().toggleExpanded(parentId, true)
+    set((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
+    return board.id
   },
 
   setAssistant(mode) {

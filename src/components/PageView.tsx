@@ -211,7 +211,7 @@ export function PageView({ pageId }: { pageId?: string }) {
           )
         })()}
         <div className="-mx-12 mt-4">
-          <PageEditor key={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
+          <PageEditor key={page.id} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
       </div>
     </div>
