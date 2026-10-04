@@ -137,3 +137,15 @@
 ### Phase 2 : bilan
 Réglages entreprise et CGV, clients et prestations, devis, factures (acompte / solde / avoir), paiements, relances, livre des recettes, tableau de bord. « Fini quand » : Victor émet une vraie facture avec l'app (il lui manque son SIRET et l'adresse de domiciliation).
 Points ouverts : adresse de domiciliation, SIRET, mention pour clients belges (à valider par un comptable), clause de juridiction (Tournai) des CGV, vérification des plafonds.
+
+## 2026-10-04 — Phase 3, étape 1 : moodboard (v0.15.0)
+- Nouveau type de page « Moodboard » (Nouveau… > Moodboard) : toile infinie maison (pas Excalidraw : ergonomie « PureRef » voulue par Victor, plus légère).
+- Navigation façon PureRef : molette = zoom sous le curseur ; clic molette, Espace + glisser ou Alt + glisser = déplacer la toile ; clic + glisser sur le vide = sélection par rectangle ; Maj/Ctrl + clic = ajouter à la sélection ; poignées aux coins pour redimensionner (proportions gardées pour les images) ; double-clic sur une image = recadrer dessus ; double-clic dans le vide = nouvelle note ; F / Ajuster = tout afficher ; Ctrl+0 = 100 %.
+- Éléments : images (glisser-déposer, Ctrl+V depuis le presse-papiers, bouton), notes (5 couleurs + transparente), couleurs (copie du code au double-clic), liens (coller une URL ou bouton), groupes (Ctrl+G / Ctrl+Maj+G), retourner, premier plan / arrière-plan, dupliquer (Ctrl+D), copier / coller (Ctrl+C/X/V), flèches pour ajuster, Suppr.
+- Organiser (menu clic droit ou bouton) : en mosaïque, ligne, colonne, grille ; mettre à la même hauteur / largeur / surface ; aligner. Annuler / rétablir (Ctrl+Z / Ctrl+Y, 100 niveaux). Fond : 5 couleurs. Bouton « toujours au premier plan » (Windows).
+- Palette de couleurs extraite des images (coupe médiane, 64×64 px) : copie, ajout à la toile.
+- Images : table `board_assets` (migration 6), réduites à 2400 px + miniature de 512 px utilisée en dézoomant ; GIF conservés ; supprimées avec le moodboard (corbeille > supprimer définitivement) ; copiées à la duplication.
+- Le plan de la toile (positions, notes, vue) est enregistré automatiquement dans `objects.content`.
+- Pas encore : rotation libre, glisser une image depuis une page web (le navigateur ne donne pas le fichier), import de PureRef.
+- Tests : 133 au total (zoom, sélection, groupes, organisation, historique, palette, enregistrement).
+- Prochaine étape : 2 (assistant Gemini).

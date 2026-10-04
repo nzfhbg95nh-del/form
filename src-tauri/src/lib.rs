@@ -34,6 +34,12 @@ pub fn run() {
         description: "paiements",
         sql: include_str!("../migrations/005_paiements.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 6,
+        description: "moodboard",
+        sql: include_str!("../migrations/006_moodboard.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()

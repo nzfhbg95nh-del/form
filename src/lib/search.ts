@@ -63,7 +63,7 @@ function makeSnippet(text: string, tokens: string[]): string {
 /** Recherche dans les titres et dans le contenu. Tous les mots tapés doivent être présents. */
 export function searchObjects(objects: ObjectRow[], query: string, limit = 30): SearchHit[] {
   const q = normalize(query).trim()
-  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'row'))
+  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard' || o.type === 'row'))
 
   if (q === '') {
     return [...live]

@@ -61,3 +61,12 @@ export const PAYMENT_COLUMNS = ['id', 'invoice_id', 'paid_on', 'amount_cents', '
 export function buildInsert(table: string, columns: readonly string[]): string {
   return `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map((_, i) => `$${i + 1}`).join(', ')})`
 }
+
+export const BOARD_ASSET_COLUMNS = ['board_id', 'id', 'name', 'width', 'height', 'data_url', 'thumb_url', 'created_at'] as const
+
+/** Insère ou remplace une image (clé : moodboard + identifiant). */
+export const UPSERT_BOARD_ASSET_SQL = `INSERT INTO board_assets (${BOARD_ASSET_COLUMNS.join(', ')}) VALUES (${BOARD_ASSET_COLUMNS.map((_, i) => `$${i + 1}`).join(', ')})
+  ON CONFLICT(board_id, id) DO UPDATE SET name = excluded.name, width = excluded.width, height = excluded.height, data_url = excluded.data_url, thumb_url = excluded.thumb_url`
+
+export const COPY_BOARD_ASSETS_SQL = `INSERT INTO board_assets (board_id, id, name, width, height, data_url, thumb_url, created_at)
+  SELECT $2, id, name, width, height, data_url, thumb_url, created_at FROM board_assets WHERE board_id = $1`

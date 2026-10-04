@@ -1,5 +1,6 @@
 import { Maximize2, X } from 'lucide-react'
 import { DatabaseView } from '@/components/DatabaseView'
+import { MoodboardView } from '@/components/MoodboardView'
 import { PageView } from '@/components/PageView'
 import { useApp } from '@/store/app'
 
@@ -23,7 +24,7 @@ export function PeekPanel({ id }: { id: string }) {
       </div>
       <div className="min-h-0 flex-1">
         {page ? (
-          page.type === 'database' ? <DatabaseView key={page.id} db={page} /> : <PageView key={page.id} pageId={page.id} />
+          page.type === 'database' ? <DatabaseView key={page.id} db={page} /> : page.type === 'moodboard' ? <MoodboardView key={page.id} board={page} /> : <PageView key={page.id} pageId={page.id} />
         ) : (
           <p className="p-6 text-sm text-[var(--fg-muted)]">Cette page n'existe plus.</p>
         )}

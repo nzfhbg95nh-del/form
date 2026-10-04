@@ -1,12 +1,26 @@
 import Database from '@tauri-apps/plugin-sql'
-import { buildInsert, buildUpsert, CLIENT_COLUMNS, PAYMENT_COLUMNS, INVOICE_COLUMNS, INVOICE_LINE_COLUMNS, ISSUE_INVOICE_SQL, ISSUE_QUOTE_SQL, QUOTE_COLUMNS, QUOTE_LINE_COLUMNS, SERVICE_COLUMNS } from './sql'
-import type { AuditEntry, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
+import { BOARD_ASSET_COLUMNS, buildInsert, buildUpsert, COPY_BOARD_ASSETS_SQL, UPSERT_BOARD_ASSET_SQL, CLIENT_COLUMNS, PAYMENT_COLUMNS, INVOICE_COLUMNS, INVOICE_LINE_COLUMNS, ISSUE_INVOICE_SQL, ISSUE_QUOTE_SQL, QUOTE_COLUMNS, QUOTE_LINE_COLUMNS, SERVICE_COLUMNS } from './sql'
+import type { AuditEntry, BoardAsset, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 export async function createSqlRepo(): Promise<Repo> {
   const db = await Database.load('sqlite:form.db')
   const now = () => new Date().toISOString()
 
   return {
+    async listBoardAssets(boardId: string) {
+      return db.select<BoardAsset[]>('SELECT * FROM board_assets WHERE board_id = $1 ORDER BY created_at', [boardId])
+    },
+    async saveBoardAsset(asset: BoardAsset) {
+      const a = asset as unknown as Record<string, unknown>
+      await db.execute(UPSERT_BOARD_ASSET_SQL, BOARD_ASSET_COLUMNS.map((c) => a[c] ?? null))
+    },
+    async deleteBoardAssets(boardId: string, ids?: string[]) {
+      if (!ids) await db.execute('DELETE FROM board_assets WHERE board_id = $1', [boardId])
+      else for (const id of ids) await db.execute('DELETE FROM board_assets WHERE board_id = $1 AND id = $2', [boardId, id])
+    },
+    async copyBoardAssets(fromBoardId: string, toBoardId: string) {
+      await db.execute(COPY_BOARD_ASSETS_SQL, [fromBoardId, toBoardId])
+    },
     async listPayments() {
       return db.select<Payment[]>('SELECT * FROM payments ORDER BY paid_on, created_at')
     },

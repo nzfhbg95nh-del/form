@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, FileSignature, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
 } from 'lucide-react'
 import { PageMenu } from '@/components/PageMenu'
 import { childrenOf, type DropZone } from '@/lib/tree'
@@ -29,6 +29,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function PageIcon({ page }: { page: ObjectRow }) {
   if (page.icon) return <span className="w-4 shrink-0 text-center">{page.icon}</span>
+  if (page.type === 'moodboard') return <Images size={14} className="shrink-0 text-[var(--fg-muted)]" />
   return page.type === 'database'
     ? <Database size={14} className="shrink-0 text-[var(--fg-muted)]" />
     : <FileText size={14} className="shrink-0 text-[var(--fg-muted)]" />
@@ -194,12 +195,12 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createFromTemplate, setSearch, setCapture, theme, toggleTheme,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, theme, toggleTheme,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
-  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database'))
+  const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard'))
   const roots = childrenOf(objects, null)
   const favorites = live.filter((o) => o.is_favorite)
   const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
@@ -273,6 +274,7 @@ export function Sidebar() {
                 </Item>
               ))}
               <div className="my-1 border-t border-[var(--border)]" />
+              <Item onClick={() => { setNewMenu(false); void createMoodboard() }}><Images size={14} /> Moodboard</Item>
               <Item onClick={() => { setNewMenu(false); void createDatabase() }}><Database size={14} /> Base de données vide</Item>
               <Item onClick={() => { setNewMenu(false); void createTasks() }}><CheckSquare size={14} /> Base de tâches</Item>
             </div>

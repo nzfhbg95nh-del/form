@@ -127,6 +127,19 @@ export interface InvoiceLine {
   unit_price_cents: number
 }
 
+export interface BoardAsset {
+  board_id: string
+  id: string
+  name: string
+  width: number
+  height: number
+  /** Image réduite (2400 px max), en « data URL ». */
+  data_url: string
+  /** Miniature (512 px max), utilisée quand la toile est dézoomée. */
+  thumb_url: string
+  created_at: string
+}
+
 export type PaymentMethod = 'transfer' | 'card' | 'cash' | 'cheque' | 'other'
 
 export interface Payment {
@@ -169,6 +182,12 @@ export interface IssueQuoteInput {
 }
 
 export interface Repo {
+  listBoardAssets(boardId: string): Promise<BoardAsset[]>
+  saveBoardAsset(asset: BoardAsset): Promise<void>
+  /** Supprime les images d'un moodboard (ou seulement celles dont on donne les identifiants). */
+  deleteBoardAssets(boardId: string, ids?: string[]): Promise<void>
+  /** Copie les images d'un moodboard vers un autre (duplication). */
+  copyBoardAssets(fromBoardId: string, toBoardId: string): Promise<void>
   listPayments(): Promise<Payment[]>
   /** Enregistre un encaissement (refusé sur un brouillon ou un avoir). */
   addPayment(payment: Payment): Promise<void>

@@ -1,5 +1,5 @@
 import { nextNumber } from './quotes'
-import type { AuditEntry, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
+import type { AuditEntry, BoardAsset, Client, Invoice, Payment, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 /** Version « navigateur » : sert uniquement à tester l'interface sans l'app Windows. */
 export function createLocalRepo(): Repo {
@@ -32,7 +32,20 @@ export function createLocalRepo(): Repo {
   const clients = table<Client>('form-dev-clients')
   const services = table<Service>('form-dev-services')
 
+  const readAssets = (): BoardAsset[] => JSON.parse(localStorage.getItem('form-dev-assets') ?? '[]')
+  const writeAssets = (a: BoardAsset[]) => localStorage.setItem('form-dev-assets', JSON.stringify(a))
+
   return {
+    async listBoardAssets(boardId: string) { return readAssets().filter((a) => a.board_id === boardId) },
+    async saveBoardAsset(asset: BoardAsset) {
+      writeAssets([...readAssets().filter((a) => !(a.board_id === asset.board_id && a.id === asset.id)), asset])
+    },
+    async deleteBoardAssets(boardId: string, ids?: string[]) {
+      writeAssets(readAssets().filter((a) => !(a.board_id === boardId && (!ids || ids.includes(a.id)))))
+    },
+    async copyBoardAssets(fromBoardId: string, toBoardId: string) {
+      writeAssets([...readAssets(), ...readAssets().filter((a) => a.board_id === fromBoardId).map((a) => ({ ...a, board_id: toBoardId }))])
+    },
     async listPayments() { return payments.list() },
     async addPayment(payment: Payment) {
       const invoice = invoices.list().find((i) => i.id === payment.invoice_id)

@@ -45,7 +45,7 @@ function savedExpanded(): Record<string, boolean> {
   }
 }
 
-const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database'
+const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database' || o.type === 'moodboard'
 
 interface AppState {
   repo: Repo | null
@@ -118,6 +118,7 @@ interface AppState {
   createPage(parentId?: string | null): Promise<void>
   createDatabase(parentId?: string | null): Promise<void>
   createTasks(): Promise<void>
+  createMoodboard(): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
@@ -491,6 +492,16 @@ export const useApp = create<AppState>((set, get) => ({
     get().select(db.id)
   },
 
+  async createMoodboard() {
+    const repo = get().repo
+    if (!repo) return
+    const board = await repo.createPage(null, 'moodboard')
+    const patch = { title: 'Moodboard', icon: '🖼️' }
+    await repo.updateObject(board.id, patch)
+    set((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
+    get().select(board.id)
+  },
+
   async createTasks() {
     const repo = get().repo
     if (!repo) return
@@ -576,6 +587,7 @@ export const useApp = create<AppState>((set, get) => ({
         position: isRoot ? src.position + 1 : src.position,
       }
       await repo.updateObject(copy.id, patch)
+      if (src.type === 'moodboard') await repo.copyBoardAssets(src.id, copy.id)
       set((s) => ({ objects: [...s.objects, { ...copy, ...patch, is_favorite: 0 } as ObjectRow] }))
     }
     get().select(created.get(id)!)
@@ -620,7 +632,10 @@ export const useApp = create<AppState>((set, get) => ({
     if (!repo) return
     // On supprime d'abord les sous-pages les plus profondes.
     const ids = [...descendantsOf(get().objects, id).map((o) => o.id).reverse(), id]
-    for (const i of ids) await repo.purgeObject(i)
+    for (const i of ids) {
+      await repo.deleteBoardAssets(i)
+      await repo.purgeObject(i)
+    }
     set((s) => ({ objects: s.objects.filter((o) => !ids.includes(o.id)) }))
   },
 

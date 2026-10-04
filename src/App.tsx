@@ -5,6 +5,7 @@ import { PaymentsView } from '@/components/PaymentsView'
 import { QuotesView } from '@/components/QuotesView'
 import { DashboardView } from '@/components/DashboardView'
 import { DatabaseView } from '@/components/DatabaseView'
+import { MoodboardView } from '@/components/MoodboardView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
 import { PeekPanel } from '@/components/PeekPanel'
@@ -84,7 +85,7 @@ export default function App() {
         )}
         <div className="flex min-h-0 flex-1">
           <main className="relative min-w-0 flex-1 overflow-y-auto">
-            {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : <PageView />)}
+            {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : selected?.type === 'moodboard' ? <MoodboardView key={selected.id} board={selected} /> : <PageView />)}
             {view === 'trash' && <TrashView />}
             {view === 'settings' && <SettingsPage />}
             {view === 'clients' && <ClientsView />}
