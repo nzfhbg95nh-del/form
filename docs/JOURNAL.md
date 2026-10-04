@@ -64,3 +64,13 @@
 - Limite : le raccourci global ne marche que si Form est lancé. Si un autre programme utilise déjà Ctrl+Alt+N, Form démarre sans le raccourci.
 - Tests : recherche (accents, contenu, chemin, récents) et découpage des captures.
 - Reste de la phase 1 : étape 6 (import Notion).
+
+## 2026-10-04 — Finitions « façon Notion » (v0.8.0)
+- Menu « ⋯ » (et clic droit) sur chaque page de la barre latérale : favori, renommer (sur place), dupliquer (avec sous-pages et lignes), déplacer vers…, corbeille, nouvel onglet, aperçu latéral, date de dernière modification.
+- Section « Récentes » (5 dernières pages modifiées).
+- Onglets : Ctrl+clic ou clic molette sur une page, bouton + (ou Ctrl+T) ; × pour fermer.
+- Aperçu latéral : Alt+clic sur une page, ou ↗ d'une ligne de tableau ; bouton « Ouvrir en pleine page ».
+- Raccourcis : Ctrl+D dupliquer, Ctrl+Maj+R renommer, Ctrl+T nouvel onglet.
+- Volontairement PAS fait : « Copier le lien » (il faut d'abord des liens internes entre pages), « Nouvelle fenêtre » (deux fenêtres qui modifient la même page risquent de s'écraser), « Disponible hors ligne » et « Convertir en wiki » (inutiles : tout est local, un seul utilisateur).
+- Tests : onglets (tabs.test.ts), ordre de duplication.
+- Reste : import Notion (reporté à la demande de Victor). Phase 1 « finie » quand Victor l'utilise une semaine.

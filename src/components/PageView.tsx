@@ -9,9 +9,9 @@ import { useApp } from '@/store/app'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
-export function PageView() {
+export function PageView({ pageId }: { pageId?: string }) {
   const { objects, selectedId, update, trash, createPage, select, setCell, saveSchema } = useApp()
-  const page = objects.find((o) => o.id === selectedId && !o.deleted_at)
+  const page = objects.find((o) => o.id === (pageId ?? selectedId) && !o.deleted_at)
   const [title, setTitle] = useState('')
   const timer = useRef<number | undefined>(undefined)
   const pending = useRef<{ id: string; patch: Patch } | null>(null)

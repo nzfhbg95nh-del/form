@@ -54,3 +54,10 @@ export function computeMove(
   const next = siblings[i + 1]
   return { parent_id: parent, position: next ? (next.position + target.position) / 2 : target.position + 1000 }
 }
+
+/** Page à dupliquer + toutes ses sous-pages / lignes non supprimées, parents avant enfants. */
+export function duplicationOrder(objects: ObjectRow[], id: string): ObjectRow[] {
+  const root = objects.find((o) => o.id === id)
+  if (!root) return []
+  return [root, ...descendantsOf(objects, id).filter((o) => !o.deleted_at)]
+}

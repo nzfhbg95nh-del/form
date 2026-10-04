@@ -4,7 +4,7 @@ import { searchObjects } from '@/lib/search'
 import { useApp } from '@/store/app'
 
 export function SearchPalette() {
-  const { objects, select, setSearch } = useApp()
+  const { objects, select, setSearch, searchNewTab } = useApp()
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
   const list = useRef<HTMLDivElement>(null)
@@ -18,7 +18,7 @@ export function SearchPalette() {
   const open = (i: number) => {
     const hit = hits[i]
     if (!hit) return
-    select(hit.object.id)
+    select(hit.object.id, { newTab: searchNewTab })
     setSearch(false)
   }
 

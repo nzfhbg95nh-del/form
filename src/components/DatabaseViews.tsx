@@ -55,7 +55,7 @@ function RowTitle({ row }: { row: ObjectRow }) {
 }
 
 export function TableView({ db, schema, view, rows, change, addOption, renderHeader }: ViewProps) {
-  const { setCell, select, trash } = useApp()
+  const { setCell, openPeek, trash } = useApp()
   const cols = allColumns(schema)
   const gcol = groupColumn(schema, view)
   const groups: Group[] = gcol
@@ -98,7 +98,7 @@ export function TableView({ db, schema, view, rows, change, addOption, renderHea
                   </td>
                 ))}
                 <td className="whitespace-nowrap px-1 text-right opacity-0 group-hover:opacity-100">
-                  <button title="Ouvrir la page" className="rounded p-1 hover:bg-[var(--bg-hover)]" onClick={() => select(row.id)}><ExternalLink size={14} /></button>
+                  <button title="Ouvrir en aperçu" className="rounded p-1 hover:bg-[var(--bg-hover)]" onClick={() => openPeek(row.id)}><ExternalLink size={14} /></button>
                   <button title="Mettre à la corbeille" className="rounded p-1 hover:bg-[var(--bg-hover)]" onClick={() => void trash(row.id)}><Trash2 size={14} /></button>
                 </td>
               </tr>

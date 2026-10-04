@@ -1,17 +1,20 @@
 import { useEffect } from 'react'
 import { DatabaseView } from '@/components/DatabaseView'
+import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
+import { PeekPanel } from '@/components/PeekPanel'
 import { QuickCapture } from '@/components/QuickCapture'
 import { SearchPalette } from '@/components/SearchPalette'
 import { SettingsView } from '@/components/SettingsView'
 import { Sidebar } from '@/components/Sidebar'
+import { TabBar } from '@/components/TabBar'
 import { TrashView } from '@/components/TrashView'
 import { isTauri } from '@/lib/repo'
 import { useReminders } from '@/lib/useReminders'
 import { useApp } from '@/store/app'
 
 export default function App() {
-  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, captureOpen, toast, setSearch, setCapture } = useApp()
+  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, captureOpen, toast, setSearch, setCapture, peekId, movingId } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
 
   useReminders()
@@ -29,6 +32,17 @@ export default function App() {
       } else if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
         setCapture(true)
+      } else if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault()
+        setSearch(true, true)
+      } else if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'd') {
+        // Ctrl+D : dupliquer la page affichée (hors saisie de texte, pour ne rien casser dans l'éditeur).
+        const id = useApp.getState().selectedId
+        if (id) { e.preventDefault(); void useApp.getState().duplicate(id) }
+      } else if (e.ctrlKey && e.shiftKey && !e.altKey && e.key.toLowerCase() === 'r') {
+        e.preventDefault()
+        const id = useApp.getState().selectedId
+        if (id) useApp.getState().setRenaming(id)
       }
     }
     window.addEventListener('keydown', onKey)
@@ -58,14 +72,21 @@ export default function App() {
   return (
     <div className="flex h-full">
       <Sidebar />
-      <main className="relative min-w-0 flex-1 overflow-y-auto">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <TabBar />
         {backupMessage && (
           <div className="bg-[var(--bg-side)] px-4 py-1 text-center text-xs text-[var(--fg-muted)]">{backupMessage}</div>
         )}
-        {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : <PageView />)}
-        {view === 'trash' && <TrashView />}
-        {view === 'settings' && <SettingsView />}
-      </main>
+        <div className="flex min-h-0 flex-1">
+          <main className="relative min-w-0 flex-1 overflow-y-auto">
+            {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : <PageView />)}
+            {view === 'trash' && <TrashView />}
+            {view === 'settings' && <SettingsView />}
+          </main>
+          {peekId && <PeekPanel key={peekId} id={peekId} />}
+        </div>
+      </div>
+      {movingId && <MovePicker key={movingId} id={movingId} />}
       {searchOpen && <SearchPalette />}
       {captureOpen && <QuickCapture />}
       {toast && (

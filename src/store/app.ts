@@ -3,9 +3,10 @@ import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { defaultSchema, parseValues, type Schema } from '@/lib/database'
 import { splitCapture } from '@/lib/capture'
+import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
-import { computeMove, descendantsOf, type DropZone } from '@/lib/tree'
+import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
 import type { ObjectPatch, ObjectRow, Repo } from '@/lib/types'
 
 export type View = 'page' | 'trash' | 'settings'
@@ -29,23 +30,40 @@ function savedExpanded(): Record<string, boolean> {
   }
 }
 
+const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database'
+
 interface AppState {
   repo: Repo | null
   objects: ObjectRow[]
+  /** Page affichée = celle de l'onglet actif. */
   selectedId: string | null
+  tabs: Tabs
+  /** Page ouverte dans le panneau latéral (aperçu). */
+  peekId: string | null
+  /** Page en cours de renommage dans la barre latérale. */
+  renamingId: string | null
+  /** Page en cours de déplacement (fenêtre « Déplacer vers »). */
+  movingId: string | null
   view: View
   theme: Theme
   error: string | null
   backupMessage: string | null
   expanded: Record<string, boolean>
   searchOpen: boolean
+  searchNewTab: boolean
   captureOpen: boolean
   toast: string | null
-  setSearch(open: boolean): void
+  setSearch(open: boolean, newTab?: boolean): void
   setCapture(open: boolean): void
   saveCapture(text: string): Promise<void>
   init(): Promise<void>
-  select(id: string): void
+  select(id: string, opts?: { newTab?: boolean }): void
+  activate(index: number): void
+  closeTabAt(index: number): void
+  openPeek(id: string): void
+  closePeek(): void
+  setRenaming(id: string | null): void
+  setMoving(id: string | null): void
   show(view: View): void
   toggleExpanded(id: string, value?: boolean): void
   createPage(parentId?: string | null): Promise<void>
@@ -56,6 +74,8 @@ interface AppState {
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
   saveSchema(databaseId: string, schema: Schema): Promise<void>
   move(dragId: string, targetId: string, zone: DropZone): Promise<void>
+  moveTo(id: string, parentId: string | null): Promise<void>
+  duplicate(id: string): Promise<void>
   update(id: string, patch: ObjectPatch): Promise<void>
   trash(id: string): Promise<void>
   restore(id: string): Promise<void>
@@ -67,12 +87,17 @@ export const useApp = create<AppState>((set, get) => ({
   repo: null,
   objects: [],
   selectedId: null,
+  tabs: { ids: [], active: 0 },
+  peekId: null,
+  renamingId: null,
+  movingId: null,
   view: 'page',
   theme: initialTheme(),
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
   searchOpen: false,
+  searchNewTab: false,
   captureOpen: false,
   toast: null,
 
@@ -81,8 +106,12 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
-      const first = objects.find((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database'))
-      set({ repo, objects, selectedId: first?.id ?? null })
+      const first = objects.find((o) => !o.deleted_at && isPageLike(o))
+      set({
+        repo, objects,
+        selectedId: first?.id ?? null,
+        tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
+      })
       try {
         const done = await runDailyBackup(repo)
         if (done) set({ backupMessage: `Sauvegarde du ${done} effectuée.` })
@@ -94,7 +123,7 @@ export const useApp = create<AppState>((set, get) => ({
     }
   },
 
-  select(id) {
+  select(id, opts) {
     // On déplie les pages parentes pour que la page choisie soit visible dans la barre latérale.
     const expanded = { ...get().expanded }
     const seen = new Set<string>()
@@ -103,11 +132,39 @@ export const useApp = create<AppState>((set, get) => ({
       expanded[p.parent_id] = true
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
-    set({ selectedId: id, view: 'page', expanded })
+    const tabs = openTab(get().tabs, id, opts?.newTab)
+    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded })
   },
 
-  setSearch(open) {
-    set({ searchOpen: open, captureOpen: open ? false : get().captureOpen })
+  activate(index) {
+    const tabs = activateTab(get().tabs, index)
+    set({ tabs, selectedId: currentId(tabs), view: 'page' })
+  },
+
+  closeTabAt(index) {
+    const tabs = closeTab(get().tabs, index)
+    set({ tabs, selectedId: currentId(tabs) })
+  },
+
+  openPeek(id) {
+    set({ peekId: id })
+  },
+  closePeek() {
+    set({ peekId: null })
+  },
+  setRenaming(id) {
+    if (id) {
+      // La page doit être visible dans la barre latérale pour être renommée.
+      get().select(id)
+    }
+    set({ renamingId: id })
+  },
+  setMoving(id) {
+    set({ movingId: id })
+  },
+
+  setSearch(open, newTab = false) {
+    set({ searchOpen: open, searchNewTab: open ? newTab : false, captureOpen: open ? false : get().captureOpen })
   },
   setCapture(open) {
     set({ captureOpen: open, searchOpen: open ? false : get().searchOpen })
@@ -150,7 +207,8 @@ export const useApp = create<AppState>((set, get) => ({
     if (!repo) return
     const page = await repo.createPage(parentId)
     if (parentId) get().toggleExpanded(parentId, true)
-    set((s) => ({ objects: [...s.objects, page], selectedId: page.id, view: 'page' }))
+    set((s) => ({ objects: [...s.objects, page] }))
+    get().select(page.id)
   },
 
   async createDatabase(parentId = null) {
@@ -158,7 +216,8 @@ export const useApp = create<AppState>((set, get) => ({
     if (!repo) return
     const db = await repo.createPage(parentId, 'database', JSON.stringify(defaultSchema()))
     if (parentId) get().toggleExpanded(parentId, true)
-    set((s) => ({ objects: [...s.objects, db], selectedId: db.id, view: 'page' }))
+    set((s) => ({ objects: [...s.objects, db] }))
+    get().select(db.id)
   },
 
   async createTasks() {
@@ -167,7 +226,8 @@ export const useApp = create<AppState>((set, get) => ({
     const db = await repo.createPage(null, 'database', JSON.stringify(tasksSchema()))
     const patch = { title: 'Tâches', icon: '✅' }
     await repo.updateObject(db.id, patch)
-    set((s) => ({ objects: [...s.objects, { ...db, ...patch }], selectedId: db.id, view: 'page' }))
+    set((s) => ({ objects: [...s.objects, { ...db, ...patch }] }))
+    get().select(db.id)
   },
 
   async createFromTemplate(templateId) {
@@ -177,7 +237,8 @@ export const useApp = create<AppState>((set, get) => ({
     const page = await repo.createPage(null)
     const patch = { title: tpl.title(), icon: tpl.icon, content: JSON.stringify(tpl.content) }
     await repo.updateObject(page.id, patch)
-    set((s) => ({ objects: [...s.objects, { ...page, ...patch }], selectedId: page.id, view: 'page' }))
+    set((s) => ({ objects: [...s.objects, { ...page, ...patch }] }))
+    get().select(page.id)
   },
 
   async createRow(databaseId, values) {
@@ -206,11 +267,55 @@ export const useApp = create<AppState>((set, get) => ({
     if (dest.parent_id) get().toggleExpanded(dest.parent_id, true)
   },
 
+  /** « Déplacer vers… » : met la page à la fin d'une autre page (ou à la racine). */
+  async moveTo(id, parentId) {
+    const { objects } = get()
+    if (id === parentId || (parentId && isDescendant(objects, id, parentId))) return
+    const siblings = childrenOf(objects, parentId).filter((o) => o.id !== id)
+    const last = siblings[siblings.length - 1]
+    await get().update(id, { parent_id: parentId, position: last ? last.position + 1000 : 1000 })
+    if (parentId) get().toggleExpanded(parentId, true)
+    set({ movingId: null })
+  },
+
+  /** Copie une page avec ses sous-pages (et les lignes, pour une base de données). */
+  async duplicate(id) {
+    const repo = get().repo
+    const order = duplicationOrder(get().objects, id)
+    if (!repo || order.length === 0) return
+    const created = new Map<string, string>()
+    for (const [i, src] of order.entries()) {
+      const isRoot = i === 0
+      const parent = isRoot ? src.parent_id : (created.get(src.parent_id ?? '') ?? null)
+      let properties = src.properties
+      if (src.type === 'database') {
+        // Une relation d'une base vers elle-même doit pointer vers la copie.
+        const schema = JSON.parse(src.properties) as Schema
+        properties = JSON.stringify({ ...schema, columns: schema.columns.map((c) => (c.targetDb === src.id ? { ...c, targetDb: '__self__' } : c)) })
+      }
+      const copy = await repo.createPage(parent, src.type, properties)
+      created.set(src.id, copy.id)
+      if (src.type === 'database') {
+        properties = properties.split('__self__').join(copy.id)
+      }
+      const patch: ObjectPatch = {
+        title: isRoot ? `${src.title || 'Sans titre'} (copie)` : src.title,
+        icon: src.icon, cover: src.cover, content: src.content,
+        properties,
+        position: isRoot ? src.position + 1 : src.position,
+      }
+      await repo.updateObject(copy.id, patch)
+      set((s) => ({ objects: [...s.objects, { ...copy, ...patch, is_favorite: 0 } as ObjectRow] }))
+    }
+    get().select(created.get(id)!)
+  },
+
   async update(id, patch) {
     const repo = get().repo
     if (!repo) return
     await repo.updateObject(id, patch)
-    set((s) => ({ objects: s.objects.map((o) => (o.id === id ? { ...o, ...patch } : o)) }))
+    const updated_at = new Date().toISOString()
+    set((s) => ({ objects: s.objects.map((o) => (o.id === id ? { ...o, ...patch, updated_at } : o)) }))
   },
 
   async trash(id) {
@@ -218,10 +323,13 @@ export const useApp = create<AppState>((set, get) => ({
     const stamp = new Date().toISOString()
     const ids = [id, ...descendantsOf(get().objects, id).filter((o) => !o.deleted_at).map((o) => o.id)]
     for (const i of ids) await get().update(i, { deleted_at: stamp })
-    if (ids.includes(get().selectedId ?? '')) {
-      const next = get().objects.find((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database'))
-      set({ selectedId: next?.id ?? null })
+    // Les onglets et l'aperçu qui montraient ces pages se ferment.
+    let tabs = dropTabs(get().tabs, ids)
+    if (tabs.ids.length === 0) {
+      const next = get().objects.find((o) => !o.deleted_at && isPageLike(o))
+      if (next) tabs = { ids: [next.id], active: 0 }
     }
+    set((s) => ({ tabs, selectedId: currentId(tabs), peekId: s.peekId && ids.includes(s.peekId) ? null : s.peekId }))
   },
 
   async restore(id) {
