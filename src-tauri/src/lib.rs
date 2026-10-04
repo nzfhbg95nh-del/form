@@ -1,3 +1,5 @@
+use tauri::{Emitter, Manager};
+use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
 pub fn run() {
@@ -13,6 +15,27 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
+        .plugin(
+            // Capture rapide : Ctrl + Alt + N, même quand Form n'est pas au premier plan.
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|app, _shortcut, event| {
+                    if event.state() == ShortcutState::Pressed {
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.unminimize();
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                        let _ = app.emit("quick-capture", ());
+                    }
+                })
+                .build(),
+        )
+        .setup(|app| {
+            // Si un autre programme utilise déjà ce raccourci, Form démarre quand même.
+            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyN);
+            let _ = app.global_shortcut().register(shortcut);
+            Ok(())
+        })
         .plugin(
             SqlBuilder::default()
                 .add_migrations("sqlite:form.db", migrations)

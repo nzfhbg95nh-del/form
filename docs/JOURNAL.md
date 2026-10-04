@@ -57,3 +57,10 @@
 - Rappels : notification Windows (plugin Tauri notification) pour les tâches dont l'échéance est aujourd'hui ou dépassée. Vérification au démarrage, toutes les 30 min et au retour de la fenêtre ; une tâche n'est rappelée qu'une fois par jour ; interrupteur + bouton de test dans Réglages. Fonctionne seulement app ouverte.
 - Tests : recherche des tâches à rappeler, anti-doublon, texte de la notification.
 - Reste de la phase 1 : étape 5 (Ctrl+K, capture rapide par raccourci global), étape 6 (import Notion).
+
+## 2026-10-04 — Phase 1, étape 5 : recherche Ctrl+K et capture rapide (v0.7.0)
+- Recherche globale (Ctrl+K ou bouton « Rechercher ») : titres et contenu des pages, lignes de bases, sans tenir compte des accents ni des majuscules ; flèches + Entrée ; pages récentes quand la recherche est vide. La page ouverte est dépliée dans la barre latérale.
+- Capture rapide : Ctrl+Alt+N, raccourci GLOBAL (plugin Tauri global-shortcut) qui ramène Form au premier plan et ouvre une fenêtre de saisie ; aussi bouton « Capture rapide ». Les captures vont dans la page « Boîte de réception » (créée automatiquement), 1re ligne = titre.
+- Limite : le raccourci global ne marche que si Form est lancé. Si un autre programme utilise déjà Ctrl+Alt+N, Form démarre sans le raccourci.
+- Tests : recherche (accents, contenu, chemin, récents) et découpage des captures.
+- Reste de la phase 1 : étape 6 (import Notion).

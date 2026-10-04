@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { defaultSchema, parseValues, type Schema } from '@/lib/database'
+import { splitCapture } from '@/lib/capture'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
 import { computeMove, descendantsOf, type DropZone } from '@/lib/tree'
@@ -37,6 +38,12 @@ interface AppState {
   error: string | null
   backupMessage: string | null
   expanded: Record<string, boolean>
+  searchOpen: boolean
+  captureOpen: boolean
+  toast: string | null
+  setSearch(open: boolean): void
+  setCapture(open: boolean): void
+  saveCapture(text: string): Promise<void>
   init(): Promise<void>
   select(id: string): void
   show(view: View): void
@@ -65,6 +72,9 @@ export const useApp = create<AppState>((set, get) => ({
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
+  searchOpen: false,
+  captureOpen: false,
+  toast: null,
 
   async init() {
     applyTheme(get().theme)
@@ -85,8 +95,46 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   select(id) {
-    set({ selectedId: id, view: 'page' })
+    // On déplie les pages parentes pour que la page choisie soit visible dans la barre latérale.
+    const expanded = { ...get().expanded }
+    const seen = new Set<string>()
+    for (let p = get().objects.find((o) => o.id === id); p?.parent_id && !seen.has(p.parent_id); p = get().objects.find((o) => o.id === p!.parent_id)) {
+      seen.add(p.parent_id)
+      expanded[p.parent_id] = true
+    }
+    localStorage.setItem('form-expanded', JSON.stringify(expanded))
+    set({ selectedId: id, view: 'page', expanded })
   },
+
+  setSearch(open) {
+    set({ searchOpen: open, captureOpen: open ? false : get().captureOpen })
+  },
+  setCapture(open) {
+    set({ captureOpen: open, searchOpen: open ? false : get().searchOpen })
+  },
+
+  async saveCapture(text) {
+    const repo = get().repo
+    if (!repo || !text.trim()) return
+    // Les captures arrivent dans une page « Boîte de réception », créée au besoin.
+    const inboxId = await repo.getSetting('inbox_id')
+    let inbox = get().objects.find((o) => o.id === inboxId && !o.deleted_at)
+    if (!inbox) {
+      const page = await repo.createPage(null)
+      const patch = { title: 'Boîte de réception', icon: '📥' }
+      await repo.updateObject(page.id, patch)
+      await repo.setSetting('inbox_id', page.id)
+      inbox = { ...page, ...patch }
+      set((s) => ({ objects: [...s.objects, inbox!] }))
+    }
+    const { title, blocks } = splitCapture(text)
+    const note = await repo.createPage(inbox.id)
+    const patch = { title, content: blocks.length > 0 ? JSON.stringify(blocks) : null }
+    await repo.updateObject(note.id, patch)
+    set((s) => ({ objects: [...s.objects, { ...note, ...patch }], captureOpen: false, toast: 'Capture enregistrée dans « Boîte de réception ».' }))
+    window.setTimeout(() => set({ toast: null }), 3000)
+  },
+
   show(view) {
     set({ view })
   },

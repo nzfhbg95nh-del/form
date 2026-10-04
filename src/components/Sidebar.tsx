@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckSquare, ChevronRight, Database, FileText, Moon, Plus, Settings, Sun, Trash2 } from 'lucide-react'
+import { CheckSquare, ChevronRight, Database, FileText, Moon, PenLine, Plus, Search, Settings, Sun, Trash2 } from 'lucide-react'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { cn } from '@/lib/utils'
@@ -115,7 +115,7 @@ function TreeItem({
 }
 
 export function Sidebar() {
-  const { objects, view, show, select, selectedId, createPage, createDatabase, createTasks, createFromTemplate, theme, toggleTheme } = useApp()
+  const { objects, view, show, select, selectedId, createPage, createDatabase, createTasks, createFromTemplate, setSearch, setCapture, theme, toggleTheme } = useApp()
   const [menu, setMenu] = useState(false)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const roots = childrenOf(objects, null)
@@ -124,6 +124,13 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
       <div className="px-2 py-2 text-base font-semibold">Form</div>
+      <Item onClick={() => setSearch(true)}>
+        <Search size={14} /> Rechercher
+        <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
+      </Item>
+      <Item onClick={() => setCapture(true)}>
+        <PenLine size={14} /> Capture rapide
+      </Item>
 
       {favorites.length > 0 && (
         <>
