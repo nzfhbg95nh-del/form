@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { fr } from '@blocknote/core/locales'
 import { BlockNoteView } from '@blocknote/mantine'
@@ -106,23 +107,50 @@ const createTodo = createReactBlockSpec(
 
 // Bloc « Moodboard » : un moodboard complet dans un cadre de la page. C'est une vraie page moodboard
 // (enfant de la page courante) : le bouton « Plein écran » l'ouvre dans l'espace entier.
-function MoodboardFrame({ boardId, tall, onToggleTall }: { boardId: string; tall: boolean; onToggleTall: () => void }) {
+function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height: number; onResize: (h: number) => void }) {
   const board = useApp((s) => s.objects.find((o) => o.id === boardId))
   const select = useApp((s) => s.select)
+  const [live, setLive] = useState<number | null>(null)
   const frame = 'rounded px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
   if (!board || board.deleted_at) {
     return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Ce moodboard a été supprimé.</div>
+  }
+  // Poignée du bas : glisser pour agrandir ou réduire (hauteur mémorisée dans la page).
+  const startDrag = (e: React.PointerEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    const y0 = e.clientY
+    const h0 = height
+    const next = (ev: PointerEvent) => Math.max(160, Math.min(1600, Math.round(h0 + ev.clientY - y0)))
+    const move = (ev: PointerEvent) => setLive(next(ev))
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      setLive(null)
+      onResize(next(ev))
+    }
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
   }
   return (
     <div contentEditable={false} className="w-full overflow-hidden rounded-md border border-[var(--border)]" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
       <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
         <Icon value={board.icon ?? '🖼️'} size={14} />
         <span className="flex-1 truncate font-medium">{board.title || 'Moodboard'}</span>
-        <button type="button" className={frame} onClick={onToggleTall}>{tall ? 'Réduire' : 'Agrandir'}</button>
         <button type="button" className={frame} onClick={() => select(board.id)}>Ouvrir en pleine page ↗</button>
       </div>
-      <div style={{ height: tall ? 760 : 440 }}>
-        <MoodboardView key={board.id} board={board} />
+      <div style={{ height: live ?? height }}>
+        <MoodboardView key={board.id} board={board} compact />
+      </div>
+      <div
+        role="separator"
+        aria-label="Glisser pour redimensionner"
+        title="Glisser pour agrandir ou réduire"
+        onPointerDown={startDrag}
+        className="flex h-3 cursor-ns-resize items-center justify-center border-t border-[var(--border)] bg-[var(--bg-side)] hover:bg-[var(--bg-hover)]"
+        style={{ touchAction: 'none' }}
+      >
+        <span className="h-1 w-10 rounded-full bg-[var(--border)]" />
       </div>
     </div>
   )
@@ -133,7 +161,7 @@ const createMoodboardBlock = createReactBlockSpec(
     type: 'moodboard',
     propSchema: {
       boardId: { default: '' },
-      tall: { default: false },
+      height: { default: 440 },
     },
     content: 'none',
   },
@@ -141,8 +169,8 @@ const createMoodboardBlock = createReactBlockSpec(
     render: (props) => (
       <MoodboardFrame
         boardId={props.block.props.boardId}
-        tall={props.block.props.tall}
-        onToggleTall={() => props.editor.updateBlock(props.block, { props: { tall: !props.block.props.tall } } as never)}
+        height={props.block.props.height}
+        onResize={(h) => props.editor.updateBlock(props.block, { props: { height: h } } as never)}
       />
     ),
   },

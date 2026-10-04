@@ -230,3 +230,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Sélecteur : section « Encadré » (💡 👉 ⚠️ 🔥 📌 ✅ ...) et raccourci « Récents » dans la barre du bas.
 - Limites connues : 8 emojis Unicode 16 n'ont pas encore de dessin Apple dans le jeu utilisé (🫪 🫯 🫈 🫍 🛘 🪊 🪎 🧑‍🩰) : retirés de la liste. ♀️ ♂️ ⚕️ et quelques teintes de peau mélangées n'ont pas d'image : affichés avec la police de Windows.
 - Pas fait : onglet « Icônes » (jeu d'icônes monochromes de Notion).
+
+## 2026-10-05 — Moodboard allégé dans les pages (v0.24.0)
+- Le cadre `/moodboard` utilise une version allégée : seulement « Images » et « Ajuster » (on peut toujours déposer ou coller des images, double-cliquer pour une note, zoomer à la molette, déplacer la toile) ; plus de barre du bas, de palette, d'organisation, de fonds.
+- Poignée en bas du cadre : glisser pour agrandir ou réduire (160 à 1600 px), hauteur mémorisée dans la page. Remplace les boutons Agrandir / Réduire.
+- « Ouvrir en pleine page ↗ » ouvre la version complète.
