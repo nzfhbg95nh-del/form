@@ -54,7 +54,7 @@ const VAT_TEXT: Record<VatLevel, string> = {
 }
 
 export function DashboardView() {
-  const { payments, invoices, invoiceLines, quotes, quoteLines, objects, clients, company, show, select, openInvoice } = useApp()
+  const { payments, invoices, invoiceLines, quotes, quoteLines, objects, clients, company, services, show, select, openInvoice } = useApp()
   const today = todayISO()
   const { year, month } = yearMonthOf(today)
 
@@ -127,6 +127,19 @@ export function DashboardView() {
             {data.vat.level === 'ok' ? `Il te reste ${formatEuros(data.vat.base.remaining)} avant le seuil de base.` : VAT_TEXT[data.vat.level]}
           </p>
         </div>
+      </Card>
+
+      <Card title="Mes tarifs" className="mb-4">
+        {services.filter((x) => !x.archived_at).length === 0 && <p className="text-sm text-[var(--fg-muted)]">Aucune prestation enregistrée.</p>}
+        <div className="flex flex-wrap gap-3">
+          {services.filter((x) => !x.archived_at).map((x) => (
+            <div key={x.id} className="rounded border border-[var(--border)] px-3 py-2">
+              <div className="text-sm text-[var(--fg-muted)]">{x.label}</div>
+              <div className="text-lg font-semibold tabular-nums">{formatEuros(x.unit_price_cents)} <span className="text-sm font-normal text-[var(--fg-muted)]">/ {x.unit}</span></div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-2"><Link onClick={() => show('services')}>Modifier mes prestations</Link></div>
       </Card>
 
       <div className="mb-4 grid grid-cols-2 gap-4">
