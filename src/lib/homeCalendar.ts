@@ -2,7 +2,7 @@ import { parseSchema, parseValues } from './database'
 import { TASK } from './tasks'
 import type { Invoice, ObjectRow, Quote } from './types'
 
-export type CalendarKind = 'task' | 'row' | 'invoice' | 'quote'
+export type CalendarKind = 'event' | 'task' | 'row' | 'invoice' | 'quote'
 
 /** Une ligne du calendrier d'accueil. `open` dit où aller quand on clique dessus. */
 export interface CalendarEvent {
@@ -13,7 +13,7 @@ export interface CalendarEvent {
   open: { to: 'object'; id: string } | { to: 'invoices' } | { to: 'quotes' }
 }
 
-export const KIND_LABELS: Record<CalendarKind, string> = { task: 'Tâche', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis' }
+export const KIND_LABELS: Record<CalendarKind, string> = { event: 'Événement', task: 'Tâche', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis' }
 
 /** Date au format AAAA-MM-JJ (les valeurs avec heure sont coupées), ou null. */
 const dayOf = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null)
@@ -33,11 +33,12 @@ export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id'
     if (schema.kind === 'mail') continue
     const values = parseValues(row.properties)
     const isTasks = schema.kind === 'tasks'
+    const isAgenda = schema.kind === 'agenda'
     if (isTasks && values[TASK.status] === TASK.done) continue
     for (const col of schema.columns) {
       if (col.type !== 'date') continue
       const date = dayOf(values[col.id])
-      if (date) events.push({ id: `${row.id}:${col.id}`, date, title: row.title || 'Nouvelle page', kind: isTasks ? 'task' : 'row', open: { to: 'object', id: row.id } })
+      if (date) events.push({ id: `${row.id}:${col.id}`, date, title: row.title || 'Nouvelle page', kind: isTasks ? 'task' : isAgenda ? 'event' : 'row', open: { to: 'object', id: row.id } })
     }
   }
   for (const i of invoices) {

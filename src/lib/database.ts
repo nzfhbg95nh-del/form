@@ -85,7 +85,7 @@ export interface Schema {
   columns: Column[]
   views: ViewConfig[]
   /** Base de tâches (kind = tasks) : surveillée par les rappels. */
-  kind?: 'tasks' | 'mail'
+  kind?: 'tasks' | 'mail' | 'agenda'
 }
 
 /** La colonne « Nom » existe toujours : c'est le titre de chaque ligne. */
@@ -93,6 +93,18 @@ export const TITLE_COLUMN: Column = { id: 'title', name: 'Nom', type: 'text' }
 
 export function newId(): string {
   return Math.random().toString(36).slice(2, 10)
+}
+
+/** Base « Agenda » : les événements ajoutés depuis le calendrier de l'accueil (un nom, une date, des notes). */
+export function agendaSchema(): Schema {
+  return {
+    kind: 'agenda',
+    columns: [{ id: 'date', name: 'Date', type: 'date' }, { id: 'notes', name: 'Notes', type: 'text' }],
+    views: [
+      { id: newId(), name: 'Calendrier', type: 'calendar', filters: [], sorts: [], dateCol: 'date' },
+      { id: newId(), name: 'Tableau', type: 'table', filters: [], sorts: [{ colId: 'date', dir: 'asc' }] },
+    ],
+  }
 }
 
 export function defaultSchema(): Schema {

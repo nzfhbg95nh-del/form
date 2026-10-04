@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
-import { defaultSchema, parseSchema, parseValues, type Schema } from '@/lib/database'
+import { agendaSchema, defaultSchema, parseSchema, parseValues, type Schema } from '@/lib/database'
 import { splitCapture } from '@/lib/capture'
 import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
@@ -149,6 +149,8 @@ interface AppState {
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
   /** `open: false` : on reste où l'on est (l'accueil) au lieu d'ouvrir la base de tâches. */
   addTasksFromAi(tasks: AiTask[], dbId: string | null, open?: boolean): Promise<void>
+  /** Ajoute un événement daté à la base « Agenda » (créée au besoin), sans quitter la page. */
+  addCalendarEvent(title: string, date: string): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
@@ -706,6 +708,23 @@ export const useApp = create<AppState>((set, get) => ({
       set((s) => ({ objects: [...s.objects, { ...row, title: t.title }] }))
     }
     if (open) get().select(target)
+  },
+
+  async addCalendarEvent(title, date) {
+    const repo = get().repo
+    if (!repo) return
+    let db = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'agenda')
+    if (!db) {
+      const created = await repo.createPage(null, 'database', JSON.stringify(agendaSchema()))
+      const patch = { title: 'Agenda', icon: '📅' }
+      await repo.updateObject(created.id, patch)
+      db = { ...created, ...patch }
+      const added = db
+      set((s) => ({ objects: [...s.objects, added] }))
+    }
+    const row = await repo.createPage(db.id, 'row', JSON.stringify({ date }))
+    await repo.updateObject(row.id, { title })
+    set((s) => ({ objects: [...s.objects, { ...row, title }] }))
   },
 
   async createTasks() {
