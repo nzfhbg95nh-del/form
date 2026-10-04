@@ -21,6 +21,7 @@ import {
 } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
+import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
 import { normalize } from '@/lib/search'
@@ -159,6 +160,24 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
   )
 }
 
+// Bloc « Base de données intégrée » : la vraie base (vues, filtres, tris, lignes) au milieu de la page.
+function DatabaseFrame({ dbId }: { dbId: string }) {
+  const db = useApp((s) => s.objects.find((o) => o.id === dbId))
+  if (!db || db.deleted_at) {
+    return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Cette base de données a été supprimée.</div>
+  }
+  return (
+    <div contentEditable={false} className="w-full overflow-x-auto rounded-md border border-[var(--border)] px-3" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
+      <DatabaseView key={db.id} db={db} embedded />
+    </div>
+  )
+}
+
+const createDatabaseBlock = createReactBlockSpec(
+  { type: 'database', propSchema: { dbId: { default: '' } }, content: 'none' },
+  { render: (props) => <DatabaseFrame dbId={props.block.props.dbId} /> },
+)
+
 const createMoodboardBlock = createReactBlockSpec(
   {
     type: 'moodboard',
@@ -269,7 +288,7 @@ const createMention = createReactInlineContentSpec(
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock() },
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -300,10 +319,10 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
   const ico = (I: LucideIcon) => <I size={18} strokeWidth={1.75} />
   const put = (block: Record<string, unknown>) => () => putBlock(editor, block)
   const viaDefault = (key: string) => () => std(key)?.onItemClick()
-  const embed = (kind: 'page' | 'database' | 'moodboard', blockType: 'moodboard' | 'subpage') => () => {
+  const embed = (kind: 'page' | 'database' | 'moodboard', blockType: 'moodboard' | 'subpage' | 'database') => () => {
     const at = cursorBlock(editor)
     void useApp.getState().createEmbeddedChild(pageId, kind).then((id) => {
-      if (id) putBlock(editor, { type: blockType, props: blockType === 'moodboard' ? { boardId: id } : { pageId: id } }, at)
+      if (id) putBlock(editor, { type: blockType, props: blockType === 'moodboard' ? { boardId: id } : blockType === 'database' ? { dbId: id } : { pageId: id } }, at)
     })
   }
   const B = 'Blocs de base'
@@ -339,6 +358,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
     { key: 'toc', title: 'Table des matières', aliases: ['table', 'matières', 'matieres', 'sommaire', 'toc', 'plan'], group: 'Blocs avancés', icon: ico(ListTree), onItemClick: put({ type: 'toc' }) },
     { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },
+    { key: 'dbinline', title: 'Base de données – Intégrée', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau', 'intégrée', 'integree', 'kanban', 'calendrier', 'galerie'], group: 'Base de données', subtext: 'Une base de données dans la page (tableau, kanban, calendrier...)', icon: ico(Database), onItemClick: embed('database', 'database') },
     { key: 'db', title: 'Base de données – Pleine page', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau'], group: 'Base de données', icon: ico(Database), onItemClick: embed('database', 'subpage') },
   ]
 }

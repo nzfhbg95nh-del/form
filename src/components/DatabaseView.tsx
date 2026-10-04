@@ -331,7 +331,8 @@ function SyncMailButton() {
   return <button className={btn} disabled={busy} onClick={() => void run()}>📬 {busy ? 'Relève en cours…' : 'Relever le courrier'}</button>
 }
 
-export function DatabaseView({ db }: { db: ObjectRow }) {
+/** `embedded` : version intégrée dans une page (titre discret, pas de marges de page entière). */
+export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded?: boolean }) {
   const { objects, update, saveSchema } = useApp()
   const schema = parseSchema(db.properties)
   const storeKey = `form-view-${db.id}`
@@ -362,18 +363,36 @@ export function DatabaseView({ db }: { db: ObjectRow }) {
   }
 
   return (
-    <div className="h-full overflow-y-auto px-12 py-8">
-      <div className="mb-1 flex items-center gap-2">
-        {db.icon && <Icon value={db.icon} size={40} />}
-        <IconPicker value={db.icon} onChange={(icon) => void update(db.id, { icon })} />
-      </div>
-      <input
-        value={title}
-        placeholder="Base de données sans titre"
-        onChange={(e) => setTitle(e.target.value)}
-        onBlur={() => title !== db.title && void update(db.id, { title })}
-        className="mb-3 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
-      />
+    <div className={embedded ? 'px-1 py-2' : 'h-full overflow-y-auto px-12 py-8'}>
+      {embedded ? (
+        <div className="mb-2 flex items-center gap-2">
+          {db.icon && <Icon value={db.icon} size={20} />}
+          <input
+            value={title}
+            placeholder="Base de données sans titre"
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title !== db.title && void update(db.id, { title })}
+            className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none placeholder:text-[var(--fg-muted)]"
+          />
+          <button type="button" className="shrink-0 rounded px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => useApp.getState().select(db.id)}>
+            Ouvrir en pleine page ↗
+          </button>
+        </div>
+      ) : (
+        <>
+          <div className="mb-1 flex items-center gap-2">
+            {db.icon && <Icon value={db.icon} size={40} />}
+            <IconPicker value={db.icon} onChange={(icon) => void update(db.id, { icon })} />
+          </div>
+          <input
+            value={title}
+            placeholder="Base de données sans titre"
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => title !== db.title && void update(db.id, { title })}
+            className="mb-3 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
+          />
+        </>
+      )}
 
       <div className="flex items-center gap-1 border-b border-[var(--border)]">
         {schema.views.map((v) => (
