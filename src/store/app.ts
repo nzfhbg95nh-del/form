@@ -7,7 +7,7 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
-import { defaultServices, withDerivedSiren } from '@/lib/business'
+import { couturePrestations, defaultServices, withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
 import { todayISO } from '@/lib/backup'
 import { blockersToSend, buildSnapshot, newLine, newQuote, numberPrefix } from '@/lib/quotes'
@@ -238,6 +238,16 @@ export const useApp = create<AppState>((set, get) => ({
           services.push(s)
         }
         await repo.setSetting('default_services_seeded', '1')
+      }
+      // Mise à jour 0.26 : la couture (12 €/heure) rejoint le catalogue, une seule fois.
+      if ((await repo.getSetting('default_couture_seeded')) !== '1') {
+        for (const s of couturePrestations()) {
+          if (!services.some((x) => x.id === s.id)) {
+            await repo.saveService(s)
+            services.push(s)
+          }
+        }
+        await repo.setSetting('default_couture_seeded', '1')
       }
       set({
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,

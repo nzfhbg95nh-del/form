@@ -242,3 +242,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Bloc « Table des matières » (menu /, mot « sommaire ») : titres de la page (niveaux 1 à 4, indentés), cliquables, mis à jour pendant la frappe.
 - Tests : 185 (réglages de page, noms de fichiers d'export).
 - Non fait, à prioriser : bases de données intégrées dans une page, rétroliens (« mentionné dans »), aperçu de lien web, équation, bouton, export PDF, onglet « Icônes », partage/publication (hors sujet : app locale).
+
+## 2026-10-05 — Prestation Couture (v0.26.0)
+- Nouvelle prestation « Couture » : 12 € / heure (confection, retouches, réparations), ajoutée une seule fois au catalogue, y compris pour une installation existante (réglage `default_couture_seeded`, identifiant fixe `default-couture`). Modifiable ou supprimable dans « Prestations » : une suppression n'est pas recréée.
+- Tests : 186.
