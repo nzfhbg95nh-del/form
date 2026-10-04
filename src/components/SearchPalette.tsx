@@ -74,7 +74,7 @@ export function SearchPalette() {
     }
   }
 
-  const placeholder = searchNewTab ? 'Ouvrir dans un nouvel onglet…' : 'Rechercher une page, un client, une prestation, un mot…'
+  const placeholder = searchNewTab ? 'Ouvrir dans un nouvel onglet…' : 'Rechercher une page, un client, un tarif, un mot…'
   let position = actions.length - 1
 
   const row = (e: Entry, i: number) => (

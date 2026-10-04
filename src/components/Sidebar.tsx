@@ -232,7 +232,7 @@ export function Sidebar() {
           <Users size={14} /> Clients
         </Item>
         <Item active={view === 'services'} onClick={() => show('services')}>
-          <Briefcase size={14} /> Prestations
+          <Briefcase size={14} /> Tarifs
         </Item>
         <Item active={view === 'quotes'} onClick={() => show('quotes')}>
           <FileSignature size={14} /> Devis

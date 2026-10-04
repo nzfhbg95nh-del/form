@@ -183,7 +183,7 @@ function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boo
   }
 
   return (
-    <Modal title={isNew ? 'Nouvelle prestation' : s.label || 'Prestation'} onClose={onClose}>
+    <Modal title={isNew ? 'Nouveau tarif' : s.label || 'Tarif'} onClose={onClose}>
       <Row label="Libellé"><input className={field} value={s.label} onChange={(e) => setS({ ...s, label: e.target.value })} /></Row>
       <Row label="Description (reprise sur les devis)">
         <textarea className={field + ' h-24'} value={s.description} onChange={(e) => setS({ ...s, description: e.target.value })} />
@@ -226,7 +226,7 @@ export function ServicesView() {
 
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
-      <Toolbar title="Prestations" query={query} setQuery={setQuery} showArchived={showArchived} setShowArchived={setShowArchived} newLabel="Nouvelle prestation" onNew={() => setEditing({ kind: 'service', id: null })} />
+      <Toolbar title="Tarifs" query={query} setQuery={setQuery} showArchived={showArchived} setShowArchived={setShowArchived} newLabel="Nouveau tarif" onNew={() => setEditing({ kind: 'service', id: null })} />
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--fg-muted)]">
