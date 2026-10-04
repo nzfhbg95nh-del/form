@@ -212,3 +212,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Un devis peut être envoyé sans SIRET (les autres mentions restent exigées : nom légal, mention EI, adresse). Le PDF affiche « SIRET : en cours d'obtention ».
 - Une facture reste bloquée sans SIRET : mention légale obligatoire, et une facture émise est verrouillée et numérotée sans trou (impossible de la corriger ensuite). Brouillons de facture toujours possibles.
 - Tests : 181.
+
+## 2026-10-05 — Bloc /moodboard dans les pages (v0.22.0)
+- Menu « / » > « Moodboard » : insère dans la page un cadre contenant un moodboard complet (mêmes outils que la page moodboard). Le moodboard est une vraie page enfant de la page courante (visible dans la barre latérale), donc rien n'est dupliqué.
+- Dans le cadre : « Agrandir / Réduire » (440 ou 760 px de haut) et « Ouvrir en pleine page ↗ » qui ouvre le même moodboard dans l'espace entier. Si le moodboard est supprimé, le cadre l'indique.
+- Non testé : copie d'une page contenant un cadre (le cadre pointe alors vers le même moodboard).
