@@ -258,3 +258,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Lien de bloc : `form://page/<page>#<bloc>` ; collé dans Ctrl+K, ouvre la page et fait défiler jusqu'au bloc.
 - Tests : 189.
 - Non fait : texte sur plusieurs blocs dans un encadré (listes, images dedans), Déplacer vers…, Commenter, Suggérer des modifications, Demander à l'IA depuis le menu (l'assistant IA existe déjà dans la barre latérale).
+
+## 2026-10-05 — Mes tarifs sur le tableau de bord (v0.28.1)
+- Carte « Mes tarifs » sur le tableau de bord : chaque prestation active avec son prix et son unité (300 € / jour, 12 € / heure...), lien « Modifier mes prestations ».
+- Rappel : le catalogue sert à remplir les lignes des devis et factures (copie des libellé, description, unité, prix au moment de l'ajout ; modifier un prix plus tard ne change jamais un document existant).
