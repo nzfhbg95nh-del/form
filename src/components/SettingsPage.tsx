@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { AiSettings } from '@/components/AiSettings'
 import { CgvSettings, CompanySettings } from '@/components/CompanySettings'
 import { GeneralSettings } from '@/components/SettingsView'
 
@@ -6,6 +7,7 @@ const TABS = [
   { id: 'general', label: 'Général' },
   { id: 'company', label: 'Entreprise' },
   { id: 'cgv', label: 'CGV' },
+  { id: 'ai', label: 'Assistant IA' },
 ] as const
 
 export function SettingsPage() {
@@ -26,6 +28,7 @@ export function SettingsPage() {
       {tab === 'general' && <GeneralSettings />}
       {tab === 'company' && <CompanySettings />}
       {tab === 'cgv' && <CgvSettings />}
+      {tab === 'ai' && <AiSettings />}
     </div>
   )
 }

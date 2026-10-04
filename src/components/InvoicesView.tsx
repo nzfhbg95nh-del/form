@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AssistantModal } from '@/components/AssistantModal'
 import { ArrowLeft, Plus } from 'lucide-react'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { vatMention } from '@/lib/company'
@@ -133,6 +134,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved')
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState(false)
+  const [ai, setAi] = useState(false)
   const [version, setVersion] = useState('0')
   const dirty = useRef(false)
 
@@ -280,6 +282,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
         {!locked && !credit && (
           <div className="mb-4 flex items-center gap-2">
             <button className={secondary} onClick={() => patchLines([...lines, newInvoiceLine(invoice.id, lines.length)])}><Plus size={14} className="mr-1 inline" /> Ligne vide</button>
+            <button className={secondary} onClick={() => setAi(true)}>✨ Lignes depuis un texte</button>
             <select className={field + ' max-w-xs'} value="" onChange={(e) => {
               const s = services.find((x) => x.id === e.target.value)
               if (s) patchLines([...lines, newInvoiceLine(invoice.id, lines.length, { service_id: s.id, label: s.label, description: s.description, unit: s.unit, unit_price_cents: s.unit_price_cents })])
@@ -325,6 +328,13 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
             <button className={secondary + ' text-red-500'} onClick={() => { if (window.confirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftInvoice(invoice.id)) }}>Supprimer le brouillon</button>
           )}
         </div>
+
+        {ai && (
+          <AssistantModal
+            onClose={() => setAi(false)}
+            onApplyLines={(added) => patchLines([...lines, ...added.map((l, i) => newInvoiceLine(invoice.id, lines.length + i, { label: l.label, description: l.description, quantity_milli: l.quantity_milli, unit: l.unit, unit_price_cents: l.unit_price_cents ?? 0 }))])}
+          />
+        )}
 
         {preview && pdfData && <PdfPreview data={pdfData} />}
         {locked && !credit && <InvoicePayments invoice={invoice} remaining={remainingCents(invoice, invoices, invoiceLines, payments)} />}

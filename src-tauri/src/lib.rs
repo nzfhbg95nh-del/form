@@ -1,3 +1,6 @@
+mod gemini;
+mod secrets;
+
 use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
@@ -73,6 +76,13 @@ pub fn run() {
                 .add_migrations("sqlite:form.db", migrations)
                 .build(),
         )
+        .invoke_handler(tauri::generate_handler![
+            secrets::secret_set,
+            secrets::secret_exists,
+            secrets::secret_delete,
+            gemini::gemini_generate,
+            gemini::gemini_models
+        ])
         .run(tauri::generate_context!())
         .expect("erreur au lancement de Form");
 }

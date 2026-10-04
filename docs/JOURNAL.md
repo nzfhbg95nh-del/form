@@ -149,3 +149,13 @@ Points ouverts : adresse de domiciliation, SIRET, mention pour clients belges (�
 - Pas encore : rotation libre, glisser une image depuis une page web (le navigateur ne donne pas le fichier), import de PureRef.
 - Tests : 133 au total (zoom, sélection, groupes, organisation, historique, palette, enregistrement).
 - Prochaine étape : 2 (assistant Gemini).
+
+## 2026-10-04 — Phase 3, étape 2 : assistant Gemini (v0.16.0)
+- Réglages > Assistant IA : clé Gemini rangée dans le coffre Windows (crate `keyring`, jamais dans la base ni les sauvegardes ; l'interface ne peut pas la relire : seules commandes `secret_set` / `secret_exists` / `secret_delete`), choix du modèle (liste chargée depuis l'API, défaut gemini-2.5-flash, modifiable), bouton de test.
+- Les appels à Gemini se font côté Rust (reqwest + native-tls), pas depuis l'interface : la clé reste dans le code Rust. Erreurs traduites (clé refusée, quota gratuit atteint, modèle introuvable).
+- « ✨ Assistant IA » (barre latérale) : texte → recette (crée une page avec portions, ingrédients cochables, étapes numérotées), texte → lignes de facture (ajoutées à un brouillon de devis ou de facture ; bouton « ✨ Lignes depuis un texte » dans les éditeurs), texte → tâches (ajoutées à une base de tâches ou à une nouvelle base).
+- Confidentialité : jamais automatique (clic « Envoyer à Gemini »), seul le texte collé part, aperçu exact du texte envoyé, e-mails / téléphones / IBAN / SIRET masqués par défaut, montants et informations restantes = case de confirmation obligatoire. Rappel que le palier gratuit permet à Google d'utiliser les textes.
+- Réponses vérifiées côté app (JSON strict, unités normalisées, prix en centimes, dates valides, aucun prix inventé : prix absent = à compléter). Rien n'est enregistré sans validation de Victor dans l'aperçu.
+- Tests : 144 au total (détection de données sensibles, masquage, lecture des réponses).
+- ATTENTION : le code Rust (keyring, reqwest) n'a pas pu être compilé sur le PC de Victor ; le premier test réel passera par la fabrication GitHub puis par une vraie clé.
+- Prochaine étape : 3 (courrier SeDomicilier par IMAP).

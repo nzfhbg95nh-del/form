@@ -3,6 +3,7 @@ import { ClientsView, ServicesView } from '@/components/BusinessViews'
 import { InvoicesView } from '@/components/InvoicesView'
 import { PaymentsView } from '@/components/PaymentsView'
 import { QuotesView } from '@/components/QuotesView'
+import { AssistantModal } from '@/components/AssistantModal'
 import { DashboardView } from '@/components/DashboardView'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
@@ -20,7 +21,7 @@ import { useReminders } from '@/lib/useReminders'
 import { useApp } from '@/store/app'
 
 export default function App() {
-  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, captureOpen, toast, setSearch, setCapture, peekId, movingId } = useApp()
+  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, captureOpen, toast, setSearch, setCapture, peekId, movingId, assistantMode, setAssistant } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
 
   useReminders()
@@ -99,6 +100,7 @@ export default function App() {
         </div>
       </div>
       {movingId && <MovePicker key={movingId} id={movingId} />}
+      {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}
       {captureOpen && <QuickCapture />}
       {toast && (

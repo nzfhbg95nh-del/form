@@ -5,7 +5,7 @@ import { defaultSchema, parseValues, type Schema } from '@/lib/database'
 import { splitCapture } from '@/lib/capture'
 import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
-import { tasksSchema } from '@/lib/tasks'
+import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
 import { withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
@@ -15,6 +15,7 @@ import {
   blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
   type Draft,
 } from '@/lib/invoices'
+import { recipeBlocks, type AiMode, type AiTask, type Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
@@ -119,6 +120,12 @@ interface AppState {
   createDatabase(parentId?: string | null): Promise<void>
   createTasks(): Promise<void>
   createMoodboard(): Promise<void>
+  /** Fenêtre de l'assistant IA : null = fermée. */
+  assistantMode: AiMode | null
+  setAssistant(mode: AiMode | null): void
+  createRecipePage(recipe: Recipe): Promise<void>
+  /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
+  addTasksFromAi(tasks: AiTask[], dbId: string | null): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
@@ -174,6 +181,7 @@ export const useApp = create<AppState>((set, get) => ({
   expanded: savedExpanded(),
   searchOpen: false,
   searchNewTab: false,
+  assistantMode: null,
   captureOpen: false,
   toast: null,
 
@@ -500,6 +508,42 @@ export const useApp = create<AppState>((set, get) => ({
     await repo.updateObject(board.id, patch)
     set((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
     get().select(board.id)
+  },
+
+  setAssistant(mode) {
+    set({ assistantMode: mode })
+  },
+
+  async createRecipePage(recipe) {
+    const repo = get().repo
+    if (!repo) return
+    const page = await repo.createPage(null)
+    const patch = { title: recipe.title, icon: '🍳', content: JSON.stringify(recipeBlocks(recipe)) }
+    await repo.updateObject(page.id, patch)
+    set((s) => ({ objects: [...s.objects, { ...page, ...patch }] }))
+    get().select(page.id)
+  },
+
+  async addTasksFromAi(tasks, dbId) {
+    const repo = get().repo
+    if (!repo) return
+    let target = dbId
+    if (!target) {
+      const db = await repo.createPage(null, 'database', JSON.stringify(tasksSchema()))
+      const patch = { title: 'Tâches', icon: '✅' }
+      await repo.updateObject(db.id, patch)
+      set((s) => ({ objects: [...s.objects, { ...db, ...patch }] }))
+      target = db.id
+    }
+    for (const t of tasks) {
+      const values: Record<string, unknown> = { [TASK.status]: 'afaire' }
+      if (t.due) values[TASK.due] = t.due
+      if (t.priority) values[TASK.priority] = t.priority === 'haute' ? 'haute' : t.priority === 'moyenne' ? 'moyenne' : 'basse'
+      const row = await repo.createPage(target, 'row', JSON.stringify(values))
+      await repo.updateObject(row.id, { title: t.title })
+      set((s) => ({ objects: [...s.objects, { ...row, title: t.title }] }))
+    }
+    get().select(target)
   },
 
   async createTasks() {

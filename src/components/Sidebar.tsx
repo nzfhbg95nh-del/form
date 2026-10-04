@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sun, Trash2, Users,
+  Banknote, Briefcase, CheckSquare, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users,
 } from 'lucide-react'
 import { PageMenu } from '@/components/PageMenu'
 import { childrenOf, type DropZone } from '@/lib/tree'
@@ -195,7 +195,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, theme, toggleTheme,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, theme, toggleTheme,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -215,6 +215,9 @@ export function Sidebar() {
       </Item>
       <Item onClick={() => setCapture(true)}>
         <PenLine size={14} /> Capture rapide
+      </Item>
+      <Item onClick={() => setAssistant('recipe')}>
+        <Sparkles size={14} /> Assistant IA
       </Item>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

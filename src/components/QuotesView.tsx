@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { AssistantModal } from '@/components/AssistantModal'
 import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
 import { centsToInput, clientDisplayName, formatEuros, parseEuros, parseSignedEuros, UNITS } from '@/lib/business'
 import { vatMention } from '@/lib/company'
@@ -174,6 +175,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
   const [saveState, setSaveState] = useState<'saved' | 'saving' | 'error'>('saved')
   const [error, setError] = useState<string | null>(null)
   const [preview, setPreview] = useState(false)
+  const [ai, setAi] = useState(false)
   const dirty = useRef(false)
 
   // Quand le devis est envoyé / accepté / refusé, on recopie son état enregistré (numéro, statut…).
@@ -299,6 +301,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
         {!locked && (
           <div className="mb-4 flex items-center gap-2">
             <button className={secondary} onClick={() => patchLines([...lines, newLine(quote.id, lines.length)])}><Plus size={14} className="mr-1 inline" /> Ligne vide</button>
+            <button className={secondary} onClick={() => setAi(true)}>✨ Lignes depuis un texte</button>
             <select className={field + ' max-w-xs'} value="" onChange={(e) => e.target.value && addService(e.target.value)}>
               <option value="">+ Depuis le catalogue de prestations…</option>
               {services.filter((s) => !s.archived_at).map((s) => <option key={s.id} value={s.id}>{s.label} — {formatEuros(s.unit_price_cents)} / {s.unit}</option>)}
@@ -344,6 +347,13 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
             <button className={secondary + ' text-red-500'} onClick={() => { if (window.confirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftQuote(quote.id)) }}>Supprimer le brouillon</button>
           )}
         </div>
+
+        {ai && (
+          <AssistantModal
+            onClose={() => setAi(false)}
+            onApplyLines={(added) => patchLines([...lines, ...added.map((l, i) => ({ ...newLine(quote.id, lines.length + i), label: l.label, description: l.description, quantity_milli: l.quantity_milli, unit: l.unit, unit_price_cents: l.unit_price_cents ?? 0 }))])}
+          />
+        )}
 
         {quote.status === 'accepted' && <QuoteBilling quote={quote} />}
 
