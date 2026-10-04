@@ -154,13 +154,6 @@ function TreeItem({
             <span className="truncate">{page.title || 'Sans titre'}</span>
           </button>
         )}
-        <button
-          title="Plus d'actions"
-          onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); openMenu(page.id, r.left, r.bottom + 4) }}
-          className="rounded p-0.5 opacity-0 hover:bg-[var(--border)] group-hover:opacity-100"
-        >
-          <MoreHorizontal size={14} />
-        </button>
         {page.type === 'page' && (
           <button
             title="Ajouter une sous-page"
@@ -170,6 +163,13 @@ function TreeItem({
             <Plus size={14} />
           </button>
         )}
+        <button
+          title="Plus d'actions"
+          onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); openMenu(page.id, r.left, r.bottom + 4) }}
+          className="rounded p-0.5 opacity-0 hover:bg-[var(--border)] group-hover:opacity-100"
+        >
+          <MoreHorizontal size={14} />
+        </button>
       </div>
       {open && kids.map((k) => <TreeItem key={k.id} page={k} depth={depth + 1} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
     </div>

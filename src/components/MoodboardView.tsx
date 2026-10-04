@@ -4,9 +4,9 @@ import { samplePixels, processImage } from '@/lib/images'
 import {
   alignItems, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, moveItems,
-  newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, redo, removeItems, scaleItems, screenToWorld,
+  newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
-  type AlignMode, type Board, type BoardItem, type NormalizeMode, type Rect, type View,
+  type AlignMode, type Board, type BoardItem, type NormalizeMode, type Pattern, type Rect, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { isTauri } from '@/lib/repo'
@@ -29,7 +29,7 @@ type Drag =
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
 
 const HANDLES = ['nw', 'ne', 'sw', 'se'] as const
-const bar = 'rounded border border-white/10 bg-black/60 px-2 py-1 text-xs text-white backdrop-blur hover:bg-black/80'
+const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
 let internalClip: { stamp: string; items: BoardItem[] } | null = null
@@ -44,6 +44,8 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
   const items = live ?? hist.present
   const [view, setView] = useState<View>(initial.view)
   const [bg, setBg] = useState(initial.bg)
+  const [pattern, setPattern] = useState<Pattern>(initial.pattern)
+  const appTheme = useApp((s) => s.theme)
   const [selection, setSelection] = useState<Set<string>>(new Set())
   const [marquee, setMarquee] = useState<Rect | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
@@ -70,8 +72,8 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
   selRef.current = selection
   const paletteCache = useRef(new Map<string, string[]>())
   const dirty = useRef(false)
-  const latest = useRef<Board>({ v: 1, items: hist.present, view, bg })
-  latest.current = { v: 1, items: hist.present, view, bg }
+  const latest = useRef<Board>({ v: 1, items: hist.present, view, bg, pattern })
+  latest.current = { v: 1, items: hist.present, view, bg, pattern }
 
   const say = useCallback((text: string) => {
     setFlash(text)
@@ -124,7 +126,7 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
       void useApp.getState().update(boardId, { content: serializeBoard(latest.current) })
     }, 700)
     return () => window.clearTimeout(t)
-  }, [hist.present, view, bg, boardId])
+  }, [hist.present, view, bg, pattern, boardId])
   useEffect(() => () => {
     if (dirty.current) void useApp.getState().update(boardId, { content: serializeBoard(latest.current) })
   }, [boardId])
@@ -467,7 +469,19 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
     } catch (err) { say(`Impossible : ${err instanceof Error ? err.message : String(err)}`) }
   }
 
-  const textColor = readableOn(bg)
+  // Fond : par défaut la couleur de l'application, avec un motif de points espacés comme un cahier à points.
+  const isDark = bg === 'theme' ? appTheme === 'dark' : readableOn(bg) === '#ffffff'
+  const textColor = isDark ? '#ffffff' : '#111111'
+  const bgColor = bg === 'theme' ? 'var(--bg)' : bg
+  const step = 28 * view.zoom
+  const ink = isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.22)'
+  const patternStyle: React.CSSProperties =
+    pattern === 'dots' && step >= 8
+      ? { backgroundImage: `radial-gradient(circle at center, ${ink} ${Math.max(1, view.zoom * 1.1)}px, transparent ${Math.max(1.4, view.zoom * 1.1 + 0.5)}px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x - step / 2}px ${view.y - step / 2}px` }
+      : pattern === 'grid' && step >= 8
+        ? { backgroundImage: `linear-gradient(${ink} 1px, transparent 1px), linear-gradient(90deg, ${ink} 1px, transparent 1px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x}px ${view.y}px` }
+        : {}
+  const swatch = (b: string): React.CSSProperties => (b === 'theme' ? { background: 'linear-gradient(135deg, #ffffff 50%, #1f1f1f 50%)' } : { background: b })
   const zoom = view.zoom
   const hs = 11 / zoom
 
@@ -546,7 +560,7 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ background: bg, cursor: panning ? 'grabbing' : spaceDown ? 'grab' : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown ? 'grab' : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -598,16 +612,17 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
         <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
+        <button className={bar} title="Fond : points, grille ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
         <button className={bar} title="Toujours au premier plan" onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
         {BACKGROUNDS.map((b) => (
-          <button key={b} title="Couleur de fond" onClick={() => setBg(b)} className="h-5 w-5 rounded-full border" style={{ background: b, borderColor: bg === b ? '#4da3ff' : 'rgba(255,255,255,.3)', borderWidth: bg === b ? 2 : 1 }} />
+          <button key={b} title={b === 'theme' ? 'Fond de l’application' : 'Couleur de fond'} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: bg === b ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
         ))}
       </div>
       <input ref={colorInput} type="color" className="hidden" onChange={(e) => { const c = viewCenter(); const s = makeSwatch({ x: c.x - 60, y: c.y - 60 }, e.target.value); commitItems([...itemsRef.current, s]); setSelection(new Set([s.id])) }} />
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { void addFiles(Array.from(e.target.files ?? []), viewCenter()); e.target.value = '' }} />
 
       {linkInput !== null && (
-        <div data-ui className="absolute left-3 top-14 flex gap-1.5 rounded border border-white/10 bg-black/70 p-2 backdrop-blur">
+        <div data-ui className="absolute left-3 top-14 flex gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
           <input
             autoFocus
             value={linkInput}
@@ -622,13 +637,13 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
                 commitItems([...itemsRef.current, l]); setSelection(new Set([l.id])); setLinkInput(null)
               }
             }}
-            className="w-72 rounded bg-white/10 px-2 py-1 text-sm text-white outline-none placeholder:text-white/40"
+            className="w-72 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
           />
         </div>
       )}
 
       {/* Zoom et message */}
-      <div data-ui className="absolute bottom-3 left-3 flex items-center gap-2 text-xs" style={{ color: textColor, opacity: 0.8 }}>
+      <div data-ui className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-[var(--fg)]">
         <button className={bar} onClick={() => setView((v) => zoomAt(v, 0.8, { x: size.w / 2, y: size.h / 2 }))}>−</button>
         <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)} %</span>
         <button className={bar} onClick={() => setView((v) => zoomAt(v, 1.25, { x: size.w / 2, y: size.h / 2 }))}>+</button>
@@ -637,15 +652,15 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
-      {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded bg-black/80 px-3 py-1.5 text-sm text-white">{flash}</div>}
+      {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && (
-        <div data-ui data-scroll className="absolute right-3 top-3 max-h-[80%] w-52 overflow-y-auto rounded-lg border border-white/10 bg-black/70 p-3 text-white backdrop-blur">
-          <div className="mb-2 text-xs font-semibold uppercase text-white/60">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
-          {palette.length === 0 && <div className="text-sm text-white/60">Ajoute des images pour en extraire les couleurs.</div>}
+        <div data-ui data-scroll className="absolute right-3 top-3 max-h-[80%] w-52 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
+          <div className="mb-2 text-xs font-semibold uppercase text-[var(--fg-muted)]">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
+          {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
           <div className="grid grid-cols-2 gap-2">
             {palette.map((c) => (
-              <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded border border-white/15 text-left">
+              <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded border border-[var(--border)] text-left">
                 <div className="h-10" style={{ background: c }} />
                 <div className="px-1 py-0.5 font-mono text-[11px]">{c}</div>
               </button>
@@ -671,7 +686,7 @@ export function MoodboardView({ board }: { board: ObjectRow }) {
                 <MenuBtn label="Tout sélectionner" hint="Ctrl+A" onClick={act.selectAll} />
                 <MenuBtn label="Tout afficher" hint="F" onClick={() => fitTo(items)} />
                 <MenuHead>Fond</MenuHead>
-                <div className="flex gap-2 px-2 py-1">{BACKGROUNDS.map((b) => <button key={b} onClick={() => { setBg(b); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: b }} />)}</div>
+                <div className="flex gap-2 px-2 py-1">{BACKGROUNDS.map((b) => <button key={b} onClick={() => { setBg(b); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={swatch(b)} />)}</div>
               </>
             )}
             {(hasSel || menu.mode === 'organize') && (

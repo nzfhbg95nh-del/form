@@ -63,3 +63,18 @@ describe('capture rapide', () => {
     expect(r.blocks).toEqual([{ type: 'paragraph', content: long }])
   })
 })
+
+import { groupByRecency } from './search'
+
+describe('pages récentes groupées', () => {
+  it("range les pages par ancienneté, dans l'ordre d'affichage", () => {
+    const now = new Date(2026, 9, 15, 14, 0, 0)
+    const at = (id: string, daysAgo: number) => page(id, id, null, { updated_at: new Date(2026, 9, 15 - daysAgo, 9, 0, 0).toISOString() })
+    const hits = searchObjects([at('a', 0), at('b', 1), at('c', 4), at('d', 20), at('e', 90)], '', 10)
+    const groups = groupByRecency(hits, now)
+    expect(groups.map((g) => [g.label, g.hits.map((h) => h.object.id)])).toEqual([
+      ["Aujourd'hui", ['a']], ['Hier', ['b']], ['La semaine dernière', ['c']], ['Les 30 derniers jours', ['d']], ['Plus anciennes', ['e']],
+    ])
+    expect(groupByRecency([], now)).toEqual([])
+  })
+})

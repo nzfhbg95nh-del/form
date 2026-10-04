@@ -35,6 +35,45 @@ function Row({ label, children, className }: { label: string; children: React.Re
   )
 }
 
+/** « Facture d'acompte » : on choisit le devis (envoyé ou accepté) pour lequel on veut demander l'acompte. */
+function NewDepositButton() {
+  const { quotes, invoices, clients, createDepositInvoice, setQuoteStatus } = useApp()
+  const [open, setOpen] = useState(false)
+  const eligible = quotes.filter(
+    (q) => q.number && (q.status === 'sent' || q.status === 'accepted') && q.deposit_percent > 0 && !invoices.some((i) => i.quote_id === q.id && i.kind === 'deposit'),
+  )
+  const pick = async (id: string) => {
+    const q = quotes.find((x) => x.id === id)
+    if (!q) return
+    if (q.status === 'sent' && !window.confirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé.")) return
+    setOpen(false)
+    if (q.status === 'sent') await setQuoteStatus(q.id, 'accepted')
+    await createDepositInvoice(q.id)
+  }
+  return (
+    <div className="relative">
+      <button className={secondary} onClick={() => setOpen(!open)}>Facture d'acompte…</button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 z-20 mt-1 w-80 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-lg">
+            {eligible.length === 0 && <p className="p-3 text-sm text-[var(--fg-muted)]">Aucun devis disponible. Il faut un devis <strong>envoyé ou accepté</strong>, avec un acompte, et sans facture d'acompte.</p>}
+            {eligible.map((q) => {
+              const client = clients.find((c) => c.id === q.client_id)
+              return (
+                <button key={q.id} onClick={() => void pick(q.id)} className="flex w-full flex-col rounded px-3 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
+                  <span className="font-medium">{q.number} · {client ? clientDisplayName(client) : '—'}</span>
+                  <span className="text-xs text-[var(--fg-muted)]">{q.title || 'sans objet'} · acompte {q.deposit_percent} %</span>
+                </button>
+              )
+            })}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 // ───────────────────────── Liste ─────────────────────────
 
 export function InvoicesView() {
@@ -59,6 +98,7 @@ export function InvoicesView() {
           {(Object.keys(DISPLAY_LABELS) as DisplayStatus[]).map((s) => <option key={s} value={s}>{DISPLAY_LABELS[s]}</option>)}
         </select>
         <div className="flex-1" />
+        <NewDepositButton />
         <button className={primary + ' flex items-center gap-1'} onClick={() => void createStandardInvoice()}><Plus size={14} /> Nouvelle facture</button>
       </div>
       <p className="mb-3 text-xs text-[var(--fg-muted)]">Les factures d'acompte et de solde se créent depuis un devis accepté (section Devis).</p>

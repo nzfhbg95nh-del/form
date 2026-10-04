@@ -20,6 +20,16 @@ export function newService(): Service {
   return { id: crypto.randomUUID(), label: '', description: '', unit_price_cents: 0, unit: 'jour', created_at: t, updated_at: t, archived_at: null }
 }
 
+/** Prestations de départ : les taux journaliers moyens (TJM) de Victor. À modifier librement dans « Prestations ». */
+export function defaultServices(): Service[] {
+  // Identifiants fixes : si le démarrage s'exécute deux fois, les deux prestations ne sont jamais doublées.
+  const make = (id: string, label: string, description: string, euros: number): Service => ({ ...newService(), id, label, description, unit_price_cents: euros * 100, unit: 'jour' })
+  return [
+    make('default-graphisme', 'Graphisme', 'Création graphique : identité visuelle, supports de communication.', 300),
+    make('default-cgi', 'CGI', 'Création d’images de synthèse : modélisation 3D, rendu, animation.', 350),
+  ]
+}
+
 export function clientDisplayName(c: Client): string {
   return c.company_name.trim() || c.name.trim() || 'Sans nom'
 }

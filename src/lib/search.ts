@@ -68,7 +68,7 @@ export function searchObjects(objects: ObjectRow[], query: string, limit = 30): 
   if (q === '') {
     return [...live]
       .sort((a, b) => b.updated_at.localeCompare(a.updated_at))
-      .slice(0, 8)
+      .slice(0, Math.max(8, limit))
       .map((object) => ({ object, score: 0, snippet: null, path: pathOf(objects, object) }))
   }
 
@@ -91,4 +91,24 @@ export function searchObjects(objects: ObjectRow[], query: string, limit = 30): 
   return hits
     .sort((a, b) => b.score - a.score || b.object.updated_at.localeCompare(a.object.updated_at))
     .slice(0, limit)
+}
+
+export interface HitGroup {
+  label: string
+  hits: SearchHit[]
+}
+
+/** Regroupe les pages récentes comme Notion : Aujourd'hui, Hier, La semaine dernière, Les 30 derniers jours, Plus anciennes. */
+export function groupByRecency(hits: SearchHit[], now: Date): HitGroup[] {
+  const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
+  const today = startOfDay(now)
+  const DAY = 86400000
+  const labels = ["Aujourd'hui", 'Hier', 'La semaine dernière', 'Les 30 derniers jours', 'Plus anciennes']
+  const groups: HitGroup[] = labels.map((label) => ({ label, hits: [] }))
+  for (const hit of hits) {
+    const age = Math.floor((today - startOfDay(new Date(hit.object.updated_at))) / DAY)
+    const i = age <= 0 ? 0 : age === 1 ? 1 : age <= 7 ? 2 : age <= 30 ? 3 : 4
+    groups[i].hits.push(hit)
+  }
+  return groups.filter((g) => g.hits.length > 0)
 }

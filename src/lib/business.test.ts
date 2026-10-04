@@ -106,3 +106,12 @@ describe('migrations SQL (exécutées pour de vrai dans SQLite)', () => {
     expect(db.prepare('SELECT unit_price_cents FROM services').get()).toEqual({ unit_price_cents: 45000 })
   })
 })
+
+describe('prestations de départ', () => {
+  it('reprend les TJM de Victor : graphisme 300 €/jour, CGI 350 €/jour', async () => {
+    const { defaultServices } = await import('./business')
+    const services = defaultServices()
+    expect(services.map((s) => [s.label, s.unit_price_cents, s.unit])).toEqual([['Graphisme', 30000, 'jour'], ['CGI', 35000, 'jour']])
+    expect(services.map((s) => s.id)).toEqual(['default-graphisme', 'default-cgi'])
+  })
+})

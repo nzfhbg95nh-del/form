@@ -181,3 +181,13 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Aucun code Windows ajouté (tout en TypeScript) : pas de risque de compilation nouveau.
 - Tests : 168 (CSV, noms et chemins, dates, types, préparation du Markdown, plan d'import sur un export fabriqué).
 - À valider avec l'export RÉEL de Victor : la structure exacte des exports Notion varie un peu (noms de dossiers, CSV).
+
+## 2026-10-04 — Retours de Victor sur la v0.18.0 (v0.19.0)
+- Acompte : la facture d'acompte se crée aussi depuis un devis ENVOYÉ (il passe alors en « accepté » après confirmation), bouton « Facture d'acompte… » dans la liste des factures (liste des devis éligibles) et section « Facturation » visible dès l'envoi du devis. Le solde exige toujours un devis accepté.
+- Prestations de départ : Graphisme 300 €/jour et CGI 350 €/jour (TJM de Victor), créées une seule fois au premier lancement (identifiants fixes, jamais en double), modifiables dans « Prestations ».
+- Le « + » de la barre d'onglets ressemble à celui de Notion : recherche « Ouvrir dans un nouvel onglet… », « Nouvelle page », pages récentes groupées (Aujourd'hui, Hier, La semaine dernière, Les 30 derniers jours, Plus anciennes) avec leur chemin, aperçu à droite, raccourcis en bas (Ctrl+↵ = nouvel onglet). Même fenêtre pour Ctrl+K.
+- Pages : sélection de blocs par rectangle comme dans Notion (partir d'une marge ou d'un espace vide et glisser ; blocs surlignés puis sélectionnés dans l'éditeur).
+- Moodboard : même style que le reste (fond = couleur de l'application, claire ou sombre, boutons et panneaux aux couleurs du thème) ; fond à points espacés façon cahier à points, ou grille, ou uni (bouton « Points »).
+- Listes de tâches : nouveau bloc « Tâche avec statut » (menu /) à trois états À faire / En cours / Fait (clic sur la case pour changer) ; la liste à cases à cocher normale reste disponible.
+- Barre latérale : « + » avant « ⋯ » sur chaque page.
+- Tests : 170.

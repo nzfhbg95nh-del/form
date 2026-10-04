@@ -26,3 +26,9 @@ body {
   color: var(--fg);
   font-family: "Segoe UI", system-ui, sans-serif;
 }
+
+/* Blocs touchés par le rectangle de sélection d'une page */
+.bn-block-outer[data-marquee="true"] > .bn-block > .bn-block-content {
+  background: rgba(77, 163, 255, 0.22);
+  border-radius: 4px;
+}

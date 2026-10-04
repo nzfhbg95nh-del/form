@@ -34,8 +34,17 @@ export interface Board {
   v: 1
   items: BoardItem[]
   view: View
+  /** « theme » = la couleur de fond de l'application (claire ou sombre), sinon une couleur #rrggbb. */
   bg: string
+  pattern: Pattern
 }
+
+export type Pattern = 'dots' | 'grid' | 'none'
+export const PATTERNS: { id: Pattern; label: string }[] = [
+  { id: 'dots', label: 'Points' },
+  { id: 'grid', label: 'Grille' },
+  { id: 'none', label: 'Uni' },
+]
 
 export interface Rect {
   x: number
@@ -46,13 +55,13 @@ export interface Rect {
 
 export const MIN_ZOOM = 0.02
 export const MAX_ZOOM = 16
-export const BACKGROUNDS = ['#1f1f1f', '#3a3a3a', '#8a8a8a', '#e8e8e8', '#ffffff']
+export const BACKGROUNDS = ['theme', '#1f1f1f', '#3a3a3a', '#8a8a8a', '#e8e8e8', '#ffffff']
 export const NOTE_COLORS = ['#fff3a3', '#ffd6e0', '#cfeaff', '#d4f5d0', '#ffffff', 'transparent']
 
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
 
 export function emptyBoard(): Board {
-  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: BACKGROUNDS[0] }
+  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'dots' }
 }
 
 export function parseBoard(content: string | null): Board {

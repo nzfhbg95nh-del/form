@@ -355,7 +355,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
           />
         )}
 
-        {quote.status === 'accepted' && <QuoteBilling quote={quote} />}
+        {(quote.status === 'accepted' || quote.status === 'sent') && <QuoteBilling quote={quote} />}
 
         {preview && pdfData && <PdfPreview data={pdfData} />}
       </div>
@@ -403,11 +403,20 @@ function PdfPreview({ data }: { data: QuotePdfData }) {
 
 /** Facturation d'un devis accepté : acompte puis solde. */
 function QuoteBilling({ quote }: { quote: Quote }) {
-  const { invoices, invoiceLines, createDepositInvoice, createFinalInvoice, openInvoice } = useApp()
+  const { invoices, invoiceLines, createDepositInvoice, createFinalInvoice, openInvoice, setQuoteStatus } = useApp()
   const linked = invoices.filter((i) => i.quote_id === quote.id && (i.kind === 'deposit' || i.kind === 'final'))
   const hasDeposit = linked.some((i) => i.kind === 'deposit')
   const hasFinal = linked.some((i) => i.kind === 'final')
   const today = todayISO()
+
+  // Un devis encore « envoyé » peut générer son acompte : le client vient de le signer, il passe en « accepté ».
+  const createDeposit = async () => {
+    if (quote.status === 'sent') {
+      if (!window.confirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé.")) return
+      await setQuoteStatus(quote.id, 'accepted')
+    }
+    await createDepositInvoice(quote.id)
+  }
 
   return (
     <div className="mt-6 rounded border border-[var(--border)] p-4">
@@ -426,12 +435,13 @@ function QuoteBilling({ quote }: { quote: Quote }) {
       })}
       <div className="mt-3 flex flex-wrap gap-2">
         {!hasDeposit && quote.deposit_percent > 0 && (
-          <button className={primary} onClick={() => void createDepositInvoice(quote.id)}>Créer la facture d'acompte ({quote.deposit_percent} %)</button>
+          <button className={primary} onClick={() => void createDeposit()}>Créer la facture d'acompte ({quote.deposit_percent} %)</button>
         )}
-        {!hasFinal && (
+        {!hasFinal && quote.status === 'accepted' && (
           <button className={secondary} onClick={() => void createFinalInvoice(quote.id)}>Créer la facture de solde</button>
         )}
       </div>
+      {quote.status === 'sent' && <p className="mt-2 text-xs text-[var(--fg-muted)]">Le montant de l'acompte se règle dans le devis (pourcentage) et se modifie encore dans le brouillon de la facture.</p>}
       {hasDeposit && !hasFinal && <p className="mt-2 text-xs text-[var(--fg-muted)]">Émets d'abord la facture d'acompte : elle sera déduite automatiquement de la facture de solde.</p>}
     </div>
   )

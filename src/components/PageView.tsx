@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import type { BlockNoteEditor } from '@blocknote/core'
 import { Star, Trash2 } from 'lucide-react'
 import { addOption } from '@/components/DatabaseView'
 import { PropertyEditor } from '@/components/PropertyEditor'
@@ -14,6 +15,11 @@ export function PageView({ pageId }: { pageId?: string }) {
   const page = objects.find((o) => o.id === (pageId ?? selectedId) && !o.deleted_at)
   const [title, setTitle] = useState('')
   const timer = useRef<number | undefined>(undefined)
+  const editorRef = useRef<BlockNoteEditor<never, never, never> | null>(null)
+  const scroller = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
+  const [lit, setLit] = useState<{ left: number; top: number; width: number; height: number }[]>([])
   const pending = useRef<{ id: string; patch: Patch } | null>(null)
 
   // On ne recharge le titre que lorsqu'on change de page, pas à chaque frappe.
@@ -60,8 +66,77 @@ export function PageView({ pageId }: { pageId?: string }) {
     trail.unshift(p.id)
   }
 
+  // Sélection par rectangle, comme dans Notion : on part d'une zone vide (marge, entre deux blocs) et on glisse.
+  // Les blocs touchés sont surlignés, puis sélectionnés dans l'éditeur (Suppr, copier, déplacer… fonctionnent ensuite).
+  const blocksIn = (r: { x1: number; y1: number; x2: number; y2: number }) => {
+    const left = Math.min(r.x1, r.x2), right = Math.max(r.x1, r.x2), top = Math.min(r.y1, r.y2), bottom = Math.max(r.y1, r.y2)
+    const hit: HTMLElement[] = []
+    scroller.current?.querySelectorAll<HTMLElement>('.bn-block-outer').forEach((outer) => {
+      const content = outer.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
+      if (!content) return
+      const b = content.getBoundingClientRect()
+      if (b.left < right && b.right > left && b.top < bottom && b.bottom > top) hit.push(outer)
+    })
+    return hit
+  }
+  // Le surlignage est dessiné par-dessus (l'éditeur réécrit lui-même ses éléments, on ne peut pas y poser de marque).
+  const mark = (hit: HTMLElement[]) => {
+    setLit(hit.map((el) => {
+      const b = (el.querySelector(':scope > .bn-block > .bn-block-content') ?? el).getBoundingClientRect()
+      return { left: b.left - 4, top: b.top - 1, width: b.width + 8, height: b.height + 2 }
+    }))
+  }
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const t = e.target as HTMLElement
+    if (e.button !== 0 || t.closest('button, input, textarea, select, a, img, [data-ui], .bn-side-menu, .bn-formatting-toolbar, [role="menu"], [role="dialog"], .bn-block-content, .bn-inline-content')) return
+    drag.current = { x: e.clientX, y: e.clientY, moved: false }
+    e.currentTarget.setPointerCapture(e.pointerId)
+    e.preventDefault()
+  }
+  const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    if (!d) return
+    if (!d.moved && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) return
+    d.moved = true
+    const r = { x1: d.x, y1: d.y, x2: e.clientX, y2: e.clientY }
+    setMarquee(r)
+    mark(blocksIn(r))
+  }
+  const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = drag.current
+    drag.current = null
+    try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* déjà relâché */ }
+    if (!d?.moved) return
+    const hit = blocksIn({ x1: d.x, y1: d.y, x2: e.clientX, y2: e.clientY })
+    mark([])
+    setMarquee(null)
+    const editor = editorRef.current
+    if (!editor || hit.length === 0) return
+    const ids = hit.map((el) => el.getAttribute('data-id')).filter((id): id is string => !!id)
+    try {
+      editor.focus()
+      editor.setSelection(ids[0] as never, ids[ids.length - 1] as never)
+    } catch { /* sélection impossible : le surlignage disparaît simplement */ }
+  }
+
   return (
-    <div className="h-full overflow-y-auto">
+    <div
+      ref={scroller}
+      className="h-full overflow-y-auto"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
+    >
+      {lit.map((b, i) => (
+        <div key={i} className="pointer-events-none fixed z-20 rounded bg-[#4da3ff]/20" style={b} />
+      ))}
+      {marquee && (
+        <div
+          className="pointer-events-none fixed z-30 border border-[#4da3ff] bg-[#4da3ff]/15"
+          style={{ left: Math.min(marquee.x1, marquee.x2), top: Math.min(marquee.y1, marquee.y2), width: Math.abs(marquee.x2 - marquee.x1), height: Math.abs(marquee.y2 - marquee.y1) }}
+        />
+      )}
       {page.cover && <div className="h-48 w-full" style={coverStyle(page.cover)} />}
       <div className="mx-auto max-w-3xl px-12 py-8">
         {trail.length > 0 && (
@@ -135,7 +210,7 @@ export function PageView({ pageId }: { pageId?: string }) {
           )
         })()}
         <div className="-mx-12 mt-4">
-          <PageEditor key={page.id} initial={page.content} onChange={(json) => saveLater({ content: json })} />
+          <PageEditor key={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
       </div>
     </div>

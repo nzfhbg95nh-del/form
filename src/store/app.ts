@@ -7,7 +7,7 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
-import { withDerivedSiren } from '@/lib/business'
+import { defaultServices, withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
 import { todayISO } from '@/lib/backup'
 import { blockersToSend, buildSnapshot, newLine, newQuote, numberPrefix } from '@/lib/quotes'
@@ -117,7 +117,7 @@ interface AppState {
   setMoving(id: string | null): void
   show(view: View): void
   toggleExpanded(id: string, value?: boolean): void
-  createPage(parentId?: string | null): Promise<void>
+  createPage(parentId?: string | null, newTab?: boolean): Promise<void>
   createDatabase(parentId?: string | null): Promise<void>
   createTasks(): Promise<void>
   createMoodboard(): Promise<void>
@@ -210,6 +210,14 @@ export const useApp = create<AppState>((set, get) => ({
         repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
       const first = objects.find((o) => !o.deleted_at && isPageLike(o))
+      // Premier lancement : le catalogue reçoit les tarifs journaliers de Victor (une seule fois, même s'il les supprime ensuite).
+      if (services.length === 0 && (await repo.getSetting('default_services_seeded')) !== '1') {
+        for (const s of defaultServices()) {
+          await repo.saveService(s)
+          services.push(s)
+        }
+        await repo.setSetting('default_services_seeded', '1')
+      }
       set({
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
         selectedId: first?.id ?? null,
@@ -498,13 +506,13 @@ export const useApp = create<AppState>((set, get) => ({
     set({ expanded })
   },
 
-  async createPage(parentId = null) {
+  async createPage(parentId = null, newTab = false) {
     const repo = get().repo
     if (!repo) return
     const page = await repo.createPage(parentId)
     if (parentId) get().toggleExpanded(parentId, true)
     set((s) => ({ objects: [...s.objects, page] }))
-    get().select(page.id)
+    get().select(page.id, { newTab })
   },
 
   async createDatabase(parentId = null) {
