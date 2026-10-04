@@ -5,7 +5,7 @@ import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
 
-export function SettingsView() {
+export function GeneralSettings() {
   const repo = useApp((s) => s.repo)
   const [dir, setDir] = useState<string | null>(null)
   const [last, setLast] = useState<string | null>(null)
@@ -66,7 +66,7 @@ export function SettingsView() {
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <h1 className="mb-6 text-3xl font-bold">Réglages</h1>
+      <h1 className="mb-6 text-3xl font-bold">Général</h1>
 
       <h2 className="mb-2 text-lg font-semibold">Rappels de tâches</h2>
       <label className="mb-2 flex items-center gap-2 text-sm">

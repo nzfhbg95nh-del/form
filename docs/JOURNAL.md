@@ -74,3 +74,12 @@
 - Volontairement PAS fait : « Copier le lien » (il faut d'abord des liens internes entre pages), « Nouvelle fenêtre » (deux fenêtres qui modifient la même page risquent de s'écraser), « Disponible hors ligne » et « Convertir en wiki » (inutiles : tout est local, un seul utilisateur).
 - Tests : onglets (tabs.test.ts), ordre de duplication.
 - Reste : import Notion (reporté à la demande de Victor). Phase 1 « finie » quand Victor l'utilise une semaine.
+
+## 2026-10-04 — Phase 2, étape 1 : réglages de l'entreprise et CGV (v0.9.0)
+- Réglages > Entreprise : nom légal, nom commercial, mention EI, SIRET, adresse (provisoire : Tournai), contacts, IBAN, logo, conditions par défaut (30 j de paiement, devis 30 j, acompte 30 %, pénalités, 40 € de recouvrement, escompte), mention de TVA automatique selon la date (293 B du CGI jusqu'au 31/12/2026, L. 233-1 du CIBS ensuite) modifiable, mention clients hors France avec avertissement « à valider par un comptable ».
+- Réglages > CGV : texte des CGV de Victor (version 20/11/2025), modifiable, qui sera joint aux devis.
+- Garde-fou : `missingForIssuing` listera ce qui manque (SIRET, nom, mention EI, adresse) ; l'émission d'une vraie facture sera refusée tant que ce n'est pas rempli (brouillons et tests restent possibles). Victor n'a pas encore de SIRET.
+- Décisions de Victor : numérotation continue sans trou (F-2026-001, D-2026-001, A-2026-001) ; adresse à modifier plus tard ; nom légal sur les documents ; police des PDF : IBM Plex Mono ; tribunal de Tournai (CGV art. 8) laissé tel quel pour le moment.
+- Modèles de Victor (devis rose, facture bleue, acompte blanc) : à reproduire en PDF aux étapes 3 et 4, avec TVA remplacée par la mention de franchise, « date d'échéance » + « date de la prestation », pénalités / 40 € / escompte en bas des factures, sans bloc de signature sur les factures.
+- Tests : mention de TVA, SIRET (clé de contrôle), champs obligatoires, CGV.
+- Prochaine étape : 2 (clients et catalogue de prestations).

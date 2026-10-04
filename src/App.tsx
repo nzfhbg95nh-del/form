@@ -5,7 +5,7 @@ import { PageView } from '@/components/PageView'
 import { PeekPanel } from '@/components/PeekPanel'
 import { QuickCapture } from '@/components/QuickCapture'
 import { SearchPalette } from '@/components/SearchPalette'
-import { SettingsView } from '@/components/SettingsView'
+import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
 import { TrashView } from '@/components/TrashView'
@@ -81,7 +81,7 @@ export default function App() {
           <main className="relative min-w-0 flex-1 overflow-y-auto">
             {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : <PageView />)}
             {view === 'trash' && <TrashView />}
-            {view === 'settings' && <SettingsView />}
+            {view === 'settings' && <SettingsPage />}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>
