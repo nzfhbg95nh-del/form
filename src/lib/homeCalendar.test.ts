@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { collectEvents, groupByDate } from './homeCalendar'
+import { collectEvents, groupByDate, shiftIso, upcomingByDate, weekDays } from './homeCalendar'
 import type { ObjectRow } from './types'
 
 const obj = (id: string, extra: Partial<ObjectRow>): ObjectRow => ({
@@ -45,5 +45,20 @@ describe('calendrier de l’accueil', () => {
     const map = groupByDate(collectEvents(objects, invoices, quotes))
     expect(map.get('2026-10-12')).toHaveLength(1)
     expect(map.get('2026-10-13')).toBeUndefined()
+  })
+
+  it('calcule la semaine (du lundi au dimanche) et décale les dates', () => {
+    expect(weekDays('2026-10-07')).toEqual(['2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11'])
+    expect(weekDays('2026-10-11')[0]).toBe('2026-10-05')
+    expect(weekDays('2026-10-05')[0]).toBe('2026-10-05')
+    expect(shiftIso('2026-10-31', 1)).toBe('2026-11-01')
+    expect(shiftIso('2026-01-01', -1)).toBe('2025-12-31')
+  })
+
+  it('liste les prochains jours qui ont quelque chose de prévu', () => {
+    const events = collectEvents(objects, invoices, quotes)
+    expect(upcomingByDate(events, '2026-10-08').map((g) => g.date)).toEqual(['2026-10-12', '2026-10-30', '2026-11-03'])
+    expect(upcomingByDate(events, '2026-10-07', 2).map((g) => g.events.length)).toEqual([1, 1])
+    expect(upcomingByDate(events, '2027-01-01')).toEqual([])
   })
 })

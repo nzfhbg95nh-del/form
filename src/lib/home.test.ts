@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { reorderWidget, addWidget, DEFAULT_WIDGETS, databaseRows, favoritePages, greeting, moveWidget, parseWidgets, recentPages, removeWidget } from './home'
+import { toggleHalf, reorderWidget, addWidget, DEFAULT_WIDGETS, databaseRows, favoritePages, greeting, moveWidget, parseWidgets, recentPages, removeWidget } from './home'
 import type { ObjectRow } from './types'
 
 const obj = (id: string, extra: Partial<ObjectRow> = {}): ObjectRow => ({
@@ -39,6 +39,14 @@ describe('widgets de la page d’accueil', () => {
     expect(ids(reorderWidget(DEFAULT_WIDGETS, 'favorites', 'favorites', 'after'))).toEqual(['recents', 'favorites', 'summary', 'tasks'])
     expect(reorderWidget(DEFAULT_WIDGETS, 'inconnu', 'tasks', 'before')).toEqual(DEFAULT_WIDGETS)
     expect(reorderWidget(DEFAULT_WIDGETS, 'tasks', 'inconnu', 'before')).toEqual(DEFAULT_WIDGETS)
+  })
+
+  it('met un widget en demi-largeur et le remet en pleine largeur', () => {
+    const half = toggleHalf(DEFAULT_WIDGETS, 'favorites')
+    expect(half.find((w) => w.id === 'favorites')?.half).toBe(true)
+    expect(half.find((w) => w.id === 'recents')?.half).toBeUndefined()
+    expect(toggleHalf(half, 'favorites')).toEqual(DEFAULT_WIDGETS)
+    expect(parseWidgets(JSON.stringify(half)).find((w) => w.id === 'favorites')?.half).toBe(true)
   })
 
   it('dit bonjour le jour et bonsoir le soir', () => {

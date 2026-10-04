@@ -302,3 +302,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Événements : lignes de toutes les bases ayant une propriété « Date » (courrier exclu), tâches non terminées, échéances des factures émises non payées, fin de validité des devis envoyés.
 - Logique dans `src/lib/homeCalendar.ts` et `reorderWidget`. Tests : 200.
 - Non fait : créer un événement depuis le calendrier de l'accueil (on le fait dans une base avec une vue Calendrier), vue semaine, synchronisation avec un agenda externe.
+
+## 2026-10-05 — Accueil : calendrier complet, placement des widgets (v0.33.0)
+- Calendrier : trois affichages (Mois, Semaine, Agenda), choix mémorisé. Semaine : 7 colonnes lundi-dimanche avec les événements de chaque jour. Agenda : liste compacte des prochaines dates qui ont quelque chose de prévu (sans grille). Navigation par mois ou par semaine, « Aujourd'hui ».
+- Un clic sur un jour le sélectionne, affiche ses événements et propose « Ajouter une tâche le … » : la tâche est créée dans la base Tâches (créée au besoin) avec cette échéance, sans quitter l'accueil. Elle apparaît aussi dans « Tâches du jour » et les rappels.
+- Glisser-déposer refait avec la souris (poignée ⋮⋮), plus fiable que celui du navigateur : un trait bleu indique la place.
+- Demi-largeur : un widget peut occuper la moitié de la ligne ; deux widgets « demi » se placent côte à côte (bouton à côté des flèches).
+- Tests : 203.
+- Non fait : tâches avec heure, déplacer un événement d'un jour à l'autre par glisser-déposer dans le calendrier, synchronisation avec un agenda externe.

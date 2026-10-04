@@ -8,6 +8,8 @@ export interface Widget {
   id: string
   type: WidgetType
   dbId?: string
+  /** Demi-largeur : deux widgets « demi » se placent côte à côte. */
+  half?: boolean
 }
 
 export const WIDGET_TYPES: { type: WidgetType; label: string; help: string }[] = [
@@ -40,7 +42,7 @@ export function parseWidgets(raw: string | null | undefined): Widget[] {
     for (const w of data) {
       if (!w || typeof w !== 'object' || typeof w.id !== 'string' || !TYPES.has(w.type) || seen.has(w.id)) continue
       seen.add(w.id)
-      list.push({ id: w.id, type: w.type, ...(typeof w.dbId === 'string' ? { dbId: w.dbId } : {}) })
+      list.push({ id: w.id, type: w.type, ...(typeof w.dbId === 'string' ? { dbId: w.dbId } : {}), ...(w.half === true ? { half: true } : {}) })
     }
     return list
   } catch {
@@ -54,6 +56,14 @@ export function addWidget(list: Widget[], type: WidgetType, dbId?: string): Widg
   const id = `${type}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
   return [...list, { id, type, ...(dbId ? { dbId } : {}) }]
 }
+
+/** Passe un widget de pleine largeur à demi-largeur, et inversement. */
+export const toggleHalf = (list: Widget[], id: string): Widget[] =>
+  list.map((w) => {
+    if (w.id !== id) return w
+    const { half, ...rest } = w
+    return half ? rest : { ...rest, half: true }
+  })
 
 export const removeWidget = (list: Widget[], id: string) => list.filter((w) => w.id !== id)
 

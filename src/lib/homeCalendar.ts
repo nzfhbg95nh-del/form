@@ -56,3 +56,32 @@ export function groupByDate(events: CalendarEvent[]): Map<string, CalendarEvent[
   for (const e of events) map.set(e.date, [...(map.get(e.date) ?? []), e])
   return map
 }
+
+/** Ajoute (ou retire, si négatif) des jours à une date AAAA-MM-JJ. */
+export function shiftIso(iso: string, days: number): string {
+  const d = new Date(`${iso}T12:00:00`)
+  d.setDate(d.getDate() + days)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+/** Les 7 jours (du lundi au dimanche) de la semaine qui contient la date donnée. */
+export function weekDays(iso: string): string[] {
+  const dow = (new Date(`${iso}T12:00:00`).getDay() + 6) % 7
+  const monday = shiftIso(iso, -dow)
+  return Array.from({ length: 7 }, (_, i) => shiftIso(monday, i))
+}
+
+/** Les prochains événements à partir d'un jour (inclus), regroupés par date, sans jour vide. */
+export function upcomingByDate(events: CalendarEvent[], fromIso: string, maxEvents = 12): { date: string; events: CalendarEvent[] }[] {
+  const out: { date: string; events: CalendarEvent[] }[] = []
+  let count = 0
+  for (const e of events) {
+    if (e.date < fromIso) continue
+    if (count >= maxEvents) break
+    const last = out[out.length - 1]
+    if (last && last.date === e.date) last.events.push(e)
+    else out.push({ date: e.date, events: [e] })
+    count++
+  }
+  return out
+}
