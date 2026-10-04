@@ -103,7 +103,7 @@ export function CompanySettings() {
         <Row label="Nom légal">{text('legalName')}</Row>
         <Row label="Nom commercial (en-tête des documents)">{text('tradeName')}</Row>
         <Row label="Mention de statut" hint="« Entrepreneur individuel » ou « EI » : obligatoire.">{text('statusMention')}</Row>
-        <Row label="SIRET" hint="14 chiffres. Pas encore reçu ? Laisse vide : seule l'émission d'une vraie facture sera bloquée.">{text('siret')}</Row>
+        <Row label="SIRET" hint="14 chiffres. Pas encore reçu ? Laisse vide : tu peux faire des devis ; seule l'émission d'une vraie facture sera bloquée.">{text('siret')}</Row>
       </div>
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Adresse</h2>

@@ -37,6 +37,10 @@ describe("champs obligatoires avant d'émettre", () => {
     expect(missingForIssuing({ ...c, siret: '73282932000074' })).toEqual([])
   })
 
+  it("n'exige pas le SIRET pour un devis", () => {
+    expect(missingForIssuing(defaultCompany(), { needSiret: false })).toEqual([])
+  })
+
   it("signale aussi le nom, la mention EI et l'adresse manquants", () => {
     const c = { ...defaultCompany(), legalName: '', statusMention: ' ', street: '', siret: '123' }
     expect(missingForIssuing(c)).toEqual(['Nom légal', 'Mention « Entrepreneur individuel »', 'SIRET (14 chiffres)', 'Adresse complète'])

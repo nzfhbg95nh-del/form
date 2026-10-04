@@ -131,7 +131,7 @@ export function blockersToSend(quote: Quote, lines: QuoteLine[], client: Client 
   if (lines.some((l) => l.quantity_milli <= 0)) problems.push('Une ligne a une quantité nulle.')
   if (quote.deposit_percent < 0 || quote.deposit_percent > 100) problems.push("L'acompte doit être entre 0 et 100 %.")
   if (quote.valid_until < quote.issue_date) problems.push('La date de validité est avant la date du devis.')
-  const missing = missingForIssuing(company)
+  const missing = missingForIssuing(company, { needSiret: false })
   if (missing.length > 0) problems.push(`Réglages > Entreprise incomplets : ${missing.join(', ')}.`)
   return problems
 }

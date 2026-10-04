@@ -70,7 +70,7 @@ export function Header({ p, company, logo, fields }: { p: Palette; company: Pick
 export function emitterLines(company: Omit<Company, 'logo'>): string[] {
   return [
     company.legalName, company.statusMention, company.street, `${company.postalCode} ${company.city}`.trim(), company.country,
-    company.phone, company.email, `SIRET : ${company.siret || 'XXXXXXXXXXXXXX'}`,
+    company.phone, company.email, `SIRET : ${company.siret || "en cours d'obtention"}`,
   ].filter((x) => x && x.trim())
 }
 
