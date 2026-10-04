@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, FileText, Moon, Plus, Settings, Sun, Trash2 } from 'lucide-react'
+import { ChevronRight, Database, FileText, Moon, Plus, Settings, Sun, Trash2 } from 'lucide-react'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
@@ -91,18 +91,22 @@ function TreeItem({
         <button onClick={() => select(page.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
           {page.icon ? (
             <span className="w-4 shrink-0 text-center">{page.icon}</span>
+          ) : page.type === 'database' ? (
+            <Database size={14} className="shrink-0 text-[var(--fg-muted)]" />
           ) : (
             <FileText size={14} className="shrink-0 text-[var(--fg-muted)]" />
           )}
           <span className="truncate">{page.title || 'Sans titre'}</span>
         </button>
-        <button
-          title="Ajouter une sous-page"
-          onClick={() => void createPage(page.id)}
-          className="rounded p-0.5 opacity-0 hover:bg-[var(--border)] group-hover:opacity-100"
-        >
-          <Plus size={14} />
-        </button>
+        {page.type === 'page' && (
+          <button
+            title="Ajouter une sous-page"
+            onClick={() => void createPage(page.id)}
+            className="rounded p-0.5 opacity-0 hover:bg-[var(--border)] group-hover:opacity-100"
+          >
+            <Plus size={14} />
+          </button>
+        )}
       </div>
       {open && kids.map((k) => <TreeItem key={k.id} page={k} depth={depth + 1} drag={drag} setDrag={setDrag} />)}
     </div>
@@ -110,10 +114,10 @@ function TreeItem({
 }
 
 export function Sidebar() {
-  const { objects, view, show, select, selectedId, createPage, theme, toggleTheme } = useApp()
+  const { objects, view, show, select, selectedId, createPage, createDatabase, theme, toggleTheme } = useApp()
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const roots = childrenOf(objects, null)
-  const favorites = objects.filter((o) => o.type === 'page' && !o.deleted_at && o.is_favorite)
+  const favorites = objects.filter((o) => (o.type === 'page' || o.type === 'database') && !o.deleted_at && o.is_favorite)
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
@@ -138,6 +142,9 @@ export function Sidebar() {
       </div>
       <Item onClick={() => void createPage()}>
         <Plus size={14} /> Nouvelle page
+      </Item>
+      <Item onClick={() => void createDatabase()}>
+        <Database size={14} /> Nouvelle base de données
       </Item>
 
       <div className="mt-2 border-t border-[var(--border)] pt-2">

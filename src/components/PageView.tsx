@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { Star, Trash2 } from 'lucide-react'
+import { addOption } from '@/components/DatabaseView'
+import { PropertyEditor } from '@/components/PropertyEditor'
+import { allColumns, cellValue, parseSchema } from '@/lib/database'
 import { PageEditor } from '@/components/PageEditor'
 import { CoverPicker, coverStyle, IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
@@ -7,7 +10,7 @@ import { useApp } from '@/store/app'
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
 export function PageView() {
-  const { objects, selectedId, update, trash, createPage, select } = useApp()
+  const { objects, selectedId, update, trash, createPage, select, setCell, saveSchema } = useApp()
   const page = objects.find((o) => o.id === selectedId && !o.deleted_at)
   const [title, setTitle] = useState('')
   const timer = useRef<number | undefined>(undefined)
@@ -105,6 +108,32 @@ export function PageView() {
           }}
           className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
         />
+        {page.type === 'row' && (() => {
+          const db = objects.find((o) => o.id === page.parent_id)
+          if (!db) return null
+          const schema = parseSchema(db.properties)
+          return (
+            <div className="mt-4 border-b border-[var(--border)] pb-3">
+              {allColumns(schema).filter((c) => c.id !== 'title').map((c) => (
+                <div key={c.id} className="flex items-start gap-2">
+                  <div className="w-40 shrink-0 px-1.5 py-1 text-sm text-[var(--fg-muted)]">{c.name}</div>
+                  <div className="min-w-0 flex-1">
+                    <PropertyEditor
+                      col={c}
+                      value={cellValue(page, c)}
+                      onChange={(v) => void setCell(page.id, c.id, v)}
+                      onCreateOption={(label) => {
+                        const r = addOption(schema, c.id, label)
+                        void saveSchema(db.id, r.schema)
+                        return r.optionId
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        })()}
         <div className="-mx-12 mt-4">
           <PageEditor key={page.id} initial={page.content} onChange={(json) => saveLater({ content: json })} />
         </div>

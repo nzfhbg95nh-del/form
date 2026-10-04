@@ -36,3 +36,10 @@
 - Corbeille : une page emporte ses sous-pages et les ramène à la restauration.
 - Fenêtre : dragDropEnabled=false pour que le glisser-déposer HTML fonctionne dans Windows.
 - Incident : un BOM ajouté par un script avait cassé la fabrication de v0.2.0 (corrigé en v0.2.1).
+
+## 2026-10-04 — Phase 1, étape 3a : bases de données, vue tableau (v0.4.0)
+- « Nouvelle base de données » : propriétés typées (texte, nombre, date, choix unique, choix multiple, case à cocher, lien). Relation et fichier : étape 3b.
+- Vue tableau éditable, nouvelle ligne, ouverture d'une ligne comme page (propriétés + blocs), corbeille des lignes.
+- Filtres (cumulés) et tris par propriété, enregistrés dans la base. Logique testée (src/lib/database.test.ts).
+- Choix technique : le schéma et les vues sont dans `objects.properties` de la base (pas de tables `databases`/`views` séparées) ; plus simple, pas de migration. Tableau maison, sans TanStack Table.
+- Reste (3b) : vues liste / kanban / calendrier / galerie, groupements, relations, fichiers.

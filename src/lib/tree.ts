@@ -7,7 +7,7 @@ const bySort = (a: ObjectRow, b: ObjectRow) => a.position - b.position || a.crea
 /** Enfants directs (non supprimés) d'une page, dans l'ordre d'affichage. */
 export function childrenOf(objects: ObjectRow[], parentId: string | null): ObjectRow[] {
   return objects
-    .filter((o) => o.type === 'page' && !o.deleted_at && (o.parent_id ?? null) === parentId)
+    .filter((o) => (o.type === 'page' || o.type === 'database') && !o.deleted_at && (o.parent_id ?? null) === parentId)
     .sort(bySort)
 }
 

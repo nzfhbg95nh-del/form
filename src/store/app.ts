@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
+import { defaultSchema, parseValues, type Schema } from '@/lib/database'
 import { computeMove, descendantsOf, type DropZone } from '@/lib/tree'
 import type { ObjectPatch, ObjectRow, Repo } from '@/lib/types'
 
@@ -39,6 +40,10 @@ interface AppState {
   show(view: View): void
   toggleExpanded(id: string, value?: boolean): void
   createPage(parentId?: string | null): Promise<void>
+  createDatabase(parentId?: string | null): Promise<void>
+  createRow(databaseId: string): Promise<void>
+  setCell(rowId: string, colId: string, value: unknown): Promise<void>
+  saveSchema(databaseId: string, schema: Schema): Promise<void>
   move(dragId: string, targetId: string, zone: DropZone): Promise<void>
   update(id: string, patch: ObjectPatch): Promise<void>
   trash(id: string): Promise<void>
@@ -62,7 +67,7 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
-      const first = objects.find((o) => !o.deleted_at)
+      const first = objects.find((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database'))
       set({ repo, objects, selectedId: first?.id ?? null })
       try {
         const done = await runDailyBackup(repo)
@@ -96,6 +101,33 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({ objects: [...s.objects, page], selectedId: page.id, view: 'page' }))
   },
 
+  async createDatabase(parentId = null) {
+    const repo = get().repo
+    if (!repo) return
+    const db = await repo.createPage(parentId, 'database', JSON.stringify(defaultSchema()))
+    if (parentId) get().toggleExpanded(parentId, true)
+    set((s) => ({ objects: [...s.objects, db], selectedId: db.id, view: 'page' }))
+  },
+
+  async createRow(databaseId) {
+    const repo = get().repo
+    if (!repo) return
+    const row = await repo.createPage(databaseId, 'row')
+    set((s) => ({ objects: [...s.objects, row] }))
+  },
+
+  async setCell(rowId, colId, value) {
+    const row = get().objects.find((o) => o.id === rowId)
+    if (!row) return
+    if (colId === 'title') return get().update(rowId, { title: String(value ?? '') })
+    const values = { ...parseValues(row.properties), [colId]: value }
+    await get().update(rowId, { properties: JSON.stringify(values) })
+  },
+
+  async saveSchema(databaseId, schema) {
+    await get().update(databaseId, { properties: JSON.stringify(schema) })
+  },
+
   async move(dragId, targetId, zone) {
     const dest = computeMove(get().objects, dragId, targetId, zone)
     if (!dest) return
@@ -116,7 +148,7 @@ export const useApp = create<AppState>((set, get) => ({
     const ids = [id, ...descendantsOf(get().objects, id).filter((o) => !o.deleted_at).map((o) => o.id)]
     for (const i of ids) await get().update(i, { deleted_at: stamp })
     if (ids.includes(get().selectedId ?? '')) {
-      const next = get().objects.find((o) => !o.deleted_at && o.type === 'page')
+      const next = get().objects.find((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database'))
       set({ selectedId: next?.id ?? null })
     }
   },
