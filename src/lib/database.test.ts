@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyView, parseSchema, type Schema, type ViewConfig } from './database'
+import { applyView, groupRows, monthGrid, parseSchema, type Schema, type ViewConfig } from './database'
 import type { ObjectRow } from './types'
 
 const schema: Schema = {
@@ -66,5 +66,30 @@ describe('filtres et tris des bases de données', () => {
   it('repart d\'un schéma par défaut si les données sont illisibles', () => {
     expect(parseSchema('n importe quoi').views).toHaveLength(1)
     expect(parseSchema('{}').columns.length).toBeGreaterThan(0)
+  })
+})
+
+describe('groupements et calendrier', () => {
+  it('groupe par choix unique, avec « Sans valeur » à la fin', () => {
+    const g = groupRows(rows, schema.columns[1])
+    expect(g.map((x) => [x.label, ids(x.rows)])).toEqual([['À faire', ['1', '3']], ['Fini', ['2']], ['Sans valeur', []]])
+  })
+
+  it('groupe par choix multiple (une ligne peut être dans plusieurs groupes)', () => {
+    const g = groupRows(rows, schema.columns[2])
+    expect(g.map((x) => [x.label, ids(x.rows)])).toEqual([['Logo', ['1']], ['Sans valeur', ['2', '3']]])
+  })
+
+  it('groupe par case à cocher', () => {
+    const g = groupRows(rows, schema.columns[4])
+    expect(g.map((x) => ids(x.rows))).toEqual([['1'], ['2', '3']])
+  })
+
+  it('construit la grille du mois du lundi au dimanche', () => {
+    const weeks = monthGrid(2026, 9) // octobre 2026 : le 1er est un jeudi
+    expect(weeks[0][0]).toEqual({ date: '2026-09-28', inMonth: false })
+    expect(weeks[0][3]).toEqual({ date: '2026-10-01', inMonth: true })
+    expect(weeks.every((w) => w.length === 7)).toBe(true)
+    expect(weeks.flat().filter((d) => d.inMonth)).toHaveLength(31)
   })
 })

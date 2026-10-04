@@ -1,6 +1,6 @@
 import type { ObjectRow } from './types'
 
-export type PropType = 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'url'
+export type PropType = 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'url' | 'relation' | 'file'
 
 export const PROP_TYPES: { type: PropType; label: string }[] = [
   { type: 'text', label: 'Texte' },
@@ -10,6 +10,8 @@ export const PROP_TYPES: { type: PropType; label: string }[] = [
   { type: 'multiselect', label: 'Choix multiple' },
   { type: 'checkbox', label: 'Case à cocher' },
   { type: 'url', label: 'Lien (URL)' },
+  { type: 'relation', label: 'Relation (lien vers une autre base)' },
+  { type: 'file', label: 'Fichiers' },
 ]
 
 export const OPTION_COLORS = ['#e3e2e0', '#fadec9', '#fdecc8', '#dbeddb', '#d3e5ef', '#e8deee', '#f5e0e9', '#ffe2dd']
@@ -25,6 +27,13 @@ export interface Column {
   name: string
   type: PropType
   options?: SelectOption[]
+  /** Pour une relation : identifiant de la base de données ciblée. */
+  targetDb?: string
+}
+
+export interface FileValue {
+  name: string
+  data: string
 }
 
 export type FilterOp =
@@ -46,12 +55,30 @@ export interface Sort {
   dir: 'asc' | 'desc'
 }
 
+export type ViewType = 'table' | 'list' | 'kanban' | 'calendar' | 'gallery'
+
+export const VIEW_TYPES: { type: ViewType; label: string }[] = [
+  { type: 'table', label: 'Tableau' },
+  { type: 'list', label: 'Liste' },
+  { type: 'kanban', label: 'Kanban' },
+  { type: 'calendar', label: 'Calendrier' },
+  { type: 'gallery', label: 'Galerie' },
+]
+
 export interface ViewConfig {
   id: string
   name: string
-  type: 'table'
+  type: ViewType
   filters: Filter[]
   sorts: Sort[]
+  /** Propriété de regroupement (tableau, liste) ou de colonnes (kanban). */
+  groupBy?: string
+  /** Propriété date utilisée par le calendrier. */
+  dateCol?: string
+}
+
+export function makeView(type: ViewType): ViewConfig {
+  return { id: newId(), name: VIEW_TYPES.find((t) => t.type === type)!.label, type, filters: [], sorts: [] }
 }
 
 export interface Schema {
@@ -122,6 +149,8 @@ export const OPS_BY_TYPE: Record<PropType, { op: FilterOp; label: string }[]> = 
     { op: 'eq', label: 'est le' }, { op: 'before', label: 'avant le' }, { op: 'after', label: 'après le' },
     { op: 'is_empty', label: 'est vide' }, { op: 'not_empty', label: "n'est pas vide" },
   ],
+  relation: [{ op: 'is_empty', label: 'est vide' }, { op: 'not_empty', label: "n'est pas vide" }],
+  file: [{ op: 'is_empty', label: 'est vide' }, { op: 'not_empty', label: "n'est pas vide" }],
   checkbox: [{ op: 'checked', label: 'est coché' }, { op: 'unchecked', label: "n'est pas coché" }],
   select: [
     { op: 'is', label: 'est' }, { op: 'is_not', label: "n'est pas" },
@@ -177,7 +206,7 @@ function compare(a: unknown, b: unknown, col: Column): number {
     const label = (v: unknown) => col.options?.find((o) => o.id === v)?.label ?? ''
     return label(a).localeCompare(label(b), 'fr')
   }
-  if (col.type === 'multiselect') return String((a as string[]).length).localeCompare(String((b as string[]).length))
+  if (col.type === 'multiselect' || col.type === 'relation' || col.type === 'file') return (a as unknown[]).length - (b as unknown[]).length
   return String(a).localeCompare(String(b), 'fr', { sensitivity: 'base' })
 }
 
@@ -204,4 +233,62 @@ export function applyView(rows: ObjectRow[], schema: Schema, view: ViewConfig): 
     })
   }
   return result
+}
+
+export interface Group {
+  id: string
+  label: string
+  color?: string
+  /** Valeur à écrire dans une ligne pour la placer dans ce groupe (null = « sans valeur »). */
+  value: unknown
+  rows: ObjectRow[]
+}
+
+export function canGroupBy(col: Column): boolean {
+  return col.type === 'select' || col.type === 'multiselect' || col.type === 'checkbox'
+}
+
+/** Répartit les lignes en groupes selon une propriété. Les lignes sans valeur vont dans « Sans valeur ». */
+export function groupRows(rows: ObjectRow[], col: Column): Group[] {
+  const empty: Group = { id: '__none', label: 'Sans valeur', value: null, rows: [] }
+  if (col.type === 'checkbox') {
+    const yes: Group = { id: 'yes', label: 'Coché', value: true, rows: [] }
+    const no: Group = { id: 'no', label: 'Non coché', value: false, rows: [] }
+    for (const r of rows) (cellValue(r, col) === true ? yes : no).rows.push(r)
+    return [yes, no]
+  }
+  const groups: Group[] = (col.options ?? []).map((o) => ({
+    id: o.id, label: o.label, color: o.color, value: col.type === 'multiselect' ? [o.id] : o.id, rows: [],
+  }))
+  for (const r of rows) {
+    const v = cellValue(r, col)
+    const ids = Array.isArray(v) ? (v as string[]) : v ? [v as string] : []
+    const targets = groups.filter((g) => ids.includes(g.id))
+    if (targets.length === 0) empty.rows.push(r)
+    for (const g of targets) g.rows.push(r)
+  }
+  return [...groups, empty]
+}
+
+export function isoDate(d: Date): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}
+
+/** Grille d'un mois : semaines de 7 jours, du lundi au dimanche, avec les jours des mois voisins. */
+export function monthGrid(year: number, month: number): { date: string; inMonth: boolean }[][] {
+  const first = new Date(year, month, 1)
+  const offset = (first.getDay() + 6) % 7 // lundi = 0
+  const start = new Date(year, month, 1 - offset)
+  const weeks: { date: string; inMonth: boolean }[][] = []
+  for (let w = 0; w < 6; w++) {
+    const week = []
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(start.getFullYear(), start.getMonth(), start.getDate() + w * 7 + d)
+      week.push({ date: isoDate(day), inMonth: day.getMonth() === month })
+    }
+    if (w >= 4 && !week.some((x) => x.inMonth)) break // pas de semaine entièrement vide à la fin
+    weeks.push(week)
+  }
+  return weeks
 }

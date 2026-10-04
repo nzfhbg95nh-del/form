@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { ArrowDownUp, ExternalLink, Filter as FilterIcon, Plus, Trash2, X } from 'lucide-react'
+import { ArrowDownUp, Filter as FilterIcon, Plus, Settings2, Trash2, X } from 'lucide-react'
 import {
-  allColumns, applyView, cellValue, newId, needsValue, OPS_BY_TYPE, OPTION_COLORS, parseSchema, PROP_TYPES,
-  type Column, type Filter, type PropType, type Schema,
+  allColumns, applyView, canGroupBy, makeView, newId, needsValue, OPS_BY_TYPE, OPTION_COLORS, parseSchema, PROP_TYPES, VIEW_TYPES,
+  type Column, type Filter, type PropType, type Schema, type ViewConfig, type ViewType,
 } from '@/lib/database'
+import { CalendarView, GalleryView, KanbanView, ListView, TableView } from '@/components/DatabaseViews'
 import { IconPicker } from '@/components/PagePickers'
-import { PropertyEditor } from '@/components/PropertyEditor'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 
@@ -24,10 +24,13 @@ export function addOption(schema: Schema, colId: string, label: string): { schem
   return { schema: { ...schema, columns }, optionId }
 }
 
-function FilterPanel({ schema, onChange }: { schema: Schema; onChange: (s: Schema) => void }) {
-  const view = schema.views[0]
+function patchView(schema: Schema, id: string, patch: Partial<ViewConfig>): Schema {
+  return { ...schema, views: schema.views.map((v) => (v.id === id ? { ...v, ...patch } : v)) }
+}
+
+function FilterPanel({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
   const cols = allColumns(schema)
-  const setFilters = (filters: Filter[]) => onChange({ ...schema, views: [{ ...view, filters }, ...schema.views.slice(1)] })
+  const setFilters = (filters: Filter[]) => onChange(patchView(schema, view.id, { filters }))
   const patch = (id: string, p: Partial<Filter>) => setFilters(view.filters.map((f) => (f.id === id ? { ...f, ...p } : f)))
 
   return (
@@ -71,20 +74,16 @@ function FilterPanel({ schema, onChange }: { schema: Schema; onChange: (s: Schem
           </div>
         )
       })}
-      <button
-        className={btn}
-        onClick={() => setFilters([...view.filters, { id: newId(), colId: 'title', op: 'contains', value: '' }])}
-      >
+      <button className={btn} onClick={() => setFilters([...view.filters, { id: newId(), colId: 'title', op: 'contains', value: '' }])}>
         <Plus size={14} /> Ajouter un filtre
       </button>
     </div>
   )
 }
 
-function SortPanel({ schema, onChange }: { schema: Schema; onChange: (s: Schema) => void }) {
-  const view = schema.views[0]
+function SortPanel({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
   const cols = allColumns(schema)
-  const setSorts = (sorts: typeof view.sorts) => onChange({ ...schema, views: [{ ...view, sorts }, ...schema.views.slice(1)] })
+  const setSorts = (sorts: ViewConfig['sorts']) => onChange(patchView(schema, view.id, { sorts }))
 
   return (
     <div className={panel}>
@@ -108,12 +107,70 @@ function SortPanel({ schema, onChange }: { schema: Schema; onChange: (s: Schema)
   )
 }
 
-function ColumnMenu({ col, schema, onChange }: { col: Column; schema: Schema; onChange: (s: Schema) => void }) {
+/** Réglages de la vue active : nom, regroupement, propriété de date, suppression. */
+function ViewSettings({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
+  const cols = allColumns(schema)
+  const [name, setName] = useState(view.name)
+  useEffect(() => setName(view.name), [view.id, view.name])
+  const set = (p: Partial<ViewConfig>) => onChange(patchView(schema, view.id, p))
+  const groupable = cols.filter(canGroupBy)
+  const kanbanCols = cols.filter((c) => c.type === 'select')
+
+  return (
+    <div className={panel}>
+      <label className="mb-1 block text-xs text-[var(--fg-muted)]">Nom de la vue</label>
+      <input className={input + ' mb-3 w-full'} value={name} onChange={(e) => setName(e.target.value)} onBlur={() => name.trim() && set({ name: name.trim() })} />
+
+      {(view.type === 'table' || view.type === 'list') && (
+        <>
+          <label className="mb-1 block text-xs text-[var(--fg-muted)]">Regrouper par</label>
+          <select className={input + ' mb-3 w-full'} value={view.groupBy ?? ''} onChange={(e) => set({ groupBy: e.target.value || undefined })}>
+            <option value="">Pas de regroupement</option>
+            {groupable.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>
+      )}
+      {view.type === 'kanban' && (
+        <>
+          <label className="mb-1 block text-xs text-[var(--fg-muted)]">Colonnes selon</label>
+          <select className={input + ' mb-3 w-full'} value={view.groupBy ?? ''} onChange={(e) => set({ groupBy: e.target.value || undefined })}>
+            <option value="">Automatique</option>
+            {kanbanCols.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>
+      )}
+      {view.type === 'calendar' && (
+        <>
+          <label className="mb-1 block text-xs text-[var(--fg-muted)]">Date utilisée</label>
+          <select className={input + ' mb-3 w-full'} value={view.dateCol ?? ''} onChange={(e) => set({ dateCol: e.target.value || undefined })}>
+            <option value="">Automatique</option>
+            {cols.filter((c) => c.type === 'date').map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </>
+      )}
+      {schema.views.length > 1 && (
+        <button
+          className={btn + ' text-red-500'}
+          onClick={() => {
+            if (window.confirm(`Supprimer la vue « ${view.name} » ? Les lignes ne sont pas supprimées.`)) {
+              onChange({ ...schema, views: schema.views.filter((v) => v.id !== view.id) })
+            }
+          }}
+        >
+          <Trash2 size={14} /> Supprimer cette vue
+        </button>
+      )}
+    </div>
+  )
+}
+
+function ColumnMenu({ col, schema, objects, onChange }: { col: Column; schema: Schema; objects: ObjectRow[]; onChange: (s: Schema) => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState(col.name)
   useEffect(() => setName(col.name), [col.name])
   const setCol = (patch: Partial<Column>) => onChange({ ...schema, columns: schema.columns.map((c) => (c.id === col.id ? { ...c, ...patch } : c)) })
   const editable = col.id !== 'title'
+  const target = objects.find((o) => o.id === col.targetDb)
 
   return (
     <div className="relative">
@@ -132,7 +189,10 @@ function ColumnMenu({ col, schema, onChange }: { col: Column; schema: Schema; on
                   onChange={(e) => setName(e.target.value)}
                   onBlur={() => name.trim() && setCol({ name: name.trim() })}
                 />
-                <p className="mb-2 text-xs text-[var(--fg-muted)]">Type : {PROP_TYPES.find((t) => t.type === col.type)?.label}</p>
+                <p className="mb-2 text-xs text-[var(--fg-muted)]">
+                  Type : {PROP_TYPES.find((t) => t.type === col.type)?.label.split(' (')[0]}
+                  {col.type === 'relation' && ` → ${target ? target.title || 'Sans titre' : 'base introuvable'}`}
+                </p>
                 {(col.type === 'select' || col.type === 'multiselect') &&
                   (col.options ?? []).map((o) => (
                     <div key={o.id} className="mb-1 flex items-center gap-1">
@@ -163,6 +223,8 @@ function ColumnMenu({ col, schema, onChange }: { col: Column; schema: Schema; on
                           ...v,
                           filters: v.filters.filter((f) => f.colId !== col.id),
                           sorts: v.sorts.filter((s) => s.colId !== col.id),
+                          groupBy: v.groupBy === col.id ? undefined : v.groupBy,
+                          dateCol: v.dateCol === col.id ? undefined : v.dateCol,
                         })),
                       })
                     }
@@ -181,12 +243,17 @@ function ColumnMenu({ col, schema, onChange }: { col: Column; schema: Schema; on
   )
 }
 
-function AddColumn({ schema, onChange }: { schema: Schema; onChange: (s: Schema) => void }) {
+function AddColumn({ db, schema, objects, onChange }: { db: ObjectRow; schema: Schema; objects: ObjectRow[]; onChange: (s: Schema) => void }) {
   const [open, setOpen] = useState(false)
   const [name, setName] = useState('')
   const [type, setType] = useState<PropType>('text')
+  const databases = objects.filter((o) => o.type === 'database' && !o.deleted_at)
+  const [target, setTarget] = useState(db.id)
   const add = () => {
-    onChange({ ...schema, columns: [...schema.columns, { id: newId(), name: name.trim() || 'Propriété', type, ...(type === 'select' || type === 'multiselect' ? { options: [] } : {}) }] })
+    const col: Column = { id: newId(), name: name.trim() || 'Propriété', type }
+    if (type === 'select' || type === 'multiselect') col.options = []
+    if (type === 'relation') col.targetDb = target
+    onChange({ ...schema, columns: [...schema.columns, col] })
     setName('')
     setOpen(false)
   }
@@ -201,6 +268,11 @@ function AddColumn({ schema, onChange }: { schema: Schema; onChange: (s: Schema)
             <select className={input + ' mb-2 w-full'} value={type} onChange={(e) => setType(e.target.value as PropType)}>
               {PROP_TYPES.map((t) => <option key={t.type} value={t.type}>{t.label}</option>)}
             </select>
+            {type === 'relation' && (
+              <select className={input + ' mb-2 w-full'} value={target} onChange={(e) => setTarget(e.target.value)}>
+                {databases.map((d) => <option key={d.id} value={d.id}>{d.title || 'Sans titre'}</option>)}
+              </select>
+            )}
             <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={add}>Ajouter</button>
           </div>
         </>
@@ -209,18 +281,65 @@ function AddColumn({ schema, onChange }: { schema: Schema; onChange: (s: Schema)
   )
 }
 
+function AddView({ schema, onChange, onCreated }: { schema: Schema; onChange: (s: Schema) => void; onCreated: (id: string) => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="relative">
+      <button className={btn} title="Ajouter une vue" onClick={() => setOpen(!open)}><Plus size={14} /></button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className={panel + ' min-w-[160px]'}>
+            {VIEW_TYPES.map((t) => (
+              <button
+                key={t.type}
+                className={btn + ' w-full'}
+                onClick={() => {
+                  const v = makeView(t.type as ViewType)
+                  onChange({ ...schema, views: [...schema.views, v] })
+                  onCreated(v.id)
+                  setOpen(false)
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
 export function DatabaseView({ db }: { db: ObjectRow }) {
-  const { objects, update, createRow, setCell, saveSchema, select, trash } = useApp()
+  const { objects, update, saveSchema } = useApp()
   const schema = parseSchema(db.properties)
-  const view = schema.views[0]
-  const cols = allColumns(schema)
-  const [panelOpen, setPanelOpen] = useState<'filter' | 'sort' | null>(null)
+  const storeKey = `form-view-${db.id}`
+  const [activeId, setActiveId] = useState<string | null>(() => localStorage.getItem(storeKey))
+  const view = schema.views.find((v) => v.id === activeId) ?? schema.views[0]
+  const [panelOpen, setPanelOpen] = useState<'filter' | 'sort' | 'settings' | null>(null)
   const [title, setTitle] = useState(db.title)
   useEffect(() => setTitle(db.title), [db.id, db.title])
 
   const rows = objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at)
   const shown = applyView(rows, schema, view)
   const change = (s: Schema) => void saveSchema(db.id, s)
+  const pick = (id: string) => {
+    setActiveId(id)
+    setPanelOpen(null)
+    try { localStorage.setItem(storeKey, id) } catch { /* sans importance */ }
+  }
+  const toggle = (p: 'filter' | 'sort' | 'settings') => setPanelOpen(panelOpen === p ? null : p)
+
+  const viewProps = {
+    db, schema, view, rows: shown, change,
+    addOption: (colId: string, label: string) => {
+      const r = addOption(schema, colId, label)
+      change(r.schema)
+      return r.optionId
+    },
+    renderHeader: (c: Column) => <ColumnMenu col={c} schema={schema} objects={objects} onChange={change} />,
+  }
 
   return (
     <div className="h-full overflow-y-auto px-12 py-8">
@@ -233,72 +352,48 @@ export function DatabaseView({ db }: { db: ObjectRow }) {
         placeholder="Base de données sans titre"
         onChange={(e) => setTitle(e.target.value)}
         onBlur={() => title !== db.title && void update(db.id, { title })}
-        className="mb-4 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
+        className="mb-3 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
       />
 
-      <div className="mb-2 flex items-center gap-1 border-b border-[var(--border)] pb-2">
-        <div className="relative">
-          <button className={btn} onClick={() => setPanelOpen(panelOpen === 'filter' ? null : 'filter')}>
-            <FilterIcon size={14} /> Filtrer{view.filters.length > 0 && ` (${view.filters.length})`}
+      <div className="flex items-center gap-1 border-b border-[var(--border)]">
+        {schema.views.map((v) => (
+          <button
+            key={v.id}
+            onClick={() => pick(v.id)}
+            className={'border-b-2 px-2 py-1 text-sm ' + (v.id === view.id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
+          >
+            {v.name}
           </button>
-          {panelOpen === 'filter' && <FilterPanel schema={schema} onChange={change} />}
-        </div>
-        <div className="relative">
-          <button className={btn} onClick={() => setPanelOpen(panelOpen === 'sort' ? null : 'sort')}>
-            <ArrowDownUp size={14} /> Trier{view.sorts.length > 0 && ` (${view.sorts.length})`}
-          </button>
-          {panelOpen === 'sort' && <SortPanel schema={schema} onChange={change} />}
-        </div>
-        <div className="flex-1" />
-        <AddColumn schema={schema} onChange={change} />
+        ))}
+        <AddView schema={schema} onChange={change} onCreated={pick} />
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full border-collapse text-sm">
-          <thead>
-            <tr className="border-b border-[var(--border)]">
-              {cols.map((c) => (
-                <th key={c.id} className="min-w-[160px] border-r border-[var(--border)] p-0 text-left font-normal last:border-r-0">
-                  <ColumnMenu col={c} schema={schema} onChange={change} />
-                </th>
-              ))}
-              <th className="w-16" />
-            </tr>
-          </thead>
-          <tbody>
-            {shown.map((row) => (
-              <tr key={row.id} className="group border-b border-[var(--border)]">
-                {cols.map((c) => (
-                  <td key={c.id} className="border-r border-[var(--border)] p-0 align-top last:border-r-0">
-                    <PropertyEditor
-                      col={c}
-                      value={cellValue(row, c)}
-                      onChange={(v) => void setCell(row.id, c.id, v)}
-                      onCreateOption={(label) => {
-                        const r = addOption(schema, c.id, label)
-                        change(r.schema)
-                        return r.optionId
-                      }}
-                    />
-                  </td>
-                ))}
-                <td className="whitespace-nowrap px-1 text-right opacity-0 group-hover:opacity-100">
-                  <button title="Ouvrir la page" className="rounded p-1 hover:bg-[var(--bg-hover)]" onClick={() => select(row.id)}><ExternalLink size={14} /></button>
-                  <button title="Mettre à la corbeille" className="rounded p-1 hover:bg-[var(--bg-hover)]" onClick={() => void trash(row.id)}><Trash2 size={14} /></button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {shown.length === 0 && (
-          <p className="px-2 py-3 text-sm text-[var(--fg-muted)]">
-            {rows.length === 0 ? 'Aucune ligne.' : 'Aucune ligne ne correspond aux filtres.'}
-          </p>
-        )}
+      <div className="mb-3 mt-2 flex items-center gap-1">
+        <div className="relative">
+          <button className={btn} onClick={() => toggle('filter')}>
+            <FilterIcon size={14} /> Filtrer{view.filters.length > 0 && ` (${view.filters.length})`}
+          </button>
+          {panelOpen === 'filter' && <FilterPanel schema={schema} view={view} onChange={change} />}
+        </div>
+        <div className="relative">
+          <button className={btn} onClick={() => toggle('sort')}>
+            <ArrowDownUp size={14} /> Trier{view.sorts.length > 0 && ` (${view.sorts.length})`}
+          </button>
+          {panelOpen === 'sort' && <SortPanel schema={schema} view={view} onChange={change} />}
+        </div>
+        <div className="relative">
+          <button className={btn} onClick={() => toggle('settings')}><Settings2 size={14} /> Réglages de la vue</button>
+          {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} />}
+        </div>
+        <div className="flex-1" />
+        <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
-      <button className={btn + ' mt-1 text-[var(--fg-muted)]'} onClick={() => void createRow(db.id)}>
-        <Plus size={14} /> Nouvelle ligne
-      </button>
+
+      {view.type === 'table' && <TableView {...viewProps} />}
+      {view.type === 'list' && <ListView {...viewProps} />}
+      {view.type === 'kanban' && <KanbanView {...viewProps} />}
+      {view.type === 'calendar' && <CalendarView {...viewProps} />}
+      {view.type === 'gallery' && <GalleryView {...viewProps} />}
     </div>
   )
 }

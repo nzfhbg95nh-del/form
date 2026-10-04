@@ -41,7 +41,7 @@ interface AppState {
   toggleExpanded(id: string, value?: boolean): void
   createPage(parentId?: string | null): Promise<void>
   createDatabase(parentId?: string | null): Promise<void>
-  createRow(databaseId: string): Promise<void>
+  createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
   saveSchema(databaseId: string, schema: Schema): Promise<void>
   move(dragId: string, targetId: string, zone: DropZone): Promise<void>
@@ -109,10 +109,10 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({ objects: [...s.objects, db], selectedId: db.id, view: 'page' }))
   },
 
-  async createRow(databaseId) {
+  async createRow(databaseId, values) {
     const repo = get().repo
     if (!repo) return
-    const row = await repo.createPage(databaseId, 'row')
+    const row = await repo.createPage(databaseId, 'row', JSON.stringify(values ?? {}))
     set((s) => ({ objects: [...s.objects, row] }))
   },
 

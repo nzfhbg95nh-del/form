@@ -43,3 +43,10 @@
 - Filtres (cumulés) et tris par propriété, enregistrés dans la base. Logique testée (src/lib/database.test.ts).
 - Choix technique : le schéma et les vues sont dans `objects.properties` de la base (pas de tables `databases`/`views` séparées) ; plus simple, pas de migration. Tableau maison, sans TanStack Table.
 - Reste (3b) : vues liste / kanban / calendrier / galerie, groupements, relations, fichiers.
+
+## 2026-10-04 — Phase 1, étape 3b : vues, groupements, relations, fichiers (v0.5.0)
+- Plusieurs vues par base (onglets) : tableau, liste, kanban (glisser les cartes entre colonnes), calendrier (mois, + sur un jour), galerie. Chaque vue garde ses filtres, tris et réglages.
+- Regroupement (tableau, liste) par choix unique / multiple / case à cocher.
+- Propriété « Relation » (lien vers les lignes d'une autre base, y compris la même) et « Fichiers » (enregistrés dans la base, 10 Mo max chacun).
+- Tests : groupements et grille du calendrier.
+- Reste de la phase 1 : étape 4 (tâches + rappels + modèles de pages), 5 (Ctrl+K, capture rapide), 6 (import Notion).

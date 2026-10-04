@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import type { Column } from '@/lib/database'
+import { readFileAsDataUrl } from '@/lib/content'
+import type { Column, FileValue } from '@/lib/database'
+import { useApp } from '@/store/app'
 
 const field = 'w-full rounded bg-transparent px-1.5 py-1 text-sm outline-none hover:bg-[var(--bg-hover)] focus:bg-[var(--bg-hover)]'
 
@@ -101,6 +103,84 @@ function OptionPicker({
   )
 }
 
+const MAX_FILE = 10 * 1024 * 1024
+
+function RelationPicker({ col, value, onChange }: { col: Column; value: unknown; onChange: (v: unknown) => void }) {
+  const objects = useApp((s) => s.objects)
+  const select = useApp((s) => s.select)
+  const [open, setOpen] = useState(false)
+  const targets = objects.filter((o) => o.type === 'row' && o.parent_id === col.targetDb && !o.deleted_at)
+  const selected: string[] = Array.isArray(value) ? (value as string[]) : []
+  const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((s) => s !== id) : [...selected, id])
+
+  if (!col.targetDb) return <div className="px-1.5 py-1 text-sm text-[var(--fg-muted)]">Base liée non définie</div>
+  return (
+    <div className="relative">
+      <div className="flex min-h-[28px] flex-wrap items-center gap-1 px-1.5 py-1">
+        {selected.map((id) => {
+          const t = objects.find((o) => o.id === id)
+          return t && !t.deleted_at ? (
+            <button key={id} onClick={() => select(id)} className="rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs hover:underline">
+              {t.title || 'Sans titre'}
+            </button>
+          ) : null
+        })}
+        <button onClick={() => setOpen(!open)} className="rounded px-1 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
+          {selected.length === 0 ? 'Choisir…' : '+'}
+        </button>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute z-20 mt-1 max-h-64 w-56 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-lg">
+            {targets.length === 0 && <p className="text-sm text-[var(--fg-muted)]">La base liée n'a aucune ligne.</p>}
+            {targets.map((t) => (
+              <button key={t.id} onClick={() => toggle(t.id)} className="flex w-full justify-between rounded px-1.5 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
+                <span className="truncate">{t.title || 'Sans titre'}</span>
+                {selected.includes(t.id) && <span>✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function FilePicker({ value, onChange }: { value: unknown; onChange: (v: unknown) => void }) {
+  const files: FileValue[] = Array.isArray(value) ? (value as FileValue[]) : []
+  const [message, setMessage] = useState<string | null>(null)
+  return (
+    <div className="px-1.5 py-1 text-sm">
+      {files.map((f, i) => (
+        <div key={i} className="flex items-center gap-1">
+          <a href={f.data} download={f.name} className="truncate text-[var(--accent)] hover:underline">{f.name}</a>
+          <button title="Retirer le fichier" className="text-[var(--fg-muted)]" onClick={() => onChange(files.filter((_, j) => j !== i))}>×</button>
+        </div>
+      ))}
+      <label className="cursor-pointer text-xs text-[var(--fg-muted)] hover:underline">
+        + Ajouter un fichier
+        <input
+          type="file"
+          multiple
+          hidden
+          onChange={async (e) => {
+            const added: FileValue[] = []
+            setMessage(null)
+            for (const f of Array.from(e.target.files ?? [])) {
+              if (f.size > MAX_FILE) setMessage(`« ${f.name} » dépasse 10 Mo : non ajouté.`)
+              else added.push({ name: f.name, data: await readFileAsDataUrl(f) })
+            }
+            if (added.length > 0) onChange([...files, ...added])
+            e.target.value = ''
+          }}
+        />
+      </label>
+      {message && <p className="text-xs text-red-500">{message}</p>}
+    </div>
+  )
+}
+
 export function PropertyEditor({
   col, value, onChange, onCreateOption,
 }: {
@@ -128,6 +208,10 @@ export function PropertyEditor({
     case 'select':
     case 'multiselect':
       return <OptionPicker col={col} value={value} onChange={onChange} onCreateOption={onCreateOption} />
+    case 'relation':
+      return <RelationPicker col={col} value={value} onChange={onChange} />
+    case 'file':
+      return <FilePicker value={value} onChange={onChange} />
     default:
       return <TextLike type={col.type as 'text' | 'number' | 'url'} value={value} onChange={onChange} />
   }
