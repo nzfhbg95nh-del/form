@@ -216,6 +216,8 @@ export interface Repo {
   saveClient(client: Client): Promise<void>
   listServices(): Promise<Service[]>
   saveService(service: Service): Promise<void>
+  /** Supprime un tarif du catalogue (les devis et factures gardent leur copie des lignes). */
+  deleteService(id: string): Promise<void>
   listObjects(): Promise<ObjectRow[]>
   createPage(parentId?: string | null, type?: string, properties?: string): Promise<ObjectRow>
   updateObject(id: string, patch: ObjectPatch): Promise<void>

@@ -86,6 +86,7 @@ interface AppState {
   setEditing(e: Editing | null): void
   saveClient(client: Client): Promise<void>
   saveService(service: Service): Promise<void>
+  deleteService(id: string): Promise<void>
   /** Page affichée = celle de l'onglet actif. */
   selectedId: string | null
   tabs: Tabs
@@ -581,6 +582,13 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({
       services: s.services.some((x) => x.id === saved.id) ? s.services.map((x) => (x.id === saved.id ? saved : x)) : [...s.services, saved],
     }))
+  },
+
+  async deleteService(id) {
+    const repo = get().repo
+    if (!repo) return
+    await repo.deleteService(id)
+    set((s) => ({ services: s.services.filter((x) => x.id !== id) }))
   },
 
   toggleExpanded(id, value) {

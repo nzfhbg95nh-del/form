@@ -124,6 +124,7 @@ export function createLocalRepo(): Repo {
     async saveClient(c: Client) { clients.upsert(c) },
     async listServices() { return services.list() },
     async saveService(s: Service) { services.upsert(s) },
+    async deleteService(id: string) { localStorage.setItem('form-dev-services', JSON.stringify(services.list().filter((x) => x.id !== id))) },
     async listObjects() { return load() },
     async createPage(parentId: string | null = null, type = 'page', properties = '{}') {
       const t = new Date().toISOString()
