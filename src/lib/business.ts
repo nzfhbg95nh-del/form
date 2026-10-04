@@ -40,6 +40,16 @@ export function parseEuros(text: string): number | null {
   return Number(m[1]) * 100 + Number((m[2] ?? '').padEnd(2, '0') || '0')
 }
 
+/** Comme parseEuros, mais accepte un « - » devant (pour les avoirs). */
+export function parseSignedEuros(text: string): number | null {
+  const t = text.trim()
+  if (t.startsWith('-') || t.startsWith('−')) {
+    const v = parseEuros(t.slice(1))
+    return v === null ? null : -v
+  }
+  return parseEuros(t)
+}
+
 /** « 123450 » centimes -> « 1 234,50 € » */
 export function formatEuros(cents: number): string {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(cents / 100)

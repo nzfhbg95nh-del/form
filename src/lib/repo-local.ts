@@ -1,5 +1,5 @@
 import { nextNumber } from './quotes'
-import type { Client, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
+import type { AuditEntry, Client, Invoice, InvoiceLine, InvoiceStatus, IssueInvoiceInput, IssueQuoteInput, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from './types'
 
 /** Version « navigateur » : sert uniquement à tester l'interface sans l'app Windows. */
 export function createLocalRepo(): Repo {
@@ -19,12 +19,51 @@ export function createLocalRepo(): Repo {
       localStorage.setItem(key, JSON.stringify(rows))
     },
   })
+  const invoices = table<Invoice>('form-dev-invoices')
+  const invoiceLines = table<InvoiceLine>('form-dev-invoice-lines')
+  const readAudit = (): AuditEntry[] => JSON.parse(localStorage.getItem('form-dev-audit') ?? '[]')
+  const addAudit = (e: Omit<AuditEntry, 'id' | 'at'>) => {
+    const all = readAudit()
+    localStorage.setItem('form-dev-audit', JSON.stringify([...all, { ...e, id: all.length + 1, at: new Date().toISOString() }]))
+  }
   const quotes = table<Quote>('form-dev-quotes')
   const quoteLines = table<QuoteLine>('form-dev-quote-lines')
   const clients = table<Client>('form-dev-clients')
   const services = table<Service>('form-dev-services')
 
   return {
+    async listInvoices() { return invoices.list() },
+    async listInvoiceLines() { return invoiceLines.list() },
+    async saveInvoiceDraft(invoice: Invoice, lines: InvoiceLine[]) {
+      if (invoices.list().find((i) => i.id === invoice.id)?.number) throw new Error('Cette facture est déjà émise : elle ne peut plus être modifiée.')
+      invoices.upsert(invoice)
+      localStorage.setItem('form-dev-invoice-lines', JSON.stringify([...invoiceLines.list().filter((l) => l.invoice_id !== invoice.id), ...lines]))
+    },
+    async issueInvoice(input: IssueInvoiceInput) {
+      const all = invoices.list()
+      const invoice = all.find((i) => i.id === input.id)
+      const later = all.some((i) => i.number?.startsWith(input.prefix) && i.issue_date > input.issueDate)
+      if (!invoice || invoice.number || later) throw new Error("La facture n'a pas pu être émise : elle est déjà numérotée, ou sa date est antérieure à celle d'une facture déjà émise.")
+      const number = nextNumber(input.prefix, all.map((i) => i.number))
+      invoices.upsert({ ...invoice, number, status: 'issued', issue_date: input.issueDate, due_date: input.dueDate, snapshot: input.snapshot, updated_at: new Date().toISOString() })
+      addAudit({ entity: 'invoice', entity_id: invoice.id, number, action: 'issued', detail: `Facture émise le ${input.issueDate}` })
+      return number
+    },
+    async setInvoiceStatus(id: string, status: Exclude<InvoiceStatus, 'draft'>) {
+      const invoice = invoices.list().find((i) => i.id === id)
+      if (!invoice?.number) return
+      invoices.upsert({ ...invoice, status, updated_at: new Date().toISOString() })
+      addAudit({ entity: 'invoice', entity_id: id, number: invoice.number, action: 'status', detail: `${invoice.status} -> ${status}` })
+    },
+    async deleteDraftInvoice(id: string) {
+      if (invoices.list().find((i) => i.id === id)?.number) throw new Error('Une facture émise ne peut pas être supprimée : corrige-la par un avoir.')
+      localStorage.setItem('form-dev-invoices', JSON.stringify(invoices.list().filter((i) => i.id !== id)))
+      localStorage.setItem('form-dev-invoice-lines', JSON.stringify(invoiceLines.list().filter((l) => l.invoice_id !== id)))
+    },
+    async listAuditLog(entityId?: string) { return readAudit().filter((e) => !entityId || e.entity_id === entityId) },
+    async logAudit(e: { entity: string; entityId: string; number: string | null; action: string; detail: string }) {
+      addAudit({ entity: e.entity, entity_id: e.entityId, number: e.number, action: e.action, detail: e.detail })
+    },
     async listQuotes() { return quotes.list() },
     async listQuoteLines() { return quoteLines.list() },
     async saveQuoteDraft(quote: Quote, lines: QuoteLine[]) {

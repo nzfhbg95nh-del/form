@@ -22,6 +22,12 @@ pub fn run() {
         description: "devis",
         sql: include_str!("../migrations/003_devis.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 4,
+        description: "factures",
+        sql: include_str!("../migrations/004_factures.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()

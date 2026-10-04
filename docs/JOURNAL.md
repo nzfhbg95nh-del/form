@@ -103,3 +103,16 @@
 - Montants : tout en centimes ; quantités en millièmes ; calculs en entiers (arrondi demi vers le haut). Tests : calculs, numérotation, verrous SQL (migrations exécutées dans SQLite) — 69 tests.
 - Plugin fs ajouté (écriture du PDF). CSP : frame-src blob: pour l'aperçu.
 - Prochaine étape : 4 (factures d'acompte, de solde, avoirs ; modèles bleu et blanc).
+
+## 2026-10-04 — Phase 2, étape 4 : factures, acomptes, soldes, avoirs (v0.12.0)
+- Section « Factures » : liste (filtres type / statut), éditeur, PDF (acompte = modèle blanc, facture / solde = modèle bleu, avoir = jaune pâle), aperçu et téléchargement.
+- Depuis un devis ACCEPTÉ : « Créer la facture d'acompte » (30 % du total) puis « Créer la facture de solde » : lignes du devis moins « acompte déjà facturé (F-…) ». Acompte + solde = total du devis, au centime (testé). Le solde exige que l'acompte soit déjà émis.
+- Avoir : depuis une facture émise ; reprend les lignes en négatif (modifiable pour un avoir partiel) ; refuse de dépasser le montant de la facture (avoirs précédents inclus). Série A-2026-001 séparée de F-2026-001.
+- Numérotation F-AAAA-NNN (acompte, solde, standard partagent la même série) : UNE requête SQL, continue, sans trou ni doublon ; REFUSE une date antérieure à celle d'une facture déjà émise de la série (ordre chronologique).
+- Verrouillage par déclencheurs SQL : facture émise = plus aucune modification ni suppression (seul le statut peut changer, pour les paiements de l'étape 5).
+- Journal d'audit (table `audit_log`, protégée contre la modification et l'effacement) : émission, changements de statut (automatiques par déclencheurs), export PDF (écrit par l'app). Affiché sous chaque facture émise.
+- Mentions sur la facture : date d'échéance, date de la prestation (ou période), pénalités de retard, indemnité de 40 € (clients pro uniquement), escompte, mention de franchise de TVA, nature de l'opération « prestation de services », mention clients hors France (si renseignée) ; SIREN / TVA du client dans le cadre Client.
+- Émission bloquée si : client / lignes / libellé manquants, dates incohérentes, total négatif, SIRET et réglages manquants, acompte pas encore émis (solde), date antérieure à une facture déjà émise. Avertissements non bloquants : client étranger non validé, SIREN client manquant, IBAN vide.
+- Statut « en retard » déduit de l'échéance (non enregistré). « Payée » : étape 5 (paiements).
+- Tests : 90 au total (arrondis symétriques des avoirs, acompte + solde, avoirs cumulés, chronologie, déclencheurs et journal exécutés dans SQLite).
+- Prochaine étape : 5 (paiements, relances, livre des recettes).

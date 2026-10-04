@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
-import { centsToInput, clientDisplayName, formatEuros, parseEuros, UNITS } from '@/lib/business'
+import { centsToInput, clientDisplayName, formatEuros, parseEuros, parseSignedEuros, UNITS } from '@/lib/business'
 import { vatMention } from '@/lib/company'
+import { DISPLAY_COLORS, DISPLAY_LABELS, displayStatus, invoiceTotalCents, KIND_LABELS } from '@/lib/invoices'
+import { todayISO } from '@/lib/backup'
 import {
   blockersToSend, depositCents, formatDateFr, formatQuantity, isDraft, lineTotalCents, newLine, parseQuantity, parseSnapshot,
   quoteTotalCents, STATUS_COLORS, STATUS_LABELS, addDays,
@@ -83,23 +85,34 @@ export function QuotesView() {
 
 // ───────────────────────── Ligne de devis ─────────────────────────
 
-function LineRow({
-  line, locked, first, last, onChange, onRemove, onMove,
+export interface LineLike {
+  label: string
+  description: string
+  quantity_milli: number
+  unit: string
+  unit_price_cents: number
+}
+
+/** Une ligne de devis ou de facture. `allowNegative` : un avoir peut avoir des prix négatifs. */
+export function LineRow<T extends LineLike>({
+  line, locked, first, last, onChange, onRemove, onMove, allowNegative = false,
 }: {
-  line: QuoteLine
+  line: T
   locked: boolean
   first: boolean
   last: boolean
-  onChange: (l: QuoteLine) => void
+  onChange: (l: T) => void
   onRemove: () => void
   onMove: (dir: -1 | 1) => void
+  allowNegative?: boolean
 }) {
+  const parsePrice = allowNegative ? parseSignedEuros : parseEuros
   const [qty, setQty] = useState(formatQuantity(line.quantity_milli))
   const [price, setPrice] = useState(centsToInput(line.unit_price_cents))
   useEffect(() => setQty(formatQuantity(line.quantity_milli)), [line.quantity_milli])
   useEffect(() => setPrice(centsToInput(line.unit_price_cents)), [line.unit_price_cents])
   const qtyOk = parseQuantity(qty) !== null
-  const priceOk = parseEuros(price) !== null
+  const priceOk = parsePrice(price) !== null
 
   return (
     <div className="mb-2 rounded border border-[var(--border)] p-2">
@@ -130,7 +143,7 @@ function LineRow({
             disabled={locked}
             aria-label="Prix unitaire HT"
             onChange={(e) => setPrice(e.target.value)}
-            onBlur={() => { const c = parseEuros(price); if (c !== null) onChange({ ...line, unit_price_cents: c }); else setPrice(centsToInput(line.unit_price_cents)) }}
+            onBlur={() => { const c = parsePrice(price); if (c !== null) onChange({ ...line, unit_price_cents: c }); else setPrice(centsToInput(line.unit_price_cents)) }}
           />
         </div>
         <div className="w-28 pt-2 text-right text-sm tabular-nums">{formatEuros(lineTotalCents(line))}</div>
@@ -331,6 +344,8 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
           )}
         </div>
 
+        {quote.status === 'accepted' && <QuoteBilling quote={quote} />}
+
         {preview && pdfData && <PdfPreview data={pdfData} />}
       </div>
     </div>
@@ -371,6 +386,42 @@ function PdfPreview({ data }: { data: QuotePdfData }) {
       {error && <div className="p-3 text-sm text-red-500">Impossible de générer l’aperçu : {error}</div>}
       {!url && !error && <div className="p-3 text-sm text-[var(--fg-muted)]">Génération du PDF…</div>}
       {url && <iframe title="Aperçu du devis" src={url} className="h-[80vh] w-full rounded bg-white" />}
+    </div>
+  )
+}
+
+/** Facturation d'un devis accepté : acompte puis solde. */
+function QuoteBilling({ quote }: { quote: Quote }) {
+  const { invoices, invoiceLines, createDepositInvoice, createFinalInvoice, openInvoice } = useApp()
+  const linked = invoices.filter((i) => i.quote_id === quote.id && (i.kind === 'deposit' || i.kind === 'final'))
+  const hasDeposit = linked.some((i) => i.kind === 'deposit')
+  const hasFinal = linked.some((i) => i.kind === 'final')
+  const today = todayISO()
+
+  return (
+    <div className="mt-6 rounded border border-[var(--border)] p-4">
+      <h2 className="mb-2 text-lg font-semibold">Facturation</h2>
+      {linked.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Aucune facture pour ce devis.</p>}
+      {linked.map((i) => {
+        const st = displayStatus(i, today)
+        return (
+          <button key={i.id} onClick={() => openInvoice(i.id)} className="mb-1 flex w-full items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
+            <span className="w-32 font-medium">{i.number ?? 'Brouillon'}</span>
+            <span className="flex-1">{KIND_LABELS[i.kind]}</span>
+            <span className="tabular-nums">{formatEuros(invoiceTotalCents(invoiceLines.filter((l) => l.invoice_id === i.id)))}</span>
+            <span className="rounded px-2 py-0.5 text-xs" style={{ background: DISPLAY_COLORS[st], color: '#37352f' }}>{DISPLAY_LABELS[st]}</span>
+          </button>
+        )
+      })}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {!hasDeposit && quote.deposit_percent > 0 && (
+          <button className={primary} onClick={() => void createDepositInvoice(quote.id)}>Créer la facture d'acompte ({quote.deposit_percent} %)</button>
+        )}
+        {!hasFinal && (
+          <button className={secondary} onClick={() => void createFinalInvoice(quote.id)}>Créer la facture de solde</button>
+        )}
+      </div>
+      {hasDeposit && !hasFinal && <p className="mt-2 text-xs text-[var(--fg-muted)]">Émets d'abord la facture d'acompte : elle sera déduite automatiquement de la facture de solde.</p>}
     </div>
   )
 }

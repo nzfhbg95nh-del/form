@@ -5,7 +5,9 @@ import type { Client, Quote, QuoteLine, QuoteStatus, Service } from './types'
 
 /** Total d'une ligne en centimes : prix unitaire × quantité, arrondi au centime (demi vers le haut). */
 export function lineTotalCents(line: Pick<QuoteLine, 'unit_price_cents' | 'quantity_milli'>): number {
-  return Math.floor((line.unit_price_cents * line.quantity_milli + 500) / 1000)
+  // Même arrondi pour un montant négatif (avoir) que pour son opposé : un avoir annule exactement la facture.
+  const sign = line.unit_price_cents < 0 ? -1 : 1
+  return sign * Math.floor((Math.abs(line.unit_price_cents) * line.quantity_milli + 500) / 1000)
 }
 
 export function quoteTotalCents(lines: Pick<QuoteLine, 'unit_price_cents' | 'quantity_milli'>[]): number {

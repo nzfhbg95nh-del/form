@@ -34,3 +34,24 @@ export const ISSUE_QUOTE_SQL = `UPDATE quotes SET
   number = $1 || printf('%03d', COALESCE((SELECT MAX(CAST(substr(number, length($1) + 1) AS INTEGER)) FROM quotes WHERE number LIKE $1 || '%'), 0) + 1),
   status = 'sent', issue_date = $2, valid_until = $3, snapshot = $4, updated_at = $5
 WHERE id = $6 AND number IS NULL`
+
+export const INVOICE_COLUMNS = [
+  'id', 'number', 'kind', 'status', 'client_id', 'quote_id', 'related_invoice_id', 'title', 'issue_date',
+  'service_date', 'service_date_end', 'due_date', 'payment_days', 'notes', 'snapshot', 'created_at', 'updated_at',
+] as const
+
+export const INVOICE_LINE_COLUMNS = [
+  'id', 'invoice_id', 'position', 'line_kind', 'service_id', 'label', 'description', 'quantity_milli', 'unit', 'unit_price_cents',
+] as const
+
+/**
+ * Numérote une facture (ou un avoir) en UNE requête : plus grand numéro de l'année + 1, sans trou ni doublon.
+ * Refuse (0 ligne modifiée) si une facture de la même série a déjà été émise à une date POSTÉRIEURE :
+ * la numérotation doit suivre l'ordre du temps.
+ * $1 = début du numéro, $2 = date d'émission, $3 = échéance, $4 = photo figée, $5 = maintenant, $6 = id.
+ */
+export const ISSUE_INVOICE_SQL = `UPDATE invoices SET
+  number = $1 || printf('%03d', COALESCE((SELECT MAX(CAST(substr(number, length($1) + 1) AS INTEGER)) FROM invoices WHERE number LIKE $1 || '%'), 0) + 1),
+  status = 'issued', issue_date = $2, due_date = $3, snapshot = $4, updated_at = $5
+WHERE id = $6 AND number IS NULL
+  AND NOT EXISTS (SELECT 1 FROM invoices WHERE number LIKE $1 || '%' AND issue_date > $2)`

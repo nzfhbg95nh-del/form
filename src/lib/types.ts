@@ -88,6 +88,64 @@ export interface QuoteLine {
   unit_price_cents: number
 }
 
+export type InvoiceKind = 'deposit' | 'final' | 'standard' | 'credit'
+export type InvoiceStatus = 'draft' | 'issued' | 'paid'
+
+export interface Invoice {
+  id: string
+  number: string | null
+  kind: InvoiceKind
+  status: InvoiceStatus
+  client_id: string | null
+  quote_id: string | null
+  /** Pour un avoir : la facture qu'il corrige. */
+  related_invoice_id: string | null
+  title: string
+  issue_date: string
+  service_date: string
+  service_date_end: string | null
+  due_date: string
+  payment_days: number
+  notes: string
+  snapshot: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface InvoiceLine {
+  id: string
+  invoice_id: string
+  position: number
+  /** « deposit_deduction » : ligne négative « acompte déjà facturé » d'une facture de solde. */
+  line_kind: 'item' | 'deposit_deduction'
+  service_id: string | null
+  label: string
+  description: string
+  quantity_milli: number
+  unit: string
+  /** Négatif sur un avoir. */
+  unit_price_cents: number
+}
+
+export interface AuditEntry {
+  id: number
+  at: string
+  entity: string
+  entity_id: string
+  number: string | null
+  action: string
+  detail: string
+}
+
+export interface IssueInvoiceInput {
+  id: string
+  /** Début du numéro : « F-2026- » ou « A-2026- » pour un avoir. */
+  prefix: string
+  issueDate: string
+  dueDate: string
+  snapshot: string
+}
+
 export interface IssueQuoteInput {
   id: string
   /** Début du numéro, par exemple « D-2026- ». */
@@ -98,6 +156,15 @@ export interface IssueQuoteInput {
 }
 
 export interface Repo {
+  listInvoices(): Promise<Invoice[]>
+  listInvoiceLines(): Promise<InvoiceLine[]>
+  saveInvoiceDraft(invoice: Invoice, lines: InvoiceLine[]): Promise<void>
+  /** Numéro continu sans trou ; refuse une date antérieure à celle d'une facture déjà émise. */
+  issueInvoice(input: IssueInvoiceInput): Promise<string>
+  setInvoiceStatus(id: string, status: Exclude<InvoiceStatus, 'draft'>): Promise<void>
+  deleteDraftInvoice(id: string): Promise<void>
+  listAuditLog(entityId?: string): Promise<AuditEntry[]>
+  logAudit(entry: { entity: string; entityId: string; number: string | null; action: string; detail: string }): Promise<void>
   listQuotes(): Promise<Quote[]>
   listQuoteLines(): Promise<QuoteLine[]>
   /** Enregistre un brouillon et ses lignes. Refuse si le devis a déjà un numéro. */

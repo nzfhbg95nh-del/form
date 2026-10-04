@@ -1,20 +1,8 @@
-import { Document, Font, Image, Page, pdf, StyleSheet, Text, View } from '@react-pdf/renderer'
-import regularUrl from '@ibm/plex-mono/fonts/complete/woff/IBMPlexMono-Regular.woff?url'
-import boldUrl from '@ibm/plex-mono/fonts/complete/woff/IBMPlexMono-SemiBold.woff?url'
-import { clientAddressLines, clientDisplayName, formatEuros } from '../business'
-import { formatDateFr, formatQuantity, depositCents, lineTotalCents, quoteTotalCents } from '../quotes'
+import { Document, Page, pdf, Text, View } from '@react-pdf/renderer'
+import { formatDateFr, depositCents, quoteTotalCents } from '../quotes'
 import type { Client, Quote, QuoteLine } from '../types'
 import type { Company } from '../company'
-
-Font.register({
-  family: 'Plex',
-  fonts: [
-    { src: regularUrl, fontWeight: 400 },
-    { src: boldUrl, fontWeight: 700 },
-  ],
-})
-// Pas de coupure de mots au milieu : on laisse le texte aller à la ligne aux espaces.
-Font.registerHyphenationCallback((word) => [word])
+import { Header, ItemsTable, PAPER, PartyBoxes, PINK, rule, styles, TotalRow, up } from './common'
 
 export interface QuotePdfData {
   quote: Quote
@@ -27,107 +15,30 @@ export interface QuotePdfData {
   isDraft: boolean
 }
 
-const PINK = { bg: '#FAD7DC', ink: '#5E2B33' }
-const PAPER = { bg: '#FAFAF8', ink: '#3F3F3F' }
-/** « 2,5 jours », « 1 jour » : on met au pluriel quand la quantité dépasse 1. */
-function pluralUnit(unit: string, milli: number): string {
-  return milli > 1000 && !unit.endsWith('s') ? `${unit}s` : unit
-}
-const up = (s: string) => s.toLocaleUpperCase('fr-FR')
-// Les espaces insécables des montants n'existent pas dans la police : on les remplace par des espaces simples.
-const money = (cents: number) => formatEuros(cents).replace(/[  ]/g, ' ')
-
-function styles(ink: string) {
-  return StyleSheet.create({
-    page: { padding: 32, fontFamily: 'Plex', fontSize: 7.5, lineHeight: 1.55, color: ink },
-    row: { flexDirection: 'row' },
-    hairBottom: { borderBottomWidth: 0.5, borderBottomColor: ink },
-    bold: { fontWeight: 700 },
-    box: { borderWidth: 0.7, borderColor: ink, flexDirection: 'row', padding: 8, minHeight: 88 },
-  })
-}
-
 function QuotePage({ d }: { d: QuotePdfData }) {
   const s = styles(PINK.ink)
   const { quote, lines, company, client } = d
   const total = quoteTotalCents(lines)
   const deposit = depositCents(total, quote.deposit_percent)
-  const line = { borderBottomWidth: 0.5, borderBottomColor: PINK.ink }
   const fields: [string, string][] = [
     ['Date', formatDateFr(quote.issue_date)],
     ['Numéro de devis', quote.number ?? 'BROUILLON (NON NUMÉROTÉ)'],
     ["Valable jusqu'au", `${formatDateFr(quote.valid_until)} (${company.quoteValidityDays} jours)`],
   ]
-  const emitter = [
-    company.legalName, company.statusMention, company.street, `${company.postalCode} ${company.city}`.trim(), company.country,
-    company.phone, company.email, `SIRET : ${company.siret || 'XXXXXXXXXXXXXX'}`,
-  ].filter((x) => x && x.trim())
-  const clientLines = [
-    clientDisplayName(client), ...(client.company_name && client.name ? [client.name] : []), ...clientAddressLines(client),
-    ...(client.siret ? [`SIRET : ${client.siret}`] : client.siren ? [`SIREN : ${client.siren}`] : []),
-    ...(client.vat_number ? [`TVA : ${client.vat_number}`] : []),
-  ]
 
   return (
     <Page size="A4" style={{ ...s.page, backgroundColor: PINK.bg }}>
-      <View style={{ position: 'relative' }}>
-        <View style={{ position: 'absolute', left: 0, top: 0, width: 120 }}>
-          {d.logo ? <Image src={d.logo} style={{ height: 30, objectFit: 'contain', objectPosition: 'left' }} /> : <Text>{up(company.tradeName)}</Text>}
-        </View>
-        <View>
-          {fields.map(([label, value], i) => (
-            <View key={label} style={s.row}>
-              <Text style={{ width: 251, textAlign: 'right', paddingRight: 8 }}>{up(label)} :</Text>
-              <Text style={{ width: 251, marginLeft: 31, ...line, ...(i === 0 ? { borderTopWidth: 0.5, borderTopColor: PINK.ink } : {}) }}>{up(value)}</Text>
-            </View>
-          ))}
-        </View>
-      </View>
-
-      <View style={{ ...s.row, marginTop: 22 }}>
-        <View style={{ ...s.box, width: 251 }}>
-          <Text style={{ width: 66, borderRightWidth: 0.5, borderRightColor: PINK.ink }}>ÉMETTEUR :</Text>
-          <View style={{ paddingLeft: 10, flex: 1 }}>{emitter.map((t, i) => <Text key={i}>{up(t)}</Text>)}</View>
-        </View>
-        <View style={{ ...s.box, width: 251, marginLeft: 31 }}>
-          <Text style={{ width: 66, borderRightWidth: 0.5, borderRightColor: PINK.ink }}>CLIENT :</Text>
-          <View style={{ paddingLeft: 10, flex: 1 }}>{clientLines.map((t, i) => <Text key={i}>{up(t)}</Text>)}</View>
-        </View>
-      </View>
+      <Header p={PINK} company={company} logo={d.logo} fields={fields} />
+      <PartyBoxes p={PINK} company={company} client={client} />
 
       {quote.title.trim() !== '' && <Text style={{ marginTop: 14, ...s.bold }}>OBJET : {up(quote.title)}</Text>}
 
-      <View style={{ marginTop: 18, borderTopWidth: 0.5, borderTopColor: PINK.ink, ...line, paddingVertical: 2 }}>
-        <View style={s.row}>
-          <Text style={{ width: 282 }}>DÉSIGNATION{'\n'}& DÉTAILS</Text>
-          <Text style={{ width: 181 }}>QUANTITÉ</Text>
-          <Text style={{ width: 70, textAlign: 'right' }}>TOTAL{'\n'}HT</Text>
-        </View>
-      </View>
-
-      {lines.map((l) => (
-        <View key={l.id} wrap={false} style={{ ...s.row, ...line, paddingVertical: 6 }}>
-          <View style={{ width: 282, paddingRight: 12 }}>
-            <Text>{up(l.label)}</Text>
-            {l.description.trim() !== '' && <Text>{up(l.description)}</Text>}
-          </View>
-          <Text style={{ width: 181 }}>{formatQuantity(l.quantity_milli)} {up(pluralUnit(l.unit, l.quantity_milli))}</Text>
-          <Text style={{ width: 70, textAlign: 'right' }}>{money(lineTotalCents(l))}</Text>
-        </View>
-      ))}
+      <ItemsTable p={PINK} lines={lines} />
 
       <View wrap={false} style={{ marginTop: 10 }}>
-        <View style={{ ...s.row, ...line, paddingVertical: 2 }}>
-          <Text style={{ flex: 1 }}>SOUS-TOTAL HT</Text>
-          <Text>{money(total)}</Text>
-        </View>
-        <View style={{ ...line, paddingVertical: 2 }}>
-          <Text>{up(d.vatMention)}</Text>
-        </View>
-        <View style={{ ...s.row, ...line, paddingVertical: 4 }}>
-          <Text style={{ flex: 1, ...s.bold }}>TOTAL :</Text>
-          <Text style={s.bold}>{money(total)}</Text>
-        </View>
+        <TotalRow p={PINK} label="Sous-total HT" cents={total} />
+        <View style={{ ...rule(PINK.ink), paddingVertical: 2 }}><Text>{up(d.vatMention)}</Text></View>
+        <TotalRow p={PINK} label="Total :" cents={total} bold />
       </View>
 
       {quote.deposit_percent > 0 && (
@@ -135,9 +46,8 @@ function QuotePage({ d }: { d: QuotePdfData }) {
           <Text style={{ width: 281 }}>
             UN ACOMPTE DE {quote.deposit_percent}% DU MONTANT TOTAL SERA DEMANDÉ À LA SIGNATURE DU DEVIS. LE SOLDE SERA À RÉGLER SUR UNE FACTURE DÉDIÉE SPÉCIALEMENT À L’ACOMPTE.
           </Text>
-          <View style={{ ...s.row, ...line, paddingVertical: 4, marginTop: 18 }}>
-            <Text style={{ flex: 1, ...s.bold }}>TOTAL ACOMPTE :</Text>
-            <Text style={s.bold}>{money(deposit)}</Text>
+          <View style={{ marginTop: 18 }}>
+            <TotalRow p={PINK} label="Total acompte :" cents={deposit} bold />
           </View>
         </View>
       )}
@@ -172,7 +82,6 @@ function CgvPages({ company, cgvDate }: { company: Omit<Company, 'logo'>; cgvDat
     else if (t.startsWith('- ')) blocks.push({ kind: 'sub', text: t.slice(2) })
     else blocks.push({ kind: 'bullet', text: t })
   }
-  const hair = { borderBottomWidth: 0.5, borderBottomColor: PAPER.ink }
   const fields: [string, string][] = [
     ['Document', 'Conditions générales de vente'],
     ['Date de mise à jour', formatDateFr(cgvDate)],
@@ -181,16 +90,8 @@ function CgvPages({ company, cgvDate }: { company: Omit<Company, 'logo'>; cgvDat
 
   return (
     <Page size="A4" style={{ ...s.page, backgroundColor: PAPER.bg }}>
-      <View style={{ position: 'relative' }} fixed>
-        <Text style={{ position: 'absolute', left: 0, top: 0 }}>{up(company.tradeName)}</Text>
-        <View>
-          {fields.map(([label, value], i) => (
-            <View key={label} style={s.row}>
-              <Text style={{ width: 251, textAlign: 'right', paddingRight: 8 }}>{up(label)} :</Text>
-              <Text style={{ width: 251, marginLeft: 31, ...hair, ...(i === 0 ? { borderTopWidth: 0.5, borderTopColor: PAPER.ink } : {}) }}>{up(value)}</Text>
-            </View>
-          ))}
-        </View>
+      <View fixed>
+        <Header p={PAPER} company={company} logo={null} fields={fields} />
       </View>
       <View style={{ marginTop: 34 }}>
         {blocks.map((b, i) =>
@@ -199,7 +100,7 @@ function CgvPages({ company, cgvDate }: { company: Omit<Company, 'logo'>; cgvDat
               <Text style={s.bold}>{up(b.text)}</Text>
             </View>
           ) : (
-            <View key={i} style={{ ...s.row, marginBottom: 3, paddingLeft: b.kind === 'sub' ? 0 : 0 }}>
+            <View key={i} style={{ ...s.row, marginBottom: 3 }}>
               <Text style={{ width: 16 }}>{b.kind === 'sub' ? '-' : '*'}</Text>
               <Text style={{ flex: 1, textAlign: 'justify' }}>{up(b.text)}</Text>
             </View>

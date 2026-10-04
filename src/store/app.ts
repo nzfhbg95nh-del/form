@@ -11,9 +11,13 @@ import { withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
 import { todayISO } from '@/lib/backup'
 import { blockersToSend, buildSnapshot, newLine, newQuote, numberPrefix } from '@/lib/quotes'
-import type { Client, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
+import {
+  blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
+  type Draft,
+} from '@/lib/invoices'
+import type { Client, Invoice, InvoiceLine, ObjectPatch, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes'
+export type View = 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -52,6 +56,17 @@ interface AppState {
   quoteLines: QuoteLine[]
   /** Devis ouvert dans l'éditeur (null = on voit la liste). */
   openQuoteId: string | null
+  invoices: Invoice[]
+  invoiceLines: InvoiceLine[]
+  openInvoiceId: string | null
+  openInvoice(id: string | null): void
+  createStandardInvoice(): Promise<void>
+  createDepositInvoice(quoteId: string): Promise<void>
+  createFinalInvoice(quoteId: string): Promise<void>
+  createCredit(invoiceId: string): Promise<void>
+  saveInvoiceDraft(invoice: Invoice, lines: InvoiceLine[]): Promise<void>
+  issueInvoice(id: string): Promise<void>
+  deleteDraftInvoice(id: string): Promise<void>
   setCompany(company: Company): void
   openQuote(id: string | null): void
   createQuote(): Promise<void>
@@ -112,6 +127,21 @@ interface AppState {
   toggleTheme(): void
 }
 
+type SetFn = (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void
+
+/** Enregistre un brouillon de facture tout juste construit et l'ouvre dans l'éditeur. */
+async function createDraft(set: SetFn, get: () => AppState, draft: Draft) {
+  const repo = get().repo
+  if (!repo) return
+  await repo.saveInvoiceDraft(draft.invoice, draft.lines)
+  set((s) => ({
+    invoices: [draft.invoice, ...s.invoices],
+    invoiceLines: [...s.invoiceLines, ...draft.lines],
+    openInvoiceId: draft.invoice.id,
+    view: 'invoices',
+  }))
+}
+
 export const useApp = create<AppState>((set, get) => ({
   repo: null,
   objects: [],
@@ -121,6 +151,9 @@ export const useApp = create<AppState>((set, get) => ({
   quotes: [],
   quoteLines: [],
   openQuoteId: null,
+  invoices: [],
+  invoiceLines: [],
+  openInvoiceId: null,
   editing: null,
   selectedId: null,
   tabs: { ids: [], active: 0 },
@@ -142,12 +175,12 @@ export const useApp = create<AppState>((set, get) => ({
     try {
       const repo = await openRepo()
       const objects = await repo.listObjects()
-      const [clients, services, company, quotes, quoteLines] = await Promise.all([
-        repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(),
+      const [clients, services, company, quotes, quoteLines, invoices, invoiceLines] = await Promise.all([
+        repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(),
       ])
       const first = objects.find((o) => !o.deleted_at && isPageLike(o))
       set({
-        repo, objects, clients, services, company, quotes, quoteLines,
+        repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines,
         selectedId: first?.id ?? null,
         tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
       })
@@ -241,6 +274,76 @@ export const useApp = create<AppState>((set, get) => ({
 
   setCompany(company) {
     set({ company })
+  },
+
+  openInvoice(id) {
+    set({ openInvoiceId: id, view: 'invoices' })
+  },
+
+  async createStandardInvoice() {
+    await createDraft(set, get, newStandardInvoice(get().company, todayISO()))
+  },
+  async createDepositInvoice(quoteId) {
+    const { quotes, quoteLines, company } = get()
+    const quote = quotes.find((q) => q.id === quoteId)
+    if (!quote) return
+    await createDraft(set, get, depositFromQuote(company, todayISO(), quote, quoteLines.filter((l) => l.quote_id === quoteId)))
+  },
+  async createFinalInvoice(quoteId) {
+    const { quotes, quoteLines, invoices, invoiceLines, company } = get()
+    const quote = quotes.find((q) => q.id === quoteId)
+    if (!quote) return
+    await createDraft(set, get, finalFromQuote(company, todayISO(), quote, quoteLines.filter((l) => l.quote_id === quoteId), invoices, invoiceLines))
+  },
+  async createCredit(invoiceId) {
+    const { invoices, invoiceLines, company } = get()
+    const original = invoices.find((i) => i.id === invoiceId)
+    if (!original?.number) return
+    await createDraft(set, get, creditFromInvoice(company, todayISO(), original, invoiceLines.filter((l) => l.invoice_id === invoiceId)))
+  },
+
+  async saveInvoiceDraft(invoice, lines) {
+    const repo = get().repo
+    if (!repo) return
+    const saved = { ...invoice, updated_at: new Date().toISOString() }
+    const ordered = lines.map((l, i) => ({ ...l, invoice_id: invoice.id, position: i }))
+    await repo.saveInvoiceDraft(saved, ordered)
+    set((s) => ({
+      invoices: s.invoices.some((i) => i.id === saved.id) ? s.invoices.map((i) => (i.id === saved.id ? saved : i)) : [saved, ...s.invoices],
+      invoiceLines: [...s.invoiceLines.filter((l) => l.invoice_id !== saved.id), ...ordered],
+    }))
+  },
+
+  async issueInvoice(id) {
+    const { repo, invoices, invoiceLines, quotes, clients, company } = get()
+    const invoice = invoices.find((i) => i.id === id)
+    if (!repo || !invoice) return
+    const lines = invoiceLines.filter((l) => l.invoice_id === id)
+    const client = clients.find((c) => c.id === invoice.client_id)
+    const blockers = blockersToIssue(invoice, lines, client, company, { invoices, invoiceLines })
+    if (blockers.length > 0 || !client) throw new Error(blockers.join(' '))
+    const quoteNumber = quotes.find((q) => q.id === invoice.quote_id)?.number ?? null
+    const relatedNumber = invoices.find((i) => i.id === invoice.related_invoice_id)?.number ?? null
+    const number = await repo.issueInvoice({
+      id,
+      prefix: invoicePrefix(invoice.kind, invoice.issue_date),
+      issueDate: invoice.issue_date,
+      dueDate: invoice.due_date,
+      snapshot: buildInvoiceSnapshot(company, client, invoice.issue_date, quoteNumber, relatedNumber),
+    })
+    set({ invoices: await repo.listInvoices(), toast: `${number} émise.` })
+    window.setTimeout(() => set({ toast: null }), 3000)
+  },
+
+  async deleteDraftInvoice(id) {
+    const repo = get().repo
+    if (!repo) return
+    await repo.deleteDraftInvoice(id)
+    set((s) => ({
+      invoices: s.invoices.filter((i) => i.id !== id),
+      invoiceLines: s.invoiceLines.filter((l) => l.invoice_id !== id),
+      openInvoiceId: s.openInvoiceId === id ? null : s.openInvoiceId,
+    }))
   },
 
   openQuote(id) {
