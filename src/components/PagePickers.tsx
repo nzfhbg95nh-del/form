@@ -3,7 +3,7 @@ import { Icon } from '@/components/Icon'
 import { DEFAULT_MODEL, generateIconImage, iconAiAvailable, suggestEmojis } from '@/lib/ai'
 import { readFileAsDataUrl } from '@/lib/content'
 import {
-  GROUPS, groupEmojis, loadEmojiData, loadRecents, pushRecent, randomEmoji, saveRecents, searchEmojis, SKIN_TONES, withSkin,
+  CALLOUT_EMOJIS, GROUPS, groupEmojis, loadEmojiData, loadRecents, pushRecent, randomEmoji, saveRecents, searchEmojis, SKIN_TONES, withSkin,
   type EmojiItem,
 } from '@/lib/emoji'
 import { useApp } from '@/store/app'
@@ -164,6 +164,10 @@ export function IconPicker({ value, onChange }: { value: string | null; onChange
                         <div className="flex flex-wrap">{recents.map((e) => <EmojiButton key={e} e={e} onPick={choose} />)}</div>
                       </section>
                     )}
+                    <section data-group="callout">
+                      <h4 className="px-1 pb-1 pt-3 text-xs font-medium text-[var(--fg-muted)]">Encadré</h4>
+                      <div className="flex flex-wrap">{CALLOUT_EMOJIS.map((e) => <EmojiButton key={e} e={e} onPick={choose} />)}</div>
+                    </section>
                     {groups.map((g) => (
                       <section key={g.key} data-group={g.key}>
                         <h4 className="px-1 pb-1 pt-3 text-xs font-medium text-[var(--fg-muted)]">{g.label}</h4>
@@ -175,6 +179,9 @@ export function IconPicker({ value, onChange }: { value: string | null; onChange
               </div>
               {!query.trim() && (
                 <div className="flex justify-between border-t border-[var(--border)] px-2 py-1">
+                  <button className="rounded p-1 hover:bg-[var(--bg-hover)]" title="Récents" aria-label="Récents" onClick={() => scroller.current?.scrollTo({ top: 0 })}>
+                    <Icon value="🕐" size={16} />
+                  </button>
                   {GROUPS.map((g) => (
                     <button key={g.key} className="rounded p-1 hover:bg-[var(--bg-hover)]" title={g.label} aria-label={g.label}
                       onClick={() => scroller.current?.querySelector(`[data-group="${g.key}"]`)?.scrollIntoView({ block: 'start' })}>

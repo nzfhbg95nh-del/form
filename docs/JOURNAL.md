@@ -224,3 +224,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Page » et « Base de données – Pleine page » créent une page enfant et insèrent un lien (bloc `subpage`) qui l'ouvre, comme Notion.
 - Correctif : le clic de souris sur un élément du menu ne faisait rien (le menu se fermait à l'appui). Le bloc est maintenant inséré dès l'appui. Le menu passait aussi derrière le cadre moodboard : corrigé.
 - Pas repris de Notion (pas d'équivalent dans Form pour l'instant) : bases intégrées dans la page, vues liées, graphiques, formulaire, table des matières, équation, bouton, aperçu de lien web, blocs synchronisés, onglets, aperçu à droite au survol.
+
+## 2026-10-05 — Emojis manquants et catégorie Encadré (v0.23.1)
+- Bug : les noms de fichiers Apple sont écrits sur 4 chiffres minimum (« 00a9 », « 0023-fe0f-20e3 ») ; ©, ®, #, *, 0 à 9 (touches) s'affichaient donc sans image. Corrigé.
+- Sélecteur : section « Encadré » (💡 👉 ⚠️ 🔥 📌 ✅ ...) et raccourci « Récents » dans la barre du bas.
+- Limites connues : 8 emojis Unicode 16 n'ont pas encore de dessin Apple dans le jeu utilisé (🫪 🫯 🫈 🫍 🛘 🪊 🪎 🧑‍🩰) : retirés de la liste. ♀️ ♂️ ⚕️ et quelques teintes de peau mélangées n'ont pas d'image : affichés avec la police de Windows.
+- Pas fait : onglet « Icônes » (jeu d'icônes monochromes de Notion).

@@ -53,6 +53,8 @@ describe('images des emojis (style Apple)', () => {
     expect(imageName('❤️')).toBe('2764-fe0f')
     expect(imageNameWithoutVs16('❤️')).toBe('2764')
     expect(imageName('🇫🇷')).toBe('1f1eb-1f1f7')
+    expect(imageName('©️')).toBe('00a9-fe0f')
+    expect(imageName('#️⃣')).toBe('0023-fe0f-20e3')
   })
 
   it('a une image pour (presque) tous les emojis, avec ou sans le sélecteur FE0F', () => {
