@@ -8,13 +8,17 @@ import {
   useCreateBlockNote,
 } from '@blocknote/react'
 import {
-  getMultiColumnSlashMenuItems,
   locales as multiColumnLocales,
   multiColumnDropCursor,
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
+import {
+  CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, Lightbulb, List,
+  ListChecks, ListCollapse, ListOrdered, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
+} from 'lucide-react'
 import { Icon } from '@/components/Icon'
+import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
 import { useApp } from '@/store/app'
@@ -110,7 +114,7 @@ function MoodboardFrame({ boardId, tall, onToggleTall }: { boardId: string; tall
     return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Ce moodboard a été supprimé.</div>
   }
   return (
-    <div contentEditable={false} className="w-full overflow-hidden rounded-md border border-[var(--border)]">
+    <div contentEditable={false} className="w-full overflow-hidden rounded-md border border-[var(--border)]" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
       <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
         <Icon value={board.icon ?? '🖼️'} size={14} />
         <span className="flex-1 truncate font-medium">{board.title || 'Moodboard'}</span>
@@ -144,16 +148,100 @@ const createMoodboardBlock = createReactBlockSpec(
   },
 )
 
-const schema = withMultiColumn(
-  BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock() } }),
+// Bloc « Page » : un lien vers une page enfant (page, base de données ou moodboard), comme dans Notion.
+function SubpageLink({ pageId }: { pageId: string }) {
+  const page = useApp((s) => s.objects.find((o) => o.id === pageId))
+  const select = useApp((s) => s.select)
+  if (!page || page.deleted_at) return <div contentEditable={false} className="text-sm text-[var(--fg-muted)]">Page supprimée</div>
+  return (
+    <button
+      type="button"
+      contentEditable={false}
+      onClick={() => select(page.id)}
+      className="flex w-full items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-[var(--bg-hover)]"
+    >
+      <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={18} />
+      <span className="font-medium underline decoration-[var(--border)] underline-offset-2">{page.title || 'Sans titre'}</span>
+    </button>
+  )
+}
+
+const createSubpageBlock = createReactBlockSpec(
+  { type: 'subpage', propSchema: { pageId: { default: '' } }, content: 'none' },
+  { render: (props) => <SubpageLink pageId={props.block.props.pageId} /> },
 )
 
+const schema = withMultiColumn(
+  BlockNoteSchema.create({ blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock() } }),
+)
+
+type Ed = BlockNoteEditor<never, never, never>
+type Cur = { id: string; content?: unknown }
+
+/** Le bloc où l'on vient de taper « / » (à relever tout de suite, avant tout travail asynchrone). */
+const cursorBlock = (editor: Ed) => editor.getTextCursorPosition().block as unknown as Cur
+
 /** Remplace la ligne vide où l'on vient de taper « / » par le bloc choisi, sinon l'insère juste après. */
-function putBlock(editor: BlockNoteEditor<never, never, never>, block: Record<string, unknown>) {
-  const current = editor.getTextCursorPosition().block as { content?: unknown }
-  const empty = Array.isArray(current.content) && current.content.length === 0
-  if (empty) editor.updateBlock(current as never, block as never)
-  else editor.insertBlocks([block as never], current as never, 'after')
+function putBlock(editor: Ed, block: Record<string, unknown>, at: Cur = cursorBlock(editor)) {
+  const empty = Array.isArray(at.content) && at.content.length === 0
+  if (empty) editor.updateBlock(at as never, block as never)
+  else editor.insertBlocks([block as never], at as never, 'after')
+  // Un bloc sans texte (moodboard, page...) ne doit pas rester le dernier : on garde une ligne libre dessous.
+  const last = editor.document[editor.document.length - 1] as { type: string }
+  if (last.type !== 'paragraph') editor.insertBlocks([{ type: 'paragraph' } as never], last as never, 'after')
+}
+
+const columns = (n: number) => ({
+  type: 'columnList',
+  children: Array.from({ length: n }, () => ({ type: 'column', props: { width: 1 }, children: [{ type: 'paragraph' }] })),
+})
+
+function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
+  const defaults = getDefaultReactSlashMenuItems(editor as never) as unknown as { key: string; badge?: string; onItemClick: () => void }[]
+  const std = (key: string) => defaults.find((d) => d.key === key)
+  const ico = (I: LucideIcon) => <I size={18} strokeWidth={1.75} />
+  const put = (block: Record<string, unknown>) => () => putBlock(editor, block)
+  const viaDefault = (key: string) => () => std(key)?.onItemClick()
+  const embed = (kind: 'page' | 'database' | 'moodboard', blockType: 'moodboard' | 'subpage') => () => {
+    const at = cursorBlock(editor)
+    void useApp.getState().createEmbeddedChild(pageId, kind).then((id) => {
+      if (id) putBlock(editor, { type: blockType, props: blockType === 'moodboard' ? { boardId: id } : { pageId: id } }, at)
+    })
+  }
+  const B = 'Blocs de base'
+  const M = 'Médias'
+  const mod = (k: string) => std(k)?.badge
+  return [
+    { key: 'paragraph', title: 'Texte', aliases: ['texte', 'paragraphe', 'text'], group: B, icon: ico(Type), badge: mod('paragraph'), onItemClick: viaDefault('paragraph') },
+    { key: 'h1', title: 'Titre 1', aliases: ['titre', 'h1', 'heading'], group: B, icon: ico(Heading1), badge: '#', onItemClick: put({ type: 'heading', props: { level: 1 } }) },
+    { key: 'h2', title: 'Titre 2', aliases: ['titre', 'h2'], group: B, icon: ico(Heading2), badge: '##', onItemClick: put({ type: 'heading', props: { level: 2 } }) },
+    { key: 'h3', title: 'Titre 3', aliases: ['titre', 'h3'], group: B, icon: ico(Heading3), badge: '###', onItemClick: put({ type: 'heading', props: { level: 3 } }) },
+    { key: 'h4', title: 'Titre 4', aliases: ['titre', 'h4'], group: B, icon: ico(Heading4), badge: '####', onItemClick: put({ type: 'heading', props: { level: 4 } }) },
+    { key: 'bullet', title: 'Liste à puces', aliases: ['liste', 'puces', 'bullet'], group: B, icon: ico(List), badge: '-', onItemClick: viaDefault('bullet_list') },
+    { key: 'numbered', title: 'Liste numérotée', aliases: ['liste', 'numérotée', 'numerotee', 'numbered'], group: B, icon: ico(ListOrdered), badge: '1.', onItemClick: viaDefault('numbered_list') },
+    { key: 'check', title: 'Liste de tâches', aliases: ['tâches', 'taches', 'cases', 'cocher', 'todo'], group: B, icon: ico(ListChecks), badge: '[]', onItemClick: viaDefault('check_list') },
+    { key: 'todo', title: 'Tâche avec statut', aliases: ['tâche', 'tache', 'todo', 'en cours', 'statut', 'progression'], group: B, icon: ico(CircleDot), onItemClick: put({ type: 'todo' }) },
+    { key: 'toggle', title: 'Menu déroulant', aliases: ['déroulant', 'deroulant', 'toggle', 'repliable', 'dépliant'], group: B, icon: ico(ListCollapse), badge: '>', onItemClick: viaDefault('toggle_list') },
+    { key: 'subpage', title: 'Page', aliases: ['page', 'sous-page', 'nouvelle page'], group: B, icon: ico(FileText), onItemClick: embed('page', 'subpage') },
+    { key: 'callout', title: 'Encadré', aliases: ['encadré', 'encadre', 'callout', 'note', 'info'], group: B, icon: ico(Lightbulb), onItemClick: put({ type: 'callout' }) },
+    { key: 'quote', title: 'Citation', aliases: ['citation', 'quote', 'extrait'], group: B, icon: ico(QuoteIcon), badge: '"', onItemClick: viaDefault('quote') },
+    { key: 'table', title: 'Tableau', aliases: ['tableau', 'table'], group: B, icon: ico(TableIcon), onItemClick: viaDefault('table') },
+    { key: 'divider', title: 'Séparateur', aliases: ['séparateur', 'separateur', 'diviseur', 'ligne', 'divider'], group: B, icon: ico(Minus), badge: '---', onItemClick: viaDefault('divider') },
+    { key: 'code', title: 'Code', aliases: ['code', 'bloc de code'], group: B, icon: ico(Code), badge: '```', onItemClick: viaDefault('code_block') },
+    { key: 'th1', title: 'Titre déroulant 1', aliases: ['titre', 'déroulant', 'toggle', 'repliable'], group: B, icon: ico(Heading1), badge: '# >', onItemClick: put({ type: 'heading', props: { level: 1, isToggleable: true } }) },
+    { key: 'th2', title: 'Titre déroulant 2', aliases: ['titre', 'déroulant', 'toggle', 'repliable'], group: B, icon: ico(Heading2), badge: '## >', onItemClick: put({ type: 'heading', props: { level: 2, isToggleable: true } }) },
+    { key: 'th3', title: 'Titre déroulant 3', aliases: ['titre', 'déroulant', 'toggle', 'repliable'], group: B, icon: ico(Heading3), badge: '### >', onItemClick: put({ type: 'heading', props: { level: 3, isToggleable: true } }) },
+    { key: 'c2', title: '2 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns2), onItemClick: put(columns(2)) },
+    { key: 'c3', title: '3 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns3), onItemClick: put(columns(3)) },
+    { key: 'c4', title: '4 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns4), onItemClick: put(columns(4)) },
+    { key: 'c5', title: '5 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns4), onItemClick: put(columns(5)) },
+    { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
+    { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
+    { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
+    { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
+    { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },
+    { key: 'db', title: 'Base de données – Pleine page', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau'], group: 'Base de données', icon: ico(Database), onItemClick: embed('database', 'subpage') },
+  ]
 }
 
 export function PageEditor({ pageId, initial, onChange, editorRef }: { pageId?: string; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
@@ -178,40 +266,8 @@ export function PageEditor({ pageId, initial, onChange, editorRef }: { pageId?: 
     >
       <SuggestionMenuController
         triggerCharacter="/"
-        getItems={async (query) =>
-          filterSuggestionItems(
-            [
-              ...getDefaultReactSlashMenuItems(editor),
-              ...getMultiColumnSlashMenuItems(editor),
-              {
-                title: 'Callout',
-                aliases: ['callout', 'encadré', 'note', 'info'],
-                group: 'Autres',
-                subtext: 'Une phrase mise en avant',
-                onItemClick: () => putBlock(editor as never, { type: 'callout' }),
-              },
-              {
-                title: 'Moodboard',
-                aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'tableau', 'images'],
-                group: 'Médias',
-                subtext: 'Un moodboard dans un cadre (ouvrable en pleine page)',
-                onItemClick: () => {
-                  void useApp.getState().createEmbeddedMoodboard(pageId ?? null).then((id) => {
-                    if (id) putBlock(editor as never, { type: 'moodboard', props: { boardId: id } })
-                  })
-                },
-              },
-              {
-                title: 'Tâche avec statut',
-                aliases: ['tâche', 'tache', 'todo', 'en cours', 'statut', 'progression'],
-                group: 'Blocs de base',
-                subtext: 'À faire, en cours ou fait (clique sur la case)',
-                onItemClick: () => putBlock(editor as never, { type: 'todo' }),
-              },
-            ],
-            query,
-          )
-        }
+        suggestionMenuComponent={SlashMenu as never}
+        getItems={async (query) => filterSuggestionItems(buildSlashItems(editor as never, pageId ?? null) as never, query) as never}
       />
     </BlockNoteView>
   )
