@@ -118,3 +118,43 @@ pub async fn gemini_models() -> Result<Vec<String>, String> {
     names.sort();
     Ok(names)
 }
+
+/// Fait dessiner une icône par Gemini (modèle d'image) et renvoie une « data URL » (image PNG/JPEG).
+/// Ce service n'est pas toujours inclus dans le palier gratuit : l'erreur est expliquée à l'utilisateur.
+#[tauri::command]
+pub async fn gemini_image(model: String, prompt: String) -> Result<String, String> {
+    check_model(&model)?;
+    let key = api_key()?;
+    let url = format!("{}/models/{}:generateContent", BASE, model);
+    let body = json!({
+        "contents": [{ "role": "user", "parts": [{ "text": prompt }] }],
+        "generationConfig": { "responseModalities": ["TEXT", "IMAGE"] }
+    });
+    let response = reqwest::Client::new()
+        .post(url)
+        .header("x-goog-api-key", key)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Connexion à Gemini impossible : {e}"))?;
+    let status = response.status().as_u16();
+    let text = response.text().await.map_err(|e| e.to_string())?;
+    if !(200..300).contains(&status) {
+        return Err(explain(status, &text));
+    }
+    let value: Value = serde_json::from_str(&text).map_err(|e| format!("Réponse illisible : {e}"))?;
+    let parts = value["candidates"][0]["content"]["parts"].as_array().cloned().unwrap_or_default();
+    for part in parts {
+        let inline = if part["inlineData"].is_object() { &part["inlineData"] } else { &part["inline_data"] };
+        if let Some(data) = inline["data"].as_str() {
+            let mime = inline["mimeType"]
+                .as_str()
+                .or_else(|| inline["mime_type"].as_str())
+                .unwrap_or("image/png");
+            if mime.starts_with("image/") {
+                return Ok(format!("data:{mime};base64,{data}"));
+            }
+        }
+    }
+    Err("Gemini n'a pas renvoyé d'image (la demande a peut-être été refusée ou ce modèle ne dessine pas).".to_string())
+}

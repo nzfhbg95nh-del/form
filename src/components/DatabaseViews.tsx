@@ -8,6 +8,7 @@ import { coverStyle } from '@/components/PagePickers'
 import { Chip, PropertyEditor } from '@/components/PropertyEditor'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
+import { Icon } from '@/components/Icon'
 
 export interface ViewProps {
   db: ObjectRow
@@ -48,7 +49,7 @@ function ChoiceChips({ row, schema, skip }: { row: ObjectRow; schema: Schema; sk
 function RowTitle({ row }: { row: ObjectRow }) {
   return (
     <span className="truncate">
-      {row.icon && <span className="mr-1">{row.icon}</span>}
+      {row.icon && <Icon value={row.icon} size={16} className="mr-1 align-text-bottom" />}
       {row.title || 'Sans titre'}
     </span>
   )
@@ -162,7 +163,7 @@ export function GalleryView({ db, schema, rows, change }: ViewProps) {
               className="flex h-28 items-center justify-center bg-[var(--bg-side)] text-4xl"
               style={row.cover ? coverStyle(row.cover) : undefined}
             >
-              {!row.cover && row.icon}
+              {!row.cover && <Icon value={row.icon} size={40} />}
             </div>
             <div className="p-2">
               <div className="truncate text-sm font-medium">{row.title || 'Sans titre'}</div>

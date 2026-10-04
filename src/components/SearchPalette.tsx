@@ -6,6 +6,7 @@ import { extractText, groupByRecency, searchObjects, type SearchHit } from '@/li
 import { parsePageLink } from '@/lib/windowActions'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
+import { Icon } from '@/components/Icon'
 
 type Entry =
   | { type: 'new'; id: 'new-page'; title: string }
@@ -16,7 +17,7 @@ type Entry =
 const kbd = 'rounded border border-[var(--border)] px-1 text-[11px]'
 
 function PageGlyph({ o }: { o: ObjectRow }) {
-  if (o.icon) return <span>{o.icon}</span>
+  if (o.icon) return <Icon value={o.icon} size={18} />
   if (o.type === 'database') return <Database size={16} />
   if (o.type === 'moodboard') return <Images size={16} />
   if (o.type === 'row') return <Rows3 size={16} />

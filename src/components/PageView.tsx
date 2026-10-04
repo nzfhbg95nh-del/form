@@ -7,6 +7,7 @@ import { allColumns, cellValue, parseSchema } from '@/lib/database'
 import { PageEditor } from '@/components/PageEditor'
 import { CoverPicker, coverStyle, IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
+import { Icon } from '@/components/Icon'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
@@ -145,7 +146,7 @@ export function PageView({ pageId }: { pageId?: string }) {
               const p = objects.find((o) => o.id === id)!
               return (
                 <span key={id}>
-                  <button className="hover:underline" onClick={() => select(id)}>{p.icon} {p.title || 'Sans titre'}</button> ›
+                  <button className="hover:underline" onClick={() => select(id)}><Icon value={p.icon} size={14} className="mr-1 align-text-bottom" />{p.title || 'Sans titre'}</button> ›
                 </span>
               )
             })}
@@ -173,7 +174,7 @@ export function PageView({ pageId }: { pageId?: string }) {
             </button>
           </div>
         </div>
-        {page.icon && <div className="mb-1 text-6xl leading-tight">{page.icon}</div>}
+        {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
         <input
           value={title}
           placeholder="Sans titre"

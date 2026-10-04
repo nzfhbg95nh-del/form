@@ -8,6 +8,7 @@ import { CalendarView, GalleryView, KanbanView, ListView, TableView } from '@/co
 import { IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
+import { Icon } from '@/components/Icon'
 
 const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
 const input = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
@@ -363,7 +364,7 @@ export function DatabaseView({ db }: { db: ObjectRow }) {
   return (
     <div className="h-full overflow-y-auto px-12 py-8">
       <div className="mb-1 flex items-center gap-2">
-        {db.icon && <span className="text-4xl">{db.icon}</span>}
+        {db.icon && <Icon value={db.icon} size={40} />}
         <IconPicker value={db.icon} onChange={(icon) => void update(db.id, { icon })} />
       </div>
       <input

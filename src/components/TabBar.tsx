@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, PanelLeft, Plus, X } from 'lucide-react'
 import { useApp } from '@/store/app'
+import { Icon } from '@/components/Icon'
 
 export function TabBar() {
   const { tabs, objects, view, activate, closeTabAt, setSearch, goBack, goForward, navBack, navForward, toggleSidebar } = useApp()
@@ -19,7 +20,7 @@ export function TabBar() {
             className={'group flex max-w-[200px] items-center gap-1 rounded-t-md px-2 py-1 text-sm ' + (active ? 'bg-[var(--bg)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
           >
             <button onClick={() => activate(i)} className="flex min-w-0 items-center gap-1.5">
-              <span>{o?.icon ?? (o?.type === 'database' ? '▦' : '📄')}</span>
+              <Icon value={o?.icon ?? (o?.type === 'database' ? '📊' : '📄')} size={15} />
               <span className="truncate">{o?.title || 'Sans titre'}</span>
             </button>
             <button

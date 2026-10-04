@@ -3,6 +3,7 @@ import { Home } from 'lucide-react'
 import { isDescendant } from '@/lib/tree'
 import { normalize } from '@/lib/search'
 import { useApp } from '@/store/app'
+import { Icon } from '@/components/Icon'
 
 /** Fenêtre « Déplacer vers… » : choisir la nouvelle page parente. */
 export function MovePicker({ id }: { id: string }) {
@@ -36,7 +37,7 @@ export function MovePicker({ id }: { id: string }) {
           </button>
           {targets.map((o) => (
             <button key={o.id} onClick={() => void moveTo(id, o.id)} className="flex w-full items-center gap-2 rounded px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]">
-              <span className="w-4 text-center">{o.icon ?? '📄'}</span>
+              <Icon value={o.icon ?? '📄'} size={16} />
               <span className="truncate">{o.title || 'Sans titre'}</span>
             </button>
           ))}
