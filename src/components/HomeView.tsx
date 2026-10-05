@@ -114,7 +114,8 @@ function CalendarWidget() {
     const d = new Date(cursor.year, cursor.month + delta, 1)
     setCursor({ year: d.getFullYear(), month: d.getMonth() })
   }
-  const open = (e: CalendarEvent) => (e.open.to === 'object' ? select(e.open.id) : show(e.open.to))
+  // Une ligne de base s'ouvre dans un nouvel onglet : l'onglet où l'on se trouve reste tel quel.
+  const open = (e: CalendarEvent) => (e.open.to === 'object' ? select(e.open.id, { newTab: true }) : show(e.open.to))
   const addTask = () => {
     const title = draft.trim()
     if (!title) return
@@ -162,7 +163,7 @@ function CalendarWidget() {
         )}
         {mode === 'agenda' && <div className="text-sm font-semibold">À venir</div>}
         <div className="flex-1" />
-        {agendaDb && <button className="mr-2 text-xs text-[var(--accent)] hover:underline" onClick={() => select(agendaDb.id)}>Ouvrir l’agenda ↗</button>}
+        {agendaDb && <button className="mr-2 text-xs text-[var(--accent)] hover:underline" onClick={() => select(agendaDb.id, { newTab: true })} title="S’ouvre dans un nouvel onglet">Ouvrir l’agenda ↗</button>}
         <div className="flex rounded border border-[var(--border)] p-0.5" role="group" aria-label="Affichage du calendrier">
           {MODES.map((m) => (
             <button key={m.id} aria-pressed={mode === m.id} onClick={() => pickMode(m.id)} className={cn('rounded px-2 py-0.5 text-xs', mode === m.id ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}>{m.label}</button>
