@@ -9,7 +9,7 @@ import { useApp } from '@/store/app'
 const field = 'rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
-/** Le courrier de la domiciliation : une vue à part (comme Clients ou Prestations), pas une page. */
+/** Le courrier repéré dans la boîte mail : une vue à part (comme Clients ou Prestations), pas une page. */
 export function MailView() {
   const { objects, repo, syncMail, setCell, select, show } = useApp()
   const [filter, setFilter] = useState<'todo' | 'all'>('todo')
@@ -51,7 +51,7 @@ export function MailView() {
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-1 text-3xl font-bold">Courrier</h1>
-      <p className="mb-4 text-sm text-[var(--fg-muted)]">Les courriers scannés de ta domiciliation, repérés dans ta boîte mail (lecture seule).</p>
+      <p className="mb-4 text-sm text-[var(--fg-muted)]">Les e-mails importants repérés dans ta boîte mail (lecture seule).</p>
 
       {!configured && (
         <div className="mb-4 rounded border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">

@@ -13,7 +13,7 @@ export interface MailConfig {
   folder: string
   /** Nombre de messages récents examinés à chaque relève. */
   scanLast: number
-  /** Un expéditeur dont l'adresse ou le nom contient un de ces mots est reconnu (ex. « sedomicilier »). */
+  /** Un expéditeur dont l'adresse ou le nom contient un de ces mots est reconnu (ex. « urssaf »). */
   senders: string[]
   /** Un objet qui contient un de ces mots est reconnu. */
   subjects: string[]
@@ -28,7 +28,7 @@ export const PRESETS: Record<MailConfig['provider'], { label: string; host: stri
 }
 
 export function defaultMailConfig(): MailConfig {
-  return { provider: 'gmail', host: 'imap.gmail.com', port: 993, user: '', folder: 'INBOX', scanLast: 200, senders: ['sedomicilier'], subjects: [], auto: false }
+  return { provider: 'gmail', host: 'imap.gmail.com', port: 993, user: '', folder: 'INBOX', scanLast: 200, senders: [], subjects: [], auto: false }
 }
 
 const KEY = 'mail_config'

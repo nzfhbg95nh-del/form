@@ -1,8 +1,7 @@
 import { parseSchema, parseValues } from './database'
-import { TASK } from './tasks'
 import type { Invoice, ObjectRow, Quote } from './types'
 
-export type CalendarKind = 'event' | 'task' | 'row' | 'invoice' | 'quote'
+export type CalendarKind = 'event' | 'row' | 'invoice' | 'quote'
 
 /** Une ligne du calendrier d'accueil. `open` dit où aller quand on clique dessus. */
 export interface CalendarEvent {
@@ -15,7 +14,7 @@ export interface CalendarEvent {
   open: { to: 'object'; id: string } | { to: 'invoices' } | { to: 'quotes' }
 }
 
-export const KIND_LABELS: Record<CalendarKind, string> = { event: 'Événement', task: 'Tâche', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis' }
+export const KIND_LABELS: Record<CalendarKind, string> = { event: 'Événement', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis' }
 
 /** Heure valide « HH:MM » (« 9:5 » devient « 09:05 »), sinon undefined. */
 export function cleanTime(v: unknown): string | undefined {
@@ -31,7 +30,7 @@ export function cleanTime(v: unknown): string | undefined {
 const dayOf = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v.slice(0, 10) : null)
 
 /**
- * Tout ce qui a une date : lignes de bases (toute propriété « Date »), tâches non terminées,
+ * Tout ce qui a une date : lignes de bases (toute propriété « Date », hors tâches),
  * échéances des factures émises et fin de validité des devis envoyés.
  */
 export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id' | 'number' | 'status' | 'due_date'>[], quotes: Pick<Quote, 'id' | 'number' | 'status' | 'valid_until'>[]): CalendarEvent[] {
@@ -44,13 +43,13 @@ export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id'
     const schema = parseSchema(db.properties)
     if (schema.kind === 'mail') continue
     const values = parseValues(row.properties)
-    const isTasks = schema.kind === 'tasks'
+    // Les tâches ont leur propre place (« Tâches du jour ») : elles ne sont pas dans le calendrier.
+    if (schema.kind === 'tasks') continue
     const isAgenda = schema.kind === 'agenda'
-    if (isTasks && values[TASK.status] === TASK.done) continue
     for (const col of schema.columns) {
       if (col.type !== 'date') continue
       const date = dayOf(values[col.id])
-      if (date) events.push({ id: `${row.id}:${col.id}`, date, title: row.title || 'Nouvelle page', ...(isAgenda && cleanTime(values.time) ? { time: cleanTime(values.time) } : {}), kind: isTasks ? 'task' : isAgenda ? 'event' : 'row', open: { to: 'object', id: row.id } })
+      if (date) events.push({ id: `${row.id}:${col.id}`, date, title: row.title || 'Nouvelle page', ...(isAgenda && cleanTime(values.time) ? { time: cleanTime(values.time) } : {}), kind: isAgenda ? 'event' : 'row', open: { to: 'object', id: row.id } })
     }
   }
   for (const i of invoices) {

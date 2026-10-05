@@ -74,7 +74,7 @@ function QuickNote({ id }: { id: string }) {
 }
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-const KIND_DOT: Record<CalendarKind, string> = { event: '#10b981', task: '#e0a100', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6' }
+const KIND_DOT: Record<CalendarKind, string> = { event: '#10b981', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6' }
 const MODE_KEY = 'form-home-calendar-mode'
 type CalMode = 'month' | 'week' | 'agenda'
 const MODES: { id: CalMode; label: string }[] = [{ id: 'month', label: 'Mois' }, { id: 'week', label: 'Semaine' }, { id: 'agenda', label: 'Agenda' }]

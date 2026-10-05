@@ -86,9 +86,9 @@ export function MailSettings() {
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <h1 className="mb-1 text-3xl font-bold">Courrier (SeDomicilier)</h1>
+      <h1 className="mb-1 text-3xl font-bold">Courrier</h1>
       <p className="mb-5 text-sm text-[var(--fg-muted)]">
-        Form lit ta boîte mail pour repérer les e-mails de ton service de domiciliation (courrier scanné) et les range dans une base « Courrier ».
+        Form lit ta boîte mail pour repérer les e-mails importants (administration, banque, clients, courrier scanné par un service de domiciliation, etc.) et les range dans une base « Courrier ».
         La lecture est <strong>en lecture seule</strong> : Form ne marque rien comme lu, ne déplace ni ne supprime aucun e-mail, et n'en envoie jamais.
       </p>
 
@@ -126,7 +126,7 @@ export function MailSettings() {
       <p className="mb-5 text-xs text-[var(--fg-muted)]">Le mot de passe est rangé dans le <strong>coffre de Windows</strong>, pas dans la base de Form ni dans tes sauvegardes.</p>
 
       <h2 className="mb-2 text-lg font-semibold">Quels e-mails reconnaître ?</h2>
-      <Row label="Expéditeurs" hint="Un e-mail est reconnu si son expéditeur contient un de ces mots (séparés par des virgules). Par défaut : sedomicilier.">
+      <Row label="Expéditeurs" hint="Un e-mail est reconnu si son expéditeur contient un de ces mots (séparés par des virgules). Par exemple : impots, urssaf, banque, le nom de ton service de courrier.">
         <input className={field} value={senders} onChange={(e) => setSenders(e.target.value)} />
       </Row>
       <Row label="Mots de l'objet (facultatif)" hint="Reconnaît aussi les e-mails dont l'objet contient un de ces mots.">
@@ -151,7 +151,7 @@ export function MailSettings() {
       {latest && (
         <div className="mt-6">
           <h2 className="mb-1 text-lg font-semibold">Derniers e-mails vus</h2>
-          <p className="mb-2 text-xs text-[var(--fg-muted)]">Les lignes marquées ✓ seraient classées dans « Courrier ». Si un e-mail de SeDomicilier n'est pas marqué, ajoute un mot de son expéditeur ou de son objet ci-dessus.</p>
+          <p className="mb-2 text-xs text-[var(--fg-muted)]">Les lignes marquées ✓ seraient classées dans « Courrier ». Si un e-mail important n'est pas marqué, ajoute un mot de son expéditeur ou de son objet ci-dessus.</p>
           <table className="w-full text-xs">
             <tbody>
               {latest.map((m) => (
