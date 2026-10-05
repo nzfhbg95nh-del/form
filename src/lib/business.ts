@@ -35,6 +35,11 @@ export function couturePrestations(): Service[] {
   return [{ ...newService(), id: 'default-couture', label: 'Couture', description: 'Travaux de couture : confection, retouches, réparations.', unit_price_cents: 1200, unit: 'heure' }]
 }
 
+/** Nombre de devis et de factures rattachés à un client (on ne supprime pas un client qui a des documents). */
+export function clientDocumentCount(clientId: string, quotes: { client_id: string | null }[], invoices: { client_id: string | null }[]): { quotes: number; invoices: number } {
+  return { quotes: quotes.filter((q) => q.client_id === clientId).length, invoices: invoices.filter((i) => i.client_id === clientId).length }
+}
+
 export function clientDisplayName(c: Client): string {
   return c.company_name.trim() || c.name.trim() || 'Sans nom'
 }

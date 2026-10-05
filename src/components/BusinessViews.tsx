@@ -67,6 +67,8 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
 
 function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boolean; onClose: () => void }) {
   const saveClient = useApp((s) => s.saveClient)
+  const deleteClient = useApp((s) => s.deleteClient)
+  const [problem, setProblem] = useState<string | null>(null)
   const [c, setC] = useState<Client>(initial)
   const { errors, warnings } = validateClient(c)
   const set = <K extends keyof Client>(key: K, value: Client[K]) => setC({ ...c, [key]: value })
@@ -108,6 +110,7 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
         <textarea className={field + ' h-20'} value={c.notes} onChange={(e) => set('notes', e.target.value)} />
       </Row>
 
+      {problem && <div className="mb-2 rounded border border-red-500/50 p-2 text-sm text-red-500">{problem}</div>}
       {errors.map((e) => <div key={e} className="mb-2 text-sm text-red-500">{e}</div>)}
       {warnings.map((w) => <div key={w} className="mb-2 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>)}
 
@@ -117,11 +120,13 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
         <div className="flex-1" />
         {!isNew && (
           <button
-            className={secondary}
-            onClick={() => void done({ archived_at: c.archived_at ? null : new Date().toISOString() })}
-            title="Un client archivé disparaît des listes mais reste sur ses documents."
+            className={secondary + ' text-red-500'}
+            onClick={() => {
+              if (!window.confirm(`Supprimer le client « ${clientDisplayName(initial)} » ?`)) return
+              void deleteClient(c.id).then((problem) => (problem ? setProblem(problem) : onClose()))
+            }}
           >
-            {c.archived_at ? 'Désarchiver' : 'Archiver'}
+            Supprimer
           </button>
         )}
       </div>
@@ -132,17 +137,15 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
 export function ClientsView() {
   const { clients, editing, setEditing } = useApp()
   const [query, setQuery] = useState('')
-  const [showArchived, setShowArchived] = useState(false)
   const q = normalize(query).trim()
   const shown = clients
-    .filter((c) => showArchived || !c.archived_at)
     .filter((c) => q === '' || normalize([c.name, c.company_name, c.email, c.city, c.siren, c.siret, c.contact].join(' ')).includes(q))
     .sort((a, b) => clientDisplayName(a).localeCompare(clientDisplayName(b), 'fr'))
   const edited = editing?.kind === 'client' ? (editing.id ? clients.find((c) => c.id === editing.id) : newClient()) : undefined
 
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
-      <Toolbar title="Clients" query={query} setQuery={setQuery} showArchived={showArchived} setShowArchived={setShowArchived} newLabel="Nouveau client" onNew={() => setEditing({ kind: 'client', id: null })} />
+      <Toolbar title="Clients" query={query} setQuery={setQuery} newLabel="Nouveau client" onNew={() => setEditing({ kind: 'client', id: null })} />
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--fg-muted)]">
@@ -155,8 +158,8 @@ export function ClientsView() {
         </thead>
         <tbody>
           {shown.map((c) => (
-            <tr key={c.id} onClick={() => setEditing({ kind: 'client', id: c.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', c.archived_at && 'opacity-50')}>
-              <td className="py-2 pr-3 font-medium">{clientDisplayName(c)}{c.archived_at && ' (archivé)'}</td>
+            <tr key={c.id} onClick={() => setEditing({ kind: 'client', id: c.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
+              <td className="py-2 pr-3 font-medium">{clientDisplayName(c)}</td>
               <td className="pr-3">{c.kind === 'pro' ? 'Pro' : 'Particulier'}</td>
               <td className="pr-3">{clientAddressLines(c).slice(1).join(', ')}</td>
               <td className="pr-3">{c.email}</td>

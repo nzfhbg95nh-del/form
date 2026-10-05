@@ -330,3 +330,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-05 — Agenda dans un nouvel onglet (v0.34.2)
 - « Ouvrir l'agenda ↗ » et le clic sur un événement du calendrier ouvrent maintenant un NOUVEL onglet : l'onglet où l'on se trouve n'est plus remplacé.
+
+## 2026-10-05 — Supprimer un client, titres non coupés (v0.35.0)
+- Clients : plus d'archivage (ni case « Afficher les archivés ») ; bouton « Supprimer » (avec confirmation) dans la fiche. Un client qui a des devis ou des factures ne peut pas être supprimé : un message explique combien et de quoi (les brouillons se suppriment d'abord ; les documents envoyés ou émis doivent rester lisibles). Les clients autrefois archivés réapparaissent partout.
+- Titres de page et de base de données : la hauteur de ligne était trop courte pour la police (haut des lettres coupé de 4 px) ; corrigé (aussi pour le petit titre d'une base intégrée).
+- Tests : 207.

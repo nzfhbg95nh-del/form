@@ -372,7 +372,7 @@ export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded
             placeholder="Base de données sans titre"
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => title !== db.title && void update(db.id, { title })}
-            className="min-w-0 flex-1 bg-transparent text-lg font-semibold outline-none placeholder:text-[var(--fg-muted)]"
+            className="min-w-0 flex-1 bg-transparent py-0.5 text-lg font-semibold leading-snug outline-none placeholder:text-[var(--fg-muted)]"
           />
           <button type="button" className="shrink-0 rounded px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => useApp.getState().select(db.id)}>
             Ouvrir en pleine page ↗
@@ -389,7 +389,7 @@ export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded
             placeholder="Base de données sans titre"
             onChange={(e) => setTitle(e.target.value)}
             onBlur={() => title !== db.title && void update(db.id, { title })}
-            className="mb-3 w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
+            className="mb-3 w-full bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
           />
         </>
       )}
