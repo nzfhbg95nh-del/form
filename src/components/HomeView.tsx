@@ -10,7 +10,7 @@ import {
 } from '@/lib/home'
 import { lastEditText, displayTitle } from '@/lib/lastEdit'
 import { isoDate, monthGrid, parseSchema } from '@/lib/database'
-import { collectEvents, groupByDate, KIND_LABELS, shiftIso, upcomingByDate, weekDays, type CalendarEvent, type CalendarKind } from '@/lib/homeCalendar'
+import { cleanTime, collectEvents, groupByDate, KIND_LABELS, shiftIso, upcomingByDate, weekDays, type CalendarEvent, type CalendarKind } from '@/lib/homeCalendar'
 import { receivables } from '@/lib/payments'
 import { formatDateFr } from '@/lib/quotes'
 import { findDueTasks } from '@/lib/reminders'
@@ -83,7 +83,7 @@ const shortDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString
 
 /** Calendrier : vue Mois, Semaine ou Agenda (liste compacte des prochaines dates prévues). Un clic sur un jour permet d'y ajouter une tâche. */
 function CalendarWidget() {
-  const { objects, invoices, quotes, select, show, addTasksFromAi, addCalendarEvent } = useApp()
+  const { objects, invoices, quotes, select, show, addCalendarEvent } = useApp()
   const todayIso = isoDate(new Date())
   const [mode, setMode] = useState<CalMode>(() => {
     try {
@@ -96,10 +96,10 @@ function CalendarWidget() {
   const [day, setDay] = useState<string>(todayIso)
   const [cursor, setCursor] = useState({ year: Number(todayIso.slice(0, 4)), month: Number(todayIso.slice(5, 7)) - 1 })
   const [draft, setDraft] = useState('')
-  const [addKind, setAddKind] = useState<'event' | 'task'>('event')
+  const [time, setTime] = useState('')
   const events = useMemo(() => collectEvents(objects, invoices, quotes), [objects, invoices, quotes])
   const byDate = useMemo(() => groupByDate(events), [events])
-  const tasksDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'tasks')
+  const agendaDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'agenda')
 
   const pickMode = (m: CalMode) => {
     setMode(m)
@@ -119,8 +119,7 @@ function CalendarWidget() {
     const title = draft.trim()
     if (!title) return
     const target = mode === 'agenda' ? todayIso : day
-    const done = addKind === 'event' ? addCalendarEvent(title, target) : addTasksFromAi([{ title, due: target, priority: null }], tasksDb?.id ?? null, false)
-    void done.then(() => setDraft(''))
+    void addCalendarEvent(title, target, cleanTime(time)).then(() => { setDraft(''); setTime('') })
   }
 
   const nav = 'rounded p-1 hover:bg-[var(--bg-hover)]'
@@ -129,26 +128,23 @@ function CalendarWidget() {
     ? `${shortDay(week[0])} – ${shortDay(week[6])}`
     : `${MONTHS[cursor.month]} ${cursor.year}`
   const eventButton = (e: CalendarEvent, compact = false) => (
-    <button key={e.id} onClick={() => open(e)} title={`${KIND_LABELS[e.kind]} : ${e.title}`} className={cn('flex w-full items-center gap-1.5 rounded text-left hover:bg-[var(--bg-hover)]', compact ? 'px-1 py-0.5 text-xs' : 'px-2 py-1.5 text-sm')}>
+    <button key={e.id} onClick={() => open(e)} title={`${KIND_LABELS[e.kind]} : ${e.time ? `${e.time} ` : ''}${e.title}`} className={cn('flex w-full items-center gap-1.5 rounded text-left hover:bg-[var(--bg-hover)]', compact ? 'px-1 py-0.5 text-xs' : 'px-2 py-1.5 text-sm')}>
       <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: KIND_DOT[e.kind] }} />
+      {e.time && <span className="shrink-0 tabular-nums text-[var(--fg-muted)]">{e.time}</span>}
       <span className="flex-1 truncate">{e.title}</span>
       {!compact && <span className="text-xs text-[var(--fg-muted)]">{KIND_LABELS[e.kind]}</span>}
     </button>
   )
   const adder = (
     <div className="mt-2 flex flex-wrap gap-2">
-      <div className="flex rounded border border-[var(--border)] p-0.5" role="group" aria-label="Type d’élément à ajouter">
-        {([['event', 'Événement'], ['task', 'Tâche']] as const).map(([id, label]) => (
-          <button key={id} aria-pressed={addKind === id} onClick={() => setAddKind(id)} className={cn('rounded px-2 py-0.5 text-xs', addKind === id ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}>{label}</button>
-        ))}
-      </div>
       <input
         value={draft}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
-        placeholder={`${addKind === 'event' ? 'Nouvel événement' : 'Nouvelle tâche'} ${mode === 'agenda' ? 'aujourd’hui' : `le ${shortDay(day)}`}…`}
+        placeholder={`Nouvel événement ${mode === 'agenda' ? 'aujourd’hui' : `le ${shortDay(day)}`}…`}
         className="min-w-0 flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
       />
+      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Heure (facultative)" title="Heure (facultative)" className="w-28 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]" />
       <button onClick={addTask} disabled={!draft.trim()} className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white disabled:opacity-40">Ajouter</button>
     </div>
   )
@@ -166,6 +162,7 @@ function CalendarWidget() {
         )}
         {mode === 'agenda' && <div className="text-sm font-semibold">À venir</div>}
         <div className="flex-1" />
+        {agendaDb && <button className="mr-2 text-xs text-[var(--accent)] hover:underline" onClick={() => select(agendaDb.id)}>Ouvrir l’agenda ↗</button>}
         <div className="flex rounded border border-[var(--border)] p-0.5" role="group" aria-label="Affichage du calendrier">
           {MODES.map((m) => (
             <button key={m.id} aria-pressed={mode === m.id} onClick={() => pickMode(m.id)} className={cn('rounded px-2 py-0.5 text-xs', mode === m.id ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}>{m.label}</button>

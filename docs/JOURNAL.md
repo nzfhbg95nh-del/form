@@ -315,3 +315,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Sous le calendrier, on choisit « Événement » (par défaut) ou « Tâche » avant d'ajouter. Un événement n'est plus une tâche : pas de statut, pas de rappel.
 - Les événements vont dans une base « Agenda » 📅 (créée au premier ajout : Nom, Date, Notes ; vues Calendrier et Tableau), visible dans les pages et modifiable comme n'importe quelle base. Point vert dans le calendrier, étiquette « Événement ».
 - Schéma `kind: 'agenda'`. Tests : 203.
+
+## 2026-10-05 — Heure des événements, agenda hors des pages, plus de tâches dans le calendrier (v0.34.0)
+- Événements : champ « Heure » facultatif à l'ajout ; l'heure s'affiche devant le titre, les événements sans heure passent avant ceux avec heure. Colonne « Heure » ajoutée à l'Agenda (y compris celui déjà créé en v0.33.1).
+- La base « Agenda » est une base système, comme le courrier : plus dans l'onglet Pages, les récentes ni les favoris. On y accède par « Ouvrir l'agenda ↗ » dans le calendrier, ou en cliquant un événement.
+- Le calendrier ne propose plus que des événements (choix « Tâche » retiré à la demande de Victor). Les tâches qui existent déjà dans une base Tâches (avec une échéance) restent affichées en orange.
+- Tests : 205.
