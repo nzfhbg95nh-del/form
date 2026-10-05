@@ -150,7 +150,7 @@ interface AppState {
   /** `open: false` : on reste où l'on est (l'accueil) au lieu d'ouvrir la base de tâches. */
   addTasksFromAi(tasks: AiTask[], dbId: string | null, open?: boolean): Promise<void>
   /** Ajoute un événement daté à la base « Agenda » (créée au besoin), sans quitter la page. */
-  addCalendarEvent(title: string, date: string): Promise<void>
+  addCalendarEvent(title: string, date: string, time?: string): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
   createRow(databaseId: string, values?: Record<string, unknown>): Promise<void>
   setCell(rowId: string, colId: string, value: unknown): Promise<void>
@@ -710,7 +710,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (open) get().select(target)
   },
 
-  async addCalendarEvent(title, date) {
+  async addCalendarEvent(title, date, time) {
     const repo = get().repo
     if (!repo) return
     let db = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'agenda')
@@ -722,7 +722,14 @@ export const useApp = create<AppState>((set, get) => ({
       const added = db
       set((s) => ({ objects: [...s.objects, added] }))
     }
-    const row = await repo.createPage(db.id, 'row', JSON.stringify({ date }))
+    // Agenda créé avant l'ajout de l'heure : on ajoute la colonne « Heure » quand il en faut une.
+    const schema = parseSchema(db.properties)
+    if (time && !schema.columns.some((c) => c.id === 'time')) {
+      const columns = [...schema.columns]
+      columns.splice(Math.max(1, columns.findIndex((c) => c.id === 'date') + 1), 0, { id: 'time', name: 'Heure', type: 'text' })
+      await get().saveSchema(db.id, { ...schema, columns })
+    }
+    const row = await repo.createPage(db.id, 'row', JSON.stringify(time ? { date, time } : { date }))
     await repo.updateObject(row.id, { title })
     set((s) => ({ objects: [...s.objects, { ...row, title }] }))
   },

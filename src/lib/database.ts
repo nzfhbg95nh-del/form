@@ -99,7 +99,7 @@ export function newId(): string {
 export function agendaSchema(): Schema {
   return {
     kind: 'agenda',
-    columns: [{ id: 'date', name: 'Date', type: 'date' }, { id: 'notes', name: 'Notes', type: 'text' }],
+    columns: [{ id: 'date', name: 'Date', type: 'date' }, { id: 'time', name: 'Heure', type: 'text' }, { id: 'notes', name: 'Notes', type: 'text' }],
     views: [
       { id: newId(), name: 'Calendrier', type: 'calendar', filters: [], sorts: [], dateCol: 'date' },
       { id: newId(), name: 'Tableau', type: 'table', filters: [], sorts: [{ colId: 'date', dir: 'asc' }] },
@@ -133,9 +133,11 @@ export function parseValues(properties: string): Record<string, unknown> {
   }
 }
 
-/** Bases « système » (le courrier) : elles ont leur propre entrée dans « Mon entreprise » et n'apparaissent pas dans les pages. */
+/** Bases « système » : le courrier (propre entrée dans « Mon entreprise ») et l'agenda du calendrier d'accueil. Elles n'apparaissent pas dans les pages. */
 export function isSystemDatabase(o: { type: string; properties: string }): boolean {
-  return o.type === 'database' && parseSchema(o.properties).kind === 'mail'
+  if (o.type !== 'database') return false
+  const kind = parseSchema(o.properties).kind
+  return kind === 'mail' || kind === 'agenda'
 }
 
 export function allColumns(schema: Schema): Column[] {
