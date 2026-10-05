@@ -8,7 +8,12 @@ const mail = (uid: number, over: Partial<MailItem> = {}): MailItem => ({
 
 describe('réglages du courrier', () => {
   it('accepte une configuration correcte', () => {
-    expect(configProblems({ ...defaultMailConfig(), user: 'noe@gmail.com' })).toEqual([])
+    expect(configProblems({ ...defaultMailConfig(), user: 'noe@gmail.com', senders: ['urssaf'] })).toEqual([])
+  })
+
+  it('ne suppose aucun service de courrier par défaut : il faut choisir qui reconnaître', () => {
+    expect(defaultMailConfig().senders).toEqual([])
+    expect(configProblems({ ...defaultMailConfig(), user: 'noe@gmail.com' })).toHaveLength(1)
   })
 
   it('signale ce qui manque, et refuse une connexion non chiffrée', () => {

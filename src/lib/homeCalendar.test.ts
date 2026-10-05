@@ -35,10 +35,9 @@ describe('calendrier de l’accueil', () => {
     { id: 'q2', number: 'D-2026-002', status: 'accepted' as const, valid_until: '2026-11-04' },
   ]
 
-  it('réunit lignes de bases, tâches, factures à encaisser et devis envoyés', () => {
+  it('réunit lignes de bases, événements, factures à encaisser et devis envoyés (mais pas les tâches)', () => {
     const events = collectEvents(objects, invoices, quotes)
     expect(events.map((e) => [e.date, e.kind, e.title])).toEqual([
-      ['2026-10-07', 'task', 'Appeler Marie'],
       ['2026-10-12', 'row', 'Rendez-vous'],
       ['2026-10-20', 'event', 'Anniversaire'],
       ['2026-10-20', 'event', 'Réunion'],

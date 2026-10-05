@@ -48,7 +48,7 @@ export interface Company {
 
 /**
  * Valeurs de départ reprises des modèles de Victor. L'adresse (Tournai) est provisoire :
- * elle sera remplacée par l'adresse de domiciliation. Le SIRET est vide : pas encore reçu.
+ * elle sera remplacée par l'adresse définitive de l'entreprise. Le SIRET est vide : pas encore reçu.
  */
 export function defaultCompany(): Company {
   return {
@@ -174,6 +174,6 @@ export function companyWarnings(company: Company): string[] {
   if (siret.length === 14 && !siretChecksumOk(siret)) warnings.push("Ce SIRET semble invalide (clé de contrôle incorrecte) : vérifie-le.")
   if (!company.iban.trim()) warnings.push("L'IBAN est vide : il n'apparaîtra pas sur les devis et factures.")
   if (company.country.trim().toLowerCase() !== 'france')
-    warnings.push("L'adresse n'est pas en France : l'adresse légale d'une micro-entreprise française est celle de sa domiciliation. À faire valider.")
+    warnings.push("L'adresse n'est pas en France : l'adresse d'une micro-entreprise française est une adresse en France (domicile ou domiciliation). À faire valider avec un comptable ou le guichet des formalités.")
   return warnings
 }

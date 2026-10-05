@@ -107,7 +107,7 @@ export function CompanySettings() {
       </div>
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Adresse</h2>
-      <p className="mb-2 text-xs text-[var(--fg-muted)]">Provisoire : à remplacer par l'adresse de domiciliation quand elle sera confirmée.</p>
+      <p className="mb-2 text-xs text-[var(--fg-muted)]">Provisoire : à remplacer par l'adresse de ton entreprise quand elle sera confirmée.</p>
       <Row label="Rue et numéro">{text('street')}</Row>
       <div className="grid grid-cols-3 gap-x-4">
         <Row label="Code postal">{text('postalCode')}</Row>
