@@ -327,3 +327,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Courrier : plus lié à SeDomicilier. Titre « Courrier », texte d'aide général (administration, banque, clients, service de domiciliation éventuel). Plus d'expéditeur par défaut : il faut choisir qui reconnaître (exemples : urssaf, impots, banque). Les réglages déjà enregistrés ne changent pas.
 - Entreprise : l'adresse provisoire n'est plus décrite comme une domiciliation ; l'avertissement « adresse hors de France » parle de domicile ou domiciliation et renvoie à un comptable ou au guichet des formalités. Victor envisage de créer directement une entreprise individuelle française : à valider avec un professionnel (adresse, régime, mentions).
 - Tests : 206.
+
+## 2026-10-05 — Agenda dans un nouvel onglet (v0.34.2)
+- « Ouvrir l'agenda ↗ » et le clic sur un événement du calendrier ouvrent maintenant un NOUVEL onglet : l'onglet où l'on se trouve n'est plus remplacé.
