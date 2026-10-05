@@ -187,7 +187,7 @@ export function PageView({ pageId }: { pageId?: string }) {
             setTitle(e.target.value)
             saveLater({ title: e.target.value })
           }}
-          className="w-full bg-transparent text-4xl font-bold outline-none placeholder:text-[var(--fg-muted)]"
+          className="w-full bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
         />
         </div>
         {page.type === 'row' && (() => {

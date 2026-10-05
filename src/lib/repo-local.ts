@@ -122,6 +122,7 @@ export function createLocalRepo(): Repo {
     },
     async listClients() { return clients.list() },
     async saveClient(c: Client) { clients.upsert(c) },
+    async deleteClient(id: string) { localStorage.setItem('form-dev-clients', JSON.stringify(clients.list().filter((x) => x.id !== id))) },
     async listServices() { return services.list() },
     async saveService(s: Service) { services.upsert(s) },
     async deleteService(id: string) { localStorage.setItem('form-dev-services', JSON.stringify(services.list().filter((x) => x.id !== id))) },

@@ -7,7 +7,7 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
-import { couturePrestations, defaultServices, withDerivedSiren } from '@/lib/business'
+import { clientDocumentCount, couturePrestations, defaultServices, withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
 import { todayISO } from '@/lib/backup'
 import { blockersToSend, buildSnapshot, newLine, newQuote, numberPrefix } from '@/lib/quotes'
@@ -85,6 +85,8 @@ interface AppState {
   editing: Editing | null
   setEditing(e: Editing | null): void
   saveClient(client: Client): Promise<void>
+  /** Supprime un client sans devis ni facture. Renvoie un message d'explication si c'est impossible. */
+  deleteClient(id: string): Promise<string | null>
   saveService(service: Service): Promise<void>
   deleteService(id: string): Promise<void>
   /** Page affichée = celle de l'onglet actif. */
@@ -565,6 +567,19 @@ export const useApp = create<AppState>((set, get) => ({
     const lines = quoteLines.filter((l) => l.quote_id === id).map((l, i) => ({ ...newLine(fresh.id, i), service_id: l.service_id, label: l.label, description: l.description, quantity_milli: l.quantity_milli, unit: l.unit, unit_price_cents: l.unit_price_cents }))
     await get().saveQuoteDraft(fresh, lines)
     set({ openQuoteId: fresh.id, view: 'quotes' })
+  },
+
+  async deleteClient(id) {
+    const repo = get().repo
+    if (!repo) return 'Base de données indisponible.'
+    const { quotes, invoices } = clientDocumentCount(id, get().quotes, get().invoices)
+    if (quotes + invoices > 0) {
+      const parts = [quotes ? `${quotes} devis` : '', invoices ? `${invoices} facture${invoices > 1 ? 's' : ''}` : ''].filter(Boolean).join(' et ')
+      return `Ce client ne peut pas être supprimé : ${parts} ${quotes + invoices > 1 ? 'sont rattachés' : 'est rattaché'} à lui. Supprime d'abord les brouillons ; les documents envoyés ou émis doivent rester lisibles.`
+    }
+    await repo.deleteClient(id)
+    set((s) => ({ clients: s.clients.filter((c) => c.id !== id) }))
+    return null
   },
 
   async saveClient(client) {

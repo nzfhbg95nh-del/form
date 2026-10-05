@@ -266,7 +266,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
           <Row label="Client">
             <select className={field} disabled={locked} value={quote.client_id ?? ''} onChange={(e) => patchQuote({ client_id: e.target.value || null })}>
               <option value="">— Choisir un client —</option>
-              {clients.filter((c) => !c.archived_at || c.id === quote.client_id).map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
+              {clients.map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
             </select>
           </Row>
           <Row label="Objet du devis"><input className={field} disabled={locked} value={quote.title} onChange={(e) => patchQuote({ title: e.target.value })} /></Row>

@@ -283,7 +283,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
           <Row label="Client">
             <select className={field} disabled={locked || credit} value={invoice.client_id ?? ''} onChange={(e) => patch({ client_id: e.target.value || null })}>
               <option value="">— Choisir un client —</option>
-              {clients.filter((c) => !c.archived_at || c.id === invoice.client_id).map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
+              {clients.map((c) => <option key={c.id} value={c.id}>{clientDisplayName(c)}</option>)}
             </select>
           </Row>
           <Row label="Objet"><input className={field} disabled={locked} value={invoice.title} onChange={(e) => patch({ title: e.target.value })} /></Row>

@@ -214,6 +214,7 @@ export interface Repo {
   deleteDraftQuote(id: string): Promise<void>
   listClients(): Promise<Client[]>
   saveClient(client: Client): Promise<void>
+  deleteClient(id: string): Promise<void>
   listServices(): Promise<Service[]>
   saveService(service: Service): Promise<void>
   /** Supprime un tarif du catalogue (les devis et factures gardent leur copie des lignes). */

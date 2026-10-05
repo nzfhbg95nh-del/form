@@ -120,3 +120,13 @@ describe('prestations de départ', () => {
     expect(couturePrestations().map((s) => [s.id, s.label, s.unit_price_cents, s.unit])).toEqual([['default-couture', 'Couture', 1200, 'heure']])
   })
 })
+
+describe('suppression d’un client', () => {
+  it('compte les devis et factures rattachés', async () => {
+    const { clientDocumentCount } = await import('./business')
+    const quotes = [{ client_id: 'a' }, { client_id: 'b' }, { client_id: 'a' }]
+    const invoices = [{ client_id: 'a' }, { client_id: null }]
+    expect(clientDocumentCount('a', quotes, invoices)).toEqual({ quotes: 2, invoices: 1 })
+    expect(clientDocumentCount('zzz', quotes, invoices)).toEqual({ quotes: 0, invoices: 0 })
+  })
+})
