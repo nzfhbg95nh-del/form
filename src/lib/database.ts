@@ -88,6 +88,8 @@ export interface Schema {
   views: ViewConfig[]
   /** Base de tâches (kind = tasks) : surveillée par les rappels. */
   kind?: 'tasks' | 'mail' | 'agenda' | 'recipes'
+  /** Recettes : réglages de l'entrée « Sans catégorie » (nom, emoji) et ordre d'affichage (identifiants des catégories et de « Sans catégorie »). */
+  recipeList?: { noneLabel?: string; noneEmoji?: string; order?: string[] }
 }
 
 /** La colonne « Nom » existe toujours : c'est le titre de chaque ligne. */

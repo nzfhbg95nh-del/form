@@ -6,14 +6,13 @@ import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, groupByCategory, moveCategory, normalizeRecipesSchema, recipeCategories, RECIPE, removeCategory, renameCategory, setCategoryEmoji,
-  type RecipeCategory,
+  addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, removeCategory, renameEntry,
+  setEntryEmoji, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 
-const NONE = '__none'
 const button = 'rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
@@ -118,17 +117,18 @@ function CategoryChooser({ categories, onPick, onCreate, onClose }: { categories
 
 /**
  * La page « Recettes » : d'abord la liste des catégories (avec leur emoji), puis, dans une catégorie, la galerie de ses recettes
- * (photo + titre). Un clic sur une carte ouvre la recette.
+ * (photo + titre). Un clic sur une carte ouvre la recette. « Sans catégorie » se règle comme les autres lignes.
  */
 export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
-  const { objects, saveSchema, addRecipe, setAssistant, setCell } = useApp()
+  const { objects, saveSchema, addRecipe, setAssistant, setCell, trash } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [emojiFor, setEmojiFor] = useState<string | null>(null)
+  const [choosing, setChoosing] = useState(false)
 
-  // Anciennes propriétés (durées, note, étiquettes, source) : retirées à l'ouverture.
+  // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
     const clean = normalizeRecipesSchema(schema)
     if (clean !== schema) void saveSchema(db.id, clean)
@@ -137,63 +137,64 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
   const { byCategory, none } = useMemo(() => groupByCategory(rows, categories, (r) => parseValues(r.properties)[RECIPE.type]), [rows, categories])
-  const category: RecipeCategory | undefined = categories.find((c) => c.id === current)
+  const countOf = (e: RecipeEntry) => (e.isNone ? none.length : (byCategory.get(e.id)?.length ?? 0))
+  const listOf = (e: RecipeEntry) => (e.isNone ? none : (byCategory.get(e.id) ?? []))
+  // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
+  const entries = useMemo(() => recipeEntries(schema).filter((e) => !e.isNone || none.length > 0), [schema, none.length])
+  const entry = entries.find((e) => e.id === current)
   const sorted = (list: ObjectRow[]) => [...list].sort((a, b) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr'))
 
   const save = (next: Schema) => void saveSchema(db.id, next)
-  const confirmRemove = (c: RecipeCategory) => {
-    if (!window.confirm(`Supprimer la catégorie « ${c.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`)) return
-    save(removeCategory(schema, c.id))
+  const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
+
+  /** Supprimer une ligne : une catégorie disparaît (ses recettes passent dans « Sans catégorie »), « Sans catégorie » met ses recettes à la corbeille. */
+  const confirmRemove = (e: RecipeEntry) => {
+    if (e.isNone) {
+      const n = none.length
+      if (!window.confirm(`Mettre à la corbeille les ${n} recette${n > 1 ? 's' : ''} de « ${e.label} » ? Tu pourras les récupérer depuis la corbeille.`)) return
+      void Promise.all(none.map((r) => trash(r.id)))
+    } else {
+      if (!window.confirm(`Supprimer la catégorie « ${e.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`)) return
+      save(removeCategory(schema, e.id))
+    }
     setCurrent(null)
   }
-  const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
-  const [choosing, setChoosing] = useState(false)
 
-  // ── Dans une catégorie ou dans « Sans catégorie » : la galerie ──
-  if (current !== null && (category || current === NONE)) {
-    const list = sorted(category ? (byCategory.get(category.id) ?? []) : none)
+  // ── Dans une catégorie (ou dans « Sans catégorie ») : la galerie ──
+  if (current !== null && entry) {
+    const list = sorted(listOf(entry))
     return (
       <div className="mx-auto max-w-5xl px-12 py-10">
         <button className={button + ' mb-4 flex items-center gap-1'} onClick={() => setCurrent(null)}><ArrowLeft size={14} /> Recettes</button>
         <div className="mb-6 flex items-center gap-3">
-          {category ? (
-            <>
-              <IconPicker
-                value={category.emoji}
-                onChange={(v) => v && save(setCategoryEmoji(schema, category.id, v))}
-                trigger={<Icon value={category.emoji} size={40} />}
-              />
-              <input
-                key={category.id}
-                defaultValue={category.label}
-                aria-label="Nom de la catégorie"
-                onBlur={(e) => {
-                  const name = e.target.value.trim()
-                  if (name && name !== category.label) save(renameCategory(schema, category.id, name))
-                  else e.target.value = category.label
-                }}
-                className="min-w-0 flex-1 bg-transparent py-1 text-3xl font-bold leading-[1.3] outline-none"
-              />
-              <button
-                className={button}
-                title="Supprimer la catégorie (ses recettes ne sont pas supprimées)"
-                onClick={() => {
-                  if (!window.confirm(`Supprimer la catégorie « ${category.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`)) return
-                  save(removeCategory(schema, category.id))
-                  setCurrent(null)
-                }}
-              >
-                <Trash2 size={16} />
-              </button>
-            </>
-          ) : (
-            <h1 className="py-1 text-3xl font-bold leading-[1.3]">Sans catégorie</h1>
-          )}
+          <IconPicker
+            value={entry.emoji}
+            onChange={(v) => v && save(setEntryEmoji(schema, entry.id, v))}
+            trigger={<Icon value={entry.emoji} size={40} />}
+          />
+          <input
+            key={entry.id + entry.label}
+            defaultValue={entry.label}
+            aria-label="Nom de la catégorie"
+            onBlur={(e) => {
+              const name = e.target.value.trim()
+              if (name && name !== entry.label) save(renameEntry(schema, entry.id, name))
+              else e.target.value = entry.label
+            }}
+            className="min-w-0 flex-1 bg-transparent py-1 text-3xl font-bold leading-[1.3] outline-none"
+          />
+          <button
+            className={button}
+            title={entry.isNone ? 'Mettre ces recettes à la corbeille' : 'Supprimer la catégorie (ses recettes ne sont pas supprimées)'}
+            onClick={() => confirmRemove(entry)}
+          >
+            <Trash2 size={16} />
+          </button>
         </div>
         <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
-            onClick={() => create(category?.id)}
+            onClick={() => create(entry.isNone ? undefined : entry.id)}
             className="flex h-[168px] flex-col items-center justify-center gap-1 rounded-md border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
           >
             <Plus size={18} /> Nouvelle recette
@@ -215,78 +216,65 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       </div>
 
       <nav aria-label="Catégories de recettes">
-        {categories.map((c) => (
-          <div
-            key={c.id}
-            className="group relative"
-            onContextMenu={(e) => { e.preventDefault(); setMenu({ id: c.id, x: e.clientX, y: e.clientY }) }}
-          >
-            {renaming === c.id ? (
-              <div className={row}>
-                <Icon value={c.emoji} size={20} />
-                <input
-                  autoFocus
-                  defaultValue={c.label}
-                  aria-label="Nom de la catégorie"
-                  onFocus={(e) => e.currentTarget.select()}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') e.currentTarget.blur()
-                    if (e.key === 'Escape') { e.currentTarget.value = c.label; e.currentTarget.blur() }
-                  }}
-                  onBlur={(e) => {
-                    const name = e.target.value.trim()
-                    if (name && name !== c.label) save(renameCategory(schema, c.id, name))
-                    setRenaming(null)
-                  }}
-                  className="min-w-0 flex-1 bg-transparent text-base font-medium outline-none"
-                />
-              </div>
-            ) : (
-              <button className={row} onClick={() => setCurrent(c.id)}>
-                {emojiFor === c.id ? (
-                  <span onClick={(e) => e.stopPropagation()}>
-                    <IconPicker
-                      startOpen
-                      value={c.emoji}
-                      onChange={(v) => v && save(setCategoryEmoji(schema, c.id, v))}
-                      onClosed={() => setEmojiFor(null)}
-                      trigger={<Icon value={c.emoji} size={20} />}
-                    />
-                  </span>
-                ) : (
-                  <Icon value={c.emoji} size={20} />
-                )}
-                <span className="flex-1 text-base font-medium underline decoration-[var(--border)] underline-offset-4">{c.label}</span>
-                <span className="text-xs text-[var(--fg-muted)] group-hover:opacity-0">{byCategory.get(c.id)?.length ?? 0}</span>
+        {entries.map((e) => {
+          const menuOpen = menu?.id === e.id
+          return (
+            <div
+              key={e.id}
+              className="group relative"
+              onContextMenu={(ev) => { ev.preventDefault(); setMenu({ id: e.id, x: ev.clientX, y: ev.clientY }) }}
+            >
+              {renaming === e.id ? (
+                <div className={row}>
+                  <Icon value={e.emoji} size={20} />
+                  <input
+                    autoFocus
+                    defaultValue={e.label}
+                    aria-label="Nom de la catégorie"
+                    onFocus={(ev) => ev.currentTarget.select()}
+                    onKeyDown={(ev) => {
+                      if (ev.key === 'Enter') ev.currentTarget.blur()
+                      if (ev.key === 'Escape') { ev.currentTarget.value = e.label; ev.currentTarget.blur() }
+                    }}
+                    onBlur={(ev) => {
+                      const name = ev.target.value.trim()
+                      if (name && name !== e.label) save(renameEntry(schema, e.id, name))
+                      setRenaming(null)
+                    }}
+                    className="min-w-0 flex-1 bg-transparent text-base font-medium outline-none"
+                  />
+                </div>
+              ) : (
+                <button className={row} onClick={() => setCurrent(e.id)}>
+                  {emojiFor === e.id ? (
+                    <span onClick={(ev) => ev.stopPropagation()}>
+                      <IconPicker
+                        startOpen
+                        value={e.emoji}
+                        onChange={(v) => v && save(setEntryEmoji(schema, e.id, v))}
+                        onClosed={() => setEmojiFor(null)}
+                        trigger={<Icon value={e.emoji} size={20} />}
+                      />
+                    </span>
+                  ) : (
+                    <Icon value={e.emoji} size={20} />
+                  )}
+                  <span className={'flex-1 text-base font-medium ' + (e.isNone ? 'text-[var(--fg-muted)]' : 'underline decoration-[var(--border)] underline-offset-4')}>{e.label}</span>
+                  {/* Le nombre laisse la place aux trois points (au survol, et tant que le menu de cette ligne est ouvert). */}
+                  <span className={'text-xs text-[var(--fg-muted)] group-hover:opacity-0 ' + (menuOpen ? 'opacity-0' : '')}>{countOf(e)}</span>
+                </button>
+              )}
+              <button
+                aria-label={`Options de ${e.label}`}
+                title="Options (ou clic droit)"
+                onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ id: e.id, x: r.left, y: r.bottom + 4 }) }}
+                className={'absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100 ' + (menuOpen ? 'opacity-100' : 'opacity-0')}
+              >
+                <MoreHorizontal size={16} />
               </button>
-            )}
-            <button
-              aria-label={`Options de ${c.label}`}
-              title="Options de la catégorie (ou clic droit)"
-              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ id: c.id, x: r.left, y: r.bottom + 4 }) }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] opacity-0 hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        ))}
-        {none.length > 0 && (
-          <div className="group relative" onContextMenu={(e) => { e.preventDefault(); setMenu({ id: NONE, x: e.clientX, y: e.clientY }) }}>
-            <button className={row} onClick={() => setCurrent(NONE)}>
-              <Icon value="📄" size={20} />
-              <span className="flex-1 text-base font-medium text-[var(--fg-muted)]">Sans catégorie</span>
-              <span className="text-xs text-[var(--fg-muted)] group-hover:opacity-0">{none.length}</span>
-            </button>
-            <button
-              aria-label="Options de Sans catégorie"
-              title="Options (ou clic droit)"
-              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ id: NONE, x: r.left, y: r.bottom + 4 }) }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] opacity-0 hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100"
-            >
-              <MoreHorizontal size={16} />
-            </button>
-          </div>
-        )}
+            </div>
+          )
+        })}
       </nav>
 
       <form
@@ -326,43 +314,35 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         />
       )}
 
-      {menu && menu.id === NONE && (() => {
-        const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
+      {menu && (() => {
+        const e = entries.find((x) => x.id === menu.id)
+        if (!e) return null
+        const index = entries.findIndex((x) => x.id === e.id)
+        const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent'
+        const run = (fn: () => void) => () => { setMenu(null); fn() }
         const moveAll = (categoryId: string) => {
           setMenu(null)
           void Promise.all(none.map((r) => setCell(r.id, RECIPE.type, categoryId)))
         }
         return (
           <>
-            <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
-            <div role="menu" className="fixed z-50 max-h-[60vh] w-64 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 272), top: Math.min(menu.y, window.innerHeight - 320) }}>
-              <button role="menuitem" className={item} onClick={() => { setMenu(null); setCurrent(NONE) }}>Ouvrir</button>
+            <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(ev) => { ev.preventDefault(); setMenu(null) }} />
+            <div role="menu" className="fixed z-50 max-h-[70vh] w-60 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 248), top: Math.min(menu.y, window.innerHeight - (e.isNone ? 460 : 220)) }}>
+              <button role="menuitem" className={item} onClick={run(() => setRenaming(e.id))}><PenLine size={14} /> Renommer</button>
+              <button role="menuitem" className={item} onClick={run(() => setEmojiFor(e.id))}><Smile size={14} /> Changer l’emoji</button>
+              <button role="menuitem" className={item} disabled={index === 0} onClick={run(() => save(moveEntry(schema, e.id, -1)))}><ArrowUp size={14} /> Monter</button>
+              <button role="menuitem" className={item} disabled={index === entries.length - 1} onClick={run(() => save(moveEntry(schema, e.id, 1)))}><ArrowDown size={14} /> Descendre</button>
               <div className="my-1 border-t border-[var(--border)]" />
-              <div className="px-2 py-1 text-xs font-medium text-[var(--fg-muted)]">Ranger les {none.length} recette{none.length > 1 ? 's' : ''} dans…</div>
-              {categories.map((c) => (
-                <button key={c.id} role="menuitem" className={item} onClick={() => moveAll(c.id)}><Icon value={c.emoji} size={16} /> {c.label}</button>
-              ))}
-            </div>
-          </>
-        )
-      })()}
-
-      {menu && menu.id !== NONE && (() => {
-        const c = categories.find((x) => x.id === menu.id)
-        if (!c) return null
-        const index = categories.findIndex((x) => x.id === c.id)
-        const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent'
-        const run = (fn: () => void) => () => { setMenu(null); fn() }
-        return (
-          <>
-            <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
-            <div role="menu" className="fixed z-50 w-56 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 232), top: Math.min(menu.y, window.innerHeight - 220) }}>
-              <button role="menuitem" className={item} onClick={run(() => setRenaming(c.id))}><PenLine size={14} /> Renommer</button>
-              <button role="menuitem" className={item} onClick={run(() => setEmojiFor(c.id))}><Smile size={14} /> Changer l’emoji</button>
-              <button role="menuitem" className={item} disabled={index === 0} onClick={run(() => save(moveCategory(schema, c.id, -1)))}><ArrowUp size={14} /> Monter</button>
-              <button role="menuitem" className={item} disabled={index === categories.length - 1} onClick={run(() => save(moveCategory(schema, c.id, 1)))}><ArrowDown size={14} /> Descendre</button>
-              <div className="my-1 border-t border-[var(--border)]" />
-              <button role="menuitem" className={item + ' text-red-500'} onClick={run(() => confirmRemove(c))}><Trash2 size={14} /> Supprimer</button>
+              <button role="menuitem" className={item + ' text-red-500'} onClick={run(() => confirmRemove(e))}><Trash2 size={14} /> Supprimer</button>
+              {e.isNone && (
+                <>
+                  <div className="my-1 border-t border-[var(--border)]" />
+                  <div className="px-2 py-1 text-xs font-medium text-[var(--fg-muted)]">Ranger les {none.length} recette{none.length > 1 ? 's' : ''} dans…</div>
+                  {categories.map((c) => (
+                    <button key={c.id} role="menuitem" className={item} onClick={() => moveAll(c.id)}><Icon value={c.emoji} size={16} /> {c.label}</button>
+                  ))}
+                </>
+              )}
             </div>
           </>
         )
