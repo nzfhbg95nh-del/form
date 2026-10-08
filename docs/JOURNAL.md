@@ -397,3 +397,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Depuis une vidéo YouTube : Assistant IA > Texte → recette, champ « lien YouTube ». Gemini regarde et écoute la vidéo (nouvelle commande `gemini_generate_video`, lien YouTube uniquement) et Form ajoute la description publiée sous la vidéo ; la recette est relue et corrigée avant d'être rangée dans « Recettes ». INSTAGRAM / TIKTOK / FACEBOOK / X : impossible (ces sites interdisent la lecture par programme) ; message d'explication et conseil : copier la légende et la coller dans la zone de texte.
 - Code Windows nouveau (Rust, non compilé en local, non essayé sur Windows) : `gemini_generate_video`. Non vérifié en vrai : analyse d'une vraie vidéo, génération de photo (peut ne pas être incluse dans le palier gratuit).
 - Tests : 232.
+
+## 2026-10-09 — Correctif de la fabrication (v0.40.1)
+- La fabrication de la v0.40.0 a échoué à cause d'un seul test (`payments.test.ts`, « remplit le message de relance ») qui a dépassé 5 s sur la machine de GitHub, plus lente que la nôtre ; il passe sur notre poste. Délais de test portés à 30 s. Aucun changement pour l'utilisateur : la v0.40.1 contient exactement les recettes de la v0.40.0. Le tag v0.40.0 n'a donc pas d'installateur.
