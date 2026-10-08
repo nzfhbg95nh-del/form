@@ -3,7 +3,7 @@ import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import {
   addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
-  moveCategory, normalizeRecipesSchema, removeCategory, renameCategory, setCategoryEmoji,
+  moveCategory, moveEntry, NONE_ID, normalizeRecipesSchema, recipeEntries, removeCategory, renameEntry, setEntryEmoji, renameCategory, setCategoryEmoji,
 } from './recipes'
 
 const recipe: Recipe = {
@@ -124,5 +124,41 @@ describe('anciennes propriétés des recettes', () => {
     const fixed = normalizeRecipesSchema(withoutSource)
     expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
     expect(fixed.columns.at(-1)).toMatchObject({ name: 'Source', type: 'url' })
+  })
+})
+
+describe('« Sans catégorie » comme les autres lignes', () => {
+  const ids = (sc: ReturnType<typeof recipesSchema>) => recipeEntries(sc).map((e) => e.id)
+
+  it('est la dernière ligne par défaut, avec un nom et un emoji', () => {
+    const entries = recipeEntries(recipesSchema())
+    expect(entries.at(-1)).toMatchObject({ id: NONE_ID, label: 'Sans catégorie', emoji: '📄', isNone: true })
+    expect(entries).toHaveLength(8)
+  })
+
+  it('se renomme et change d’emoji', () => {
+    let sc = renameEntry(recipesSchema(), NONE_ID, 'À classer')
+    sc = setEntryEmoji(sc, NONE_ID, '📥')
+    expect(recipeEntries(sc).at(-1)).toMatchObject({ label: 'À classer', emoji: '📥' })
+    expect(recipeEntries(renameEntry(sc, NONE_ID, '  ')).at(-1)?.label).toBe('À classer')
+    // une vraie catégorie passe toujours par ses propres fonctions
+    expect(recipeEntries(renameEntry(sc, 'plats', 'Plats du jour')).find((e) => e.id === 'plats')?.label).toBe('Plats du jour')
+  })
+
+  it('monte et descend, au milieu des catégories', () => {
+    const base = recipesSchema()
+    const up = moveEntry(base, NONE_ID, -1)
+    expect(ids(up).slice(-2)).toEqual([NONE_ID, 'biscuits'])
+    expect(ids(moveEntry(up, NONE_ID, -1)).slice(-3)).toEqual([NONE_ID, 'entrees', 'biscuits'])
+    expect(ids(moveEntry(base, NONE_ID, 1))).toEqual(ids(base))
+    expect(ids(moveEntry(base, 'boissons', -1))).toEqual(ids(base))
+    expect(ids(moveEntry(base, 'boissons', 1)).slice(0, 2)).toEqual(['plats', 'boissons'])
+  })
+
+  it('met à la fin une catégorie ajoutée après un réordonnancement', () => {
+    const reordered = moveEntry(recipesSchema(), NONE_ID, -1)
+    const added = addCategory(reordered, 'Apéro')
+    expect(ids(added).at(-1)).toBe(recipeCategories(added).at(-1)!.id)
+    expect(ids(added)).toContain(NONE_ID)
   })
 })

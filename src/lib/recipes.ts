@@ -63,6 +63,11 @@ export function normalizeRecipesSchema(schema: Schema): Schema {
   return { ...schema, columns }
 }
 
+/** Identifiant de l'entrée « Sans catégorie » dans la liste (ce n'est pas un vrai choix de la propriété). */
+export const NONE_ID = '__none'
+const NONE_LABEL = 'Sans catégorie'
+const NONE_EMOJI = '📄'
+
 export interface RecipeCategory {
   id: string
   label: string
@@ -179,4 +184,52 @@ export function recipeSlashBlocks(options: { people?: number; withName?: boolean
     p('Préparation : … min   ·   Cuisson : … min'),
     ...emptyRecipeBlocks(options.people ?? 4),
   ]
+}
+
+export interface RecipeEntry extends RecipeCategory {
+  /** Vrai pour « Sans catégorie ». */
+  isNone: boolean
+}
+
+/**
+ * Les lignes de la liste, dans l'ordre choisi par l'utilisateur : les catégories et « Sans catégorie »
+ * (qui a les mêmes réglages : nom, emoji, place). Les catégories absentes de l'ordre enregistré viennent à la fin.
+ */
+export function recipeEntries(schema: Schema): RecipeEntry[] {
+  const list = schema.recipeList ?? {}
+  const all: RecipeEntry[] = [
+    ...recipeCategories(schema).map((c) => ({ ...c, isNone: false })),
+    { id: NONE_ID, label: list.noneLabel ?? NONE_LABEL, emoji: list.noneEmoji ?? NONE_EMOJI, color: '#e3e2e0', isNone: true },
+  ]
+  const order = list.order ?? []
+  const rank = (id: string) => {
+    const i = order.indexOf(id)
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i
+  }
+  // Tri stable : sans ordre enregistré, les catégories gardent leur ordre puis « Sans catégorie ».
+  return all.map((e, i) => ({ e, i })).sort((a, b) => rank(a.e.id) - rank(b.e.id) || a.i - b.i).map((x) => x.e)
+}
+
+const withList = (schema: Schema, patch: NonNullable<Schema['recipeList']>): Schema => ({ ...schema, recipeList: { ...(schema.recipeList ?? {}), ...patch } })
+
+/** Renomme une ligne de la liste (catégorie ou « Sans catégorie »). */
+export function renameEntry(schema: Schema, id: string, label: string): Schema {
+  const name = label.trim()
+  if (!name) return schema
+  return id === NONE_ID ? withList(schema, { noneLabel: name }) : renameCategory(schema, id, name)
+}
+
+/** Change l'emoji d'une ligne de la liste. */
+export function setEntryEmoji(schema: Schema, id: string, emoji: string): Schema {
+  return id === NONE_ID ? withList(schema, { noneEmoji: emoji || NONE_EMOJI }) : setCategoryEmoji(schema, id, emoji)
+}
+
+/** Monte (-1) ou descend (+1) une ligne de la liste ; sans effet aux extrémités. */
+export function moveEntry(schema: Schema, id: string, direction: -1 | 1): Schema {
+  const ids = recipeEntries(schema).map((e) => e.id)
+  const i = ids.indexOf(id)
+  const j = i + direction
+  if (i < 0 || j < 0 || j >= ids.length) return schema
+  ;[ids[i], ids[j]] = [ids[j], ids[i]]
+  return withList(schema, { order: ids })
 }

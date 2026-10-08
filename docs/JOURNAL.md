@@ -444,3 +444,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les propriétés d'une recette sont : Catégorie, Portions de base et Source (le lien de la recette, juste sous les portions). Durées, note et étiquettes restent retirées.
 - Les bases déjà nettoyées par la v0.42.0 retrouvent la colonne « Source » à l'ouverture, avec les liens déjà saisis (ils étaient restés dans les recettes).
 - Tests : 240.
+
+## 2026-10-09 — « Sans catégorie » comme les autres lignes, chiffre caché sous le menu (v0.42.2)
+- Bug : le nombre de recettes restait affiché derrière les trois points quand le menu d'une ligne était ouvert (la souris quittait la ligne pour aller sur le menu). Le nombre est maintenant caché, et les trois points restent visibles, tant que le menu de cette ligne est ouvert.
+- « Sans catégorie » a exactement les mêmes réglages que les autres lignes : Renommer, Changer l'emoji, Monter, Descendre, Supprimer (clic droit ou « ⋯ »). Son nom, son emoji et sa place sont enregistrés dans la base (`recipeList`). Dans sa galerie : emoji et nom modifiables, corbeille. « Supprimer » y met ses recettes à la CORBEILLE (récupérables), après confirmation ; pour une vraie catégorie, « Supprimer » garde les recettes (elles passent dans « Sans catégorie »). « Ranger les N recettes dans… » reste dans son menu.
+- Une ligne se déplace parmi toutes les autres, « Sans catégorie » comprise (l'ordre est enregistré pour l'ensemble).
+- Tests : 244.
