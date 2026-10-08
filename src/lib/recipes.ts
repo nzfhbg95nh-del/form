@@ -88,6 +88,18 @@ export function setCategoryEmoji(schema: Schema, id: string, emoji: string): Sch
   return patchCategories(schema, (options) => options.map((o) => (o.id === id ? { ...o, emoji: emoji || CATEGORY_FALLBACK_EMOJI } : o)))
 }
 
+/** Monte (-1) ou descend (+1) une catégorie dans la liste ; sans effet aux extrémités. */
+export function moveCategory(schema: Schema, id: string, direction: -1 | 1): Schema {
+  return patchCategories(schema, (options) => {
+    const i = options.findIndex((o) => o.id === id)
+    const j = i + direction
+    if (i < 0 || j < 0 || j >= options.length) return options
+    const next = [...options]
+    ;[next[i], next[j]] = [next[j], next[i]]
+    return next
+  })
+}
+
 /** Supprime une catégorie : ses recettes ne sont pas supprimées, elles passent dans « Sans catégorie ». */
 export function removeCategory(schema: Schema, id: string): Schema {
   return patchCategories(schema, (options) => options.filter((o) => o.id !== id))

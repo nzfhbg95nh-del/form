@@ -424,3 +424,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Notes rapides sous les catégories de recettes (v0.41.2)
 - Sous la liste des catégories de la page « Recettes » : un espace « Notes rapides » qui est un vrai éditeur de page (texte, listes, cases à cocher, titres, commande /). Enregistré tout seul 0,5 s après la dernière frappe, et aussi si on quitte la page avant. Le texte est gardé dans le contenu de la base « Recettes ».
+
+## 2026-10-09 — Paramètres d'une catégorie de recettes (v0.41.3)
+- Clic droit sur une catégorie (ou bouton « ⋯ » au survol) : Renommer (sur place, Entrée pour valider, Échap pour annuler), Changer l'emoji, Monter, Descendre, Supprimer (avec confirmation ; les recettes passent dans « Sans catégorie »). Monter est grisé pour la première, Descendre pour la dernière.
+- Le sélecteur d'emoji se ferme maintenant en cliquant à côté (pour tous ses usages).
+- Tests : 238.

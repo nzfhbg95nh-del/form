@@ -1,6 +1,6 @@
 [package]
 name = "form"
-version = "0.41.2"
+version = "0.41.3"
 description = "Form - le Notion du crÃ©atif freelance"
 edition = "2021"
 

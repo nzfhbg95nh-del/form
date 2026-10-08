@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { PageEditor } from '@/components/PageEditor'
 import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, groupByCategory, recipeCategories, RECIPE, removeCategory, renameCategory, setCategoryEmoji,
+  addCategory, groupByCategory, moveCategory, recipeCategories, RECIPE, removeCategory, renameCategory, setCategoryEmoji,
   type RecipeCategory,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
@@ -82,6 +82,9 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const { objects, saveSchema, addRecipe, setAssistant } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [renaming, setRenaming] = useState<string | null>(null)
+  const [emojiFor, setEmojiFor] = useState<string | null>(null)
 
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
@@ -90,6 +93,11 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const sorted = (list: ObjectRow[]) => [...list].sort((a, b) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr'))
 
   const save = (next: Schema) => void saveSchema(db.id, next)
+  const confirmRemove = (c: RecipeCategory) => {
+    if (!window.confirm(`Supprimer la catégorie « ${c.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`)) return
+    save(removeCategory(schema, c.id))
+    setCurrent(null)
+  }
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
 
   // ── Dans une catégorie ou dans « Sans catégorie » : la galerie ──
@@ -159,11 +167,59 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
 
       <nav aria-label="Catégories de recettes">
         {categories.map((c) => (
-          <button key={c.id} className={row} onClick={() => setCurrent(c.id)}>
-            <Icon value={c.emoji} size={20} />
-            <span className="flex-1 text-base font-medium underline decoration-[var(--border)] underline-offset-4">{c.label}</span>
-            <span className="text-xs text-[var(--fg-muted)]">{byCategory.get(c.id)?.length ?? 0}</span>
-          </button>
+          <div
+            key={c.id}
+            className="group relative"
+            onContextMenu={(e) => { e.preventDefault(); setMenu({ id: c.id, x: e.clientX, y: e.clientY }) }}
+          >
+            {renaming === c.id ? (
+              <div className={row}>
+                <Icon value={c.emoji} size={20} />
+                <input
+                  autoFocus
+                  defaultValue={c.label}
+                  aria-label="Nom de la catégorie"
+                  onFocus={(e) => e.currentTarget.select()}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') e.currentTarget.blur()
+                    if (e.key === 'Escape') { e.currentTarget.value = c.label; e.currentTarget.blur() }
+                  }}
+                  onBlur={(e) => {
+                    const name = e.target.value.trim()
+                    if (name && name !== c.label) save(renameCategory(schema, c.id, name))
+                    setRenaming(null)
+                  }}
+                  className="min-w-0 flex-1 bg-transparent text-base font-medium outline-none"
+                />
+              </div>
+            ) : (
+              <button className={row} onClick={() => setCurrent(c.id)}>
+                {emojiFor === c.id ? (
+                  <span onClick={(e) => e.stopPropagation()}>
+                    <IconPicker
+                      startOpen
+                      value={c.emoji}
+                      onChange={(v) => v && save(setCategoryEmoji(schema, c.id, v))}
+                      onClosed={() => setEmojiFor(null)}
+                      trigger={<Icon value={c.emoji} size={20} />}
+                    />
+                  </span>
+                ) : (
+                  <Icon value={c.emoji} size={20} />
+                )}
+                <span className="flex-1 text-base font-medium underline decoration-[var(--border)] underline-offset-4">{c.label}</span>
+                <span className="text-xs text-[var(--fg-muted)] group-hover:opacity-0">{byCategory.get(c.id)?.length ?? 0}</span>
+              </button>
+            )}
+            <button
+              aria-label={`Options de ${c.label}`}
+              title="Options de la catégorie (ou clic droit)"
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ id: c.id, x: r.left, y: r.bottom + 4 }) }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] opacity-0 hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
         ))}
         {none.length > 0 && (
           <button className={row} onClick={() => setCurrent(NONE)}>
@@ -194,6 +250,27 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       </form>
 
       <QuickNotes db={db} />
+
+      {menu && (() => {
+        const c = categories.find((x) => x.id === menu.id)
+        if (!c) return null
+        const index = categories.findIndex((x) => x.id === c.id)
+        const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40 disabled:hover:bg-transparent'
+        const run = (fn: () => void) => () => { setMenu(null); fn() }
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
+            <div role="menu" className="fixed z-50 w-56 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 232), top: Math.min(menu.y, window.innerHeight - 220) }}>
+              <button role="menuitem" className={item} onClick={run(() => setRenaming(c.id))}><PenLine size={14} /> Renommer</button>
+              <button role="menuitem" className={item} onClick={run(() => setEmojiFor(c.id))}><Smile size={14} /> Changer l’emoji</button>
+              <button role="menuitem" className={item} disabled={index === 0} onClick={run(() => save(moveCategory(schema, c.id, -1)))}><ArrowUp size={14} /> Monter</button>
+              <button role="menuitem" className={item} disabled={index === categories.length - 1} onClick={run(() => save(moveCategory(schema, c.id, 1)))}><ArrowDown size={14} /> Descendre</button>
+              <div className="my-1 border-t border-[var(--border)]" />
+              <button role="menuitem" className={item + ' text-red-500'} onClick={run(() => confirmRemove(c))}><Trash2 size={14} /> Supprimer</button>
+            </div>
+          </>
+        )
+      })()}
     </div>
   )
 }

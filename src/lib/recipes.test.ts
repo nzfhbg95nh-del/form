@@ -3,7 +3,7 @@ import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import {
   addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
-  removeCategory, renameCategory, setCategoryEmoji,
+  moveCategory, removeCategory, renameCategory, setCategoryEmoji,
 } from './recipes'
 
 const recipe: Recipe = {
@@ -91,5 +91,15 @@ describe('catégories de recettes', () => {
     expect(byCategory.get('desserts')?.map((r) => r.n)).toEqual([1, 2])
     expect(byCategory.get('plats')).toEqual([])
     expect(none.map((r) => r.n)).toEqual([3, 4])
+  })
+
+  it('monte et descend une catégorie', () => {
+    const labels = (sc: ReturnType<typeof recipesSchema>) => recipeCategories(sc).map((c) => c.id)
+    const base = recipesSchema()
+    expect(labels(moveCategory(base, 'plats', -1)).slice(0, 2)).toEqual(['plats', 'boissons'])
+    expect(labels(moveCategory(base, 'boissons', 1)).slice(0, 2)).toEqual(['plats', 'boissons'])
+    expect(labels(moveCategory(base, 'boissons', -1))).toEqual(labels(base))
+    expect(labels(moveCategory(base, 'biscuits', 1))).toEqual(labels(base))
+    expect(labels(moveCategory(base, 'inconnue', 1))).toEqual(labels(base))
   })
 })
