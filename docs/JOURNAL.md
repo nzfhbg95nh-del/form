@@ -373,3 +373,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-08 — Punaise à droite, boutons au survol (v0.38.4)
 - La punaise d'une page épinglée est de nouveau tout à droite de la ligne ; au survol elle s'efface et laisse place aux boutons habituels (nouvelle sous-page, ⋯ avec tous les paramètres). Clic droit inchangé.
+
+## 2026-10-08 — Punaise de la couleur des icônes (v0.38.5)
+- La punaise des pages épinglées n'est plus bleue : même gris que les autres icônes de la barre latérale (contour, sans remplissage). Dans la barre du haut d'une page, la punaise active est pleine, de la couleur du texte.

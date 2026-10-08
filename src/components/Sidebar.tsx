@@ -151,7 +151,7 @@ function TreeItem({
       >
         {over === 'before' && <div className="absolute inset-x-0 top-0 h-0.5 bg-[var(--accent)]" />}
         {over === 'after' && <div className="absolute inset-x-0 bottom-0 h-0.5 bg-[var(--accent)]" />}
-        {pinned.includes(page.id) && <Pin size={11} aria-label="Épinglée" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rotate-45 fill-[var(--accent)] text-[var(--accent)] transition-opacity group-hover:opacity-0" />}
+        {pinned.includes(page.id) && <Pin size={11} aria-label="Épinglée" className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 rotate-45 text-[var(--fg-muted)] transition-opacity group-hover:opacity-0" />}
         <button
           aria-label={open ? 'Replier' : 'Déplier'}
           onClick={() => toggleExpanded(page.id)}
