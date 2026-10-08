@@ -94,7 +94,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   }
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const t = e.target as HTMLElement
-    if (e.button !== 0 || t.closest('button, input, textarea, select, a, img, [data-ui], .bn-side-menu, .bn-formatting-toolbar, [role="menu"], [role="dialog"], .bn-block-content, .bn-inline-content')) return
+    if (e.button !== 0 || t.closest('button, input, textarea, select, a, img, [data-ui], .bn-side-menu, .bn-formatting-toolbar, [role="menu"], [role="dialog"], .fixed, .bn-block-content, .bn-inline-content')) return
     drag.current = { x: e.clientX, y: e.clientY, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
     e.preventDefault()
@@ -206,7 +206,16 @@ export function PageView({ pageId }: { pageId?: string }) {
                     <PropertyEditor
                       col={c}
                       value={cellValue(page, c)}
-                      onChange={(v) => void setCell(page.id, c.id, v)}
+                      onChange={(v) => {
+                        void setCell(page.id, c.id, v)
+                        // « Portions de base » : on déclare pour combien de personnes les quantités écrites sont prévues.
+                        const n = Number(v)
+                        const editor = editorRef.current
+                        if (c.id === 'servings' && editor && Number.isFinite(n) && n > 0) {
+                          const block = (editor.document as unknown as { id: string; type: string }[]).find((b) => b.type === 'portions')
+                          if (block) editor.updateBlock(block.id as never, { props: { servings: Math.round(n) } } as never)
+                        }
+                      }}
                       onCreateOption={(label) => {
                         const r = addOption(schema, c.id, label)
                         void saveSchema(db.id, r.schema)

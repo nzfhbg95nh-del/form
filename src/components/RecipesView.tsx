@@ -6,7 +6,7 @@ import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, groupByCategory, moveCategory, recipeCategories, RECIPE, removeCategory, renameCategory, setCategoryEmoji,
+  addCategory, groupByCategory, moveCategory, normalizeRecipesSchema, recipeCategories, RECIPE, removeCategory, renameCategory, setCategoryEmoji,
   type RecipeCategory,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
@@ -74,6 +74,48 @@ function QuickNotes({ db }: { db: ObjectRow }) {
   )
 }
 
+/** Fenêtre « Dans quelle catégorie ? » : on choisit une catégorie, ou on tape un nom pour en créer une (cliquer à côté ferme). */
+function CategoryChooser({ categories, onPick, onCreate, onClose }: { categories: RecipeCategory[]; onPick: (id: string | undefined) => void; onCreate: (name: string) => void; onClose: () => void }) {
+  const [name, setName] = useState('')
+  const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
+  return (
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-[15vh]" onMouseDown={onClose}>
+      <div
+        role="dialog"
+        aria-label="Dans quelle catégorie ?"
+        className="max-h-[70vh] w-80 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
+        onMouseDown={(e) => e.stopPropagation()}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+      >
+        <h2 className="mb-2 text-sm font-semibold">Dans quelle catégorie ?</h2>
+        {categories.length === 0 && <p className="mb-2 text-xs text-[var(--fg-muted)]">Tu n’as pas encore de catégorie : donne un nom à la première, elle sera créée pour toi.</p>}
+        {categories.map((c) => (
+          <button key={c.id} className={item} onClick={() => onPick(c.id)}><Icon value={c.emoji} size={18} /> {c.label}</button>
+        ))}
+        <form
+          className="mt-2 flex items-center gap-2 border-t border-[var(--border)] pt-2"
+          onSubmit={(e) => {
+            e.preventDefault()
+            if (name.trim()) onCreate(name.trim())
+          }}
+        >
+          <Plus size={14} className="shrink-0 text-[var(--fg-muted)]" />
+          <input
+            autoFocus={categories.length === 0}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nouvelle catégorie…"
+            aria-label="Nom de la nouvelle catégorie"
+            className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-[var(--fg-muted)]"
+          />
+          <button type="submit" disabled={!name.trim()} className="rounded bg-[var(--accent)] px-3 py-1 text-xs text-white disabled:opacity-40">Créer</button>
+        </form>
+        <button className={item + ' mt-1 text-[var(--fg-muted)]'} onClick={() => onPick(undefined)}>Sans catégorie pour l’instant</button>
+      </div>
+    </div>
+  )
+}
+
 /**
  * La page « Recettes » : d'abord la liste des catégories (avec leur emoji), puis, dans une catégorie, la galerie de ses recettes
  * (photo + titre). Un clic sur une carte ouvre la recette.
@@ -85,6 +127,12 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [renaming, setRenaming] = useState<string | null>(null)
   const [emojiFor, setEmojiFor] = useState<string | null>(null)
+
+  // Anciennes propriétés (durées, note, étiquettes, source) : retirées à l'ouverture.
+  useEffect(() => {
+    const clean = normalizeRecipesSchema(schema)
+    if (clean !== schema) void saveSchema(db.id, clean)
+  }, [schema, db.id, saveSchema])
 
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
@@ -99,6 +147,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     setCurrent(null)
   }
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
+  const [choosing, setChoosing] = useState(false)
 
   // ── Dans une catégorie ou dans « Sans catégorie » : la galerie ──
   if (current !== null && (category || current === NONE)) {
@@ -162,7 +211,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-4xl font-bold leading-[1.3]">Recettes</h1>
         <button className={button} onClick={() => setAssistant('recipe')} title="Écrire la recette à partir d'une vidéo YouTube ou d'un texte collé">✨ Depuis une vidéo ou un texte</button>
-        <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => create()}>+ Nouvelle recette</button>
+        <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
       <nav aria-label="Catégories de recettes">
@@ -260,6 +309,22 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       </form>
 
       <QuickNotes db={db} />
+
+      {choosing && (
+        <CategoryChooser
+          categories={categories}
+          onClose={() => setChoosing(false)}
+          onPick={(id) => { setChoosing(false); create(id) }}
+          onCreate={(name) => {
+            // Une catégorie qui n'existe pas encore est créée automatiquement, puis la recette y est rangée.
+            const next = addCategory(schema, name)
+            const created = recipeCategories(next).at(-1)
+            save(next)
+            setChoosing(false)
+            create(created?.id)
+          }}
+        />
+      )}
 
       {menu && menu.id === NONE && (() => {
         const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
