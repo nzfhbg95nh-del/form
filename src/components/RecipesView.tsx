@@ -79,7 +79,7 @@ function QuickNotes({ db }: { db: ObjectRow }) {
  * (photo + titre). Un clic sur une carte ouvre la recette.
  */
 export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
-  const { objects, saveSchema, addRecipe, setAssistant } = useApp()
+  const { objects, saveSchema, addRecipe, setAssistant, setCell } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -222,11 +222,21 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           </div>
         ))}
         {none.length > 0 && (
-          <button className={row} onClick={() => setCurrent(NONE)}>
-            <Icon value="📄" size={20} />
-            <span className="flex-1 text-base font-medium text-[var(--fg-muted)]">Sans catégorie</span>
-            <span className="text-xs text-[var(--fg-muted)]">{none.length}</span>
-          </button>
+          <div className="group relative" onContextMenu={(e) => { e.preventDefault(); setMenu({ id: NONE, x: e.clientX, y: e.clientY }) }}>
+            <button className={row} onClick={() => setCurrent(NONE)}>
+              <Icon value="📄" size={20} />
+              <span className="flex-1 text-base font-medium text-[var(--fg-muted)]">Sans catégorie</span>
+              <span className="text-xs text-[var(--fg-muted)] group-hover:opacity-0">{none.length}</span>
+            </button>
+            <button
+              aria-label="Options de Sans catégorie"
+              title="Options (ou clic droit)"
+              onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ id: NONE, x: r.left, y: r.bottom + 4 }) }}
+              className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] opacity-0 hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100"
+            >
+              <MoreHorizontal size={16} />
+            </button>
+          </div>
         )}
       </nav>
 
@@ -251,7 +261,28 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
 
       <QuickNotes db={db} />
 
-      {menu && (() => {
+      {menu && menu.id === NONE && (() => {
+        const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
+        const moveAll = (categoryId: string) => {
+          setMenu(null)
+          void Promise.all(none.map((r) => setCell(r.id, RECIPE.type, categoryId)))
+        }
+        return (
+          <>
+            <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
+            <div role="menu" className="fixed z-50 max-h-[60vh] w-64 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 272), top: Math.min(menu.y, window.innerHeight - 320) }}>
+              <button role="menuitem" className={item} onClick={() => { setMenu(null); setCurrent(NONE) }}>Ouvrir</button>
+              <div className="my-1 border-t border-[var(--border)]" />
+              <div className="px-2 py-1 text-xs font-medium text-[var(--fg-muted)]">Ranger les {none.length} recette{none.length > 1 ? 's' : ''} dans…</div>
+              {categories.map((c) => (
+                <button key={c.id} role="menuitem" className={item} onClick={() => moveAll(c.id)}><Icon value={c.emoji} size={16} /> {c.label}</button>
+              ))}
+            </div>
+          </>
+        )
+      })()}
+
+      {menu && menu.id !== NONE && (() => {
         const c = categories.find((x) => x.id === menu.id)
         if (!c) return null
         const index = categories.findIndex((x) => x.id === c.id)
