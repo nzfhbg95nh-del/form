@@ -1,4 +1,4 @@
-import { newId, OPTION_COLORS, type Schema, type SelectOption } from './database'
+import { newId, OPTION_COLORS, parseValues, type Column, type Schema, type SelectOption } from './database'
 import type { Recipe } from './ai'
 
 /** Identifiants des colonnes de la base « Recettes ». */
@@ -9,6 +9,7 @@ export const RECIPE = {
   servings: 'servings',
   rating: 'rating',
   tags: 'tags',
+  difficulty: 'difficulty',
   source: 'source',
 } as const
 
@@ -41,26 +42,71 @@ export function recipesSchema(): Schema {
         options: DEFAULT_CATEGORIES.map((c) => opt(c.id, c.label, c.color, c.emoji)),
       },
       { id: RECIPE.servings, name: 'Portions de base', type: 'number' },
+      ratingColumn(),
+      prepColumn(),
+      difficultyColumn(),
       { id: RECIPE.source, name: 'Source', type: 'url' },
     ],
     views: [{ id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] }],
   }
 }
 
-/** Anciennes propriétés retirées à la demande de Victor (durées, note, étiquettes, source). */
-const REMOVED_COLUMNS = new Set<string>([RECIPE.prep, RECIPE.cook, RECIPE.rating, RECIPE.tags])
+const STAR_COLORS = ['#e3e2e0', '#fadec9', '#fdecc8', '#dbeddb', '#d3e5ef']
+const ratingColumn = (): Column => ({
+  id: RECIPE.rating, name: 'Note', type: 'select',
+  options: [1, 2, 3, 4, 5].map((n) => opt(`r${n}`, '★'.repeat(n), STAR_COLORS[n - 1])),
+})
+const prepColumn = (): Column => ({ id: RECIPE.prep, name: 'Préparation (min)', type: 'number' })
+const difficultyColumn = (): Column => ({
+  id: RECIPE.difficulty, name: 'Difficulté', type: 'select',
+  options: [opt('d1', 'Facile', '#dbeddb'), opt('d2', 'Moyen', '#fdecc8'), opt('d3', 'Difficile', '#ffe2dd')],
+})
+
+/** Propriétés abandonnées (cuisson, étiquettes) : retirées. La note, le temps de préparation et la difficulté servent au tri. */
+const REMOVED_COLUMNS = new Set<string>([RECIPE.cook, RECIPE.tags])
+const COLUMN_ORDER: string[] = [RECIPE.type, RECIPE.servings, RECIPE.rating, RECIPE.prep, RECIPE.difficulty, RECIPE.source]
 
 /**
- * Met une base « Recettes » créée avant au goût du jour : retire les anciennes propriétés inutiles et remet « Source » si elle manque
- * (les liens déjà saisis étaient restés dans les recettes). Renvoie le même schéma s'il n'y a rien à changer.
+ * Met une base « Recettes » créée avant au goût du jour : retire les propriétés abandonnées, ajoute celles qui manquent
+ * (note, préparation, difficulté, source) et les range dans l'ordre. Renvoie le même schéma s'il n'y a rien à changer.
  */
 export function normalizeRecipesSchema(schema: Schema): Schema {
+  const has = (id: string) => schema.columns.some((c) => c.id === id)
+  const missing: Column[] = []
+  if (!has(RECIPE.rating)) missing.push(ratingColumn())
+  if (!has(RECIPE.prep)) missing.push(prepColumn())
+  if (!has(RECIPE.difficulty)) missing.push(difficultyColumn())
+  if (!has(RECIPE.source)) missing.push({ id: RECIPE.source, name: 'Source', type: 'url' })
   const hasRemoved = schema.columns.some((c) => REMOVED_COLUMNS.has(c.id))
-  const hasSource = schema.columns.some((c) => c.id === RECIPE.source)
-  if (!hasRemoved && hasSource) return schema
-  const columns = schema.columns.filter((c) => !REMOVED_COLUMNS.has(c.id)).map((c) => (c.id === RECIPE.servings ? { ...c, name: 'Portions de base' } : c))
-  if (!hasSource) columns.push({ id: RECIPE.source, name: 'Source', type: 'url' })
+  if (!hasRemoved && missing.length === 0) return schema
+  const rank = (id: string) => { const i = COLUMN_ORDER.indexOf(id); return i < 0 ? COLUMN_ORDER.length : i }
+  const columns = [...schema.columns.filter((c) => !REMOVED_COLUMNS.has(c.id)).map((c) => (c.id === RECIPE.servings ? { ...c, name: 'Portions de base' } : c)), ...missing]
+    .sort((x, y) => rank(x.id) - rank(y.id))
   return { ...schema, columns }
+}
+
+export type RecipeSort = 'name' | 'rating' | 'prep' | 'difficulty'
+export const RECIPE_SORTS: { id: RecipeSort; label: string }[] = [
+  { id: 'name', label: 'Nom (A → Z)' },
+  { id: 'rating', label: 'Note (les mieux notées d\'abord)' },
+  { id: 'prep', label: 'Préparation (la plus courte d\'abord)' },
+  { id: 'difficulty', label: 'Difficulté (la plus facile d\'abord)' },
+]
+
+/** Trie des recettes ; celles qui n'ont pas la valeur demandée passent à la fin. Le nom départage les égalités. */
+export function sortRecipes<T extends { title: string | null; properties: string | null }>(rows: T[], sort: RecipeSort, nameOf: (r: T) => string): T[] {
+  const num = (r: T): number | null => {
+    const v = parseValues(r.properties as string)
+    if (sort === 'rating') { const m = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? '')); return m ? -Number(m[1]) : null }
+    if (sort === 'difficulty') { const m = /^d([1-3])$/.exec(String(v[RECIPE.difficulty] ?? '')); return m ? Number(m[1]) : null }
+    if (sort === 'prep') { const n = Number(v[RECIPE.prep]); return v[RECIPE.prep] === undefined || v[RECIPE.prep] === '' || !Number.isFinite(n) ? null : n }
+    return 0
+  }
+  return [...rows].sort((x, y) => {
+    const a = num(x), b = num(y)
+    if (a !== b) { if (a === null) return 1; if (b === null) return -1; return a - b }
+    return nameOf(x).localeCompare(nameOf(y), 'fr')
+  })
 }
 
 /** Identifiant de l'entrée « Sans catégorie » dans la liste (ce n'est pas un vrai choix de la propriété). */

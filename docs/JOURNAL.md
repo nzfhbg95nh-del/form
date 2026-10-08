@@ -450,3 +450,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Sans catégorie » a exactement les mêmes réglages que les autres lignes : Renommer, Changer l'emoji, Monter, Descendre, Supprimer (clic droit ou « ⋯ »). Son nom, son emoji et sa place sont enregistrés dans la base (`recipeList`). Dans sa galerie : emoji et nom modifiables, corbeille. « Supprimer » y met ses recettes à la CORBEILLE (récupérables), après confirmation ; pour une vraie catégorie, « Supprimer » garde les recettes (elles passent dans « Sans catégorie »). « Ranger les N recettes dans… » reste dans son menu.
 - Une ligne se déplace parmi toutes les autres, « Sans catégorie » comprise (l'ordre est enregistré pour l'ensemble).
 - Tests : 244.
+
+## 2026-10-09 — Lignes de catégories comme les pages, tri des recettes (v0.43.0)
+- Les lignes de la liste des catégories se comportent comme celles des pages de la barre latérale : la ligne se surligne, le bouton « ⋯ » (petit, même survol) apparaît à droite, le menu a la même taille et le même style.
+- Dans chaque catégorie : menu « Trier par » — nom, note, temps de préparation, difficulté (les recettes sans valeur passent à la fin).
+- Trois propriétés reviennent dans les recettes, à remplir sur la page : Note (★ à ★★★★★), Préparation (min), Difficulté (Facile / Moyen / Difficile). Les cartes de la galerie les affichent. Cuisson et étiquettes restent retirées.
+- Les bases existantes reçoivent ces propriétés à l'ouverture.
+- Tests : 248.

@@ -3,7 +3,7 @@ import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import {
   addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
-  moveCategory, moveEntry, NONE_ID, normalizeRecipesSchema, recipeEntries, removeCategory, renameEntry, setEntryEmoji, renameCategory, setCategoryEmoji,
+  moveCategory, moveEntry, NONE_ID, normalizeRecipesSchema, recipeEntries, sortRecipes, removeCategory, renameEntry, setEntryEmoji, renameCategory, setCategoryEmoji,
 } from './recipes'
 
 const recipe: Recipe = {
@@ -21,7 +21,7 @@ describe('base de recettes', () => {
     expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
       ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'],
     ])
-    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
+    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'source'])
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
   })
 
@@ -106,23 +106,21 @@ describe('catégories de recettes', () => {
 
 describe('anciennes propriétés des recettes', () => {
   const extra = [
-    { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' as const },
     { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' as const },
-    { id: RECIPE.rating, name: 'Note', type: 'select' as const },
     { id: RECIPE.tags, name: 'Étiquettes', type: 'multiselect' as const },
   ]
 
-  it('retire durées, note et étiquettes, et garde catégorie, portions et source', () => {
+  it('retire cuisson et étiquettes, et garde catégorie, portions et source', () => {
     const legacy = { ...recipesSchema(), columns: [...recipesSchema().columns, ...extra] }
     const clean = normalizeRecipesSchema(legacy)
-    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
+    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'source'])
     expect(normalizeRecipesSchema(clean)).toBe(clean)
   })
 
   it('remet « Source » dans une base où la version précédente l’avait retirée', () => {
     const withoutSource = { ...recipesSchema(), columns: recipesSchema().columns.filter((c) => c.id !== RECIPE.source) }
     const fixed = normalizeRecipesSchema(withoutSource)
-    expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
+    expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'source'])
     expect(fixed.columns.at(-1)).toMatchObject({ name: 'Source', type: 'url' })
   })
 })
@@ -161,4 +159,14 @@ describe('« Sans catégorie » comme les autres lignes', () => {
     expect(ids(added).at(-1)).toBe(recipeCategories(added).at(-1)!.id)
     expect(ids(added)).toContain(NONE_ID)
   })
+})
+
+describe('tri des recettes', () => {
+  const r = (title: string, v: Record<string, unknown>) => ({ title, properties: JSON.stringify(v) })
+  const list = [r('B', { rating: 'r3', prep: 30, difficulty: 'd2' }), r('A', {}), r('C', { rating: 'r5', prep: 10, difficulty: 'd1' })]
+  const names = (x: typeof list) => x.map((i) => i.title).join('')
+  it('par nom', () => expect(names(sortRecipes(list, 'name', (i) => i.title))).toBe('ABC'))
+  it('par note : les mieux notées d\'abord, sans note à la fin', () => expect(names(sortRecipes(list, 'rating', (i) => i.title))).toBe('CBA'))
+  it('par préparation : la plus courte d\'abord', () => expect(names(sortRecipes(list, 'prep', (i) => i.title))).toBe('CBA'))
+  it('par difficulté : la plus facile d\'abord', () => expect(names(sortRecipes(list, 'difficulty', (i) => i.title))).toBe('CBA'))
 })
