@@ -30,6 +30,21 @@ function Label({ children }: { children: React.ReactNode }) {
   return <div className="px-2 pb-1 pt-4 text-xs font-semibold text-[var(--fg-muted)]">{children}</div>
 }
 
+/** Titre de section qu'on peut replier d'un clic (état gardé d'une fois sur l'autre). */
+function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; collapsed: boolean; toggle: (id: string) => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-expanded={!collapsed}
+      onClick={() => toggle(id)}
+      className="flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
+    >
+      <ChevronRight size={11} className={'shrink-0 transition-transform ' + (collapsed ? '' : 'rotate-90')} />
+      {children}
+    </button>
+  )
+}
+
 function PageIcon({ page }: { page: ObjectRow }) {
   if (page.icon) return <Icon value={page.icon} size={16} />
   if (page.type === 'moodboard') return <Images size={14} className="shrink-0 text-[var(--fg-muted)]" />
@@ -208,6 +223,14 @@ export function Sidebar() {
   const favorites = live.filter((o) => o.is_favorite)
   const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
   const openMenu: OpenMenu = (id, x, y) => setMenu({ id, x, y })
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
+    try { return JSON.parse(localStorage.getItem('form-sidebar-collapsed') ?? '{}') } catch { return {} }
+  })
+  const toggleSection = (id: string) => {
+    const next = { ...collapsed, [id]: !collapsed[id] }
+    setCollapsed(next)
+    try { localStorage.setItem('form-sidebar-collapsed', JSON.stringify(next)) } catch { /* sans importance */ }
+  }
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
@@ -252,20 +275,20 @@ export function Sidebar() {
 
         {favorites.length > 0 && (
           <>
-            <Label>Favoris</Label>
-            {favorites.map((p) => <ShortcutItem key={p.id} page={p} />)}
+            <CollapsibleLabel id="favorites" collapsed={!!collapsed.favorites} toggle={toggleSection}>Favoris</CollapsibleLabel>
+            {!collapsed.favorites && favorites.map((p) => <ShortcutItem key={p.id} page={p} />)}
           </>
         )}
 
         {recents.length > 0 && (
           <>
-            <Label><span className="inline-flex items-center gap-1"><Clock size={11} /> Récentes</span></Label>
-            {recents.map((p) => <ShortcutItem key={p.id} page={p} />)}
+            <CollapsibleLabel id="recents" collapsed={!!collapsed.recents} toggle={toggleSection}><span className="inline-flex items-center gap-1"><Clock size={11} /> Récentes</span></CollapsibleLabel>
+            {!collapsed.recents && recents.map((p) => <ShortcutItem key={p.id} page={p} />)}
           </>
         )}
 
-        <Label>Pages</Label>
-        <div onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
+        <CollapsibleLabel id="pages" collapsed={!!collapsed.pages} toggle={toggleSection}>Pages</CollapsibleLabel>
+        <div hidden={!!collapsed.pages} onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
           {roots.map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
           {roots.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
         </div>

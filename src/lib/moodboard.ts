@@ -55,7 +55,8 @@ export interface Rect {
 
 export const MIN_ZOOM = 0.02
 export const MAX_ZOOM = 16
-export const BACKGROUNDS = ['theme', '#1f1f1f', '#3a3a3a', '#8a8a8a', '#e8e8e8', '#ffffff']
+/** Fond du moodboard : noir ou blanc (par défaut, celui du thème de l'application). */
+export const BACKGROUNDS = ['#1f1f1f', '#ffffff']
 export const NOTE_COLORS = ['#fff3a3', '#ffd6e0', '#cfeaff', '#d4f5d0', '#ffffff', 'transparent']
 
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
