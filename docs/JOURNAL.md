@@ -344,3 +344,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Droits ajoutés (capabilities) : créer une fenêtre, la déplacer à la souris, la mettre au premier plan. Le bouton « Toujours au premier plan » de la fenêtre principale reste disponible.
 - NON VÉRIFIÉ sur Windows : création réelle de la fenêtre, transparence, déplacement par la barre (essayé seulement dans le navigateur sur l'adresse ?board=…). Si la construction de l'installateur échoue sur un nom de droit, c'est ici.
 - Tests : 209.
+
+## 2026-10-08 — Sections repliables, fond noir ou blanc (v0.37.0)
+- Barre latérale : « Favoris », « Récentes » et « Pages » se replient d'un clic sur leur titre (chevron) ; l'état est gardé d'une fois sur l'autre.
+- Moodboard : le fond se choisit entre deux boutons, noir et blanc (plus de nuances de gris) ; par défaut il suit le thème de l'application, le bouton correspondant est alors coché. Les anciens fonds gris continuent de s'afficher jusqu'au prochain choix.

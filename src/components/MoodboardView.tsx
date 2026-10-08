@@ -625,7 +625,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} title="Ouvrir dans une petite fenêtre flottante, toujours devant (comme PureRef)" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.') })}><PictureInPicture2 size={14} className="mr-1 inline" />Flottant</button>
         <button className={bar} title="Toujours au premier plan" onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
         {BACKGROUNDS.map((b) => (
-          <button key={b} title={b === 'theme' ? 'Fond de l’application' : 'Couleur de fond'} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: bg === b ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
+          <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-label={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-pressed={isDark === (b !== '#ffffff')} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: isDark === (b !== '#ffffff') ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
         ))}
       </div>
       )}
@@ -706,7 +706,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 <MenuBtn label="Tout sélectionner" hint="Ctrl+A" onClick={act.selectAll} />
                 <MenuBtn label="Tout afficher" hint="F" onClick={() => fitTo(items)} />
                 <MenuHead>Fond</MenuHead>
-                <div className="flex gap-2 px-2 py-1">{BACKGROUNDS.map((b) => <button key={b} onClick={() => { setBg(b); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={swatch(b)} />)}</div>
+                <div className="flex gap-2 px-2 py-1">{BACKGROUNDS.map((b) => <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} onClick={() => { setBg(b); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={swatch(b)} />)}</div>
               </>
             )}
             {(hasSel || menu.mode === 'organize') && (
