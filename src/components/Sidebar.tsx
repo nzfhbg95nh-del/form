@@ -34,10 +34,11 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
       type="button"
       aria-expanded={!collapsed}
       onClick={() => toggle(id)}
-      className="flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
+      className="group flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
     >
-      <ChevronRight size={11} className={'shrink-0 transition-transform ' + (collapsed ? '' : 'rotate-90')} />
       {children}
+      {/* La flèche suit le texte et n'apparaît qu'au survol. */}
+      <ChevronRight size={11} className={'shrink-0 opacity-0 transition-all group-hover:opacity-100 ' + (collapsed ? '' : 'rotate-90')} />
     </button>
   )
 }
