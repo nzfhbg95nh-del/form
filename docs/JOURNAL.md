@@ -370,3 +370,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-08 — Épinglées : mêmes lignes que les autres pages, sans séparation (v0.38.3)
 - Les pages épinglées en haut de « Pages » utilisent la même ligne que toutes les pages (clic droit complet, bouton ⋯, ajout de sous-page, déplier, glisser-déposer, renommer), plus de trait de séparation. La petite punaise bleue s'affiche après le titre de toute page épinglée, où qu'elle apparaisse.
+
+## 2026-10-08 — Punaise à droite, boutons au survol (v0.38.4)
+- La punaise d'une page épinglée est de nouveau tout à droite de la ligne ; au survol elle s'efface et laisse place aux boutons habituels (nouvelle sous-page, ⋯ avec tous les paramètres). Clic droit inchangé.
