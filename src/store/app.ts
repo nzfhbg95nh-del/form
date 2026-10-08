@@ -239,17 +239,8 @@ export const useApp = create<AppState>((set, get) => ({
   pinned: [],
 
   togglePin(id) {
-    const wasPinned = get().pinned.includes(id)
     const next = togglePinned(get().pinned, id)
-    const { tabs, selectedId, view } = get()
-    if (wasPinned) {
-      // Désépinglée : si on la regarde, elle redevient un onglet ordinaire.
-      set({ pinned: next, tabs: selectedId === id && view === 'page' ? openTab(tabs, id, true) : tabs })
-    } else {
-      // Épinglée : son onglet ordinaire (s'il existe) laisse la place à l'onglet fixe.
-      const rest = dropTabs(tabs, [id])
-      set({ pinned: next, tabs: rest, selectedId: selectedId === id ? id : currentId(rest) ?? selectedId })
-    }
+    set({ pinned: next })
     void get().repo?.setSetting(PINNED_SETTING, JSON.stringify(next))
   },
 
@@ -276,9 +267,7 @@ export const useApp = create<AppState>((set, get) => ({
       const [clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments] = await Promise.all([
         repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
-      const pinned = parsePinned(await repo.getSetting(PINNED_SETTING))
-      // La première page ouverte au démarrage ne doit pas doubler un onglet épinglé.
-      const first = objects.find((o) => !o.deleted_at && isPageLike(o) && !pinned.includes(o.id))
+      const first = objects.find((o) => !o.deleted_at && isPageLike(o))
       // Premier lancement : le catalogue reçoit les tarifs journaliers de Victor (une seule fois, même s'il les supprime ensuite).
       if (services.length === 0 && (await repo.getSetting('default_services_seeded')) !== '1') {
         for (const s of defaultServices()) {
@@ -297,6 +286,7 @@ export const useApp = create<AppState>((set, get) => ({
         }
         await repo.setSetting('default_couture_seeded', '1')
       }
+      const pinned = parsePinned(await repo.getSetting(PINNED_SETTING))
       set({
         pinned,
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
@@ -324,12 +314,10 @@ export const useApp = create<AppState>((set, get) => ({
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
     const previous = get().selectedId
-    // Une page épinglée a son propre onglet fixe : on l'affiche sans ouvrir ni remplacer un onglet ordinaire.
-    const isPinned = get().pinned.includes(id)
-    const tabs = isPinned ? get().tabs : openTab(get().tabs, id, opts?.newTab)
+    const tabs = openTab(get().tabs, id, opts?.newTab)
     // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
     const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
-    set({ tabs, selectedId: isPinned ? id : currentId(tabs), view: 'page', expanded, ...history })
+    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
   },
 
   goBack() {
