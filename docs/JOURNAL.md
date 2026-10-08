@@ -439,3 +439,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Filtres, tris et réglages de vue (toutes les bases, y compris intégrées) : bouton « Valider » qui ferme le panneau ; cliquer à côté le ferme aussi (les changements s'appliquent déjà en direct).
 - Recettes : propriétés réduites à « Catégorie » et « Portions de base » (durées, note, étiquettes, source supprimées ; les bases déjà créées sont nettoyées à l'ouverture, les anciennes valeurs restent invisibles dans la page). « Portions de base » = pour combien de personnes la recette est écrite. Le choix « Pour N personnes » adapte les quantités à partir de là SANS modifier cette valeur ; il affiche « Recette écrite pour N personnes » et un bouton « Revenir à N ». Modifier « Portions de base » recale le nombre de personnes du bloc (les quantités écrites correspondent à ce nombre).
 - Tests : 239.
+
+## 2026-10-09 — « Source » revient (v0.42.1)
+- Les propriétés d'une recette sont : Catégorie, Portions de base et Source (le lien de la recette, juste sous les portions). Durées, note et étiquettes restent retirées.
+- Les bases déjà nettoyées par la v0.42.0 retrouvent la colonne « Source » à l'ouverture, avec les liens déjà saisis (ils étaient restés dans les recettes).
+- Tests : 240.

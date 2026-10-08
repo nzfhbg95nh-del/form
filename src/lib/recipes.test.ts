@@ -21,7 +21,7 @@ describe('base de recettes', () => {
     expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
       ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'],
     ])
-    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings'])
+    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
   })
 
@@ -105,20 +105,24 @@ describe('catégories de recettes', () => {
 })
 
 describe('anciennes propriétés des recettes', () => {
-  it('retire durées, note, étiquettes et source, et garde catégorie et portions', () => {
-    const legacy = {
-      ...recipesSchema(),
-      columns: [
-        ...recipesSchema().columns,
-        { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' as const },
-        { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' as const },
-        { id: RECIPE.rating, name: 'Note', type: 'select' as const },
-        { id: RECIPE.tags, name: 'Étiquettes', type: 'multiselect' as const },
-        { id: RECIPE.source, name: 'Source', type: 'url' as const },
-      ],
-    }
+  const extra = [
+    { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' as const },
+    { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' as const },
+    { id: RECIPE.rating, name: 'Note', type: 'select' as const },
+    { id: RECIPE.tags, name: 'Étiquettes', type: 'multiselect' as const },
+  ]
+
+  it('retire durées, note et étiquettes, et garde catégorie, portions et source', () => {
+    const legacy = { ...recipesSchema(), columns: [...recipesSchema().columns, ...extra] }
     const clean = normalizeRecipesSchema(legacy)
-    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings'])
+    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
     expect(normalizeRecipesSchema(clean)).toBe(clean)
+  })
+
+  it('remet « Source » dans une base où la version précédente l’avait retirée', () => {
+    const withoutSource = { ...recipesSchema(), columns: recipesSchema().columns.filter((c) => c.id !== RECIPE.source) }
+    const fixed = normalizeRecipesSchema(withoutSource)
+    expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'source'])
+    expect(fixed.columns.at(-1)).toMatchObject({ name: 'Source', type: 'url' })
   })
 })
