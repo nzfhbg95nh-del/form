@@ -367,3 +367,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-08 — Épinglées : en haut de la liste « Pages » (v0.38.2)
 - Retour sur les onglets fixes de v0.38.1 (ce n'était pas ce que voulait Victor). Une page épinglée reste maintenant TOUT EN HAUT de la liste « Pages » de la barre latérale, avec une petite punaise bleue à droite, séparée des autres pages par un trait. Elle ne reste pas en double dans l'arbre quand elle est à la racine. Plus de section « Épinglées » séparée ni d'onglet fixe.
 - Épingler / désépingler : menu « ⋯ » ou clic droit, ou punaise de la barre du haut d'une page. Réglage `pinned_pages` inchangé.
+
+## 2026-10-08 — Épinglées : mêmes lignes que les autres pages, sans séparation (v0.38.3)
+- Les pages épinglées en haut de « Pages » utilisent la même ligne que toutes les pages (clic droit complet, bouton ⋯, ajout de sous-page, déplier, glisser-déposer, renommer), plus de trait de séparation. La petite punaise bleue s'affiche après le titre de toute page épinglée, où qu'elle apparaisse.

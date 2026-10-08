@@ -107,7 +107,7 @@ function TreeItem({
   setDrag: (d: DragState) => void
   openMenu: OpenMenu
 }) {
-  const { objects, selectedId, view, expanded, toggleExpanded, createPage, move, renamingId } = useApp()
+  const { objects, selectedId, view, expanded, toggleExpanded, createPage, move, renamingId, pinned } = useApp()
   const handlers = useOpenHandlers(page.id)
   const kids = childrenOf(objects, page.id)
   const open = !!expanded[page.id]
@@ -167,6 +167,7 @@ function TreeItem({
           <button {...handlers} className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <PageIcon page={page} />
             <span className="truncate">{page.title || 'Nouvelle page'}</span>
+            {pinned.includes(page.id) && <Pin size={11} aria-label="Épinglée" className="shrink-0 rotate-45 fill-[var(--accent)] text-[var(--accent)]" />}
           </button>
         )}
         {page.type === 'page' && (
@@ -191,7 +192,7 @@ function TreeItem({
   )
 }
 
-function ShortcutItem({ page, pinMark = false }: { page: ObjectRow; pinMark?: boolean }) {
+function ShortcutItem({ page }: { page: ObjectRow }) {
   const { selectedId, view } = useApp()
   const handlers = useOpenHandlers(page.id)
   return (
@@ -204,7 +205,6 @@ function ShortcutItem({ page, pinMark = false }: { page: ObjectRow; pinMark?: bo
     >
       <PageIcon page={page} />
       <span className="truncate">{page.title || 'Nouvelle page'}</span>
-      {pinMark && <Pin size={11} aria-label="Épinglée" className="ml-auto shrink-0 rotate-45 fill-[var(--accent)] text-[var(--accent)]" />}
     </button>
   )
 }
@@ -292,12 +292,8 @@ export function Sidebar() {
 
         <CollapsibleLabel id="pages" collapsed={!!collapsed.pages} toggle={toggleSection}>Pages</CollapsibleLabel>
         {/* Les pages épinglées restent tout en haut de la liste, avec une petite punaise. */}
-        {!collapsed.pages && pinnedList.length > 0 && (
-          <div className="mb-1 border-b border-[var(--border)] pb-1">
-            {pinnedList.map((p) => <ShortcutItem key={p.id} page={p} pinMark />)}
-          </div>
-        )}
         <div hidden={!!collapsed.pages} onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
+          {pinnedList.map((p) => <TreeItem key={'pin-' + p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
           {roots.filter((p) => !pinned.includes(p.id)).map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
           {roots.length === 0 && pinnedList.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
         </div>
