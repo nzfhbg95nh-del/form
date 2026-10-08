@@ -28,8 +28,9 @@ export const DEFAULT_CATEGORIES = [
 export const CATEGORY_FALLBACK_EMOJI = '🍽️'
 
 /**
- * La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et une seule autre propriété :
- * « Portions de base », le nombre de personnes pour lequel la recette est écrite (le choix « Pour N personnes » s'adapte à partir de là).
+ * La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et deux autres propriétés :
+ * « Portions de base », le nombre de personnes pour lequel la recette est écrite (le choix « Pour N personnes » s'adapte à partir de là),
+ * et « Source » (le lien de la recette).
  */
 export function recipesSchema(): Schema {
   return {
@@ -40,18 +41,26 @@ export function recipesSchema(): Schema {
         options: DEFAULT_CATEGORIES.map((c) => opt(c.id, c.label, c.color, c.emoji)),
       },
       { id: RECIPE.servings, name: 'Portions de base', type: 'number' },
+      { id: RECIPE.source, name: 'Source', type: 'url' },
     ],
     views: [{ id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] }],
   }
 }
 
 /** Anciennes propriétés retirées à la demande de Victor (durées, note, étiquettes, source). */
-const REMOVED_COLUMNS = new Set<string>([RECIPE.prep, RECIPE.cook, RECIPE.rating, RECIPE.tags, RECIPE.source])
+const REMOVED_COLUMNS = new Set<string>([RECIPE.prep, RECIPE.cook, RECIPE.rating, RECIPE.tags])
 
-/** Retire les anciennes propriétés d'une base « Recettes » créée avant ; renvoie le même schéma s'il n'y a rien à retirer. */
+/**
+ * Met une base « Recettes » créée avant au goût du jour : retire les anciennes propriétés inutiles et remet « Source » si elle manque
+ * (les liens déjà saisis étaient restés dans les recettes). Renvoie le même schéma s'il n'y a rien à changer.
+ */
 export function normalizeRecipesSchema(schema: Schema): Schema {
-  if (!schema.columns.some((c) => REMOVED_COLUMNS.has(c.id))) return schema
-  return { ...schema, columns: schema.columns.filter((c) => !REMOVED_COLUMNS.has(c.id)).map((c) => (c.id === RECIPE.servings ? { ...c, name: 'Portions de base' } : c)) }
+  const hasRemoved = schema.columns.some((c) => REMOVED_COLUMNS.has(c.id))
+  const hasSource = schema.columns.some((c) => c.id === RECIPE.source)
+  if (!hasRemoved && hasSource) return schema
+  const columns = schema.columns.filter((c) => !REMOVED_COLUMNS.has(c.id)).map((c) => (c.id === RECIPE.servings ? { ...c, name: 'Portions de base' } : c))
+  if (!hasSource) columns.push({ id: RECIPE.source, name: 'Source', type: 'url' })
+  return { ...schema, columns }
 }
 
 export interface RecipeCategory {
