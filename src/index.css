@@ -56,3 +56,10 @@ body {
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* Fenêtre flottante d'un moodboard : fond transparent (le curseur de transparence laisse voir le bureau). */
+html.floating,
+html.floating body,
+html.floating #root {
+  background: transparent !important;
+}

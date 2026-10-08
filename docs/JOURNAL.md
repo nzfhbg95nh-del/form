@@ -335,3 +335,12 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clients : plus d'archivage (ni case « Afficher les archivés ») ; bouton « Supprimer » (avec confirmation) dans la fiche. Un client qui a des devis ou des factures ne peut pas être supprimé : un message explique combien et de quoi (les brouillons se suppriment d'abord ; les documents envoyés ou émis doivent rester lisibles). Les clients autrefois archivés réapparaissent partout.
 - Titres de page et de base de données : la hauteur de ligne était trop courte pour la police (haut des lettres coupé de 4 px) ; corrigé (aussi pour le petit titre d'une base intégrée).
 - Tests : 207.
+
+## 2026-10-08 — Moodboard en fenêtre flottante façon PureRef (v0.36.0)
+- Bouton « Flottant » dans la barre du moodboard (et sur le cadre d'un moodboard dans une page) : ouvre le moodboard dans une petite fenêtre SANS bordure, TOUJOURS DEVANT les autres applications (Blender, Photoshop...), 520 x 680, redimensionnable. Si elle est déjà ouverte, on la ramène devant.
+- Barre de la fenêtre : on l'attrape pour la déplacer ; curseur de transparence (30 à 100 %, mémorisé par moodboard, fond de fenêtre transparent) ; épingle pour ne plus rester devant ; fermer. Outils allégés (Images, Ajuster) ; molette = zoom, Espace + glisser = déplacer, comme dans le moodboard.
+- Une seule fenêtre modifie un moodboard à la fois : tant que la fenêtre flottante est ouverte, la fenêtre principale affiche un voile « ouvert dans une fenêtre flottante » avec un bouton pour la fermer et reprendre (évite que deux copies s'écrasent). La fenêtre principale suit les ouvertures et fermetures par des événements, plus un contrôle toutes les 2 s.
+- La fenêtre flottante démarre léger (pas de sauvegarde automatique ni de rappels : la fenêtre principale s'en charge).
+- Droits ajoutés (capabilities) : créer une fenêtre, la déplacer à la souris, la mettre au premier plan. Le bouton « Toujours au premier plan » de la fenêtre principale reste disponible.
+- NON VÉRIFIÉ sur Windows : création réelle de la fenêtre, transparence, déplacement par la barre (essayé seulement dans le navigateur sur l'adresse ?board=…). Si la construction de l'installateur échoue sur un nom de droit, c'est ici.
+- Tests : 209.
