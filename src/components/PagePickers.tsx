@@ -51,9 +51,14 @@ function EmojiButton({ e, onPick, label }: { e: string; onPick: (e: string) => v
   )
 }
 
-export function IconPicker({ value, onChange, trigger }: { value: string | null; onChange: (v: string | null) => void; trigger?: React.ReactNode }) {
+export function IconPicker({ value, onChange, trigger, startOpen = false, onClosed }: { value: string | null; onChange: (v: string | null) => void; trigger?: React.ReactNode; startOpen?: boolean; onClosed?: () => void }) {
   const repo = useApp((st) => st.repo)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(startOpen)
+  const wasOpen = useRef(startOpen)
+  useEffect(() => {
+    if (wasOpen.current && !open) onClosed?.()
+    wasOpen.current = open
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
   const [tab, setTab] = useState<PickerTab>('emoji')
   const [all, setAll] = useState<EmojiItem[]>([])
   const [query, setQuery] = useState('')
@@ -119,6 +124,7 @@ export function IconPicker({ value, onChange, trigger }: { value: string | null;
           <Smile size={14} className="mr-1.5 inline align-text-bottom" />{value ? 'Changer l’icône' : 'Ajouter une icône'}
         </button>
       )}
+      {open && <div className="fixed inset-0 z-10" onMouseDown={() => setOpen(false)} />}
       {open && (
         <div className={pop + ' p-0'} style={{ width: 380 }} role="dialog" aria-label="Choisir une icône">
           <div className="flex items-center border-b border-[var(--border)] px-2">
