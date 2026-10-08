@@ -418,3 +418,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Assistant (texte ou lien YouTube vers recette) : choix de la catégorie avant de créer la page.
 - Le reste ne change pas : page de recette avec nombre de personnes qui recalcule les quantités, commande / Recette, « Depuis une vidéo ou un texte ».
 - Tests : 237.
+
+## 2026-10-09 — Catégories de recettes plus petites (v0.41.1)
+- La liste des catégories est plus compacte : emoji 20 px (au lieu de 28), texte de taille normale (au lieu de grand), lignes moins hautes, nombre de recettes en petit.

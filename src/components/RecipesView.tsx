@@ -110,7 +110,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   }
 
   // ── Accueil des recettes : la liste des catégories ──
-  const row = 'flex w-full items-center gap-3 rounded-md px-2 py-2 text-left hover:bg-[var(--bg-hover)]'
+  const row = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1 text-left hover:bg-[var(--bg-hover)]'
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -122,16 +122,16 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       <nav aria-label="Catégories de recettes">
         {categories.map((c) => (
           <button key={c.id} className={row} onClick={() => setCurrent(c.id)}>
-            <Icon value={c.emoji} size={28} />
-            <span className="flex-1 text-lg font-medium underline decoration-[var(--border)] underline-offset-4">{c.label}</span>
-            <span className="text-sm text-[var(--fg-muted)]">{byCategory.get(c.id)?.length ?? 0}</span>
+            <Icon value={c.emoji} size={20} />
+            <span className="flex-1 text-base font-medium underline decoration-[var(--border)] underline-offset-4">{c.label}</span>
+            <span className="text-xs text-[var(--fg-muted)]">{byCategory.get(c.id)?.length ?? 0}</span>
           </button>
         ))}
         {none.length > 0 && (
           <button className={row} onClick={() => setCurrent(NONE)}>
-            <Icon value="📄" size={28} />
-            <span className="flex-1 text-lg font-medium text-[var(--fg-muted)]">Sans catégorie</span>
-            <span className="text-sm text-[var(--fg-muted)]">{none.length}</span>
+            <Icon value="📄" size={20} />
+            <span className="flex-1 text-base font-medium text-[var(--fg-muted)]">Sans catégorie</span>
+            <span className="text-xs text-[var(--fg-muted)]">{none.length}</span>
           </button>
         )}
       </nav>
