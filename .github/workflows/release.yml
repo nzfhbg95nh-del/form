@@ -12,6 +12,10 @@ permissions:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      # Jeton qui permet de publier dans le dépôt PUBLIC des installateurs (mise à jour automatique).
+      # Tant qu'il n'est pas ajouté dans les secrets, cette étape est simplement ignorée.
+      RELEASES_TOKEN: ${{ secrets.RELEASES_TOKEN }}
     steps:
       - uses: actions/checkout@v4
 
@@ -33,9 +37,32 @@ jobs:
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Clé qui signe l'installateur : l'application refuse toute mise à jour non signée.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ''
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'Form ${{ github.ref_name }}'
           releaseBody: "Installateur Windows (.msi) : télécharge le fichier .msi ci-dessous, puis double-clique dessus."
           releaseDraft: false
           prerelease: false
+
+      - name: Publier l'installateur dans le dépôt public (mises à jour automatiques)
+        if: ${{ env.RELEASES_TOKEN != '' }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN }}
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v')
+          $msi = Get-ChildItem src-tauri/target/release/bundle/msi -Filter *.msi | Select-Object -First 1
+          $signature = (Get-Content "$($msi.FullName).sig" -Raw).Trim()
+          $url = "https://github.com/nzfhbg95nh-del/form-releases/releases/download/$tag/$($msi.Name)"
+          $manifest = [ordered]@{
+            version  = $version
+            notes    = "Form $version"
+            pub_date = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            platforms = [ordered]@{ 'windows-x86_64' = [ordered]@{ signature = $signature; url = $url } }
+          }
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content -Path latest.json -Encoding utf8
+          gh release create $tag $msi.FullName latest.json --repo nzfhbg95nh-del/form-releases --title "Form $tag" --notes "Installateur Windows de Form $version."

@@ -379,3 +379,12 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-08 — Flèche des titres de section après le texte, au survol (v0.38.6)
 - Mon entreprise, Favoris, Récentes, Pages : la petite flèche de repli est maintenant juste après le texte et n'apparaît que quand la souris est sur le titre.
+
+## 2026-10-08 — Restauration de sauvegarde et mises à jour automatiques (v0.39.0)
+- Sauvegarde : « Restaurer une sauvegarde… » (Réglages > Général) choisit un fichier `.db`, le vérifie (doit être une base SQLite), le prépare à côté de la base, puis Form redémarre ; au démarrage, AVANT l'ouverture de la base, la base actuelle est mise de côté sous `form.avant-restauration-<secondes>.db` (jamais supprimée) et la sauvegarde prend sa place. Ménage : seules les N dernières sauvegardes automatiques `form-sauvegarde-*.db` du dossier sont gardées (30 par défaut, réglable de 5 à 365) ; rien d'autre n'est jamais supprimé.
+- Code Windows nouveau (`src-tauri/src/backup.rs`) : `stage_restore`, `restart_app`, `prune_backups`, `apply_pending_restore` au démarrage. NON COMPILÉ en local (la CI compile) et NON ESSAYÉ sur Windows.
+- Mises à jour automatiques : plugin officiel Tauri updater. Au démarrage (après 8 s) puis toutes les 6 h, Form cherche une version plus récente ; un bandeau propose « Installer et redémarrer » (téléchargement avec pourcentage, installation en mode passif). Réglages > Mises à jour : version installée et « Rechercher une mise à jour ». Rien ne s'installe sans clic.
+- Où sont les mises à jour : dépôt PUBLIC `nzfhbg95nh-del/form-releases` (installateur .msi et `latest.json`, aucun code, aucune donnée). Le dépôt de code reste privé. L'installateur est signé : Form refuse toute mise à jour dont la signature ne correspond pas à la clé publique intégrée (`tauri.conf.json`). Clé privée : secret `TAURI_SIGNING_PRIVATE_KEY` du dépôt privé + copie locale dans `.cle-mise-a-jour/` (ignorée par git ; À CONSERVER : sans elle, plus aucune mise à jour possible).
+- Étape à faire par Victor : créer un jeton GitHub limité au dépôt `form-releases` (droit « Contents : lecture et écriture ») et l'ajouter dans les secrets du dépôt `form` sous le nom `RELEASES_TOKEN` ; tant qu'il manque, la publication publique est ignorée (la fabrication de l'installateur continue de marcher).
+- Une version sans le plugin (≤ 0.38.x) ne peut pas se mettre à jour toute seule : un dernier téléchargement manuel de cette version (ou d'une plus récente) est nécessaire, ensuite tout est automatique.
+- Tests : 215 (ménage, numéros de version).

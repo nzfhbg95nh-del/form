@@ -11,7 +11,6 @@ interface Entry {
   disabled?: boolean
 }
 
-declare const __APP_VERSION__: string
 
 /** Exécute une commande d'édition dans le texte en cours (Annuler, Copier…). */
 const edit = (command: string) => () => { document.execCommand(command) }

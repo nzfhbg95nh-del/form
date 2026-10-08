@@ -1,7 +1,7 @@
 {
   "name": "form",
   "private": true,
-  "version": "0.38.6",
+  "version": "0.39.0",
   "type": "module",
   "scripts": {
     "predev": "node scripts/copy-emoji.mjs",
@@ -28,6 +28,7 @@
     "@tauri-apps/plugin-notification": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2.7.0",
     "@tauri-apps/plugin-sql": "^2.5.0",
+    "@tauri-apps/plugin-updater": "^2.13.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "emoji-datasource-apple": "^16.0.0",

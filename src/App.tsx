@@ -17,6 +17,7 @@ import { SearchPalette } from '@/components/SearchPalette'
 import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
+import { UpdateBanner } from '@/components/UpdateBanner'
 import { TrashView } from '@/components/TrashView'
 import { FLOATING_EVENT, openFloatingBoardIds } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
@@ -107,6 +108,17 @@ export default function App() {
     return () => window.removeEventListener('keydown', onKey)
   }, [setSearch, setCapture])
 
+  // Mises à jour : une vérification peu après le démarrage, puis toutes les 6 heures (Form ne télécharge rien sans ton clic).
+  useEffect(() => {
+    if (!isTauri()) return
+    const first = window.setTimeout(() => void useApp.getState().checkUpdates(), 8000)
+    const every = window.setInterval(() => void useApp.getState().checkUpdates(), 6 * 60 * 60 * 1000)
+    return () => {
+      window.clearTimeout(first)
+      window.clearInterval(every)
+    }
+  }, [])
+
   // Moodboards ouverts en fenêtre flottante : la fenêtre principale les verrouille tant qu'ils y sont.
   useEffect(() => {
     if (!isTauri()) return
@@ -159,6 +171,7 @@ export default function App() {
       {!sidebarHidden && <Sidebar />}
       <div className="flex min-w-0 flex-1 flex-col">
         <TabBar />
+        <UpdateBanner />
         {backupMessage && (
           <div className="bg-[var(--bg-side)] px-4 py-1 text-center text-xs text-[var(--fg-muted)]">{backupMessage}</div>
         )}

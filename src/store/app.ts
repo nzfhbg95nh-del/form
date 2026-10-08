@@ -7,6 +7,7 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
+import { checkForUpdate, isNewer, type AvailableUpdate } from '@/lib/updates'
 import { parsePinned, PINNED_SETTING, togglePinned } from '@/lib/pinned'
 import { clientDocumentCount, couturePrestations, defaultServices, withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
@@ -151,6 +152,12 @@ interface AppState {
   reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
   /** Moodboards ouverts dans une fenêtre flottante (la fenêtre principale ne les modifie pas en même temps). */
+  /** Mise à jour disponible (trouvée automatiquement ou à la demande). */
+  availableUpdate: AvailableUpdate | null
+  updateDismissed: boolean
+  dismissUpdate(): void
+  /** Cherche une mise à jour ; renvoie « found », « none » ou le message d'erreur. */
+  checkUpdates(): Promise<'found' | 'none' | { error: string }>
   /** Pages épinglées en haut de la barre latérale (identifiants, dans l'ordre). */
   pinned: string[]
   togglePin(id: string): void
@@ -237,6 +244,27 @@ export const useApp = create<AppState>((set, get) => ({
   toast: null,
   floatingBoards: [],
   pinned: [],
+  availableUpdate: null,
+  updateDismissed: false,
+
+  dismissUpdate() {
+    set({ updateDismissed: true })
+  },
+
+  async checkUpdates() {
+    try {
+      const found = await checkForUpdate()
+      if (found && isNewer(found.version, __APP_VERSION__)) {
+        // Une nouvelle version déjà refusée « plus tard » ne revient pas à chaque vérification de la même session.
+        set((s) => ({ availableUpdate: found, updateDismissed: s.availableUpdate?.version === found.version ? s.updateDismissed : false }))
+        return 'found'
+      }
+      set({ availableUpdate: null })
+      return 'none'
+    } catch (e) {
+      return { error: e instanceof Error ? e.message : String(e) }
+    }
+  },
 
   togglePin(id) {
     const next = togglePinned(get().pinned, id)
