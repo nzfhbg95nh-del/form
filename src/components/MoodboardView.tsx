@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, StickyNote, Droplet } from 'lucide-react'
+import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, StickyNote, Droplet } from 'lucide-react'
 import { samplePixels, processImage } from '@/lib/images'
 import {
   alignItems, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
@@ -9,6 +9,7 @@ import {
   type AlignMode, type Board, type BoardItem, type NormalizeMode, type Pattern, type Rect, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
+import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
@@ -58,6 +59,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [palette, setPalette] = useState<string[]>([])
   const [linkInput, setLinkInput] = useState<string | null>(null)
   const [onTop, setOnTop] = useState(false)
+  const isFloatingElsewhere = useApp((s) => s.floatingBoards.includes(board.id)) && !floatingBoardId()
   const [panning, setPanning] = useState(false)
   const [spaceDown, setSpaceDown] = useState(false)
 
@@ -620,6 +622,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
         <button className={bar} title="Fond : points, grille ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
+        <button className={bar} title="Ouvrir dans une petite fenêtre flottante, toujours devant (comme PureRef)" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.') })}><PictureInPicture2 size={14} className="mr-1 inline" />Flottant</button>
         <button className={bar} title="Toujours au premier plan" onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
         {BACKGROUNDS.map((b) => (
           <button key={b} title={b === 'theme' ? 'Fond de l’application' : 'Couleur de fond'} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: bg === b ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
@@ -661,6 +664,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
+      )}
+      {isFloatingElsewhere && (
+        <div data-ui className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[var(--bg)]/95 p-6 text-center">
+          <PictureInPicture2 size={28} className="text-[var(--fg-muted)]" />
+          <p className="text-sm">Ce moodboard est ouvert dans une fenêtre flottante.<br /><span className="text-[var(--fg-muted)]">Pour éviter d’écraser tes modifications, on ne le modifie pas ici en même temps.</span></p>
+          <button className={bar} onClick={() => void closeFloatingBoard(board.id).then(() => useApp.getState().setFloatingBoard(board.id, false))}>Fermer la fenêtre flottante et reprendre ici</button>
+        </div>
       )}
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 

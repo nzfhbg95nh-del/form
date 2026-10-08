@@ -149,6 +149,11 @@ interface AppState {
   /** Recharge toutes les pages depuis la base (après un import). */
   reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
+  /** Moodboards ouverts dans une fenêtre flottante (la fenêtre principale ne les modifie pas en même temps). */
+  floatingBoards: string[]
+  setFloatingBoard(id: string, open: boolean): void
+  /** Démarrage léger de la fenêtre flottante : ouvre la base et charge les pages, sans sauvegarde ni rappels. */
+  initFloating(): Promise<void>
   /** `open: false` : on reste où l'on est (l'accueil) au lieu d'ouvrir la base de tâches. */
   addTasksFromAi(tasks: AiTask[], dbId: string | null, open?: boolean): Promise<void>
   /** Ajoute un événement daté à la base « Agenda » (créée au besoin), sans quitter la page. */
@@ -226,6 +231,21 @@ export const useApp = create<AppState>((set, get) => ({
   assistantMode: null,
   captureOpen: false,
   toast: null,
+  floatingBoards: [],
+
+  setFloatingBoard(id, open) {
+    set((s) => ({ floatingBoards: open ? (s.floatingBoards.includes(id) ? s.floatingBoards : [...s.floatingBoards, id]) : s.floatingBoards.filter((x) => x !== id) }))
+  },
+
+  async initFloating() {
+    applyTheme(get().theme)
+    try {
+      const repo = await openRepo()
+      set({ repo, objects: await repo.listObjects() })
+    } catch (e) {
+      set({ error: `Impossible d'ouvrir la base de données : ${String(e)}` })
+    }
+  },
 
   async init() {
     applyTheme(get().theme)

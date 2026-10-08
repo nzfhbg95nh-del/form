@@ -28,6 +28,7 @@ import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
+import { openFloatingBoard } from '@/lib/floating'
 import { normalize } from '@/lib/search'
 import { isSystemDatabase } from '@/lib/database'
 import { useApp } from '@/store/app'
@@ -171,6 +172,7 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
       <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
         <Icon value={board.icon ?? '🖼️'} size={14} />
         <span className="flex-1 truncate font-medium">{board.title || 'Moodboard'}</span>
+        <button type="button" className={frame} onClick={() => void openFloatingBoard(board.id, board.title)} title="Petite fenêtre toujours devant (Windows)">Flottant</button>
         <button type="button" className={frame} onClick={() => select(board.id)}>Ouvrir en pleine page ↗</button>
       </div>
       <div style={{ height: live ?? height }}>

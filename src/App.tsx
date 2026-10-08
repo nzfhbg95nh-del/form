@@ -18,6 +18,7 @@ import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
 import { TrashView } from '@/components/TrashView'
+import { FLOATING_EVENT, openFloatingBoardIds } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { copyText, pageLink, windowActions } from '@/lib/windowActions'
 import { useReminders } from '@/lib/useReminders'
@@ -105,6 +106,33 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [setSearch, setCapture])
+
+  // Moodboards ouverts en fenêtre flottante : la fenêtre principale les verrouille tant qu'ils y sont.
+  useEffect(() => {
+    if (!isTauri()) return
+    let unlisten: (() => void) | undefined
+    let cancelled = false
+    const sync = async () => {
+      const open = await openFloatingBoardIds()
+      const st = useApp.getState()
+      for (const id of open) st.setFloatingBoard(id, true)
+      for (const id of st.floatingBoards) if (!open.includes(id)) st.setFloatingBoard(id, false)
+    }
+    void sync()
+    void import('@tauri-apps/api/event').then(({ listen }) =>
+      listen<{ id: string; open: boolean }>(FLOATING_EVENT, (e) => useApp.getState().setFloatingBoard(e.payload.id, e.payload.open)).then((fn) => {
+        if (cancelled) fn()
+        else unlisten = fn
+      }),
+    )
+    // Filet de sécurité : si une fenêtre flottante a été fermée sans prévenir, on s'en aperçoit.
+    const timer = window.setInterval(() => { if (useApp.getState().floatingBoards.length > 0) void sync() }, 2000)
+    return () => {
+      cancelled = true
+      unlisten?.()
+      window.clearInterval(timer)
+    }
+  }, [])
 
   // Raccourci global (même quand Form n'est pas au premier plan) : envoyé par la partie Windows.
   useEffect(() => {
