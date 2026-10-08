@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, FolderInput, PanelRight, PenLine, Star, Trash2 } from 'lucide-react'
+import { Copy, ExternalLink, FolderInput, PanelRight, PenLine, Pin, PinOff, Star, Trash2 } from 'lucide-react'
 import { useApp } from '@/store/app'
 
 function formatDate(iso: string): string {
@@ -7,7 +7,7 @@ function formatDate(iso: string): string {
 
 /** Menu « ⋯ » d'une page (clic sur ⋯ ou clic droit dans la barre latérale). */
 export function PageMenu({ id, x, y, onClose }: { id: string; x: number; y: number; onClose: () => void }) {
-  const { objects, update, select, openPeek, setRenaming, setMoving, duplicate, trash } = useApp()
+  const { objects, update, select, openPeek, setRenaming, setMoving, duplicate, trash, pinned, togglePin } = useApp()
   const page = objects.find((o) => o.id === id)
   if (!page) return null
 
@@ -30,6 +30,7 @@ export function PageMenu({ id, x, y, onClose }: { id: string; x: number; y: numb
         style={{ left: Math.min(x, window.innerWidth - 270), top: Math.min(y, window.innerHeight - 340) }}
       >
         {item(<Star size={14} />, page.is_favorite ? 'Retirer des favoris' : 'Ajouter aux favoris', () => void update(id, { is_favorite: page.is_favorite ? 0 : 1 }))}
+        {item(pinned.includes(id) ? <PinOff size={14} /> : <Pin size={14} />, pinned.includes(id) ? 'Désépingler' : 'Épingler en haut', () => togglePin(id))}
         <div className="my-1 border-t border-[var(--border)]" />
         {item(<PenLine size={14} />, 'Renommer', () => setRenaming(id), 'Ctrl+Maj+R')}
         {item(<Copy size={14} />, 'Dupliquer', () => void duplicate(id), 'Ctrl+D')}

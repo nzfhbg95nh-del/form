@@ -7,6 +7,7 @@ import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
+import { parsePinned, PINNED_SETTING, togglePinned } from '@/lib/pinned'
 import { clientDocumentCount, couturePrestations, defaultServices, withDerivedSiren } from '@/lib/business'
 import { defaultCompany, loadCompany, type Company } from '@/lib/company'
 import { todayISO } from '@/lib/backup'
@@ -150,6 +151,9 @@ interface AppState {
   reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
   /** Moodboards ouverts dans une fenêtre flottante (la fenêtre principale ne les modifie pas en même temps). */
+  /** Pages épinglées en haut de la barre latérale (identifiants, dans l'ordre). */
+  pinned: string[]
+  togglePin(id: string): void
   floatingBoards: string[]
   setFloatingBoard(id: string, open: boolean): void
   /** Démarrage léger de la fenêtre flottante : ouvre la base et charge les pages, sans sauvegarde ni rappels. */
@@ -232,6 +236,13 @@ export const useApp = create<AppState>((set, get) => ({
   captureOpen: false,
   toast: null,
   floatingBoards: [],
+  pinned: [],
+
+  togglePin(id) {
+    const next = togglePinned(get().pinned, id)
+    set({ pinned: next })
+    void get().repo?.setSetting(PINNED_SETTING, JSON.stringify(next))
+  },
 
   setFloatingBoard(id, open) {
     set((s) => ({ floatingBoards: open ? (s.floatingBoards.includes(id) ? s.floatingBoards : [...s.floatingBoards, id]) : s.floatingBoards.filter((x) => x !== id) }))
@@ -275,7 +286,9 @@ export const useApp = create<AppState>((set, get) => ({
         }
         await repo.setSetting('default_couture_seeded', '1')
       }
+      const pinned = parsePinned(await repo.getSetting(PINNED_SETTING))
       set({
+        pinned,
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
         selectedId: first?.id ?? null,
         tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },

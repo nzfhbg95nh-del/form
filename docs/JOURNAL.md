@@ -351,3 +351,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-08 — « Mon entreprise » repliable (v0.37.1)
 - La section « Mon entreprise » de la barre latérale (Tableau de bord, Clients, Tarifs, Devis, Factures, Paiements, Courrier) se replie d'un clic sur son titre, comme Favoris, Récentes et Pages ; état gardé.
+
+## 2026-10-08 — Pages épinglées (v0.38.0)
+- Nouvelle section « Épinglées » tout en haut de la barre latérale (au-dessus de « Mon entreprise »), distincte des Favoris (étoile) ; repliable comme les autres ; n'apparaît que s'il y a des pages épinglées.
+- Épingler : menu « ⋯ » / clic droit d'une page de la barre latérale (« Épingler en haut » / « Désépingler »), ou la punaise dans la barre du haut d'une page.
+- Ordre = ordre d'épinglage. Liste des identifiants gardée dans le réglage `pinned_pages` (aucune migration) ; les pages supprimées disparaissent de la section.
+- Tests : 212.
