@@ -429,3 +429,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic droit sur une catégorie (ou bouton « ⋯ » au survol) : Renommer (sur place, Entrée pour valider, Échap pour annuler), Changer l'emoji, Monter, Descendre, Supprimer (avec confirmation ; les recettes passent dans « Sans catégorie »). Monter est grisé pour la première, Descendre pour la dernière.
 - Le sélecteur d'emoji se ferme maintenant en cliquant à côté (pour tous ses usages).
 - Tests : 238.
+
+## 2026-10-09 — Menu de « Sans catégorie » (v0.41.4)
+- La ligne « Sans catégorie » a, comme les autres, le clic droit et le bouton « ⋯ » au survol. Son menu : « Ouvrir » et « Ranger les N recettes dans… » (liste des catégories, un clic range toutes ces recettes). Pas de « Supprimer » : ce n'est pas une vraie catégorie, et supprimer les recettes d'un clic serait dangereux (elles se suppriment une par une, avec la corbeille).
