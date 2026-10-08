@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
-import { emptyRecipeBlocks, firstNumber, RECIPE, recipeBodyBlocks, recipeSlashBlocks, recipesSchema, recipeValues } from './recipes'
+import {
+  addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
+  removeCategory, renameCategory, setCategoryEmoji,
+} from './recipes'
 
 const recipe: Recipe = {
   title: 'Gâteau au yaourt', servings: '6 personnes', prepMinutes: 15, cookMinutes: 35,
@@ -13,11 +16,11 @@ describe('base de recettes', () => {
     const schema = recipesSchema()
     const parsed = parseSchema(JSON.stringify(schema))
     expect(parsed.kind).toBe('recipes')
-    expect(parsed.views.map((v) => v.type)).toEqual(['gallery', 'table', 'table'])
-    expect(parsed.views[1].groupBy).toBe(RECIPE.type)
-    const categories = parsed.columns.find((c) => c.id === RECIPE.type)!
-    expect(categories.name).toBe('Catégorie')
-    expect(categories.options?.map((o) => o.label)).toEqual(['Boissons & cocktails', 'Plats', 'Petit plat du midi', 'Compléments', 'Desserts', 'Entrées', 'Biscuits'])
+    expect(parsed.views.map((v) => v.type)).toEqual(['gallery'])
+    expect(parsed.columns.find((c) => c.id === RECIPE.type)!.name).toBe('Catégorie')
+    expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
+      ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'],
+    ])
     expect(parsed.columns.map((c) => c.id)).toEqual(Object.values(RECIPE))
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
   })
@@ -52,5 +55,41 @@ describe('base de recettes', () => {
     expect(withName.map((b) => b.type).slice(0, 4)).toEqual(['heading', 'paragraph', 'image', 'portions'])
     expect(withName[3].props?.servings).toBe(2)
     expect((recipeSlashBlocks() as { type: string }[]).map((b) => b.type)[0]).toBe('paragraph')
+  })
+})
+
+describe('catégories de recettes', () => {
+  it('ajoute, renomme, change l’emoji et supprime une catégorie', () => {
+    let schema = recipesSchema()
+    schema = addCategory(schema, '  Apéro  ')
+    const added = recipeCategories(schema).at(-1)!
+    expect([added.label, added.emoji]).toEqual(['Apéro', '🍽️'])
+    expect(recipeCategories(addCategory(schema, '   '))).toHaveLength(8)
+
+    schema = renameCategory(schema, added.id, 'Apéritifs')
+    schema = setCategoryEmoji(schema, added.id, '🥂')
+    expect(recipeCategories(schema).at(-1)).toMatchObject({ label: 'Apéritifs', emoji: '🥂' })
+    expect(recipeCategories(renameCategory(schema, added.id, '  '))).toEqual(recipeCategories(schema))
+
+    expect(recipeCategories(removeCategory(schema, added.id))).toHaveLength(7)
+  })
+
+  it('met un emoji de départ aux anciennes catégories qui n’en ont pas', () => {
+    const old = { ...recipesSchema(), columns: recipesSchema().columns.map((c) => (c.id === RECIPE.type ? { ...c, options: c.options?.map(({ emoji: _e, ...rest }) => { void _e; return rest }) } : c)) }
+    expect(recipeCategories(old)[0].emoji).toBe('🥃')
+  })
+
+  it('range les recettes par catégorie, « sans catégorie » pour le reste', () => {
+    const categories = recipeCategories(recipesSchema())
+    const rows = [
+      { properties: JSON.stringify({ type: 'desserts' }), n: 1 },
+      { properties: JSON.stringify({ type: 'desserts' }), n: 2 },
+      { properties: JSON.stringify({ type: 'supprimee' }), n: 3 },
+      { properties: '{}', n: 4 },
+    ]
+    const { byCategory, none } = groupByCategory(rows, categories, (r) => (JSON.parse(r.properties) as { type?: string }).type)
+    expect(byCategory.get('desserts')?.map((r) => r.n)).toEqual([1, 2])
+    expect(byCategory.get('plats')).toEqual([])
+    expect(none.map((r) => r.n)).toEqual([3, 4])
   })
 })
