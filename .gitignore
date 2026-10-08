@@ -3,3 +3,6 @@ target/
 dist/
 .env
 public/emoji/
+
+# Cle privee de signature des mises a jour (ne jamais publier)
+.cle-mise-a-jour/

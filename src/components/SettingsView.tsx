@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { open, save } from '@tauri-apps/plugin-dialog'
-import { backupFileName, joinPath, todayISO } from '@/lib/backup'
+import { backupFileName, DEFAULT_KEEP, joinPath, parseKeep, restoreBackup, todayISO } from '@/lib/backup'
 import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
@@ -11,12 +11,16 @@ export function GeneralSettings() {
   const [last, setLast] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [reminders, setReminders] = useState(true)
+  const [keep, setKeep] = useState(DEFAULT_KEEP)
+  const checkUpdates = useApp((s) => s.checkUpdates)
+  const available = useApp((s) => s.availableUpdate)
   const desktop = isTauri()
 
   useEffect(() => {
     void repo?.getSetting('backup_dir').then(setDir)
     void repo?.getSetting('last_backup_date').then(setLast)
     void repo?.getSetting('reminders_enabled').then((v) => setReminders(v !== '0'))
+    void repo?.getSetting('backup_keep').then((v) => setKeep(parseKeep(v)))
   }, [repo])
 
   const run = async (fn: () => Promise<string | void>) => {
@@ -62,6 +66,31 @@ export function GeneralSettings() {
       }
     })
 
+  const searchUpdate = () =>
+    run(async () => {
+      const result = await checkUpdates()
+      if (result === 'found') return 'Une nouvelle version est disponible : un bandeau en haut de la fenêtre te propose de l\u2019installer.'
+      if (result === 'none') return 'Form est à jour.'
+      return `Impossible de vérifier : ${result.error}`
+    })
+
+  const restore = () =>
+    run(async () => {
+      const chosen = await open({
+        title: 'Choisir la sauvegarde à restaurer',
+        defaultPath: dir ?? undefined,
+        filters: [{ name: 'Sauvegarde Form', extensions: ['db'] }],
+      })
+      if (typeof chosen !== 'string') return
+      const ok = window.confirm(
+        'Restaurer cette sauvegarde ?\n\n' + chosen + '\n\n' +
+        'Tout ce que tu as fait depuis cette sauvegarde sera remplacé par son contenu. ' +
+        'Ta base actuelle est gardée de côté (fichier « form.avant-restauration-… »). Form va se fermer puis se rouvrir tout seul.',
+      )
+      if (!ok) return 'Restauration annulée.'
+      await restoreBackup(chosen)
+    })
+
   const btn = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
   return (
@@ -91,6 +120,18 @@ export function GeneralSettings() {
         Envoyer une notification de test
       </button>
 
+      <h2 className="mb-2 text-lg font-semibold">Mises à jour</h2>
+      <p className="mb-2 text-sm">
+        Version installée : <strong>{__APP_VERSION__}</strong>
+        {available && <span className="text-[var(--fg-muted)]"> — la version {available.version} est disponible</span>}
+      </p>
+      <p className="mb-3 text-xs text-[var(--fg-muted)]">
+        Form cherche tout seul une nouvelle version au démarrage, puis toutes les 6 heures. Rien n'est installé sans ton clic.
+      </p>
+      <button className="mb-8 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>
+        Rechercher une mise à jour
+      </button>
+
       <h2 className="mb-2 text-lg font-semibold">Sauvegarde</h2>
       {!desktop && (
         <p className="mb-3 text-sm text-[var(--fg-muted)]">La sauvegarde n'est disponible que dans l'application Windows.</p>
@@ -103,7 +144,26 @@ export function GeneralSettings() {
         <button className={btn} disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
         <button className={btn} disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
         <button className={btn} disabled={!desktop} onClick={exportAll}>Exporter tout</button>
+        <button className={btn} disabled={!desktop} onClick={restore}>Restaurer une sauvegarde…</button>
       </div>
+      <label className="mt-3 flex items-center gap-2 text-sm">
+        Garder les
+        <input
+          type="number"
+          min={5}
+          max={365}
+          value={keep}
+          disabled={!desktop}
+          onChange={(e) => setKeep(Number(e.target.value))}
+          onBlur={() => {
+            const n = parseKeep(String(keep))
+            setKeep(n)
+            void repo?.setSetting('backup_keep', String(n))
+          }}
+          className="w-20 rounded border border-[var(--border)] bg-transparent px-2 py-1"
+        />
+        dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
+      </label>
       {msg && <p className="mt-3 text-sm">{msg}</p>}
     </div>
   )

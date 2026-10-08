@@ -1,3 +1,4 @@
+mod backup;
 mod gemini;
 mod mail;
 mod secrets;
@@ -51,6 +52,7 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             // Capture rapide : Ctrl + Alt + N, même quand Form n'est pas au premier plan.
             tauri_plugin_global_shortcut::Builder::new()
@@ -67,6 +69,8 @@ pub fn run() {
                 .build(),
         )
         .setup(|app| {
+            // Une restauration de sauvegarde demandée avant la fermeture s'applique ici, avant l'ouverture de la base.
+            backup::apply_pending_restore(app.handle());
             // Si un autre programme utilise déjà ce raccourci, Form démarre quand même.
             let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyN);
             let _ = app.global_shortcut().register(shortcut);
@@ -81,6 +85,9 @@ pub fn run() {
             secrets::secret_set,
             secrets::secret_exists,
             secrets::secret_delete,
+            backup::stage_restore,
+            backup::restart_app,
+            backup::prune_backups,
             gemini::gemini_generate,
             gemini::gemini_models,
             gemini::gemini_image,
