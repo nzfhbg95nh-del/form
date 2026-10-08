@@ -161,7 +161,7 @@ export function PageView({ pageId }: { pageId?: string }) {
         <div className="flex shrink-0 gap-0.5">
           {page.type !== 'row' && <PageStyleMenu page={page} editorRef={editorRef} />}
           <button title={pinned.includes(page.id) ? 'Désépingler de la barre latérale' : 'Épingler en haut de la barre latérale'} aria-pressed={pinned.includes(page.id)} onClick={() => togglePin(page.id)} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
-            <Pin size={16} className={pinned.includes(page.id) ? 'fill-[var(--accent)] text-[var(--accent)]' : 'text-[var(--fg-muted)]'} />
+            <Pin size={16} className={pinned.includes(page.id) ? 'fill-current text-[var(--fg)]' : 'text-[var(--fg-muted)]'} />
           </button>
           <button title="Favori" onClick={() => void update(page.id, { is_favorite: page.is_favorite ? 0 : 1 })} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
             <Star size={16} className={page.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-[var(--fg-muted)]'} />
