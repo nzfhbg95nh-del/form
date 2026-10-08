@@ -421,3 +421,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Catégories de recettes plus petites (v0.41.1)
 - La liste des catégories est plus compacte : emoji 20 px (au lieu de 28), texte de taille normale (au lieu de grand), lignes moins hautes, nombre de recettes en petit.
+
+## 2026-10-09 — Notes rapides sous les catégories de recettes (v0.41.2)
+- Sous la liste des catégories de la page « Recettes » : un espace « Notes rapides » qui est un vrai éditeur de page (texte, listes, cases à cocher, titres, commande /). Enregistré tout seul 0,5 s après la dernière frappe, et aussi si on quitte la page avant. Le texte est gardé dans le contenu de la base « Recettes ».

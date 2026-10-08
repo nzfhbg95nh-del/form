@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react'
 import { Icon } from '@/components/Icon'
+import { PageEditor } from '@/components/PageEditor'
 import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
@@ -33,6 +34,43 @@ function RecipeCard({ row }: { row: ObjectRow }) {
       </div>
       <div className="truncate p-2 text-sm font-medium">{displayTitle(row.title)}</div>
     </button>
+  )
+}
+
+/**
+ * Espace de notes rapides sous la liste des catégories : un vrai éditeur de page (listes, cases à cocher, titres, commande « / »),
+ * enregistré tout seul dans la base « Recettes » 0,5 s après la dernière frappe (et à la fermeture de la page).
+ */
+function QuickNotes({ db }: { db: ObjectRow }) {
+  const update = useApp((s) => s.update)
+  const timer = useRef<number | undefined>(undefined)
+  const pending = useRef<string | null>(null)
+  const flush = () => {
+    window.clearTimeout(timer.current)
+    if (pending.current !== null) {
+      const content = pending.current
+      pending.current = null
+      void update(db.id, { content })
+    }
+  }
+  // Une modification en attente est enregistrée si on quitte la page avant les 0,5 s.
+  useEffect(() => flush, []) // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <section className="mt-8 border-t border-[var(--border)] pt-4" aria-label="Notes rapides">
+      <h2 className="mb-1 text-sm font-medium text-[var(--fg-muted)]">Notes rapides</h2>
+      <div className="-mx-12">
+        <PageEditor
+          key={db.id}
+          pageId={db.id}
+          initial={db.content}
+          onChange={(json) => {
+            pending.current = json
+            window.clearTimeout(timer.current)
+            timer.current = window.setTimeout(flush, 500)
+          }}
+        />
+      </div>
+    </section>
   )
 }
 
@@ -154,6 +192,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-[var(--fg-muted)]"
         />
       </form>
+
+      <QuickNotes db={db} />
     </div>
   )
 }
