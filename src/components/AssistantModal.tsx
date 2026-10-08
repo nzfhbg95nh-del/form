@@ -6,6 +6,7 @@ import {
   type AiLine, type AiMode, type AiPriority, type AiTask, type Recipe,
 } from '@/lib/ai'
 import { parseSchema } from '@/lib/database'
+import { recipeCategories, recipesSchema, type RecipeCategory } from '@/lib/recipes'
 import { newInvoiceLine, isInvoiceDraft } from '@/lib/invoices'
 import { newLine, isDraft } from '@/lib/quotes'
 import { detectSensitive, planSend, summarize } from '@/lib/sensitive'
@@ -42,6 +43,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [recipe, setRecipe] = useState<Recipe | null>(null)
+  const [recipeCategory, setRecipeCategory] = useState('')
   const [lines, setLines] = useState<AiLine[] | null>(null)
   const [tasks, setTasks] = useState<(AiTask & { keep: boolean })[] | null>(null)
   const [targetKey, setTargetKey] = useState('')
@@ -59,6 +61,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
   const page = objects.find((o) => o.id === selectedId && o.type === 'page' && !o.deleted_at)
   const draftQuotes = quotes.filter((q) => isDraft(q))
   const draftInvoices = invoices.filter((i) => isInvoiceDraft(i) && i.kind !== 'credit')
+  const recipesDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
   const tasksDbs = objects.filter((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'tasks')
 
   const hasResult = recipe !== null || lines !== null || tasks !== null
@@ -201,7 +204,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
         )}
 
         {recipe && (
-          <RecipeResult recipe={recipe} onChange={setRecipe} onBack={reset} onApply={async () => { await store.createRecipePage(recipe); onClose() }} />
+          <RecipeResult recipe={recipe} categories={recipeCategories(parseSchema(recipesDb?.properties ?? JSON.stringify(recipesSchema())))} category={recipeCategory} onCategory={setRecipeCategory} onChange={setRecipe} onBack={reset} onApply={async () => { await store.createRecipePage(recipe, recipeCategory || undefined); onClose() }} />
         )}
 
         {lines && (
@@ -280,7 +283,7 @@ function LineEdit({ line, onChange, onRemove }: { line: AiLine; onChange: (l: Ai
   )
 }
 
-function RecipeResult({ recipe, onChange, onBack, onApply }: { recipe: Recipe; onChange: (r: Recipe) => void; onBack: () => void; onApply: () => void }) {
+function RecipeResult({ recipe, categories, category, onCategory, onChange, onBack, onApply }: { recipe: Recipe; categories: RecipeCategory[]; category: string; onCategory: (id: string) => void; onChange: (r: Recipe) => void; onBack: () => void; onApply: () => void }) {
   const list = (v: string) => v.split('\n').map((s) => s.trim()).filter(Boolean)
   return (
     <div>
@@ -293,6 +296,12 @@ function RecipeResult({ recipe, onChange, onBack, onApply }: { recipe: Recipe; o
         <label className="block text-xs text-[var(--fg-muted)]">Ingrédients<textarea className={field + ' mt-1 h-44 text-sm'} defaultValue={recipe.ingredients.join('\n')} onBlur={(e) => onChange({ ...recipe, ingredients: list(e.target.value) })} /></label>
         <label className="block text-xs text-[var(--fg-muted)]">Étapes<textarea className={field + ' mt-1 h-44 text-sm'} defaultValue={recipe.steps.join('\n')} onBlur={(e) => onChange({ ...recipe, steps: list(e.target.value) })} /></label>
       </div>
+      <label className="mt-3 block text-xs text-[var(--fg-muted)]">Catégorie
+        <select className={field + ' mt-1'} value={category} onChange={(e) => onCategory(e.target.value)}>
+          <option value="">Sans catégorie</option>
+          {categories.map((c) => <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>)}
+        </select>
+      </label>
       <div className="mt-4 flex gap-2">
         <button className={primary} onClick={onApply}>Créer la page de recette</button>
         <button className={secondary} onClick={onBack}>Recommencer</button>

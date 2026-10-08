@@ -411,3 +411,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Dans une galerie (Recettes ou toute autre base), la carte affiche la couverture de la page ; à défaut, la PREMIÈRE IMAGE de la page (la photo que tu as mise dans le bloc image), sinon l'icône. On retrouve ainsi d'un coup d'œil toutes les photos de ses recettes. Le contenu n'est relu que lorsque la page change (mémoire par identifiant et date de modification).
 - Les cartes sont alignées en haut (une carte sans étiquette n'était plus centrée en hauteur).
 - Tests : 234.
+
+## 2026-10-09 — Recettes : catégories puis galerie, comme l'ancien Notion (v0.41.0)
+- Fini le tableau et la vue « Par catégorie » : la page « Recettes » est maintenant la liste des catégories, chacune avec son emoji et le nombre de recettes (🥃 Boissons & Cocktails, 🥘 Plats, 🫕 Petit plat du midi, 🥖 Compléments, 🍩 Desserts, 🥣 Entrée, 🍪 Biscuits, etc…). Un clic ouvre la catégorie : galerie de cartes (photo = couverture, sinon première image de la page, sinon icône) ; un clic sur une carte ouvre la recette ; « Nouvelle recette » dans une catégorie la range directement dedans. « Sans catégorie » apparaît s'il y a des recettes sans catégorie ou dont la catégorie a été supprimée.
+- Catégories : « Nouvelle catégorie… » en bas de la liste ; dans une catégorie : cliquer l'emoji pour le changer, cliquer le nom pour le renommer, corbeille pour la supprimer (les recettes passent dans « Sans catégorie », rien n'est supprimé). Stockées comme les choix de la propriété « Catégorie » (emoji ajouté au choix) ; les recettes déjà créées gardent leur catégorie.
+- Assistant (texte ou lien YouTube vers recette) : choix de la catégorie avant de créer la page.
+- Le reste ne change pas : page de recette avec nombre de personnes qui recalcule les quantités, commande / Recette, « Depuis une vidéo ou un texte ».
+- Tests : 237.

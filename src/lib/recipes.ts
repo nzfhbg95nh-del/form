@@ -1,4 +1,4 @@
-import { newId, type Schema } from './database'
+import { newId, OPTION_COLORS, type Schema, type SelectOption } from './database'
 import type { Recipe } from './ai'
 
 /** Identifiants des colonnes de la base « Recettes ». */
@@ -12,20 +12,29 @@ export const RECIPE = {
   source: 'source',
 } as const
 
-const opt = (id: string, label: string, color: string) => ({ id, label, color })
+const opt = (id: string, label: string, color: string, emoji?: string) => ({ id, label, color, ...(emoji ? { emoji } : {}) })
 
-/** La base « Recettes » : galerie de cartes (photo, titre), vue par catégorie et tableau, avec les infos utiles d'une recette. */
+/** Les catégories de départ (comme dans l'ancien Notion de Victor). On peut en ajouter, renommer, supprimer. */
+export const DEFAULT_CATEGORIES = [
+  { id: 'boissons', label: 'Boissons & Cocktails', emoji: '🥃', color: '#d3e5ef' },
+  { id: 'plats', label: 'Plats', emoji: '🥘', color: '#fadec9' },
+  { id: 'midi', label: 'Petit plat du midi', emoji: '🫕', color: '#fdecc8' },
+  { id: 'complements', label: 'Compléments', emoji: '🥖', color: '#e8deee' },
+  { id: 'desserts', label: 'Desserts', emoji: '🍩', color: '#f5e0e9' },
+  { id: 'entrees', label: 'Entrée', emoji: '🥣', color: '#dbeddb' },
+  { id: 'biscuits', label: 'Biscuits, etc…', emoji: '🍪', color: '#ede0d4' },
+]
+
+export const CATEGORY_FALLBACK_EMOJI = '🍽️'
+
+/** La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et les infos d'une recette. */
 export function recipesSchema(): Schema {
   return {
     kind: 'recipes',
     columns: [
       {
         id: RECIPE.type, name: 'Catégorie', type: 'select',
-        options: [
-          opt('boissons', 'Boissons & cocktails', '#d3e5ef'), opt('plats', 'Plats', '#fadec9'), opt('midi', 'Petit plat du midi', '#fdecc8'),
-          opt('complements', 'Compléments', '#e8deee'), opt('desserts', 'Desserts', '#f5e0e9'), opt('entrees', 'Entrées', '#dbeddb'),
-          opt('biscuits', 'Biscuits', '#ede0d4'),
-        ],
+        options: DEFAULT_CATEGORIES.map((c) => opt(c.id, c.label, c.color, c.emoji)),
       },
       { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' },
       { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' },
@@ -40,13 +49,61 @@ export function recipesSchema(): Schema {
       },
       { id: RECIPE.source, name: 'Source', type: 'url' },
     ],
-    views: [
-      { id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] },
-      // Une section par catégorie (Plats, Desserts, Entrées...).
-      { id: newId(), name: 'Par catégorie', type: 'table', filters: [], sorts: [], groupBy: RECIPE.type },
-      { id: newId(), name: 'Tableau', type: 'table', filters: [], sorts: [] },
-    ],
+    views: [{ id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] }],
   }
+}
+
+export interface RecipeCategory {
+  id: string
+  label: string
+  emoji: string
+  color: string
+}
+
+const typeColumn = (schema: Schema) => schema.columns.find((c) => c.id === RECIPE.type)
+
+/** Les catégories de la base : un emoji est toujours fourni (celui de départ, sinon une assiette). */
+export function recipeCategories(schema: Schema): RecipeCategory[] {
+  const known = new Map(DEFAULT_CATEGORIES.map((c) => [c.id, c.emoji]))
+  return (typeColumn(schema)?.options ?? []).map((o) => ({ id: o.id, label: o.label, color: o.color, emoji: o.emoji ?? known.get(o.id) ?? CATEGORY_FALLBACK_EMOJI }))
+}
+
+function patchCategories(schema: Schema, change: (options: SelectOption[]) => SelectOption[]): Schema {
+  return { ...schema, columns: schema.columns.map((c) => (c.id === RECIPE.type ? { ...c, options: change(c.options ?? []) } : c)) }
+}
+
+export function addCategory(schema: Schema, label: string, emoji = CATEGORY_FALLBACK_EMOJI): Schema {
+  const name = label.trim()
+  if (!name) return schema
+  return patchCategories(schema, (options) => [...options, { id: newId(), label: name, emoji, color: OPTION_COLORS[options.length % OPTION_COLORS.length] }])
+}
+
+export function renameCategory(schema: Schema, id: string, label: string): Schema {
+  const name = label.trim()
+  if (!name) return schema
+  return patchCategories(schema, (options) => options.map((o) => (o.id === id ? { ...o, label: name } : o)))
+}
+
+export function setCategoryEmoji(schema: Schema, id: string, emoji: string): Schema {
+  return patchCategories(schema, (options) => options.map((o) => (o.id === id ? { ...o, emoji: emoji || CATEGORY_FALLBACK_EMOJI } : o)))
+}
+
+/** Supprime une catégorie : ses recettes ne sont pas supprimées, elles passent dans « Sans catégorie ». */
+export function removeCategory(schema: Schema, id: string): Schema {
+  return patchCategories(schema, (options) => options.filter((o) => o.id !== id))
+}
+
+/** Répartit des recettes par catégorie (`none` : sans catégorie, ou dont la catégorie a été supprimée). */
+export function groupByCategory<T extends { properties: string }>(rows: T[], categories: RecipeCategory[], valueOf: (row: T) => unknown): { byCategory: Map<string, T[]>; none: T[] } {
+  const ids = new Set(categories.map((c) => c.id))
+  const byCategory = new Map<string, T[]>(categories.map((c) => [c.id, []]))
+  const none: T[] = []
+  for (const row of rows) {
+    const v = valueOf(row)
+    if (typeof v === 'string' && ids.has(v)) byCategory.get(v)!.push(row)
+    else none.push(row)
+  }
+  return { byCategory, none }
 }
 
 const h = (text: string) => ({ type: 'heading', props: { level: 2 }, content: text })

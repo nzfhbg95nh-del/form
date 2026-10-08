@@ -20,6 +20,8 @@ export interface SelectOption {
   id: string
   label: string
   color: string
+  /** Emoji du choix (utilisé par les catégories de recettes). */
+  emoji?: string
 }
 
 export interface Column {

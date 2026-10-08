@@ -9,6 +9,7 @@ import { IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
+import { RecipesView } from '@/components/RecipesView'
 
 const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
 const input = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
@@ -331,8 +332,15 @@ function SyncMailButton() {
   return <button className={btn} disabled={busy} onClick={() => void run()}>📬 {busy ? 'Relève en cours…' : 'Relever le courrier'}</button>
 }
 
-/** `embedded` : version intégrée dans une page (titre discret, pas de marges de page entière). */
+/** La base « Recettes » a sa propre page (catégories puis galerie) ; les autres bases ont leurs vues habituelles. */
 export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded?: boolean }) {
+  const schema = parseSchema(db.properties)
+  if (schema.kind === 'recipes' && !embedded) return <RecipesView db={db} schema={schema} />
+  return <DatabaseTable db={db} embedded={embedded} />
+}
+
+/** `embedded` : version intégrée dans une page (titre discret, pas de marges de page entière). */
+function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boolean }) {
   const { objects, update, saveSchema } = useApp()
   const schema = parseSchema(db.properties)
   const storeKey = `form-view-${db.id}`
@@ -426,12 +434,6 @@ export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded
         </div>
         <div className="flex-1" />
         {schema.kind === 'mail' && <SyncMailButton />}
-        {schema.kind === 'recipes' && (
-          <>
-            <button className={btn} onClick={() => useApp.getState().setAssistant('recipe')} title="Écrire la recette à partir d'une vidéo YouTube ou d'un texte collé">✨ Depuis une vidéo ou un texte</button>
-            <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => void useApp.getState().addRecipe()}>+ Nouvelle recette</button>
-          </>
-        )}
         <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
 

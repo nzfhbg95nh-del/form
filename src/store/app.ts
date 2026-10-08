@@ -146,11 +146,11 @@ interface AppState {
   assistantMode: AiMode | null
   setAssistant(mode: AiMode | null): void
   /** Range la recette lue par l'assistant dans la base « Recettes » et l'ouvre. */
-  createRecipePage(recipe: Recipe): Promise<void>
+  createRecipePage(recipe: Recipe, categoryId?: string): Promise<void>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
   openRecipes(): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
-  addRecipe(): Promise<void>
+  addRecipe(values?: Record<string, unknown>): Promise<void>
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
   syncMail(): Promise<number>
   openMail(): Promise<void>
@@ -794,12 +794,12 @@ export const useApp = create<AppState>((set, get) => ({
     if (db) get().select(db.id)
   },
 
-  async addRecipe() {
-    await addRecipeRow(get, set, {})
+  async addRecipe(values) {
+    await addRecipeRow(get, set, { values })
   },
 
-  async createRecipePage(recipe) {
-    await addRecipeRow(get, set, { title: recipe.title, values: recipeValues(recipe), content: recipeBodyBlocks(recipe) })
+  async createRecipePage(recipe, categoryId) {
+    await addRecipeRow(get, set, { title: recipe.title, values: { ...recipeValues(recipe), ...(categoryId ? { [RECIPE.type]: categoryId } : {}) }, content: recipeBodyBlocks(recipe) })
   },
 
   async addTasksFromAi(tasks, dbId, open = true) {
