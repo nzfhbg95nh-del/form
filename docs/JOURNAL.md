@@ -376,3 +376,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-08 — Punaise de la couleur des icônes (v0.38.5)
 - La punaise des pages épinglées n'est plus bleue : même gris que les autres icônes de la barre latérale (contour, sans remplissage). Dans la barre du haut d'une page, la punaise active est pleine, de la couleur du texte.
+
+## 2026-10-08 — Flèche des titres de section après le texte, au survol (v0.38.6)
+- Mon entreprise, Favoris, Récentes, Pages : la petite flèche de repli est maintenant juste après le texte et n'apparaît que quand la souris est sur le titre.
