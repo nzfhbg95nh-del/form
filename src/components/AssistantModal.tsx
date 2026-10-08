@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { todayISO } from '@/lib/backup'
 import { centsToInput, formatEuros, parseEuros, UNITS } from '@/lib/business'
 import {
-  aiAvailable, askGemini, DEFAULT_MODEL, keyExists, MODE_LABELS, parseLines, parseRecipe, parseTasks,
+  aiAvailable, askGemini, askGeminiVideo, DEFAULT_MODEL, keyExists, MODE_LABELS, parseLines, parseRecipe, parseTasks, videoLinkProblem,
   type AiLine, type AiMode, type AiPriority, type AiTask, type Recipe,
 } from '@/lib/ai'
 import { parseSchema } from '@/lib/database'
@@ -34,6 +34,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
   const { repo, objects, quotes, quoteLines, invoices, invoiceLines, selectedId } = store
   const [mode, setMode] = useState<AiMode>(onApplyLines ? 'lines' : initialMode)
   const [text, setText] = useState('')
+  const [videoLink, setVideoLink] = useState('')
   const [redact, setRedact] = useState(true)
   const [confirmed, setConfirmed] = useState(false)
   const [keyState, setKeyState] = useState<'unknown' | 'yes' | 'no'>('unknown')
@@ -71,6 +72,23 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
       if (mode === 'recipe') setRecipe(parseRecipe(raw))
       else if (mode === 'lines') setLines(parseLines(raw))
       else setTasks(parseTasks(raw).map((t) => ({ ...t, keep: true })))
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const sendVideo = async () => {
+    const problem = videoLinkProblem(videoLink)
+    if (problem) {
+      setError(problem)
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      setRecipe(parseRecipe(await askGeminiVideo(videoLink, model, todayISO())))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -132,6 +150,18 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
         {!hasResult && (
           <>
             <p className="mb-2 text-sm text-[var(--fg-muted)]">{HINTS[mode]}</p>
+            {mode === 'recipe' && (
+              <div className="mb-4 rounded border border-[var(--border)] p-3">
+                <div className="mb-1 text-sm font-medium">Depuis une vidéo YouTube</div>
+                <p className="mb-2 text-xs text-[var(--fg-muted)]">
+                  Colle le lien : Gemini regarde et écoute la vidéo, lit sa description, et écrit les ingrédients et les étapes. Seul le lien est envoyé à Google. Pour Instagram, TikTok ou Facebook (non lisibles), copie la légende dans la zone de texte plus bas.
+                </p>
+                <div className="flex gap-2">
+                  <input className={field} value={videoLink} placeholder="https://www.youtube.com/watch?v=…" onChange={(e) => setVideoLink(e.target.value)} />
+                  <button className={primary + ' shrink-0'} disabled={videoLink.trim() === '' || keyState !== 'yes' || busy} onClick={() => void sendVideo()}>{busy ? 'Analyse…' : 'Analyser la vidéo'}</button>
+                </div>
+              </div>
+            )}
             <textarea className={field + ' h-44 text-sm'} value={text} placeholder="Colle ton texte ici…" onChange={(e) => setText(e.target.value)} autoFocus />
             {page && (
               <button className={secondary + ' mt-2'} onClick={() => setText(extractText(page.content))}>Utiliser le texte de la page « {page.title || 'Nouvelle page'} »</button>

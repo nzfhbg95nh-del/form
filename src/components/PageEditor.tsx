@@ -19,12 +19,14 @@ import {
 import '@blocknote/mantine/style.css'
 import {
   CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List,
-  ListChecks, ListCollapse, ListOrdered, ListTree, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
+  ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
+import { createPortionsBlock, createRecipePhotoBlock } from '@/components/RecipeBlocks'
 import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
+import { recipeSlashBlocks } from '@/lib/recipes'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
@@ -320,7 +322,7 @@ const createMention = createReactInlineContentSpec(
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock() },
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -346,6 +348,18 @@ function putBlock(editor: Ed, block: Record<string, unknown>, at: Cur = cursorBl
   if (empty) editor.updateBlock(at as never, block as never)
   else editor.insertBlocks([block as never], at as never, 'after')
   // Un bloc sans texte (moodboard, page...) ne doit pas rester le dernier : on garde une ligne libre dessous.
+  const last = editor.document[editor.document.length - 1] as { type: string }
+  if (last.type !== 'paragraph') editor.insertBlocks([{ type: 'paragraph' } as never], last as never, 'after')
+}
+
+/** Comme putBlock, pour plusieurs blocs d'un coup : le premier remplace la ligne vide, les autres suivent. */
+function putBlocks(editor: Ed, blocks: unknown[], at: Cur = cursorBlock(editor)) {
+  const [first, ...rest] = blocks as Record<string, unknown>[]
+  const empty = Array.isArray(at.content) && at.content.length === 0
+  let anchor: Cur = at
+  if (empty) editor.updateBlock(at as never, first as never)
+  else anchor = editor.insertBlocks([first as never], at as never, 'after')[0] as unknown as Cur
+  if (rest.length) editor.insertBlocks(rest as never, anchor as never, 'after')
   const last = editor.document[editor.document.length - 1] as { type: string }
   if (last.type !== 'paragraph') editor.insertBlocks([{ type: 'paragraph' } as never], last as never, 'after')
 }
@@ -398,6 +412,21 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
+    {
+      key: 'recipe', title: 'Recette', aliases: ['recette', 'cuisine', 'plat', 'ingrédients', 'ingredients', 'gâteau', 'gateau'], group: 'Cuisine',
+      subtext: 'Nom, photo (IA), nombre de personnes, ingrédients, étapes', icon: ico(ChefHat),
+      onItemClick: () => {
+        const at = cursorBlock(editor)
+        const st = useApp.getState()
+        const page = st.objects.find((o) => o.id === pageId)
+        void (st.repo?.getSetting('recipe_people') ?? Promise.resolve(null)).then((raw) => {
+          const people = Math.max(1, parseInt(raw ?? '', 10) || 4)
+          putBlocks(editor, recipeSlashBlocks({ people, withName: !page?.title.trim() }), at)
+        })
+      },
+    },
+    { key: 'recipephoto', title: 'Photo de recette (IA)', aliases: ['photo', 'recette', 'image', 'ia', 'plat'], group: 'Cuisine', subtext: 'Une photo du plat dessinée par Gemini', icon: ico(ChefHat), onItemClick: put({ type: 'recipephoto' }) },
+    { key: 'portions', title: 'Nombre de personnes', aliases: ['personnes', 'portions', 'quantités', 'quantites', 'recette'], group: 'Cuisine', subtext: 'Recalcule les quantités des ingrédients', icon: ico(Users), onItemClick: put({ type: 'portions' }) },
     { key: 'toc', title: 'Table des matières', aliases: ['table', 'matières', 'matieres', 'sommaire', 'toc', 'plan'], group: 'Blocs avancés', icon: ico(ListTree), onItemClick: put({ type: 'toc' }) },
     { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },
     { key: 'dbinline', title: 'Base de données – Intégrée', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau', 'intégrée', 'integree', 'kanban', 'calendrier', 'galerie'], group: 'Base de données', subtext: 'Une base de données dans la page (tableau, kanban, calendrier...)', icon: ico(Database), onItemClick: embed('database', 'database') },

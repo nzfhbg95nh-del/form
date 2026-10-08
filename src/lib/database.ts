@@ -85,7 +85,7 @@ export interface Schema {
   columns: Column[]
   views: ViewConfig[]
   /** Base de tâches (kind = tasks) : surveillée par les rappels. */
-  kind?: 'tasks' | 'mail' | 'agenda'
+  kind?: 'tasks' | 'mail' | 'agenda' | 'recipes'
 }
 
 /** La colonne « Nom » existe toujours : c'est le titre de chaque ligne. */
@@ -133,11 +133,11 @@ export function parseValues(properties: string): Record<string, unknown> {
   }
 }
 
-/** Bases « système » : le courrier (propre entrée dans « Mon entreprise ») et l'agenda du calendrier d'accueil. Elles n'apparaissent pas dans les pages. */
+/** Bases « système » : le courrier, l'agenda du calendrier d'accueil et les recettes (chacune a sa propre entrée). Elles n'apparaissent pas dans les pages. */
 export function isSystemDatabase(o: { type: string; properties: string }): boolean {
   if (o.type !== 'database') return false
   const kind = parseSchema(o.properties).kind
-  return kind === 'mail' || kind === 'agenda'
+  return kind === 'mail' || kind === 'agenda' || kind === 'recipes'
 }
 
 export function allColumns(schema: Schema): Column[] {

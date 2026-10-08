@@ -289,3 +289,74 @@ export async function generateIconImage(text: string, model: string = IMAGE_MODE
   const prompt = `Une icône carrée, simple et lisible en petit, fond uni ou transparent, style illustration plate et douce, sans aucun texte : ${text}`
   return invoke<string>('gemini_image', { model, prompt })
 }
+
+/** Fait dessiner une photo de plat à Gemini (après un clic) : renvoie une image (data URL). */
+export async function generateRecipePhoto(prompt: string, model: string = IMAGE_MODEL): Promise<string> {
+  if (!isTauri()) {
+    if (window.__FORM_ICON_MOCK) return window.__FORM_ICON_MOCK('image', prompt)
+    throw new Error("L'assistant IA n'est disponible que dans l'application Windows.")
+  }
+  return invoke<string>('gemini_image', { model, prompt })
+}
+
+// ───────────────────────── Recette depuis une vidéo ─────────────────────────
+
+/** Identifiant d'une vidéo YouTube dans un lien (watch, youtu.be, shorts, embed, live), ou null. */
+export function youtubeId(link: string): string | null {
+  let url: URL
+  try {
+    url = new URL(link.trim())
+  } catch {
+    return null
+  }
+  const host = url.hostname.replace(/^www\.|^m\./, '')
+  let id: string | null = null
+  if (host === 'youtu.be') id = url.pathname.split('/')[1] ?? null
+  else if (host === 'youtube.com') {
+    if (url.pathname === '/watch') id = url.searchParams.get('v')
+    else {
+      const m = /^\/(?:shorts|embed|live|v)\/([^/?#]+)/.exec(url.pathname)
+      id = m ? m[1] : null
+    }
+  }
+  return id && /^[\w-]{6,20}$/.test(id) ? id : null
+}
+
+/** Lien normalisé envoyé à Gemini. */
+export const youtubeWatchUrl = (id: string) => `https://www.youtube.com/watch?v=${id}`
+
+/** Message d'explication pour un lien qui ne peut pas être analysé (null si c'est un lien YouTube valable). */
+export function videoLinkProblem(link: string): string | null {
+  if (youtubeId(link)) return null
+  let host = ''
+  try {
+    host = new URL(link.trim()).hostname.replace(/^www\./, '')
+  } catch {
+    return 'Ce n’est pas un lien : colle l’adresse complète de la vidéo (elle commence par https://).'
+  }
+  if (/(^|\.)(instagram\.com|tiktok\.com|facebook\.com|fb\.watch|x\.com|twitter\.com)$/.test(host)) {
+    return 'Instagram, TikTok, Facebook et X ne laissent pas lire leurs vidéos par un programme : Form ne peut pas les analyser. Ouvre la publication, copie sa légende (c’est là que se trouve souvent la recette) et colle-la dans la zone de texte ci-dessous.'
+  }
+  return 'Seuls les liens YouTube peuvent être analysés. Pour une autre page, copie le texte de la recette et colle-le dans la zone de texte.'
+}
+
+const VIDEO_RULES =
+  "Tu regardes et écoutes une vidéo de cuisine. Extrais la recette complète : les ingrédients avec leurs quantités (dites à voix haute, écrites à l'écran ou dans la description), puis les étapes dans l'ordre. N'invente aucune quantité : si elle n'est ni dite ni montrée, écris l'ingrédient sans quantité. Si la vidéo ne contient pas de recette, renvoie des listes vides."
+
+/** Envoie le lien d'une vidéo YouTube à Gemini (après un clic) et renvoie la recette brute (JSON). */
+export async function askGeminiVideo(link: string, model: string, today: string): Promise<string> {
+  const id = youtubeId(link)
+  if (!id) throw new Error(videoLinkProblem(link) ?? 'Lien non valable.')
+  const url = youtubeWatchUrl(id)
+  if (!isTauri()) {
+    if (window.__FORM_AI_MOCK) return window.__FORM_AI_MOCK('recipe', url)
+    throw new Error("L'assistant IA n'est disponible que dans l'application Windows.")
+  }
+  return invoke<string>('gemini_generate_video', {
+    model,
+    system: `${systemPrompt('recipe', today)} ${VIDEO_RULES}`,
+    prompt: 'Écris la recette de cette vidéo.',
+    videoUrl: url,
+    schema: responseSchema('recipe'),
+  })
+}

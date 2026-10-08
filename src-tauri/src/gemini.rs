@@ -158,3 +158,83 @@ pub async fn gemini_image(model: String, prompt: String) -> Result<String, Strin
     }
     Err("Gemini n'a pas renvoyé d'image (la demande a peut-être été refusée ou ce modèle ne dessine pas).".to_string())
 }
+
+/// Seuls les liens YouTube sont envoyés à Gemini pour analyse (jamais une adresse quelconque).
+fn is_youtube_url(url: &str) -> bool {
+    let Some(rest) = url.strip_prefix("https://") else { return false };
+    let host = rest.split(|c| c == '/' || c == '?' || c == '#').next().unwrap_or("");
+    matches!(host, "www.youtube.com" | "youtube.com" | "m.youtube.com" | "youtu.be")
+}
+
+/// Description publiée sous une vidéo YouTube (au mieux : si la page n'est pas lisible, on continue sans).
+async fn youtube_description(url: &str) -> Option<String> {
+    let client = reqwest::Client::builder()
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+        .timeout(std::time::Duration::from_secs(15))
+        .build()
+        .ok()?;
+    let html = client
+        .get(url)
+        .header("Accept-Language", "fr-FR,fr;q=0.9,en;q=0.5")
+        .send()
+        .await
+        .ok()?
+        .text()
+        .await
+        .ok()?;
+    let marker = "\"shortDescription\":";
+    let start = html.find(marker)? + marker.len();
+    let mut values = serde_json::Deserializer::from_str(&html[start..]).into_iter::<String>();
+    let description = values.next()?.ok()?;
+    Some(description.chars().take(6000).collect())
+}
+
+/// Envoie une vidéo YouTube à Gemini (il la regarde et l'écoute) et renvoie sa réponse au format JSON demandé.
+#[tauri::command]
+pub async fn gemini_generate_video(
+    model: String,
+    system: String,
+    prompt: String,
+    video_url: String,
+    schema: Value,
+) -> Result<String, String> {
+    check_model(&model)?;
+    if !is_youtube_url(&video_url) {
+        return Err("Seuls les liens YouTube peuvent être analysés.".to_string());
+    }
+    let key = api_key()?;
+    let mut text = prompt;
+    if let Some(description) = youtube_description(&video_url).await {
+        text = format!("{text}\n\nDescription publiée sous la vidéo :\n{description}");
+    }
+    let url = format!("{}/models/{}:generateContent", BASE, model);
+    let body = json!({
+        "system_instruction": { "parts": [{ "text": system }] },
+        "contents": [{ "role": "user", "parts": [
+            { "file_data": { "file_uri": video_url } },
+            { "text": text }
+        ] }],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "responseSchema": schema,
+            "temperature": 0.2
+        }
+    });
+    let response = reqwest::Client::new()
+        .post(url)
+        .header("x-goog-api-key", key)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| format!("Connexion à Gemini impossible : {e}"))?;
+    let status = response.status().as_u16();
+    let text = response.text().await.map_err(|e| e.to_string())?;
+    if !(200..300).contains(&status) {
+        return Err(explain(status, &text));
+    }
+    let value: Value = serde_json::from_str(&text).map_err(|e| format!("Réponse illisible : {e}"))?;
+    value["candidates"][0]["content"]["parts"][0]["text"]
+        .as_str()
+        .map(|s| s.to_string())
+        .ok_or_else(|| "Gemini n'a rien renvoyé (la vidéo est peut-être privée, trop longue ou bloquée).".to_string())
+}
