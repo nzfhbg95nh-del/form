@@ -26,10 +26,6 @@ function Item({ active, onClick, children }: { active?: boolean; onClick: () => 
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) {
-  return <div className="px-2 pb-1 pt-4 text-xs font-semibold text-[var(--fg-muted)]">{children}</div>
-}
-
 /** Titre de section qu'on peut replier d'un clic (état gardé d'une fois sur l'autre). */
 function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; collapsed: boolean; toggle: (id: string) => void; children: React.ReactNode }) {
   return (
@@ -250,7 +246,9 @@ export function Sidebar() {
       </Item>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        <Label>Mon entreprise</Label>
+        <CollapsibleLabel id="company" collapsed={!!collapsed.company} toggle={toggleSection}>Mon entreprise</CollapsibleLabel>
+        {!collapsed.company && (
+          <>
         <Item active={view === 'dashboard'} onClick={() => show('dashboard')}>
           <LayoutDashboard size={14} /> Tableau de bord
         </Item>
@@ -272,6 +270,8 @@ export function Sidebar() {
         <Item active={view === 'mail'} onClick={() => void openMail()}>
           <Mail size={14} /> Courrier
         </Item>
+          </>
+        )}
 
         {favorites.length > 0 && (
           <>

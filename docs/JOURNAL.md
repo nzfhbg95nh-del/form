@@ -348,3 +348,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-08 — Sections repliables, fond noir ou blanc (v0.37.0)
 - Barre latérale : « Favoris », « Récentes » et « Pages » se replient d'un clic sur leur titre (chevron) ; l'état est gardé d'une fois sur l'autre.
 - Moodboard : le fond se choisit entre deux boutons, noir et blanc (plus de nuances de gris) ; par défaut il suit le thème de l'application, le bouton correspondant est alors coché. Les anciens fonds gris continuent de s'afficher jusqu'au prochain choix.
+
+## 2026-10-08 — « Mon entreprise » repliable (v0.37.1)
+- La section « Mon entreprise » de la barre latérale (Tableau de bord, Clients, Tarifs, Devis, Factures, Paiements, Courrier) se replie d'un clic sur son titre, comme Favoris, Récentes et Pages ; état gardé.
