@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
-import { Star, Trash2 } from 'lucide-react'
+import { Pin, Star, Trash2 } from 'lucide-react'
 import { addOption } from '@/components/DatabaseView'
 import { PropertyEditor } from '@/components/PropertyEditor'
 import { allColumns, cellValue, parseSchema } from '@/lib/database'
@@ -15,7 +15,7 @@ import { parsePageStyle } from '@/lib/pageStyle'
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
 export function PageView({ pageId }: { pageId?: string }) {
-  const { objects, selectedId, update, trash, createPage, select, setCell, saveSchema } = useApp()
+  const { objects, selectedId, update, trash, createPage, select, setCell, saveSchema, pinned, togglePin } = useApp()
   const page = objects.find((o) => o.id === (pageId ?? selectedId) && !o.deleted_at)
   const [title, setTitle] = useState('')
   const timer = useRef<number | undefined>(undefined)
@@ -160,6 +160,9 @@ export function PageView({ pageId }: { pageId?: string }) {
         <span className="hidden shrink-0 text-xs text-[var(--fg-muted)] sm:inline">Dernière modification : {lastEditText(page.updated_at)}</span>
         <div className="flex shrink-0 gap-0.5">
           {page.type !== 'row' && <PageStyleMenu page={page} editorRef={editorRef} />}
+          <button title={pinned.includes(page.id) ? 'Désépingler de la barre latérale' : 'Épingler en haut de la barre latérale'} aria-pressed={pinned.includes(page.id)} onClick={() => togglePin(page.id)} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
+            <Pin size={16} className={pinned.includes(page.id) ? 'fill-[var(--accent)] text-[var(--accent)]' : 'text-[var(--fg-muted)]'} />
+          </button>
           <button title="Favori" onClick={() => void update(page.id, { is_favorite: page.is_favorite ? 0 : 1 })} className="rounded p-1.5 hover:bg-[var(--bg-hover)]">
             <Star size={16} className={page.is_favorite ? 'fill-yellow-400 text-yellow-400' : 'text-[var(--fg-muted)]'} />
           </button>
