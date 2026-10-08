@@ -13,6 +13,15 @@ import { RecipesView } from '@/components/RecipesView'
 
 const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
 const input = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
+/** Bouton qui ferme un panneau de filtres, de tris ou de réglages (les changements sont déjà appliqués). */
+function ValidateButton({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="mt-3 flex justify-end border-t border-[var(--border)] pt-2">
+      <button className="rounded bg-[var(--accent)] px-4 py-1 text-sm text-white" onClick={onClose}>Valider</button>
+    </div>
+  )
+}
+
 const panel = 'absolute left-0 z-20 mt-1 min-w-[320px] rounded-md border border-[var(--border)] bg-[var(--bg)] p-3 shadow-lg'
 
 /** Ajoute une option à une colonne de choix et renvoie son identifiant. */
@@ -30,7 +39,7 @@ function patchView(schema: Schema, id: string, patch: Partial<ViewConfig>): Sche
   return { ...schema, views: schema.views.map((v) => (v.id === id ? { ...v, ...patch } : v)) }
 }
 
-function FilterPanel({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
+function FilterPanel({ schema, view, onChange, onClose }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void; onClose: () => void }) {
   const cols = allColumns(schema)
   const setFilters = (filters: Filter[]) => onChange(patchView(schema, view.id, { filters }))
   const patch = (id: string, p: Partial<Filter>) => setFilters(view.filters.map((f) => (f.id === id ? { ...f, ...p } : f)))
@@ -79,11 +88,12 @@ function FilterPanel({ schema, view, onChange }: { schema: Schema; view: ViewCon
       <button className={btn} onClick={() => setFilters([...view.filters, { id: newId(), colId: 'title', op: 'contains', value: '' }])}>
         <Plus size={14} /> Ajouter un filtre
       </button>
+      <ValidateButton onClose={onClose} />
     </div>
   )
 }
 
-function SortPanel({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
+function SortPanel({ schema, view, onChange, onClose }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void; onClose: () => void }) {
   const cols = allColumns(schema)
   const setSorts = (sorts: ViewConfig['sorts']) => onChange(patchView(schema, view.id, { sorts }))
 
@@ -105,12 +115,13 @@ function SortPanel({ schema, view, onChange }: { schema: Schema; view: ViewConfi
       <button className={btn} onClick={() => setSorts([...view.sorts, { colId: 'title', dir: 'asc' }])}>
         <Plus size={14} /> Ajouter un tri
       </button>
+      <ValidateButton onClose={onClose} />
     </div>
   )
 }
 
 /** Réglages de la vue active : nom, regroupement, propriété de date, suppression. */
-function ViewSettings({ schema, view, onChange }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void }) {
+function ViewSettings({ schema, view, onChange, onClose }: { schema: Schema; view: ViewConfig; onChange: (s: Schema) => void; onClose: () => void }) {
   const cols = allColumns(schema)
   const [name, setName] = useState(view.name)
   useEffect(() => setName(view.name), [view.id, view.name])
@@ -162,6 +173,7 @@ function ViewSettings({ schema, view, onChange }: { schema: Schema; view: ViewCo
           <Trash2 size={14} /> Supprimer cette vue
         </button>
       )}
+      <ValidateButton onClose={onClose} />
     </div>
   )
 }
@@ -415,22 +427,23 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
         <AddView schema={schema} onChange={change} onCreated={pick} />
       </div>
 
+      {panelOpen && <div className="fixed inset-0 z-10" onMouseDown={() => setPanelOpen(null)} />}
       <div className="mb-3 mt-2 flex items-center gap-1">
         <div className="relative">
           <button className={btn} onClick={() => toggle('filter')}>
             <FilterIcon size={14} /> Filtrer{view.filters.length > 0 && ` (${view.filters.length})`}
           </button>
-          {panelOpen === 'filter' && <FilterPanel schema={schema} view={view} onChange={change} />}
+          {panelOpen === 'filter' && <FilterPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
           <button className={btn} onClick={() => toggle('sort')}>
             <ArrowDownUp size={14} /> Trier{view.sorts.length > 0 && ` (${view.sorts.length})`}
           </button>
-          {panelOpen === 'sort' && <SortPanel schema={schema} view={view} onChange={change} />}
+          {panelOpen === 'sort' && <SortPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
           <button className={btn} onClick={() => toggle('settings')}><Settings2 size={14} /> Réglages de la vue</button>
-          {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} />}
+          {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="flex-1" />
         {schema.kind === 'mail' && <SyncMailButton />}

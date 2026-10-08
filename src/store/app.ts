@@ -18,7 +18,7 @@ import {
   type Draft,
 } from '@/lib/invoices'
 import { configProblems, fetchMail, loadMailConfig, mailSchema, newMailItems, rowFromMail } from '@/lib/mail'
-import { emptyRecipeBlocks, RECIPE, recipeBodyBlocks, recipesSchema, recipeValues } from '@/lib/recipes'
+import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipeBodyBlocks, recipesSchema, recipeValues } from '@/lib/recipes'
 import type { AiMode, AiTask, Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
@@ -219,7 +219,19 @@ async function ensureRecipesDb(get: () => AppState, set: SetFn): Promise<ObjectR
   const repo = get().repo
   if (!repo) return null
   const existing = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
-  if (existing) return existing
+  if (existing) {
+    // Une base créée par une ancienne version perd ses propriétés inutiles (durées, note, étiquettes, source).
+    const schema = parseSchema(existing.properties)
+    const clean = normalizeRecipesSchema(schema)
+    if (clean !== schema) {
+      const properties = JSON.stringify(clean)
+      await repo.updateObject(existing.id, { properties })
+      const updated = { ...existing, properties }
+      set((s) => ({ objects: s.objects.map((o) => (o.id === existing.id ? updated : o)) }))
+      return updated
+    }
+    return existing
+  }
   const created = await repo.createPage(null, 'database', JSON.stringify(recipesSchema()))
   const patch = { title: 'Recettes', icon: '🍳' }
   await repo.updateObject(created.id, patch)

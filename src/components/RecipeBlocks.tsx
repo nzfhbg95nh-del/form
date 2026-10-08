@@ -1,7 +1,7 @@
 import type { BlockNoteEditor } from '@blocknote/core'
 import { createReactBlockSpec } from '@blocknote/react'
 import { Minus, Plus } from 'lucide-react'
-import { parseSchema } from '@/lib/database'
+import { parseSchema, parseValues } from '@/lib/database'
 import { RECIPE } from '@/lib/recipes'
 import { extractIngredients, scaleFactor, scaleLine } from '@/lib/recipeScale'
 import { useApp } from '@/store/app'
@@ -16,6 +16,14 @@ const btn = 'rounded border border-[var(--border)] px-2 py-1 text-sm hover:bg-[v
 /** Choix du nombre de personnes : recalcule sur place les quantités de la liste « Ingrédients » de la page. */
 function Portions({ editor, block }: { editor: Ed; block: AnyBlock }) {
   const current = Math.max(1, Number(block.props.servings) || 4)
+  // Pour combien de personnes la recette est écrite à la base (propriété « Portions de base » de la page).
+  const base = useApp((st) => {
+    const page = st.objects.find((o) => o.id === st.selectedId)
+    const parent = page ? st.objects.find((o) => o.id === page.parent_id) : undefined
+    if (!page || !parent || parseSchema(parent.properties).kind !== 'recipes') return null
+    const v = Number(parseValues(page.properties)[RECIPE.servings])
+    return Number.isFinite(v) && v > 0 ? Math.round(v) : null
+  })
 
   const change = (next: number) => {
     const n = Math.min(99, Math.max(1, Math.round(next)))
@@ -26,12 +34,8 @@ function Portions({ editor, block }: { editor: Ed; block: AnyBlock }) {
       if (scaled !== line.text) editor.updateBlock(line.id as never, { content: scaled } as never)
     }
     editor.updateBlock(block.id as never, { props: { servings: n } } as never)
-    // Toutes les recettes s'ouvrent ensuite avec ce nombre de personnes pour une nouvelle recette ; la propriété « Portions » suit.
-    const st = useApp.getState()
-    void st.repo?.setSetting('recipe_people', String(n))
-    const page = st.objects.find((o) => o.id === st.selectedId)
-    const parent = page ? st.objects.find((o) => o.id === page.parent_id) : undefined
-    if (page && parent && parseSchema(parent.properties).kind === 'recipes') void st.setCell(page.id, RECIPE.servings, n)
+    // Une nouvelle recette partira avec ce nombre de personnes. Les « Portions de base » de la recette, elles, ne changent pas.
+    void useApp.getState().repo?.setSetting('recipe_people', String(n))
   }
 
   return (
@@ -43,7 +47,12 @@ function Portions({ editor, block }: { editor: Ed; block: AnyBlock }) {
         <button type="button" className={btn} aria-label="Une personne de plus" onClick={() => change(current + 1)}><Plus size={14} /></button>
       </div>
       <span className="font-medium">personne{current > 1 ? 's' : ''}</span>
-      <span className="text-xs text-[var(--fg-muted)]">Les quantités de la liste « Ingrédients » se recalculent toutes seules (Ctrl+Z pour revenir en arrière).</span>
+      {base !== null && current !== base && (
+        <button type="button" className={btn} onClick={() => change(base)}>Revenir à {base}</button>
+      )}
+      <span className="text-xs text-[var(--fg-muted)]">
+        {base !== null ? `Recette écrite pour ${base} personne${base > 1 ? 's' : ''}. ` : ''}Les quantités de la liste « Ingrédients » s’adaptent toutes seules (Ctrl+Z pour revenir en arrière).
+      </span>
     </div>
   )
 }

@@ -432,3 +432,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Menu de « Sans catégorie » (v0.41.4)
 - La ligne « Sans catégorie » a, comme les autres, le clic droit et le bouton « ⋯ » au survol. Son menu : « Ouvrir » et « Ranger les N recettes dans… » (liste des catégories, un clic range toutes ces recettes). Pas de « Supprimer » : ce n'est pas une vraie catégorie, et supprimer les recettes d'un clic serait dangereux (elles se suppriment une par une, avec la corbeille).
+
+## 2026-10-09 — Choix de catégorie, fenêtres qui se ferment, Valider, portions de base (v0.42.0)
+- « + Nouvelle recette » (page Recettes) ouvre d'abord « Dans quelle catégorie ? » : liste des catégories, champ « Nouvelle catégorie… » qui la crée automatiquement puis y range la recette (s'il n'y a aucune catégorie, seul ce champ est proposé), ou « Sans catégorie pour l'instant ». Cliquer à côté ferme.
+- Cliquer dans le vide ferme enfin les fenêtres ouvertes sur une page (liste des catégories d'une propriété, sélecteur d'emojis...) : la sélection par rectangle de la page capturait le clic ; les voiles de fenêtres (`.fixed`) sont maintenant ignorés.
+- Filtres, tris et réglages de vue (toutes les bases, y compris intégrées) : bouton « Valider » qui ferme le panneau ; cliquer à côté le ferme aussi (les changements s'appliquent déjà en direct).
+- Recettes : propriétés réduites à « Catégorie » et « Portions de base » (durées, note, étiquettes, source supprimées ; les bases déjà créées sont nettoyées à l'ouverture, les anciennes valeurs restent invisibles dans la page). « Portions de base » = pour combien de personnes la recette est écrite. Le choix « Pour N personnes » adapte les quantités à partir de là SANS modifier cette valeur ; il affiche « Recette écrite pour N personnes » et un bouton « Revenir à N ». Modifier « Portions de base » recale le nombre de personnes du bloc (les quantités écrites correspondent à ce nombre).
+- Tests : 239.

@@ -27,7 +27,10 @@ export const DEFAULT_CATEGORIES = [
 
 export const CATEGORY_FALLBACK_EMOJI = '🍽️'
 
-/** La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et les infos d'une recette. */
+/**
+ * La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et une seule autre propriété :
+ * « Portions de base », le nombre de personnes pour lequel la recette est écrite (le choix « Pour N personnes » s'adapte à partir de là).
+ */
 export function recipesSchema(): Schema {
   return {
     kind: 'recipes',
@@ -36,21 +39,19 @@ export function recipesSchema(): Schema {
         id: RECIPE.type, name: 'Catégorie', type: 'select',
         options: DEFAULT_CATEGORIES.map((c) => opt(c.id, c.label, c.color, c.emoji)),
       },
-      { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' },
-      { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' },
-      { id: RECIPE.servings, name: 'Portions', type: 'number' },
-      {
-        id: RECIPE.rating, name: 'Note', type: 'select',
-        options: [opt('1', '★', '#e3e2e0'), opt('2', '★★', '#e3e2e0'), opt('3', '★★★', '#fdecc8'), opt('4', '★★★★', '#fadec9'), opt('5', '★★★★★', '#dbeddb')],
-      },
-      {
-        id: RECIPE.tags, name: 'Étiquettes', type: 'multiselect',
-        options: [opt('veg', 'Végétarien', '#dbeddb'), opt('rapide', 'Rapide', '#d3e5ef'), opt('fetes', 'Fêtes', '#f5e0e9'), opt('economique', 'Économique', '#fdecc8')],
-      },
-      { id: RECIPE.source, name: 'Source', type: 'url' },
+      { id: RECIPE.servings, name: 'Portions de base', type: 'number' },
     ],
     views: [{ id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] }],
   }
+}
+
+/** Anciennes propriétés retirées à la demande de Victor (durées, note, étiquettes, source). */
+const REMOVED_COLUMNS = new Set<string>([RECIPE.prep, RECIPE.cook, RECIPE.rating, RECIPE.tags, RECIPE.source])
+
+/** Retire les anciennes propriétés d'une base « Recettes » créée avant ; renvoie le même schéma s'il n'y a rien à retirer. */
+export function normalizeRecipesSchema(schema: Schema): Schema {
+  if (!schema.columns.some((c) => REMOVED_COLUMNS.has(c.id))) return schema
+  return { ...schema, columns: schema.columns.filter((c) => !REMOVED_COLUMNS.has(c.id)).map((c) => (c.id === RECIPE.servings ? { ...c, name: 'Portions de base' } : c)) }
 }
 
 export interface RecipeCategory {
@@ -158,12 +159,8 @@ export function firstNumber(text: string): number | null {
 
 /** Valeurs de propriétés d'une recette lue par l'assistant. */
 export function recipeValues(r: Recipe): Record<string, unknown> {
-  const values: Record<string, unknown> = {}
-  if (r.prepMinutes) values[RECIPE.prep] = r.prepMinutes
-  if (r.cookMinutes) values[RECIPE.cook] = r.cookMinutes
   const servings = firstNumber(r.servings)
-  if (servings !== null) values[RECIPE.servings] = servings
-  return values
+  return servings !== null ? { [RECIPE.servings]: servings } : {}
 }
 
 /** Ce qu'insère la commande « / » Recette : nom (si la page n'a pas encore de titre), durées, photo, personnes, ingrédients, étapes, notes. */

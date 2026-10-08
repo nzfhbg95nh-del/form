@@ -3,7 +3,7 @@ import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import {
   addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
-  moveCategory, removeCategory, renameCategory, setCategoryEmoji,
+  moveCategory, normalizeRecipesSchema, removeCategory, renameCategory, setCategoryEmoji,
 } from './recipes'
 
 const recipe: Recipe = {
@@ -21,7 +21,7 @@ describe('base de recettes', () => {
     expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
       ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'],
     ])
-    expect(parsed.columns.map((c) => c.id)).toEqual(Object.values(RECIPE))
+    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings'])
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
   })
 
@@ -36,8 +36,8 @@ describe('base de recettes', () => {
     expect(firstNumber('quelques-uns')).toBeNull()
   })
 
-  it('range durées et portions dans les propriétés', () => {
-    expect(recipeValues(recipe)).toEqual({ prep: 15, cook: 35, servings: 6 })
+  it('range seulement les portions de base dans les propriétés', () => {
+    expect(recipeValues(recipe)).toEqual({ servings: 6 })
     expect(recipeValues({ ...recipe, servings: '', prepMinutes: null, cookMinutes: null })).toEqual({})
   })
 
@@ -101,5 +101,24 @@ describe('catégories de recettes', () => {
     expect(labels(moveCategory(base, 'boissons', -1))).toEqual(labels(base))
     expect(labels(moveCategory(base, 'biscuits', 1))).toEqual(labels(base))
     expect(labels(moveCategory(base, 'inconnue', 1))).toEqual(labels(base))
+  })
+})
+
+describe('anciennes propriétés des recettes', () => {
+  it('retire durées, note, étiquettes et source, et garde catégorie et portions', () => {
+    const legacy = {
+      ...recipesSchema(),
+      columns: [
+        ...recipesSchema().columns,
+        { id: RECIPE.prep, name: 'Préparation (min)', type: 'number' as const },
+        { id: RECIPE.cook, name: 'Cuisson (min)', type: 'number' as const },
+        { id: RECIPE.rating, name: 'Note', type: 'select' as const },
+        { id: RECIPE.tags, name: 'Étiquettes', type: 'multiselect' as const },
+        { id: RECIPE.source, name: 'Source', type: 'url' as const },
+      ],
+    }
+    const clean = normalizeRecipesSchema(legacy)
+    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings'])
+    expect(normalizeRecipesSchema(clean)).toBe(clean)
   })
 })
