@@ -357,3 +357,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Épingler : menu « ⋯ » / clic droit d'une page de la barre latérale (« Épingler en haut » / « Désépingler »), ou la punaise dans la barre du haut d'une page.
 - Ordre = ordre d'épinglage. Liste des identifiants gardée dans le réglage `pinned_pages` (aucune migration) ; les pages supprimées disparaissent de la section.
 - Tests : 212.
+
+## 2026-10-08 — Pages épinglées = onglets fixes (v0.38.1)
+- Correction de v0.38.0 : une page épinglée devient un ONGLET FIXE tout à gauche de la barre d'onglets (après les boutons de navigation), avec son icône et un petit signe de punaise bleu, séparé des onglets ordinaires par un trait. Pas de bouton de fermeture : on ne la ferme pas par erreur (ni clic molette). Survol = titre.
+- La section « Épinglées » de la barre latérale est retirée (doublon).
+- Ouvrir une page épinglée (barre latérale, recherche, lien) affiche son onglet fixe sans créer d'onglet ordinaire en double ; au démarrage, la première page ouverte n'est jamais une page épinglée ; épingler retire l'onglet ordinaire de la page, désépingler la remet en onglet ordinaire si on la regarde.
+- Épingler / désépingler : menu « ⋯ » ou clic droit dans la barre latérale, ou la punaise dans la barre du haut d'une page.
