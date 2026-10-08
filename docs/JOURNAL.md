@@ -363,3 +363,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - La section « Épinglées » de la barre latérale est retirée (doublon).
 - Ouvrir une page épinglée (barre latérale, recherche, lien) affiche son onglet fixe sans créer d'onglet ordinaire en double ; au démarrage, la première page ouverte n'est jamais une page épinglée ; épingler retire l'onglet ordinaire de la page, désépingler la remet en onglet ordinaire si on la regarde.
 - Épingler / désépingler : menu « ⋯ » ou clic droit dans la barre latérale, ou la punaise dans la barre du haut d'une page.
+
+## 2026-10-08 — Épinglées : en haut de la liste « Pages » (v0.38.2)
+- Retour sur les onglets fixes de v0.38.1 (ce n'était pas ce que voulait Victor). Une page épinglée reste maintenant TOUT EN HAUT de la liste « Pages » de la barre latérale, avec une petite punaise bleue à droite, séparée des autres pages par un trait. Elle ne reste pas en double dans l'arbre quand elle est à la racine. Plus de section « Épinglées » séparée ni d'onglet fixe.
+- Épingler / désépingler : menu « ⋯ » ou clic droit, ou punaise de la barre du haut d'une page. Réglage `pinned_pages` inchangé.

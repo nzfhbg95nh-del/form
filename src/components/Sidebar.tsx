@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
 import { isSystemDatabase } from '@/lib/database'
+import { pinnedPages } from '@/lib/pinned'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { cn } from '@/lib/utils'
@@ -190,7 +191,7 @@ function TreeItem({
   )
 }
 
-function ShortcutItem({ page }: { page: ObjectRow }) {
+function ShortcutItem({ page, pinMark = false }: { page: ObjectRow; pinMark?: boolean }) {
   const { selectedId, view } = useApp()
   const handlers = useOpenHandlers(page.id)
   return (
@@ -203,13 +204,14 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
     >
       <PageIcon page={page} />
       <span className="truncate">{page.title || 'Nouvelle page'}</span>
+      {pinMark && <Pin size={11} aria-label="Épinglée" className="ml-auto shrink-0 rotate-45 fill-[var(--accent)] text-[var(--accent)]" />}
     </button>
   )
 }
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, theme, toggleTheme,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, theme, toggleTheme, pinned,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -217,6 +219,7 @@ export function Sidebar() {
   const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !isSystemDatabase(o))
   const roots = childrenOf(objects, null)
   const favorites = live.filter((o) => o.is_favorite)
+  const pinnedList = pinnedPages(pinned, live)
   const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
   const openMenu: OpenMenu = (id, x, y) => setMenu({ id, x, y })
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
@@ -288,9 +291,15 @@ export function Sidebar() {
         )}
 
         <CollapsibleLabel id="pages" collapsed={!!collapsed.pages} toggle={toggleSection}>Pages</CollapsibleLabel>
+        {/* Les pages épinglées restent tout en haut de la liste, avec une petite punaise. */}
+        {!collapsed.pages && pinnedList.length > 0 && (
+          <div className="mb-1 border-b border-[var(--border)] pb-1">
+            {pinnedList.map((p) => <ShortcutItem key={p.id} page={p} pinMark />)}
+          </div>
+        )}
         <div hidden={!!collapsed.pages} onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
-          {roots.map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
-          {roots.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
+          {roots.filter((p) => !pinned.includes(p.id)).map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
+          {roots.length === 0 && pinnedList.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
         </div>
       </div>
 
