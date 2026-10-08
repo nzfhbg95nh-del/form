@@ -52,10 +52,10 @@ export function recipesSchema(): Schema {
 const h = (text: string) => ({ type: 'heading', props: { level: 2 }, content: text })
 const p = (text = '') => ({ type: 'paragraph', content: text })
 
-/** Contenu d'une nouvelle recette vide : photo (IA), nombre de personnes, ingrédients à cocher, étapes numérotées, notes. */
+/** Contenu d'une nouvelle recette vide : photo (à ajouter toi-même), nombre de personnes, ingrédients à cocher, étapes numérotées, notes. */
 export function emptyRecipeBlocks(people = 4): unknown[] {
   return [
-    { type: 'recipephoto' },
+    { type: 'image' },
     { type: 'portions', props: { servings: people } },
     h('Ingrédients'),
     { type: 'checkListItem', content: '' }, { type: 'checkListItem', content: '' }, { type: 'checkListItem', content: '' },
@@ -69,7 +69,6 @@ export function emptyRecipeBlocks(people = 4): unknown[] {
 /** Contenu d'une recette lue par l'assistant (les durées et les portions vont dans les propriétés). */
 export function recipeBodyBlocks(r: Recipe): unknown[] {
   return [
-    { type: 'recipephoto' },
     { type: 'portions', props: { servings: firstNumber(r.servings) ?? 4 } },
     h('Ingrédients'),
     ...(r.ingredients.length ? r.ingredients.map((i) => ({ type: 'checkListItem', content: i })) : [{ type: 'checkListItem', content: '' }]),

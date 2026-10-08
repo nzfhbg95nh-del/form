@@ -414,7 +414,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
     {
       key: 'recipe', title: 'Recette', aliases: ['recette', 'cuisine', 'plat', 'ingrédients', 'ingredients', 'gâteau', 'gateau'], group: 'Cuisine',
-      subtext: 'Nom, photo (IA), nombre de personnes, ingrédients, étapes', icon: ico(ChefHat),
+      subtext: 'Nom, photo, nombre de personnes, ingrédients, étapes', icon: ico(ChefHat),
       onItemClick: () => {
         const at = cursorBlock(editor)
         const st = useApp.getState()
@@ -425,7 +425,6 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
         })
       },
     },
-    { key: 'recipephoto', title: 'Photo de recette (IA)', aliases: ['photo', 'recette', 'image', 'ia', 'plat'], group: 'Cuisine', subtext: 'Une photo du plat dessinée par Gemini', icon: ico(ChefHat), onItemClick: put({ type: 'recipephoto' }) },
     { key: 'portions', title: 'Nombre de personnes', aliases: ['personnes', 'portions', 'quantités', 'quantites', 'recette'], group: 'Cuisine', subtext: 'Recalcule les quantités des ingrédients', icon: ico(Users), onItemClick: put({ type: 'portions' }) },
     { key: 'toc', title: 'Table des matières', aliases: ['table', 'matières', 'matieres', 'sommaire', 'toc', 'plan'], group: 'Blocs avancés', icon: ico(ListTree), onItemClick: put({ type: 'toc' }) },
     { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },

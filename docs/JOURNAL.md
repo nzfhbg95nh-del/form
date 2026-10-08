@@ -400,3 +400,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Correctif de la fabrication (v0.40.1)
 - La fabrication de la v0.40.0 a échoué à cause d'un seul test (`payments.test.ts`, « remplit le message de relance ») qui a dépassé 5 s sur la machine de GitHub, plus lente que la nôtre ; il passe sur notre poste. Délais de test portés à 30 s. Aucun changement pour l'utilisateur : la v0.40.1 contient exactement les recettes de la v0.40.0. Le tag v0.40.0 n'a donc pas d'installateur.
+
+## 2026-10-09 — Recettes sans photo par l'IA (v0.40.2)
+- Plus de génération de photo par l'IA dans les recettes (demande de Victor) : le bloc « Générer une photo… » et l'entrée « Photo de recette (IA) » du menu / sont retirés, ainsi que le code qui envoyait une description du plat à Google. Une nouvelle recette (et la commande / Recette) commence par un emplacement image normal : on y ajoute sa propre photo. La couverture de la page (pour la galerie) se choisit comme pour toute page.
+- Le bloc technique `recipephoto` reste enregistré, sans bouton, pour afficher sans erreur une photo déjà enregistrée par la v0.40.0 ou v0.40.1.
+- L'IA reste utilisée seulement dans les icônes de page (emojis proposés, dessin d'icône) et dans l'assistant (texte ou lien YouTube vers recette, tâches, lignes de devis), toujours au clic.
+- Tests : 231.
