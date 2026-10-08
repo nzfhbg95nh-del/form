@@ -12,5 +12,6 @@ export default defineConfig({
   resolve: { alias: { '@': path.resolve(import.meta.dirname, 'src') } },
   clearScreen: false,
   server: { port: 1420, strictPort: true },
-  test: { environment: 'node' },
+  // Délais larges : la machine de fabrication de GitHub est plus lente que la nôtre (un test trivial a déjà dépassé 5 s).
+  test: { environment: 'node', testTimeout: 30000, hookTimeout: 30000 },
 })
