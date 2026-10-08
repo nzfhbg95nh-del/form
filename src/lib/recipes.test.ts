@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest'
 import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import { emptyRecipeBlocks, firstNumber, RECIPE, recipeBodyBlocks, recipeSlashBlocks, recipesSchema, recipeValues } from './recipes'
-import { recipePhotoPrompt } from './recipePhoto'
 
 const recipe: Recipe = {
   title: 'Gâteau au yaourt', servings: '6 personnes', prepMinutes: 15, cookMinutes: 35,
@@ -41,26 +40,17 @@ describe('base de recettes', () => {
 
   it('fabrique le contenu : ingrédients, étapes, notes', () => {
     const blocks = recipeBodyBlocks(recipe) as { type: string; content?: string }[]
-    expect(blocks.map((b) => b.type)).toEqual(['recipephoto', 'portions', 'heading', 'checkListItem', 'checkListItem', 'heading', 'numberedListItem', 'numberedListItem', 'heading', 'paragraph'])
-    expect(blocks[3].content).toBe('1 yaourt')
-    expect(blocks[9].content).toBe('Se garde 3 jours')
-    expect((blocks[1] as { props?: { servings: number } }).props?.servings).toBe(6)
+    expect(blocks.map((b) => b.type)).toEqual(['portions', 'heading', 'checkListItem', 'checkListItem', 'heading', 'numberedListItem', 'numberedListItem', 'heading', 'paragraph'])
+    expect(blocks[2].content).toBe('1 yaourt')
+    expect(blocks[8].content).toBe('Se garde 3 jours')
+    expect((blocks[0] as { props?: { servings: number } }).props?.servings).toBe(6)
     expect((emptyRecipeBlocks() as { type: string }[]).filter((b) => b.type === 'heading')).toHaveLength(3)
   })
 
-  it('la commande « / » Recette insère nom (si besoin), durées, photo, personnes et sections', () => {
+  it('la commande « / » Recette insère nom (si besoin), durées, emplacement photo, personnes et sections', () => {
     const withName = recipeSlashBlocks({ people: 2, withName: true }) as { type: string; props?: { servings?: number } }[]
-    expect(withName.map((b) => b.type).slice(0, 4)).toEqual(['heading', 'paragraph', 'recipephoto', 'portions'])
+    expect(withName.map((b) => b.type).slice(0, 4)).toEqual(['heading', 'paragraph', 'image', 'portions'])
     expect(withName[3].props?.servings).toBe(2)
     expect((recipeSlashBlocks() as { type: string }[]).map((b) => b.type)[0]).toBe('paragraph')
-  })
-
-  it('décrit le plat à l’IA sans rien de personnel', () => {
-    const prompt = recipePhotoPrompt('Gâteau au yaourt', ['200 g de farine', '3 œufs', '1 pot de yaourt', 'sel'])
-    expect(prompt).toContain('Gâteau au yaourt')
-    expect(prompt).toContain('farine')
-    expect(prompt).toContain('œufs')
-    expect(prompt).not.toMatch(/\d+ g/)
-    expect(recipePhotoPrompt('', [])).toContain('un plat maison')
   })
 })

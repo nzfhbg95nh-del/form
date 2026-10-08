@@ -290,15 +290,6 @@ export async function generateIconImage(text: string, model: string = IMAGE_MODE
   return invoke<string>('gemini_image', { model, prompt })
 }
 
-/** Fait dessiner une photo de plat à Gemini (après un clic) : renvoie une image (data URL). */
-export async function generateRecipePhoto(prompt: string, model: string = IMAGE_MODEL): Promise<string> {
-  if (!isTauri()) {
-    if (window.__FORM_ICON_MOCK) return window.__FORM_ICON_MOCK('image', prompt)
-    throw new Error("L'assistant IA n'est disponible que dans l'application Windows.")
-  }
-  return invoke<string>('gemini_image', { model, prompt })
-}
-
 // ───────────────────────── Recette depuis une vidéo ─────────────────────────
 
 /** Identifiant d'une vidéo YouTube dans un lien (watch, youtu.be, shorts, embed, live), ou null. */
