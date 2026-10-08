@@ -18,7 +18,8 @@ import {
   type Draft,
 } from '@/lib/invoices'
 import { configProblems, fetchMail, loadMailConfig, mailSchema, newMailItems, rowFromMail } from '@/lib/mail'
-import { recipeBlocks, type AiMode, type AiTask, type Recipe } from '@/lib/ai'
+import { emptyRecipeBlocks, RECIPE, recipeBodyBlocks, recipesSchema, recipeValues } from '@/lib/recipes'
+import type { AiMode, AiTask, Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
@@ -144,7 +145,12 @@ interface AppState {
   /** Fenêtre de l'assistant IA : null = fermée. */
   assistantMode: AiMode | null
   setAssistant(mode: AiMode | null): void
+  /** Range la recette lue par l'assistant dans la base « Recettes » et l'ouvre. */
   createRecipePage(recipe: Recipe): Promise<void>
+  /** Ouvre la base « Recettes » (la crée au premier usage). */
+  openRecipes(): Promise<void>
+  /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
+  addRecipe(): Promise<void>
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
   syncMail(): Promise<number>
   openMail(): Promise<void>
@@ -206,6 +212,35 @@ async function ensureMailDb(repo: Repo, set: SetFn): Promise<ObjectRow> {
   const full = { ...db, ...patch }
   set((s) => ({ objects: [...s.objects, full] }))
   return full
+}
+
+/** La base « Recettes » (créée au premier usage). */
+async function ensureRecipesDb(get: () => AppState, set: SetFn): Promise<ObjectRow | null> {
+  const repo = get().repo
+  if (!repo) return null
+  const existing = get().objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
+  if (existing) return existing
+  const created = await repo.createPage(null, 'database', JSON.stringify(recipesSchema()))
+  const patch = { title: 'Recettes', icon: '🍳' }
+  await repo.updateObject(created.id, patch)
+  const db = { ...created, ...patch }
+  set((s) => ({ objects: [...s.objects, db] }))
+  return db
+}
+
+/** Ajoute une recette (modèle vide si rien n'est fourni) dans la base « Recettes » et l'ouvre. */
+async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: string; values?: Record<string, unknown>; content?: unknown[] }) {
+  const repo = get().repo
+  const db = await ensureRecipesDb(get, set)
+  if (!repo || !db) return
+  // Une nouvelle recette part avec le dernier nombre de personnes choisi.
+  const people = Math.max(1, parseInt((await repo.getSetting('recipe_people')) ?? '', 10) || 4)
+  const values = input.content ? (input.values ?? {}) : { [RECIPE.servings]: people, ...(input.values ?? {}) }
+  const row = await repo.createPage(db.id, 'row', JSON.stringify(values))
+  const patch = { title: input.title ?? 'Nouvelle recette', icon: '🍳', content: JSON.stringify(input.content ?? emptyRecipeBlocks(people)) }
+  await repo.updateObject(row.id, patch)
+  set((s) => ({ objects: [...s.objects, { ...row, ...patch }] }))
+  get().select(row.id)
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -754,14 +789,17 @@ export const useApp = create<AppState>((set, get) => ({
     set({ view: 'mail' })
   },
 
+  async openRecipes() {
+    const db = await ensureRecipesDb(get, set)
+    if (db) get().select(db.id)
+  },
+
+  async addRecipe() {
+    await addRecipeRow(get, set, {})
+  },
+
   async createRecipePage(recipe) {
-    const repo = get().repo
-    if (!repo) return
-    const page = await repo.createPage(null)
-    const patch = { title: recipe.title, icon: '🍳', content: JSON.stringify(recipeBlocks(recipe)) }
-    await repo.updateObject(page.id, patch)
-    set((s) => ({ objects: [...s.objects, { ...page, ...patch }] }))
-    get().select(page.id)
+    await addRecipeRow(get, set, { title: recipe.title, values: recipeValues(recipe), content: recipeBodyBlocks(recipe) })
   },
 
   async addTasksFromAi(tasks, dbId, open = true) {
@@ -824,6 +862,7 @@ export const useApp = create<AppState>((set, get) => ({
     const repo = get().repo
     const tpl = PAGE_TEMPLATES.find((t) => t.id === templateId)
     if (!repo || !tpl) return
+    if (templateId === 'recette') return get().addRecipe()
     const page = await repo.createPage(null)
     const patch = { title: tpl.title(), icon: tpl.icon, content: JSON.stringify(tpl.content) }
     await repo.updateObject(page.id, patch)
@@ -834,6 +873,11 @@ export const useApp = create<AppState>((set, get) => ({
   async createRow(databaseId, values) {
     const repo = get().repo
     if (!repo) return
+    const db = get().objects.find((o) => o.id === databaseId)
+    if (db && parseSchema(db.properties).kind === 'recipes') {
+      await addRecipeRow(get, set, { values })
+      return
+    }
     const row = await repo.createPage(databaseId, 'row', JSON.stringify(values ?? {}))
     set((s) => ({ objects: [...s.objects, row] }))
   },

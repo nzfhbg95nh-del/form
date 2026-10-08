@@ -89,6 +89,7 @@ pub fn run() {
             backup::restart_app,
             backup::prune_backups,
             gemini::gemini_generate,
+            gemini::gemini_generate_video,
             gemini::gemini_models,
             gemini::gemini_image,
             mail::mail_fetch,

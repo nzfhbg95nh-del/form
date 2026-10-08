@@ -426,6 +426,12 @@ export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded
         </div>
         <div className="flex-1" />
         {schema.kind === 'mail' && <SyncMailButton />}
+        {schema.kind === 'recipes' && (
+          <>
+            <button className={btn} onClick={() => useApp.getState().setAssistant('recipe')} title="Écrire la recette à partir d'une vidéo YouTube ou d'un texte collé">✨ Depuis une vidéo ou un texte</button>
+            <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => void useApp.getState().addRecipe()}>+ Nouvelle recette</button>
+          </>
+        )}
         <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
 

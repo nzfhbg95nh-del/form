@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
-import { isSystemDatabase } from '@/lib/database'
+import { isSystemDatabase, parseSchema } from '@/lib/database'
 import { pinnedPages } from '@/lib/pinned'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { PAGE_TEMPLATES } from '@/lib/templates'
@@ -212,13 +212,14 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, theme, toggleTheme, pinned,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !isSystemDatabase(o))
   const roots = childrenOf(objects, null)
+  const recipesDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
   const favorites = live.filter((o) => o.is_favorite)
   const pinnedList = pinnedPages(pinned, live)
   const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
@@ -247,6 +248,9 @@ export function Sidebar() {
       </Item>
       <Item onClick={() => setAssistant('recipe')}>
         <Sparkles size={14} /> Assistant IA
+      </Item>
+      <Item active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}>
+        <ChefHat size={14} /> Recettes
       </Item>
 
       <div className="min-h-0 flex-1 overflow-y-auto">

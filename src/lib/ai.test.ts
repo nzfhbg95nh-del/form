@@ -126,3 +126,28 @@ describe('emojis proposés par Gemini', () => {
     expect(() => parseEmojiList('pas du json')).toThrow()
   })
 })
+
+import { videoLinkProblem, youtubeId, youtubeWatchUrl } from './ai'
+
+describe('recette depuis une vidéo', () => {
+  it('reconnaît les liens YouTube sous toutes leurs formes', () => {
+    expect(youtubeId('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBe('dQw4w9WgXcQ')
+    expect(youtubeId('https://youtu.be/dQw4w9WgXcQ?t=42')).toBe('dQw4w9WgXcQ')
+    expect(youtubeId('https://m.youtube.com/watch?v=dQw4w9WgXcQ&list=x')).toBe('dQw4w9WgXcQ')
+    expect(youtubeId('https://www.youtube.com/shorts/abcDEF12345')).toBe('abcDEF12345')
+    expect(youtubeId('https://www.youtube.com/embed/abcDEF12345')).toBe('abcDEF12345')
+    expect(youtubeId('https://youtube.com/')).toBeNull()
+    expect(youtubeId('https://evil.example/watch?v=dQw4w9WgXcQ')).toBeNull()
+    expect(youtubeId('https://www.youtube.com.evil.example/watch?v=dQw4w9WgXcQ')).toBeNull()
+    expect(youtubeId('pas un lien')).toBeNull()
+    expect(youtubeWatchUrl('abc12345')).toBe('https://www.youtube.com/watch?v=abc12345')
+  })
+
+  it('explique pourquoi Instagram et les autres ne marchent pas', () => {
+    expect(videoLinkProblem('https://www.youtube.com/watch?v=dQw4w9WgXcQ')).toBeNull()
+    expect(videoLinkProblem('https://www.instagram.com/reel/Cx123/')).toContain('Instagram')
+    expect(videoLinkProblem('https://www.tiktok.com/@x/video/1')).toContain('légende')
+    expect(videoLinkProblem('https://exemple.fr/recette')).toContain('YouTube')
+    expect(videoLinkProblem('blabla')).toContain('lien')
+  })
+})
