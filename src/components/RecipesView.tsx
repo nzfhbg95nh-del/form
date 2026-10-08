@@ -6,8 +6,8 @@ import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, removeCategory, renameEntry,
-  setEntryEmoji, type RecipeCategory, type RecipeEntry,
+  addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
+  setEntryEmoji, sortRecipes, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
@@ -18,6 +18,11 @@ const button = 'rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(-
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
 function RecipeCard({ row }: { row: ObjectRow }) {
   const select = useApp((s) => s.select)
+  const v = parseValues(row.properties)
+  const stars = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? ''))
+  const diff = { d1: 'Facile', d2: 'Moyen', d3: 'Difficile' }[String(v[RECIPE.difficulty] ?? '') as 'd1']
+  const prep = Number(v[RECIPE.prep])
+  const info = [stars ? '★'.repeat(Number(stars[1])) : '', v[RECIPE.prep] && prep > 0 ? `${prep} min` : '', diff ?? ''].filter(Boolean).join(' · ')
   const photo = row.cover ? null : firstImageUrl(row.content, `${row.id}:${row.updated_at}`)
   const style = row.cover
     ? row.cover.startsWith('data:')
@@ -31,7 +36,10 @@ function RecipeCard({ row }: { row: ObjectRow }) {
       <div className="flex h-32 items-center justify-center bg-[var(--bg-side)]" style={style}>
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
-      <div className="truncate p-2 text-sm font-medium">{displayTitle(row.title)}</div>
+      <div className="p-2">
+        <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
+        {info && <div className="mt-0.5 truncate text-xs text-[var(--fg-muted)]">{info}</div>}
+      </div>
     </button>
   )
 }
@@ -127,6 +135,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [renaming, setRenaming] = useState<string | null>(null)
   const [emojiFor, setEmojiFor] = useState<string | null>(null)
   const [choosing, setChoosing] = useState(false)
+  const [sortBy, setSortBy] = useState<RecipeSort>('name')
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -142,7 +151,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
   const entries = useMemo(() => recipeEntries(schema).filter((e) => !e.isNone || none.length > 0), [schema, none.length])
   const entry = entries.find((e) => e.id === current)
-  const sorted = (list: ObjectRow[]) => [...list].sort((a, b) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr'))
+  const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title))
 
   const save = (next: Schema) => void saveSchema(db.id, next)
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
@@ -191,6 +200,17 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
             <Trash2 size={16} />
           </button>
         </div>
+        <label className="mb-3 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
+          Trier par
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value as RecipeSort)}
+            aria-label="Trier les recettes"
+            className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm text-[var(--fg)] outline-none"
+          >
+            {RECIPE_SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+          </select>
+        </label>
         <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
@@ -206,7 +226,6 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   }
 
   // ── Accueil des recettes : la liste des catégories ──
-  const row = 'flex w-full items-center gap-2.5 rounded-md px-2 py-1 text-left hover:bg-[var(--bg-hover)]'
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-3">
@@ -219,13 +238,14 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         {entries.map((e) => {
           const menuOpen = menu?.id === e.id
           return (
+            // Même ligne que celles des pages : la ligne entière se surligne, et le bouton « ⋯ » apparaît à droite au survol.
             <div
               key={e.id}
-              className="group relative"
+              className={'group relative flex items-center gap-1 rounded py-1 pl-2 pr-1 hover:bg-[var(--bg-hover)] ' + (menuOpen ? 'bg-[var(--bg-hover)]' : '')}
               onContextMenu={(ev) => { ev.preventDefault(); setMenu({ id: e.id, x: ev.clientX, y: ev.clientY }) }}
             >
               {renaming === e.id ? (
-                <div className={row}>
+                <div className="flex min-w-0 flex-1 items-center gap-2.5">
                   <Icon value={e.emoji} size={20} />
                   <input
                     autoFocus
@@ -245,7 +265,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
                   />
                 </div>
               ) : (
-                <button className={row} onClick={() => setCurrent(e.id)}>
+                <button className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => setCurrent(e.id)}>
                   {emojiFor === e.id ? (
                     <span onClick={(ev) => ev.stopPropagation()}>
                       <IconPicker
@@ -259,18 +279,18 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
                   ) : (
                     <Icon value={e.emoji} size={20} />
                   )}
-                  <span className={'flex-1 text-base font-medium ' + (e.isNone ? 'text-[var(--fg-muted)]' : 'underline decoration-[var(--border)] underline-offset-4')}>{e.label}</span>
-                  {/* Le nombre laisse la place aux trois points (au survol, et tant que le menu de cette ligne est ouvert). */}
-                  <span className={'text-xs text-[var(--fg-muted)] group-hover:opacity-0 ' + (menuOpen ? 'opacity-0' : '')}>{countOf(e)}</span>
+                  <span className={'truncate text-base font-medium ' + (e.isNone ? 'text-[var(--fg-muted)]' : 'underline decoration-[var(--border)] underline-offset-4')}>{e.label}</span>
                 </button>
               )}
+              {/* Le nombre laisse la place au bouton « ⋯ » dès qu'on survole la ligne ou que son menu est ouvert. */}
+              <span className={'text-xs text-[var(--fg-muted)] group-hover:hidden ' + (menuOpen ? 'hidden' : '')}>{countOf(e)}</span>
               <button
+                title="Plus d'actions"
                 aria-label={`Options de ${e.label}`}
-                title="Options (ou clic droit)"
                 onClick={(ev) => { const r = ev.currentTarget.getBoundingClientRect(); setMenu({ id: e.id, x: r.left, y: r.bottom + 4 }) }}
-                className={'absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--border)] focus:opacity-100 group-hover:opacity-100 ' + (menuOpen ? 'opacity-100' : 'opacity-0')}
+                className={'rounded p-0.5 hover:bg-[var(--border)] group-hover:opacity-100 ' + (menuOpen ? 'opacity-100' : 'opacity-0')}
               >
-                <MoreHorizontal size={16} />
+                <MoreHorizontal size={14} />
               </button>
             </div>
           )
@@ -327,7 +347,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         return (
           <>
             <div className="fixed inset-0 z-40" onMouseDown={() => setMenu(null)} onContextMenu={(ev) => { ev.preventDefault(); setMenu(null) }} />
-            <div role="menu" className="fixed z-50 max-h-[70vh] w-60 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 248), top: Math.min(menu.y, window.innerHeight - (e.isNone ? 460 : 220)) }}>
+            <div role="menu" className="fixed z-50 max-h-[70vh] w-64 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl" style={{ left: Math.min(menu.x, window.innerWidth - 270), top: Math.min(menu.y, window.innerHeight - (e.isNone ? 460 : 220)) }}>
               <button role="menuitem" className={item} onClick={run(() => setRenaming(e.id))}><PenLine size={14} /> Renommer</button>
               <button role="menuitem" className={item} onClick={run(() => setEmojiFor(e.id))}><Smile size={14} /> Changer l’emoji</button>
               <button role="menuitem" className={item} disabled={index === 0} onClick={run(() => save(moveEntry(schema, e.id, -1)))}><ArrowUp size={14} /> Monter</button>
