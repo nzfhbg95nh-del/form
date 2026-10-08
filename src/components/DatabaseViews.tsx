@@ -5,6 +5,7 @@ import {
   type Column, type Group, type Schema, type ViewConfig,
 } from '@/lib/database'
 import { coverStyle } from '@/components/PagePickers'
+import { firstImageUrl } from '@/lib/content'
 import { Chip, PropertyEditor } from '@/components/PropertyEditor'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
@@ -156,21 +157,25 @@ export function GalleryView({ db, schema, rows, change }: ViewProps) {
   const select = useApp((s) => s.select)
   return (
     <div>
-      <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-        {rows.map((row) => (
-          <button key={row.id} onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
-            <div
-              className="flex h-28 items-center justify-center bg-[var(--bg-side)] text-4xl"
-              style={row.cover ? coverStyle(row.cover) : undefined}
-            >
-              {!row.cover && <Icon value={row.icon} size={40} />}
-            </div>
-            <div className="p-2">
-              <div className="truncate text-sm font-medium">{row.title || 'Nouvelle page'}</div>
-              <div className="mt-1"><ChoiceChips row={row} schema={schema} /></div>
-            </div>
-          </button>
-        ))}
+      <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        {rows.map((row) => {
+          // Image de la carte : la couverture, sinon la première image de la page (la photo de la recette).
+          const photo = row.cover ? null : firstImageUrl(row.content, `${row.id}:${row.updated_at}`)
+          return (
+            <button key={row.id} onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
+              <div
+                className="flex h-28 items-center justify-center bg-[var(--bg-side)] text-4xl"
+                style={row.cover ? coverStyle(row.cover) : photo ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
+              >
+                {!row.cover && !photo && <Icon value={row.icon} size={40} />}
+              </div>
+              <div className="p-2">
+                <div className="truncate text-sm font-medium">{row.title || 'Nouvelle page'}</div>
+                <div className="mt-1"><ChoiceChips row={row} schema={schema} /></div>
+              </div>
+            </button>
+          )
+        })}
       </div>
       {rows.length === 0 && <p className="px-2 py-3 text-sm text-[var(--fg-muted)]">Aucune ligne à afficher.</p>}
       <NewRow db={db} schema={schema} change={change} />

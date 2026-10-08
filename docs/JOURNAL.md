@@ -406,3 +406,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Le bloc technique `recipephoto` reste enregistré, sans bouton, pour afficher sans erreur une photo déjà enregistrée par la v0.40.0 ou v0.40.1.
 - L'IA reste utilisée seulement dans les icônes de page (emojis proposés, dessin d'icône) et dans l'assistant (texte ou lien YouTube vers recette, tâches, lignes de devis), toujours au clic.
 - Tests : 231.
+
+## 2026-10-09 — Galerie : la photo de la recette sur sa carte (v0.40.3)
+- Dans une galerie (Recettes ou toute autre base), la carte affiche la couverture de la page ; à défaut, la PREMIÈRE IMAGE de la page (la photo que tu as mise dans le bloc image), sinon l'icône. On retrouve ainsi d'un coup d'œil toutes les photos de ses recettes. Le contenu n'est relu que lorsque la page change (mémoire par identifiant et date de modification).
+- Les cartes sont alignées en haut (une carte sans étiquette n'était plus centrée en hauteur).
+- Tests : 234.

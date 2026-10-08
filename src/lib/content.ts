@@ -26,3 +26,43 @@ export function readFileAsDataUrl(file: File): Promise<string> {
     reader.readAsDataURL(file)
   })
 }
+
+interface ImageBlockLike {
+  type?: string
+  props?: { url?: unknown; src?: unknown }
+  children?: ImageBlockLike[]
+}
+
+function findImage(blocks: ImageBlockLike[]): string | null {
+  for (const b of blocks) {
+    if (b && b.type === 'image' && typeof b.props?.url === 'string' && /^(data:image\/|https?:\/\/)/.test(b.props.url)) return b.props.url
+    // Ancien bloc de photo de recette (v0.40.0 / v0.40.1).
+    if (b && b.type === 'recipephoto' && typeof b.props?.src === 'string' && b.props.src.startsWith('data:image/')) return b.props.src
+    const inner = b?.children?.length ? findImage(b.children) : null
+    if (inner) return inner
+  }
+  return null
+}
+
+const imageCache = new Map<string, string | null>()
+
+/**
+ * La première image d'une page (celle d'un bloc image), pour l'afficher sur sa carte dans une galerie quand elle n'a pas de couverture.
+ * `key` identifie la version du contenu (identifiant + date de modification) pour ne pas relire un gros contenu à chaque affichage.
+ */
+export function firstImageUrl(content: string | null, key?: string): string | null {
+  if (!content) return null
+  if (key && imageCache.has(key)) return imageCache.get(key) ?? null
+  let found: string | null = null
+  try {
+    const data = JSON.parse(content)
+    if (Array.isArray(data)) found = findImage(data as ImageBlockLike[])
+  } catch {
+    found = null
+  }
+  if (key) {
+    if (imageCache.size > 500) imageCache.clear()
+    imageCache.set(key, found)
+  }
+  return found
+}
