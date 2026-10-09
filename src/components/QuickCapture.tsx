@@ -11,7 +11,7 @@ export function QuickCapture() {
         className="w-[520px] max-w-[90vw] rounded-lg border border-[var(--border)] bg-[var(--bg)] p-4 shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
-        <div className="mb-2 text-sm font-semibold">Capture rapide</div>
+        <div className="mb-2 text-sm font-semibold">Note rapide</div>
         <textarea
           autoFocus
           value={text}

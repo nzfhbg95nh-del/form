@@ -462,3 +462,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Dans une catégorie, la liste déroulante est remplacée par un bouton « Trier » (icône flèches) qui ouvre un petit panneau : critère (Nom, Note, Temps de préparation, Difficulté), sens Ascendant / Descendant, bouton Valider. Le bouton prend la couleur d'accent quand un tri est actif, avec une croix pour le retirer.
 - La note se trie par défaut du meilleur au moins bon ; les recettes sans valeur restent à la fin dans les deux sens.
 - Tests : 249.
+
+## 2026-10-09 — Barre latérale dans le style de Notion (v0.44.0)
+- En haut : un logo « F » provisoire (tuile claire, lettre en gras, trait noir, comme celui de Notion) à côté du nom « Form » ; il se change dans `FormLogo` (`AppMenu.tsx`) quand le vrai logo sera prêt.
+- Dessous, une rangée de « bulles » rondes : Accueil, Rechercher, Note rapide, Recettes. Seule la bulle de la page ouverte s'élargit et montre son nom ; les autres montrent leur nom en infobulle.
+- « Assistant IA » disparaît de la barre latérale (l'assistant reste dans Recettes : « Depuis une vidéo ou un texte »). « Capture rapide » devient « Note rapide ».
+- En bas : « Nouvelle page » est un bouton arrondi en forme de pilule, avec un bouton rond à côté pour les autres types (base de données, moodboard, modèles).
