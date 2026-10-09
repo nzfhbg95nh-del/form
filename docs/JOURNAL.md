@@ -485,3 +485,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Plus d'onglet « Courrier » ou « Agenda » au démarrage (v0.44.4)
 - Bug : à l'ouverture, Form ouvrait comme premier onglet la première « page » de la liste, qui pouvait être une base système (Courrier, Agenda, Recettes). Ces bases ne s'ouvrent plus toutes seules : l'onglet du départ est la première vraie page.
+
+## 2026-10-09 — Démarrage sans onglet (v0.44.5)
+- Au démarrage, Form s'ouvre sur l'accueil, sans onglet ouvert. Seule exception, comme demandé : la dernière page consultée avant la fermeture est rouverte dans un onglet (l'affichage reste sur l'accueil). Les bases système (Courrier, Agenda, Recettes) ne sont jamais rouvertes toutes seules.
