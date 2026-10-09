@@ -50,6 +50,8 @@ function savedExpanded(): Record<string, boolean> {
   }
 }
 
+/** Dernière page ouverte, gardée pour la rouvrir au prochain démarrage. */
+const LAST_PAGE_KEY = 'form-last-page'
 const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database' || o.type === 'moodboard'
 
 interface AppState {
@@ -342,8 +344,10 @@ export const useApp = create<AppState>((set, get) => ({
       const [clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments] = await Promise.all([
         repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
-      // Les bases « système » (courrier, agenda, recettes) ne s'ouvrent pas toutes seules au démarrage.
-      const first = objects.find((o) => !o.deleted_at && isPageLike(o) && !isSystemDatabase(o))
+      // Au démarrage, aucun onglet n'est ouvert, sauf la dernière page consultée avant la fermeture (on reste sur l'accueil).
+      let last: string | null = null
+      try { last = localStorage.getItem(LAST_PAGE_KEY) } catch { /* sans importance */ }
+      const first = objects.find((o) => o.id === last && !o.deleted_at && isPageLike(o) && !isSystemDatabase(o))
       // Premier lancement : le catalogue reçoit les tarifs journaliers de Victor (une seule fois, même s'il les supprime ensuite).
       if (services.length === 0 && (await repo.getSetting('default_services_seeded')) !== '1') {
         for (const s of defaultServices()) {
@@ -394,6 +398,10 @@ export const useApp = create<AppState>((set, get) => ({
     // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
     const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
     set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
+    const opened = get().objects.find((o) => o.id === currentId(tabs))
+    if (opened && isPageLike(opened) && !isSystemDatabase(opened)) {
+      try { localStorage.setItem(LAST_PAGE_KEY, opened.id) } catch { /* sans importance */ }
+    }
   },
 
   goBack() {
