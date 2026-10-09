@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, SquarePen, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
@@ -22,8 +22,8 @@ function Bubble({ label, hint, active, onClick, children }: { label: string; hin
       aria-label={label}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'flex h-11 shrink-0 items-center justify-center gap-2 rounded-full text-[15px] hover:bg-[var(--bg-hover)] [&>svg]:stroke-[1.6]',
-        active ? 'bg-[var(--bg-hover)] px-4 font-semibold' : 'w-11 text-[var(--fg-muted)] hover:text-[var(--fg)]',
+        'flex h-9 shrink-0 items-center justify-center gap-2 rounded-full text-sm hover:bg-[var(--bg-hover)] [&>svg]:stroke-[1.6]',
+        active ? 'bg-[var(--bg-hover)] px-3.5 font-semibold' : 'w-9 text-[var(--fg-muted)] hover:text-[var(--fg)]',
       )}
     >
       {children}
@@ -37,7 +37,7 @@ function Item({ active, onClick, children }: { active?: boolean; onClick: () => 
     <button
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-[15px] hover:bg-[var(--bg-hover)] [&>svg]:h-5 [&>svg]:w-5 [&>svg]:shrink-0 [&>svg]:stroke-[1.5] [&>svg]:text-[var(--fg-muted)]',
+        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0 [&>svg]:stroke-[1.5] [&>svg]:text-[var(--fg-muted)]',
         active && 'bg-[var(--bg-hover)] font-medium',
       )}
     >
@@ -53,7 +53,7 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
       type="button"
       aria-expanded={!collapsed}
       onClick={() => toggle(id)}
-      className="group flex w-full items-center gap-1 px-2 pb-1 pt-5 text-left text-[13px] font-medium text-[var(--fg-muted)] hover:text-[var(--fg)]"
+      className="group flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--fg)]"
     >
       {children}
       {/* La flèche suit le texte et n'apparaît qu'au survol. */}
@@ -63,11 +63,11 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
 }
 
 function PageIcon({ page }: { page: ObjectRow }) {
-  if (page.icon) return <Icon value={page.icon} size={20} />
-  if (page.type === 'moodboard') return <Images size={20} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
+  if (page.icon) return <Icon value={page.icon} size={16} />
+  if (page.type === 'moodboard') return <Images size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
   return page.type === 'database'
-    ? <Database size={20} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
-    : <FileText size={20} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
+    ? <Database size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
+    : <FileText size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
 }
 
 interface DragState {
@@ -163,7 +163,7 @@ function TreeItem({
           setDrag({ dragId: null, over: null })
         }}
         className={cn(
-          'group relative flex items-center gap-1 rounded-lg py-1.5 pr-1 text-[15px] hover:bg-[var(--bg-hover)]',
+          'group relative flex items-center gap-1 rounded-md py-1 pr-1 text-sm hover:bg-[var(--bg-hover)]',
           active && 'bg-[var(--bg-hover)] font-medium',
           over === 'into' && 'outline outline-2 outline-[var(--accent)]',
         )}
@@ -185,7 +185,7 @@ function TreeItem({
             <RenameInput page={page} />
           </>
         ) : (
-          <button {...handlers} className="flex min-w-0 flex-1 items-center gap-3 text-left">
+          <button {...handlers} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
             <PageIcon page={page} />
             <span className="truncate">{page.title || 'Nouvelle page'}</span>
           </button>
@@ -219,7 +219,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
     <button
       {...handlers}
       className={cn(
-        'flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-[15px] hover:bg-[var(--bg-hover)]',
+        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
         view === 'page' && selectedId === page.id && 'bg-[var(--bg-hover)] font-medium',
       )}
     >
@@ -253,14 +253,15 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] px-3 py-2">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] px-2 py-2">
       <AppMenu />
       {/* Comme dans Notion : une rangée de « bulles » ; celle de la page ouverte s'élargit et montre son nom. */}
-      <div className="mb-2 flex items-center gap-1 px-1">
-        <Bubble label="Accueil" active={view === 'home'} onClick={() => show('home')}><Home size={20} /></Bubble>
-        <Bubble label="Rechercher" hint="Ctrl+K" onClick={() => setSearch(true)}><Search size={20} /></Bubble>
-        <Bubble label="Note rapide" onClick={() => setCapture(true)}><PenLine size={20} /></Bubble>
-        <Bubble label="Recettes" active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}><ChefHat size={20} /></Bubble>
+      <div className="mb-1 flex items-center gap-0.5">
+        <Bubble label="Accueil" active={view === 'home'} onClick={() => show('home')}><Home size={18} /></Bubble>
+                <Bubble label="Note rapide" onClick={() => setCapture(true)}><PenLine size={18} /></Bubble>
+        <Bubble label="Recettes" active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}><ChefHat size={18} /></Bubble>
+        <span className="ml-auto" />
+        <Bubble label="Rechercher" hint="Ctrl+K" onClick={() => setSearch(true)}><Search size={18} /></Bubble>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
@@ -310,27 +311,39 @@ export function Sidebar() {
         <div hidden={!!collapsed.pages} onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
           {pinnedList.map((p) => <TreeItem key={'pin-' + p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
           {roots.filter((p) => !pinned.includes(p.id)).map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
-          <button onClick={() => void createPage()} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left text-[15px] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
-            <Plus size={20} strokeWidth={1.5} className="shrink-0" /> Ajouter
+          <button onClick={() => void createPage()} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
+            <Plus size={16} strokeWidth={1.5} className="shrink-0" /> Ajouter
           </button>
+        </div>
+        <div className="mt-4">
+          <Item active={view === 'trash'} onClick={() => show('trash')}>
+            <Trash2 size={16} /> Corbeille
+          </Item>
+          <Item active={view === 'settings'} onClick={() => show('settings')}>
+            <Settings size={16} /> Réglages
+          </Item>
+          <Item onClick={toggleTheme}>
+            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+            {theme === 'dark' ? 'Thème clair' : 'Thème sombre'}
+          </Item>
         </div>
       </div>
 
-      <div className="relative">
-        <div className="flex items-center gap-2 px-1">
+      <div className="relative pt-2">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => void createPage()}
-            className="flex h-12 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-5 text-[15px] font-medium shadow-sm hover:bg-[var(--bg-hover)]"
+            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 text-sm font-medium shadow-sm hover:bg-[var(--bg-hover)]"
           >
-            <Plus size={18} strokeWidth={1.8} /> <span className="truncate">Nouvelle page</span>
+            <Plus size={16} strokeWidth={1.8} /> <span className="truncate">Nouvelle page</span>
           </button>
           <button
             title="Autres types : base de données, moodboard, modèles…"
             aria-label="Autres types de pages"
             onClick={() => setNewMenu(!newMenu)}
-            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] shadow-sm hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] shadow-sm hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
           >
-            <ChevronDown size={20} strokeWidth={1.5} />
+            <SquarePen size={16} strokeWidth={1.5} />
           </button>
         </div>
         {newMenu && (
@@ -350,19 +363,6 @@ export function Sidebar() {
             </div>
           </>
         )}
-      </div>
-
-      <div className="mt-2 border-t border-[var(--border)] pt-2">
-        <Item active={view === 'trash'} onClick={() => show('trash')}>
-          <Trash2 size={14} /> Corbeille
-        </Item>
-        <Item active={view === 'settings'} onClick={() => show('settings')}>
-          <Settings size={14} /> Réglages
-        </Item>
-        <Item onClick={toggleTheme}>
-          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
-          {theme === 'dark' ? 'Thème clair' : 'Thème sombre'}
-        </Item>
       </div>
 
       {menu && <PageMenu id={menu.id} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}
