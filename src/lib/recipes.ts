@@ -87,25 +87,29 @@ export function normalizeRecipesSchema(schema: Schema): Schema {
 
 export type RecipeSort = 'name' | 'rating' | 'prep' | 'difficulty'
 export const RECIPE_SORTS: { id: RecipeSort; label: string }[] = [
-  { id: 'name', label: 'Nom (A → Z)' },
-  { id: 'rating', label: 'Note (les mieux notées d\'abord)' },
-  { id: 'prep', label: 'Préparation (la plus courte d\'abord)' },
-  { id: 'difficulty', label: 'Difficulté (la plus facile d\'abord)' },
+  { id: 'name', label: 'Nom' },
+  { id: 'rating', label: 'Note' },
+  { id: 'prep', label: 'Temps de préparation' },
+  { id: 'difficulty', label: 'Difficulté' },
 ]
 
+/** Sens de départ quand on choisit un tri : la note se lit du meilleur au moins bon, le reste du plus petit au plus grand. */
+export const defaultSortDescending = (sort: RecipeSort) => sort === 'rating'
+
 /** Trie des recettes ; celles qui n'ont pas la valeur demandée passent à la fin. Le nom départage les égalités. */
-export function sortRecipes<T extends { title: string | null; properties: string | null }>(rows: T[], sort: RecipeSort, nameOf: (r: T) => string): T[] {
+export function sortRecipes<T extends { title: string | null; properties: string | null }>(rows: T[], sort: RecipeSort, nameOf: (r: T) => string, descending = false): T[] {
   const num = (r: T): number | null => {
     const v = parseValues(r.properties as string)
-    if (sort === 'rating') { const m = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? '')); return m ? -Number(m[1]) : null }
+    if (sort === 'rating') { const m = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? '')); return m ? Number(m[1]) : null }
     if (sort === 'difficulty') { const m = /^d([1-3])$/.exec(String(v[RECIPE.difficulty] ?? '')); return m ? Number(m[1]) : null }
     if (sort === 'prep') { const n = Number(v[RECIPE.prep]); return v[RECIPE.prep] === undefined || v[RECIPE.prep] === '' || !Number.isFinite(n) ? null : n }
     return 0
   }
   return [...rows].sort((x, y) => {
     const a = num(x), b = num(y)
-    if (a !== b) { if (a === null) return 1; if (b === null) return -1; return a - b }
-    return nameOf(x).localeCompare(nameOf(y), 'fr')
+    const sign = descending ? -1 : 1
+    if (a !== b) { if (a === null) return 1; if (b === null) return -1; return (a - b) * sign }
+    return nameOf(x).localeCompare(nameOf(y), 'fr') * (sort === 'name' ? sign : 1)
   })
 }
 

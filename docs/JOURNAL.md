@@ -457,3 +457,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Trois propriétés reviennent dans les recettes, à remplir sur la page : Note (★ à ★★★★★), Préparation (min), Difficulté (Facile / Moyen / Difficile). Les cartes de la galerie les affichent. Cuisson et étiquettes restent retirées.
 - Les bases existantes reçoivent ces propriétés à l'ouverture.
 - Tests : 248.
+
+## 2026-10-09 — Bouton « Trier » à la Notion (v0.43.1)
+- Dans une catégorie, la liste déroulante est remplacée par un bouton « Trier » (icône flèches) qui ouvre un petit panneau : critère (Nom, Note, Temps de préparation, Difficulté), sens Ascendant / Descendant, bouton Valider. Le bouton prend la couleur d'accent quand un tri est actif, avec une croix pour le retirer.
+- La note se trie par défaut du meilleur au moins bon ; les recettes sans valeur restent à la fin dans les deux sens.
+- Tests : 249.
