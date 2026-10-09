@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sparkles, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
@@ -12,6 +12,25 @@ import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
+
+/** Bouton rond de la rangée du haut : seule la bulle active déplie son nom. */
+function Bubble({ label, hint, active, onClick, children }: { label: string; hint?: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      title={hint ? `${label} (${hint})` : label}
+      aria-label={label}
+      aria-current={active ? 'page' : undefined}
+      className={cn(
+        'flex h-10 shrink-0 items-center justify-center gap-2 rounded-full text-sm hover:bg-[var(--bg-hover)]',
+        active ? 'bg-[var(--bg-hover)] px-4 font-semibold' : 'w-10 text-[var(--fg-muted)] hover:text-[var(--fg)]',
+      )}
+    >
+      {children}
+      {active && label}
+    </button>
+  )
+}
 
 function Item({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
@@ -212,7 +231,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, setAssistant, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -236,22 +255,13 @@ export function Sidebar() {
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
       <AppMenu />
-      <Item active={view === 'home'} onClick={() => show('home')}>
-        <Home size={14} /> Accueil
-      </Item>
-      <Item onClick={() => setSearch(true)}>
-        <Search size={14} /> Rechercher
-        <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
-      </Item>
-      <Item onClick={() => setCapture(true)}>
-        <PenLine size={14} /> Capture rapide
-      </Item>
-      <Item onClick={() => setAssistant('recipe')}>
-        <Sparkles size={14} /> Assistant IA
-      </Item>
-      <Item active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}>
-        <ChefHat size={14} /> Recettes
-      </Item>
+      {/* Comme dans Notion : une rangée de « bulles » ; celle de la page ouverte s'élargit et montre son nom. */}
+      <div className="mb-2 flex items-center gap-1 px-1">
+        <Bubble label="Accueil" active={view === 'home'} onClick={() => show('home')}><Home size={18} /></Bubble>
+        <Bubble label="Rechercher" hint="Ctrl+K" onClick={() => setSearch(true)}><Search size={18} /></Bubble>
+        <Bubble label="Note rapide" onClick={() => setCapture(true)}><PenLine size={18} /></Bubble>
+        <Bubble label="Recettes" active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}><ChefHat size={18} /></Bubble>
+      </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <CollapsibleLabel id="company" collapsed={!!collapsed.company} toggle={toggleSection}>Mon entreprise</CollapsibleLabel>
@@ -305,19 +315,20 @@ export function Sidebar() {
       </div>
 
       <div className="relative">
-        <div className="flex items-center gap-0.5">
-          <div className="min-w-0 flex-1">
-            <Item onClick={() => void createPage()}>
-              <Plus size={14} /> Nouvelle page
-            </Item>
-          </div>
+        <div className="flex items-center gap-2 px-1">
+          <button
+            onClick={() => void createPage()}
+            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 text-sm font-medium shadow-sm hover:bg-[var(--bg-hover)]"
+          >
+            <Plus size={16} /> <span className="truncate">Nouvelle page</span>
+          </button>
           <button
             title="Autres types : base de données, moodboard, modèles…"
             aria-label="Autres types de pages"
             onClick={() => setNewMenu(!newMenu)}
-            className="rounded p-1.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] shadow-sm hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
           >
-            <ChevronDown size={14} />
+            <ChevronDown size={16} />
           </button>
         </div>
         {newMenu && (
