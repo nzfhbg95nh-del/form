@@ -474,3 +474,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Onglets plus grands (barre de la couleur de la barre latérale, onglet actif « soulevé » aux coins arrondis, icônes plus grandes).
 - Nouveau : le chemin de la page sous les onglets (Page parente / Sous-page / Page), chaque étape est cliquable.
 - Tests : 251.
+
+## 2026-10-09 — Style Notion : bonnes proportions et même placement (v0.44.2)
+- Correction de la v0.44.1 : tout était trop gros (les captures de Notion sont zoomées). Barre latérale, onglets et chemin de page reprennent des tailles normales (texte 14 px, icônes 16 px, lignes plus compactes).
+- Même placement que Notion : la recherche passe à l'extrémité droite de la rangée de bulles ; Corbeille, Réglages et Thème sont dans la liste, sous les pages, sans trait de séparation ; en bas, la pilule « Nouvelle page » avec le bouton rond « nouvelle page » (types : base de données, moodboard, modèles).
