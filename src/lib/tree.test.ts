@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { childrenOf, computeMove, descendantsOf, duplicationOrder } from './tree'
+import { childrenOf, computeMove, descendantsOf, duplicationOrder, pathTo } from './tree'
 import type { ObjectRow } from './types'
 
 function page(id: string, parent: string | null, position: number, deleted: string | null = null): ObjectRow {
@@ -42,5 +42,18 @@ describe('arbre de pages', () => {
     const withDeleted = [...tree, page('A3', 'A', 3000, '2026-02-01')]
     expect(duplicationOrder(withDeleted, 'A').map((p) => p.id)).toEqual(['A', 'A1', 'A2', 'A1a'])
     expect(duplicationOrder(withDeleted, 'inconnu')).toEqual([])
+  })
+})
+
+describe('chemin d\'une page', () => {
+  it('va de la racine jusqu\'à la page', () => {
+    expect(pathTo(tree, 'A1a').map((p) => p.id)).toEqual(['A', 'A1', 'A1a'])
+    expect(pathTo(tree, 'B').map((p) => p.id)).toEqual(['B'])
+    expect(pathTo(tree, 'inconnue')).toEqual([])
+  })
+
+  it('ne tourne pas en rond si les parents se bouclent', () => {
+    const loop = [page('P', 'Q', 1), page('Q', 'P', 2)]
+    expect(pathTo(loop, 'P').length).toBe(2)
   })
 })

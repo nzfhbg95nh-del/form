@@ -25,7 +25,7 @@ export function FormLogo() {
   return (
     <span
       aria-hidden
-      className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-[1.5px] border-[var(--fg)] bg-white font-serif text-[17px] font-black leading-none text-black shadow-[1.5px_1.5px_0_var(--fg)]"
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-[1.5px] border-[var(--fg)] bg-white font-serif text-[17px] font-black leading-none text-black shadow-[1.5px_1.5px_0_var(--fg)]"
     >
       F
     </span>
@@ -105,7 +105,7 @@ export function AppMenu() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-base font-semibold hover:bg-[var(--bg-hover)]">
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-[17px] font-semibold hover:bg-[var(--bg-hover)]">
         <FormLogo />
         Form <ChevronDown size={14} className="text-[var(--fg-muted)]" />
       </button>
