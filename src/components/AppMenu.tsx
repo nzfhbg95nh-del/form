@@ -20,18 +20,6 @@ const paste = async () => {
   } catch { /* presse-papiers refusé */ }
 }
 
-/** Logo provisoire dans le style de Notion (tuile claire, lettre en gras, trait noir). À remplacer par celui de Victor. */
-export function FormLogo() {
-  return (
-    <span
-      aria-hidden
-      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[1.5px] border-[var(--fg)] bg-white font-serif text-[13px] font-black leading-none text-black shadow-[1px_1px_0_var(--fg)]"
-    >
-      F
-    </span>
-  )
-}
-
 export function AppMenu() {
   const s = useApp()
   const [open, setOpen] = useState(false)
@@ -105,8 +93,7 @@ export function AppMenu() {
 
   return (
     <div className="relative">
-      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-[15px] font-semibold hover:bg-[var(--bg-hover)]">
-        <FormLogo />
+      <button onClick={() => setOpen(!open)} className="flex w-full items-center gap-1 rounded px-2 py-2 text-base font-semibold hover:bg-[var(--bg-hover)]">
         Form <ChevronDown size={14} className="text-[var(--fg-muted)]" />
       </button>
       {open && (

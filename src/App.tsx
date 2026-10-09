@@ -17,7 +17,6 @@ import { SearchPalette } from '@/components/SearchPalette'
 import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
-import { Breadcrumb } from '@/components/Breadcrumb'
 import { UpdateBanner } from '@/components/UpdateBanner'
 import { TrashView } from '@/components/TrashView'
 import { FLOATING_EVENT, openFloatingBoardIds } from '@/lib/floating'
@@ -172,7 +171,6 @@ export default function App() {
       {!sidebarHidden && <Sidebar />}
       <div className="flex min-w-0 flex-1 flex-col">
         <TabBar />
-        {view === 'page' && selected && <Breadcrumb id={selected.id} />}
         <UpdateBanner />
         {backupMessage && (
           <div className="bg-[var(--bg-side)] px-4 py-1 text-center text-xs text-[var(--fg-muted)]">{backupMessage}</div>

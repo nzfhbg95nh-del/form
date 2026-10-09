@@ -478,3 +478,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-09 — Style Notion : bonnes proportions et même placement (v0.44.2)
 - Correction de la v0.44.1 : tout était trop gros (les captures de Notion sont zoomées). Barre latérale, onglets et chemin de page reprennent des tailles normales (texte 14 px, icônes 16 px, lignes plus compactes).
 - Même placement que Notion : la recherche passe à l'extrémité droite de la rangée de bulles ; Corbeille, Réglages et Thème sont dans la liste, sous les pages, sans trait de séparation ; en bas, la pilule « Nouvelle page » avec le bouton rond « nouvelle page » (types : base de données, moodboard, modèles).
+
+## 2026-10-09 — Retour à l'ancien style de la barre latérale (v0.44.3)
+- À la demande de Victor, la barre latérale, les onglets et le haut de page retrouvent leur apparence d'avant le style Notion (v0.43.1) : plus de bulles, de pilule, de logo ni de chemin de page.
+- Gardé : « Assistant IA » n'est plus dans la barre latérale, et « Capture rapide » s'appelle « Note rapide ».

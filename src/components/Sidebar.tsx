@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, SquarePen, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
@@ -13,31 +13,12 @@ import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 
-/** Bouton rond de la rangée du haut : seule la bulle active déplie son nom. */
-function Bubble({ label, hint, active, onClick, children }: { label: string; hint?: string; active?: boolean; onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      title={hint ? `${label} (${hint})` : label}
-      aria-label={label}
-      aria-current={active ? 'page' : undefined}
-      className={cn(
-        'flex h-9 shrink-0 items-center justify-center gap-2 rounded-full text-sm hover:bg-[var(--bg-hover)] [&>svg]:stroke-[1.6]',
-        active ? 'bg-[var(--bg-hover)] px-3.5 font-semibold' : 'w-9 text-[var(--fg-muted)] hover:text-[var(--fg)]',
-      )}
-    >
-      {children}
-      {active && label}
-    </button>
-  )
-}
-
 function Item({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] [&>svg]:h-4 [&>svg]:w-4 [&>svg]:shrink-0 [&>svg]:stroke-[1.5] [&>svg]:text-[var(--fg-muted)]',
+        'flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]',
         active && 'bg-[var(--bg-hover)] font-medium',
       )}
     >
@@ -53,7 +34,7 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
       type="button"
       aria-expanded={!collapsed}
       onClick={() => toggle(id)}
-      className="group flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-medium text-[var(--fg-muted)] hover:text-[var(--fg)]"
+      className="group flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
     >
       {children}
       {/* La flèche suit le texte et n'apparaît qu'au survol. */}
@@ -64,10 +45,10 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
 
 function PageIcon({ page }: { page: ObjectRow }) {
   if (page.icon) return <Icon value={page.icon} size={16} />
-  if (page.type === 'moodboard') return <Images size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
+  if (page.type === 'moodboard') return <Images size={14} className="shrink-0 text-[var(--fg-muted)]" />
   return page.type === 'database'
-    ? <Database size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
-    : <FileText size={16} strokeWidth={1.5} className="shrink-0 text-[var(--fg-muted)]" />
+    ? <Database size={14} className="shrink-0 text-[var(--fg-muted)]" />
+    : <FileText size={14} className="shrink-0 text-[var(--fg-muted)]" />
 }
 
 interface DragState {
@@ -163,7 +144,7 @@ function TreeItem({
           setDrag({ dragId: null, over: null })
         }}
         className={cn(
-          'group relative flex items-center gap-1 rounded-md py-1 pr-1 text-sm hover:bg-[var(--bg-hover)]',
+          'group relative flex items-center gap-1 rounded py-1 pr-1 text-sm hover:bg-[var(--bg-hover)]',
           active && 'bg-[var(--bg-hover)] font-medium',
           over === 'into' && 'outline outline-2 outline-[var(--accent)]',
         )}
@@ -185,7 +166,7 @@ function TreeItem({
             <RenameInput page={page} />
           </>
         ) : (
-          <button {...handlers} className="flex min-w-0 flex-1 items-center gap-2.5 text-left">
+          <button {...handlers} className="flex min-w-0 flex-1 items-center gap-2 text-left">
             <PageIcon page={page} />
             <span className="truncate">{page.title || 'Nouvelle page'}</span>
           </button>
@@ -219,7 +200,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
     <button
       {...handlers}
       className={cn(
-        'flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
+        'flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]',
         view === 'page' && selectedId === page.id && 'bg-[var(--bg-hover)] font-medium',
       )}
     >
@@ -253,16 +234,21 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] px-2 py-2">
+    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
       <AppMenu />
-      {/* Comme dans Notion : une rangée de « bulles » ; celle de la page ouverte s'élargit et montre son nom. */}
-      <div className="mb-1 flex items-center gap-0.5">
-        <Bubble label="Accueil" active={view === 'home'} onClick={() => show('home')}><Home size={18} /></Bubble>
-                <Bubble label="Note rapide" onClick={() => setCapture(true)}><PenLine size={18} /></Bubble>
-        <Bubble label="Recettes" active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}><ChefHat size={18} /></Bubble>
-        <span className="ml-auto" />
-        <Bubble label="Rechercher" hint="Ctrl+K" onClick={() => setSearch(true)}><Search size={18} /></Bubble>
-      </div>
+      <Item active={view === 'home'} onClick={() => show('home')}>
+        <Home size={14} /> Accueil
+      </Item>
+      <Item onClick={() => setSearch(true)}>
+        <Search size={14} /> Rechercher
+        <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
+      </Item>
+      <Item onClick={() => setCapture(true)}>
+        <PenLine size={14} /> Note rapide
+      </Item>
+      <Item active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}>
+        <ChefHat size={14} /> Recettes
+      </Item>
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <CollapsibleLabel id="company" collapsed={!!collapsed.company} toggle={toggleSection}>Mon entreprise</CollapsibleLabel>
@@ -311,39 +297,24 @@ export function Sidebar() {
         <div hidden={!!collapsed.pages} onDragLeave={(e) => { if (e.currentTarget === e.target) setDrag({ ...drag, over: null }) }}>
           {pinnedList.map((p) => <TreeItem key={'pin-' + p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
           {roots.filter((p) => !pinned.includes(p.id)).map((p) => <TreeItem key={p.id} page={p} depth={0} drag={drag} setDrag={setDrag} openMenu={openMenu} />)}
-          <button onClick={() => void createPage()} className="flex w-full items-center gap-2.5 rounded-md px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
-            <Plus size={16} strokeWidth={1.5} className="shrink-0" /> Ajouter
-          </button>
-        </div>
-        <div className="mt-4">
-          <Item active={view === 'trash'} onClick={() => show('trash')}>
-            <Trash2 size={16} /> Corbeille
-          </Item>
-          <Item active={view === 'settings'} onClick={() => show('settings')}>
-            <Settings size={16} /> Réglages
-          </Item>
-          <Item onClick={toggleTheme}>
-            {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
-            {theme === 'dark' ? 'Thème clair' : 'Thème sombre'}
-          </Item>
+          {roots.length === 0 && pinnedList.length === 0 && <div className="px-2 text-sm text-[var(--fg-muted)]">Aucune page</div>}
         </div>
       </div>
 
-      <div className="relative pt-2">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void createPage()}
-            className="flex h-10 min-w-0 flex-1 items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-4 text-sm font-medium shadow-sm hover:bg-[var(--bg-hover)]"
-          >
-            <Plus size={16} strokeWidth={1.8} /> <span className="truncate">Nouvelle page</span>
-          </button>
+      <div className="relative">
+        <div className="flex items-center gap-0.5">
+          <div className="min-w-0 flex-1">
+            <Item onClick={() => void createPage()}>
+              <Plus size={14} /> Nouvelle page
+            </Item>
+          </div>
           <button
             title="Autres types : base de données, moodboard, modèles…"
             aria-label="Autres types de pages"
             onClick={() => setNewMenu(!newMenu)}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] shadow-sm hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+            className="rounded p-1.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
           >
-            <SquarePen size={16} strokeWidth={1.5} />
+            <ChevronDown size={14} />
           </button>
         </div>
         {newMenu && (
@@ -363,6 +334,19 @@ export function Sidebar() {
             </div>
           </>
         )}
+      </div>
+
+      <div className="mt-2 border-t border-[var(--border)] pt-2">
+        <Item active={view === 'trash'} onClick={() => show('trash')}>
+          <Trash2 size={14} /> Corbeille
+        </Item>
+        <Item active={view === 'settings'} onClick={() => show('settings')}>
+          <Settings size={14} /> Réglages
+        </Item>
+        <Item onClick={toggleTheme}>
+          {theme === 'dark' ? <Sun size={14} /> : <Moon size={14} />}
+          {theme === 'dark' ? 'Thème clair' : 'Thème sombre'}
+        </Item>
       </div>
 
       {menu && <PageMenu id={menu.id} x={menu.x} y={menu.y} onClose={() => setMenu(null)} />}
