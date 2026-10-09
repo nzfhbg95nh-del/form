@@ -468,3 +468,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Dessous, une rangée de « bulles » rondes : Accueil, Rechercher, Note rapide, Recettes. Seule la bulle de la page ouverte s'élargit et montre son nom ; les autres montrent leur nom en infobulle.
 - « Assistant IA » disparaît de la barre latérale (l'assistant reste dans Recettes : « Depuis une vidéo ou un texte »). « Capture rapide » devient « Note rapide ».
 - En bas : « Nouvelle page » est un bouton arrondi en forme de pilule, avec un bouton rond à côté pour les autres types (base de données, moodboard, modèles).
+
+## 2026-10-09 — Style Notion plus fidèle : barre latérale aérée, onglets, chemin de la page (v0.44.1)
+- Barre latérale plus large et plus aérée comme celle de Notion : lignes plus hautes, texte 15 px, icônes fines de 20 px en gris, emojis des pages plus grands, titres de section discrets (« Récentes », « Pages »), ligne « + Ajouter » sous les pages, bulles et bas arrondi plus grands.
+- Onglets plus grands (barre de la couleur de la barre latérale, onglet actif « soulevé » aux coins arrondis, icônes plus grandes).
+- Nouveau : le chemin de la page sous les onglets (Page parente / Sous-page / Page), chaque étape est cliquable.
+- Tests : 251.

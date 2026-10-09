@@ -62,3 +62,17 @@ export function duplicationOrder(objects: ObjectRow[], id: string): ObjectRow[] 
   if (!root) return []
   return [root, ...descendantsOf(objects, id).filter((o) => !o.deleted_at)]
 }
+
+/** Le chemin d'une page : ses parents depuis la racine, puis elle-même (protégé contre les boucles). */
+export function pathTo(objects: ObjectRow[], id: string): ObjectRow[] {
+  const byId = new Map(objects.map((o) => [o.id, o]))
+  const path: ObjectRow[] = []
+  const seen = new Set<string>()
+  let cur = byId.get(id)
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id)
+    path.unshift(cur)
+    cur = cur.parent_id ? byId.get(cur.parent_id) : undefined
+  }
+  return path
+}
