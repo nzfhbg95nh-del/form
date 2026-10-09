@@ -166,7 +166,8 @@ describe('tri des recettes', () => {
   const list = [r('B', { rating: 'r3', prep: 30, difficulty: 'd2' }), r('A', {}), r('C', { rating: 'r5', prep: 10, difficulty: 'd1' })]
   const names = (x: typeof list) => x.map((i) => i.title).join('')
   it('par nom', () => expect(names(sortRecipes(list, 'name', (i) => i.title))).toBe('ABC'))
-  it('par note : les mieux notées d\'abord, sans note à la fin', () => expect(names(sortRecipes(list, 'rating', (i) => i.title))).toBe('CBA'))
+  it('par note descendante : les mieux notées d\'abord, sans note à la fin', () => expect(names(sortRecipes(list, 'rating', (i) => i.title, true))).toBe('CBA'))
+  it('par note ascendante : les moins bien notées d\'abord, sans note à la fin', () => expect(names(sortRecipes(list, 'rating', (i) => i.title))).toBe('BCA'))
   it('par préparation : la plus courte d\'abord', () => expect(names(sortRecipes(list, 'prep', (i) => i.title))).toBe('CBA'))
   it('par difficulté : la plus facile d\'abord', () => expect(names(sortRecipes(list, 'difficulty', (i) => i.title))).toBe('CBA'))
 })

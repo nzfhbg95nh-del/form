@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowUp, MoreHorizontal, PenLine, Plus, Smile, Trash2 } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { PageEditor } from '@/components/PageEditor'
 import { IconPicker } from '@/components/PagePickers'
@@ -7,7 +7,7 @@ import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
   addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
-  setEntryEmoji, sortRecipes, type RecipeSort, type RecipeCategory, type RecipeEntry,
+  setEntryEmoji, sortRecipes, defaultSortDescending, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
@@ -136,6 +136,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [emojiFor, setEmojiFor] = useState<string | null>(null)
   const [choosing, setChoosing] = useState(false)
   const [sortBy, setSortBy] = useState<RecipeSort>('name')
+  const [sortDesc, setSortDesc] = useState(false)
+  const [sortOpen, setSortOpen] = useState(false)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -151,7 +153,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
   const entries = useMemo(() => recipeEntries(schema).filter((e) => !e.isNone || none.length > 0), [schema, none.length])
   const entry = entries.find((e) => e.id === current)
-  const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title))
+  const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title), sortDesc)
 
   const save = (next: Schema) => void saveSchema(db.id, next)
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
@@ -200,17 +202,57 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
             <Trash2 size={16} />
           </button>
         </div>
-        <label className="mb-3 flex items-center gap-2 text-sm text-[var(--fg-muted)]">
-          Trier par
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as RecipeSort)}
+        <div className="relative mb-3 flex items-center gap-2">
+          <button
+            onClick={() => setSortOpen((o) => !o)}
+            title="Trier les recettes"
             aria-label="Trier les recettes"
-            className="rounded border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-sm text-[var(--fg)] outline-none"
+            className={'flex items-center gap-1.5 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortBy === 'name' && !sortDesc ? 'text-[var(--fg-muted)] hover:text-[var(--fg)]' : 'text-[var(--accent)]')}
           >
-            {RECIPE_SORTS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
-          </select>
-        </label>
+            <ArrowUpDown size={14} />
+            {sortBy === 'name' && !sortDesc ? 'Trier' : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
+          </button>
+          {sortBy !== 'name' || sortDesc ? (
+            <button className="rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" title="Retirer le tri" aria-label="Retirer le tri" onClick={() => { setSortBy('name'); setSortDesc(false) }}>
+              <X size={14} />
+            </button>
+          ) : null}
+          {sortOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
+              <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
+                <div className="px-2 py-1 text-xs text-[var(--fg-muted)]">Trier par</div>
+                {RECIPE_SORTS.map((o) => (
+                  <button
+                    key={o.id}
+                    role="menuitemradio"
+                    aria-checked={sortBy === o.id}
+                    onClick={() => { setSortBy(o.id); setSortDesc(defaultSortDescending(o.id)) }}
+                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]"
+                  >
+                    <span className="flex-1">{o.label}</span>
+                    {sortBy === o.id && <Check size={14} />}
+                  </button>
+                ))}
+                <div className="my-1 border-t border-[var(--border)]" />
+                <div className="flex gap-1 p-1">
+                  {([false, true] as const).map((desc) => (
+                    <button
+                      key={String(desc)}
+                      onClick={() => setSortDesc(desc)}
+                      className={'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortDesc === desc ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)]')}
+                    >
+                      {desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {desc ? 'Descendant' : 'Ascendant'}
+                    </button>
+                  ))}
+                </div>
+                <div className="p-1">
+                  <button className="w-full rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setSortOpen(false)}>Valider</button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
         <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
