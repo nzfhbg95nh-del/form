@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
-import { agendaSchema, defaultSchema, parseSchema, parseValues, type Schema } from '@/lib/database'
+import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
 import { splitCapture } from '@/lib/capture'
 import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
@@ -342,7 +342,8 @@ export const useApp = create<AppState>((set, get) => ({
       const [clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments] = await Promise.all([
         repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
-      const first = objects.find((o) => !o.deleted_at && isPageLike(o))
+      // Les bases « système » (courrier, agenda, recettes) ne s'ouvrent pas toutes seules au démarrage.
+      const first = objects.find((o) => !o.deleted_at && isPageLike(o) && !isSystemDatabase(o))
       // Premier lancement : le catalogue reçoit les tarifs journaliers de Victor (une seule fois, même s'il les supprime ensuite).
       if (services.length === 0 && (await repo.getSetting('default_services_seeded')) !== '1') {
         for (const s of defaultServices()) {
