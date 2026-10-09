@@ -482,3 +482,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-09 — Retour à l'ancien style de la barre latérale (v0.44.3)
 - À la demande de Victor, la barre latérale, les onglets et le haut de page retrouvent leur apparence d'avant le style Notion (v0.43.1) : plus de bulles, de pilule, de logo ni de chemin de page.
 - Gardé : « Assistant IA » n'est plus dans la barre latérale, et « Capture rapide » s'appelle « Note rapide ».
+
+## 2026-10-09 — Plus d'onglet « Courrier » ou « Agenda » au démarrage (v0.44.4)
+- Bug : à l'ouverture, Form ouvrait comme premier onglet la première « page » de la liste, qui pouvait être une base système (Courrier, Agenda, Recettes). Ces bases ne s'ouvrent plus toutes seules : l'onglet du départ est la première vraie page.
