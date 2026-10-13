@@ -44,6 +44,12 @@ export interface Company {
   vatBaseCents: number
   vatMajoredCents: number
   thresholdsConfirmed: boolean
+  /** Cotisations URSSAF (estimation pour savoir combien mettre de côté) : taux en %, valeurs de départ à VÉRIFIER. */
+  contributionRatePercent: number
+  contributionPeriod: 'monthly' | 'quarterly'
+  liberatoryTax: boolean
+  liberatoryRatePercent: number
+  ratesConfirmed: boolean
 }
 
 /**
@@ -80,6 +86,11 @@ export function defaultCompany(): Company {
     vatBaseCents: 3750000,
     vatMajoredCents: 4125000,
     thresholdsConfirmed: false,
+    contributionRatePercent: 26.1,
+    contributionPeriod: 'monthly',
+    liberatoryTax: false,
+    liberatoryRatePercent: 2.2,
+    ratesConfirmed: false,
     reminderAfterDays: 7,
     reminderSubject: 'Rappel de paiement : facture {numero}',
     reminderBody: [

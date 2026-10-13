@@ -488,3 +488,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-09 — Démarrage sans onglet (v0.44.5)
 - Au démarrage, Form s'ouvre sur l'accueil, sans onglet ouvert. Seule exception, comme demandé : la dernière page consultée avant la fermeture est rouverte dans un onglet (l'affichage reste sur l'accueil). Les bases système (Courrier, Agenda, Recettes) ne sont jamais rouvertes toutes seules.
+
+## 2026-10-13 — Cotisations et prévisions (v0.45.0)
+- Nouvelle carte « Cotisations (estimation) » dans le tableau de bord : combien mettre de côté sur la période en cours (mois ou trimestre), chiffre d'affaires à déclarer avec la date limite et les jours restants, cumul de l'année après cotisations.
+- Réglages > Entreprise : taux total de cotisations (valeur de départ indicative, à vérifier sur autoentrepreneur.urssaf.fr), déclaration mensuelle ou trimestrielle, versement libératoire facultatif. Tant que la case « J'ai vérifié ces taux » n'est pas cochée, la carte prévient que les montants sont indicatifs.
+- Les calculs sont dans `src/lib/contributions.ts` (centimes entiers, périodes, dates limites : fin du mois qui suit). Form ne déclare rien : il prépare les chiffres.
+- Décidé avec Victor : ne pas faire les dépenses, l'import de relevé bancaire ni l'export comptable (inutiles en micro-entreprise sans comptable). Échéances : à faire ensuite si besoin.
+- Tests : 260.
