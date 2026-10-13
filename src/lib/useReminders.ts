@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { todayISO } from './backup'
 import { notify } from './notify'
 import { collectedForYear, thresholdState, vatState, yearMonthOf } from './dashboard'
+import { formatEuros } from './business'
+import { contributionPlan, upcomingDeadlines } from './contributions'
 import { configProblems, loadMailConfig, mailAvailable } from './mail'
 import { receivables, toChase } from './payments'
 import { findDueTasks, pickUnsent, reminderText, type Reminder, type SentToday } from './reminders'
@@ -65,6 +67,27 @@ async function checkThresholds(repo: Repo, today: string) {
   }
 }
 
+/** Prévient quand la date limite de déclaration URSSAF approche (3 jours avant), une seule fois par période. */
+async function checkDeclaration(repo: Repo, today: string) {
+  const { company, payments } = useApp.getState()
+  const [next] = upcomingDeadlines(today, company.contributionPeriod, 1)
+  if (!next) return
+  const days = Math.round((Date.parse(`${next.date}T00:00:00Z`) - Date.parse(`${today}T00:00:00Z`)) / 86_400_000)
+  if (days > 3) return
+  if ((await repo.getSetting('declaration_notified')) === next.key) return
+  const plan = contributionPlan(payments, today, {
+    ratePercent: company.contributionRatePercent,
+    liberatory: company.liberatoryTax,
+    liberatoryRatePercent: company.liberatoryRatePercent,
+    period: company.contributionPeriod,
+  })
+  const amount = plan.toDeclare ? ` Chiffre d'affaires à déclarer : ${formatEuros(plan.toDeclare.collectedCents)}.` : ''
+  const when = days === 0 ? "aujourd'hui" : days === 1 ? 'demain' : `dans ${days} jours`
+  if (await notify('Déclaration URSSAF', `Date limite ${when} pour ${next.label}.${amount} Ouvre le tableau de bord pour le détail.`)) {
+    await repo.setSetting('declaration_notified', next.key)
+  }
+}
+
 /** Relève automatique du courrier (si activée dans Réglages > Courrier). Lecture seule. */
 async function checkMail(repo: Repo) {
   if (!mailAvailable()) return
@@ -88,7 +111,7 @@ export function useReminders() {
       try {
         if ((await repo.getSetting('reminders_enabled')) === '0') return
         const today = todayISO()
-        for (const job of [checkTasks, checkInvoices, checkThresholds, (r: Repo) => checkMail(r)]) {
+        for (const job of [checkTasks, checkInvoices, checkThresholds, checkDeclaration, (r: Repo) => checkMail(r)]) {
           try {
             await job(repo, today)
           } catch {

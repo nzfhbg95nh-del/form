@@ -495,3 +495,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les calculs sont dans `src/lib/contributions.ts` (centimes entiers, périodes, dates limites : fin du mois qui suit). Form ne déclare rien : il prépare les chiffres.
 - Décidé avec Victor : ne pas faire les dépenses, l'import de relevé bancaire ni l'export comptable (inutiles en micro-entreprise sans comptable). Échéances : à faire ensuite si besoin.
 - Tests : 260.
+
+## 2026-10-13 — Échéances de déclaration (v0.46.0)
+- Le calendrier d'accueil affiche les prochaines dates limites de déclaration URSSAF (« Déclaration URSSAF : septembre 2026 », pastille orange) : celle de la période qui vient de se terminer, puis les suivantes. Un clic ouvre le tableau de bord (carte « Cotisations »). Elles suivent le réglage mensuel ou trimestriel.
+- Notification Windows 3 jours avant la date limite (une seule fois par période), avec le chiffre d'affaires à déclarer. Elle respecte l'interrupteur général des rappels.
+- Ces échéances sont calculées, jamais enregistrées : elles n'encombrent ni l'agenda ni les pages.
+- Tests : 263.

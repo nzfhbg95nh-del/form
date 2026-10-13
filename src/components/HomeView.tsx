@@ -10,6 +10,7 @@ import {
 } from '@/lib/home'
 import { lastEditText, displayTitle } from '@/lib/lastEdit'
 import { isoDate, monthGrid, parseSchema } from '@/lib/database'
+import { upcomingDeadlines } from '@/lib/contributions'
 import { cleanTime, collectEvents, groupByDate, KIND_LABELS, shiftIso, upcomingByDate, weekDays, type CalendarEvent, type CalendarKind } from '@/lib/homeCalendar'
 import { receivables } from '@/lib/payments'
 import { formatDateFr } from '@/lib/quotes'
@@ -74,7 +75,7 @@ function QuickNote({ id }: { id: string }) {
 }
 
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
-const KIND_DOT: Record<CalendarKind, string> = { event: '#10b981', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6' }
+const KIND_DOT: Record<CalendarKind, string> = { event: '#10b981', row: 'var(--accent)', invoice: '#dc2626', quote: '#8b5cf6', declaration: '#f59e0b' }
 const MODE_KEY = 'form-home-calendar-mode'
 type CalMode = 'month' | 'week' | 'agenda'
 const MODES: { id: CalMode; label: string }[] = [{ id: 'month', label: 'Mois' }, { id: 'week', label: 'Semaine' }, { id: 'agenda', label: 'Agenda' }]
@@ -83,7 +84,7 @@ const shortDay = (iso: string) => new Date(`${iso}T12:00:00`).toLocaleDateString
 
 /** Calendrier : vue Mois, Semaine ou Agenda (liste compacte des prochaines dates prévues). Un clic sur un jour permet d'y ajouter une tâche. */
 function CalendarWidget() {
-  const { objects, invoices, quotes, select, show, addCalendarEvent } = useApp()
+  const { objects, invoices, quotes, company, select, show, addCalendarEvent } = useApp()
   const todayIso = isoDate(new Date())
   const [mode, setMode] = useState<CalMode>(() => {
     try {
@@ -97,7 +98,10 @@ function CalendarWidget() {
   const [cursor, setCursor] = useState({ year: Number(todayIso.slice(0, 4)), month: Number(todayIso.slice(5, 7)) - 1 })
   const [draft, setDraft] = useState('')
   const [time, setTime] = useState('')
-  const events = useMemo(() => collectEvents(objects, invoices, quotes), [objects, invoices, quotes])
+  const events = useMemo(
+    () => collectEvents(objects, invoices, quotes, upcomingDeadlines(todayIso, company.contributionPeriod, 4)),
+    [objects, invoices, quotes, todayIso, company.contributionPeriod],
+  )
   const byDate = useMemo(() => groupByDate(events), [events])
   const agendaDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'agenda')
 

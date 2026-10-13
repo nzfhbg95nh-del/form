@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { contributionPlan, percentOfCents, periodOf, previousPeriodOf, summarizePeriod, type ContributionSettings } from './contributions'
+import { contributionPlan, percentOfCents, periodOf, previousPeriodOf, summarizePeriod, upcomingDeadlines, type ContributionSettings } from './contributions'
 import type { Payment } from './types'
 
 const pay = (paid_on: string, amount_cents: number): Payment => ({ id: paid_on + amount_cents, invoice_id: 'i', paid_on, amount_cents, method: 'virement', note: '' }) as unknown as Payment
@@ -73,5 +73,23 @@ describe('plan de cotisations', () => {
   it('résume une période sans encaissement', () => {
     const s = summarizePeriod([], periodOf('2026-10-13', 'monthly'), monthly)
     expect(s).toMatchObject({ collectedCents: 0, contributionCents: 0, incomeTaxCents: 0 })
+  })
+})
+
+describe('dates limites de déclaration', () => {
+  it('mensuel : celle du mois dernier (si pas passée), puis les suivantes', () => {
+    const d = upcomingDeadlines('2026-10-13', 'monthly', 3)
+    expect(d.map((x) => x.date)).toEqual(['2026-10-31', '2026-11-30', '2026-12-31'])
+    expect(d[0]).toMatchObject({ key: '2026-09', label: 'septembre 2026' })
+  })
+
+  it('trimestriel : saute le trimestre dont la date est passée', () => {
+    const d = upcomingDeadlines('2026-11-13', 'quarterly', 2)
+    expect(d.map((x) => x.date)).toEqual(['2027-01-31', '2027-04-30'])
+    expect(d[0].key).toBe('2026-T4')
+  })
+
+  it('le jour même de la date limite compte encore', () => {
+    expect(upcomingDeadlines('2026-10-31', 'monthly', 1)[0].date).toBe('2026-10-31')
   })
 })
