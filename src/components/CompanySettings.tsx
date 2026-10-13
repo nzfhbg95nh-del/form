@@ -179,6 +179,34 @@ export function CompanySettings() {
         J'ai vérifié ces montants
       </label>
 
+      <h2 className="mb-2 mt-4 text-lg font-semibold">Cotisations (estimation pour savoir combien mettre de côté)</h2>
+      <div className="mb-2 rounded border border-yellow-500/50 bg-yellow-500/10 p-2 text-xs">
+        ⚠ Le taux de départ est une <strong>valeur indicative</strong> (activité libérale de prestations de services). Il change selon ton activité et chaque année :
+        <strong> vérifie-le sur autoentrepreneur.urssaf.fr</strong>, corrige-le, puis coche la case. Form calcule seulement une estimation : la déclaration se fait sur le site de l'URSSAF.
+      </div>
+      <div className="grid grid-cols-3 gap-x-4">
+        <Row label="Taux total de cotisations (%)">
+          <input className={field} type="number" step="0.1" min="0" max="100" value={company.contributionRatePercent} onChange={(e) => set('contributionRatePercent', Number(e.target.value))} />
+        </Row>
+        <Row label="Je déclare">
+          <select className={field} value={company.contributionPeriod} onChange={(e) => set('contributionPeriod', e.target.value as 'monthly' | 'quarterly')}>
+            <option value="monthly">Chaque mois</option>
+            <option value="quarterly">Chaque trimestre</option>
+          </select>
+        </Row>
+        <Row label="Versement libératoire : taux (%)">
+          <input className={field} type="number" step="0.1" min="0" max="100" value={company.liberatoryRatePercent} onChange={(e) => set('liberatoryRatePercent', Number(e.target.value))} disabled={!company.liberatoryTax} />
+        </Row>
+      </div>
+      <label className="mb-1 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={company.liberatoryTax} onChange={(e) => set('liberatoryTax', e.target.checked)} />
+        J'ai choisi le versement libératoire de l'impôt sur le revenu
+      </label>
+      <label className="mb-3 flex items-center gap-2 text-sm">
+        <input type="checkbox" checked={company.ratesConfirmed} onChange={(e) => set('ratesConfirmed', e.target.checked)} />
+        J'ai vérifié ces taux
+      </label>
+
       <h2 className="mb-2 mt-4 text-lg font-semibold">Relances de paiement</h2>
       <p className="mb-2 text-xs text-[var(--fg-muted)]">
         Form te propose de relancer une facture impayée quelques jours après son échéance. Il prépare le message : c'est toi qui l'envoies. Mots remplacés automatiquement : {REMINDER_FIELDS.join(' ')}.

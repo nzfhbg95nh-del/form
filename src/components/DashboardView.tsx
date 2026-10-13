@@ -6,6 +6,7 @@ import {
   collectedByMonth, collectedForMonth, collectedForYear, invoicedForYear, pendingQuotes, thresholdState, vatState, yearMonthOf,
   type Level, type VatLevel,
 } from '@/lib/dashboard'
+import { contributionPlan } from '@/lib/contributions'
 import { receivables, toChase } from '@/lib/payments'
 import { formatDateFr } from '@/lib/quotes'
 import { findDueTasks } from '@/lib/reminders'
@@ -70,6 +71,12 @@ export function DashboardView() {
       quotes: pendingQuotes(quotes, quoteLines),
       micro: thresholdState(collectedYear, company.microCeilingCents),
       vat: vatState(collectedYear, company.vatBaseCents, company.vatMajoredCents),
+      plan: contributionPlan(payments, today, {
+        ratePercent: company.contributionRatePercent,
+        liberatory: company.liberatoryTax,
+        liberatoryRatePercent: company.liberatoryRatePercent,
+        period: company.contributionPeriod,
+      }),
     }
   }, [payments, invoices, invoiceLines, quotes, quoteLines, objects, company, today, year, month])
 
@@ -127,6 +134,38 @@ export function DashboardView() {
             {data.vat.level === 'ok' ? `Il te reste ${formatEuros(data.vat.base.remaining)} avant le seuil de base.` : VAT_TEXT[data.vat.level]}
           </p>
         </div>
+      </Card>
+
+      <Card title="Cotisations (estimation)" className="mb-4">
+        {!company.ratesConfirmed && (
+          <div className="mb-3 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
+            Le taux de cotisations n'a pas encore été vérifié : les montants sont indicatifs. <Link onClick={() => show('settings')}>Le vérifier dans Réglages &gt; Entreprise</Link>
+          </div>
+        )}
+        <div className="mb-3 grid grid-cols-3 gap-4">
+          <Kpi
+            label={`À mettre de côté sur ${data.plan.current.label}`}
+            value={formatEuros(data.plan.current.contributionCents + data.plan.current.incomeTaxCents)}
+            hint={`sur ${formatEuros(data.plan.current.collectedCents)} encaissés`}
+          />
+          <Kpi
+            label={data.plan.toDeclare ? `À déclarer : ${data.plan.toDeclare.label}` : 'Prochaine déclaration'}
+            value={data.plan.toDeclare ? formatEuros(data.plan.toDeclare.collectedCents) : '—'}
+            hint={
+              data.plan.toDeclare
+                ? `Cotisations : ${formatEuros(data.plan.toDeclare.contributionCents + data.plan.toDeclare.incomeTaxCents)} · avant le ${formatDateFr(data.plan.toDeclare.deadline)} (${data.plan.daysLeft} j)`
+                : `Au début de la prochaine période, après le ${formatDateFr(data.plan.current.end)}`
+            }
+          />
+          <Kpi
+            label={`Cumul ${year}`}
+            value={formatEuros(data.plan.year.netCents)}
+            hint={`reste après ${formatEuros(data.plan.year.contributionCents + data.plan.year.incomeTaxCents)} de cotisations`}
+          />
+        </div>
+        <p className="text-xs text-[var(--fg-muted)]">
+          Estimation : {company.contributionRatePercent} % du chiffre d'affaires encaissé{company.liberatoryTax ? ` + ${company.liberatoryRatePercent} % de versement libératoire` : ''}. La déclaration se fait sur autoentrepreneur.urssaf.fr.
+        </p>
       </Card>
 
       <div className="mb-4 grid grid-cols-2 gap-4">
