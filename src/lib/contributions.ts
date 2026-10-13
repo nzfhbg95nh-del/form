@@ -128,3 +128,25 @@ export function contributionPlan(payments: Payment[], todayIso: string, settings
     year: { collectedCents, contributionCents, incomeTaxCents, netCents: collectedCents - contributionCents - incomeTaxCents },
   }
 }
+
+export interface DeclarationDeadline {
+  key: string
+  /** Date limite (ISO). */
+  date: string
+  /** Période concernée, ex. « octobre 2026 ». */
+  label: string
+}
+
+/**
+ * Les prochaines dates limites de déclaration : celle de la période qui vient de se terminer (tant qu'elle n'est pas passée),
+ * puis celles des périodes suivantes, `count` au total.
+ */
+export function upcomingDeadlines(todayIso: string, period: DeclarationPeriod, count = 4): DeclarationDeadline[] {
+  const out: DeclarationDeadline[] = []
+  let info = previousPeriodOf(todayIso, period)
+  for (let guard = 0; out.length < count && guard < count + 3; guard++) {
+    if (info.deadline >= todayIso) out.push({ key: info.key, date: info.deadline, label: info.label })
+    info = periodOf(new Date(Date.parse(`${info.end}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10), period)
+  }
+  return out
+}

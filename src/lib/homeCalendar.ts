@@ -1,7 +1,7 @@
 import { parseSchema, parseValues } from './database'
 import type { Invoice, ObjectRow, Quote } from './types'
 
-export type CalendarKind = 'event' | 'row' | 'invoice' | 'quote'
+export type CalendarKind = 'event' | 'row' | 'invoice' | 'quote' | 'declaration'
 
 /** Une ligne du calendrier d'accueil. `open` dit où aller quand on clique dessus. */
 export interface CalendarEvent {
@@ -11,10 +11,10 @@ export interface CalendarEvent {
   /** Heure de début (HH:MM), pour les événements de l'agenda. */
   time?: string
   kind: CalendarKind
-  open: { to: 'object'; id: string } | { to: 'invoices' } | { to: 'quotes' }
+  open: { to: 'object'; id: string } | { to: 'invoices' } | { to: 'quotes' } | { to: 'dashboard' }
 }
 
-export const KIND_LABELS: Record<CalendarKind, string> = { event: 'Événement', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis' }
+export const KIND_LABELS: Record<CalendarKind, string> = { event: 'Événement', row: 'Base de données', invoice: 'Facture à encaisser', quote: 'Devis', declaration: 'Déclaration' }
 
 /** Heure valide « HH:MM » (« 9:5 » devient « 09:05 »), sinon undefined. */
 export function cleanTime(v: unknown): string | undefined {
@@ -33,7 +33,7 @@ const dayOf = (v: unknown): string | null => (typeof v === 'string' && /^\d{4}-\
  * Tout ce qui a une date : lignes de bases (toute propriété « Date », hors tâches),
  * échéances des factures émises et fin de validité des devis envoyés.
  */
-export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id' | 'number' | 'status' | 'due_date'>[], quotes: Pick<Quote, 'id' | 'number' | 'status' | 'valid_until'>[]): CalendarEvent[] {
+export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id' | 'number' | 'status' | 'due_date'>[], quotes: Pick<Quote, 'id' | 'number' | 'status' | 'valid_until'>[], declarations: { key: string; date: string; label: string }[] = []): CalendarEvent[] {
   const events: CalendarEvent[] = []
   const dbs = new Map(objects.filter((o) => o.type === 'database' && !o.deleted_at).map((o) => [o.id, o]))
   for (const row of objects) {
@@ -59,6 +59,9 @@ export function collectEvents(objects: ObjectRow[], invoices: Pick<Invoice, 'id'
   for (const q of quotes) {
     const date = q.status === 'sent' ? dayOf(q.valid_until) : null
     if (date) events.push({ id: `quo:${q.id}`, date, title: `Fin de validité du devis ${q.number ?? ''}`.trim(), kind: 'quote', open: { to: 'quotes' } })
+  }
+  for (const d of declarations) {
+    events.push({ id: `decl:${d.key}`, date: d.date, title: `Déclaration URSSAF : ${d.label}`, kind: 'declaration', open: { to: 'dashboard' } })
   }
   // Par jour, puis les événements sans heure, puis par heure.
   return events.sort((a, b) => a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '') || a.title.localeCompare(b.title, 'fr'))
