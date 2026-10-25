@@ -71,15 +71,22 @@ export function categoryIdFor(label: string | undefined, categories: RecipeCateg
   return categories.find((c) => clean(c.label) === wanted)?.id
 }
 
-/** Minutes de préparation : le premier temps lu (« 20 min » → 20, « 1 h 30 » → 90, « 10 min + 2 h au frais » → 10), sinon null. */
+/** Un temps de repos, de cuisson ou d'attente : il ne compte pas comme du temps de préparation. */
+const NOT_PREP = /repos|frais|nuit|trempage|infusion|marin|cong|cuisson|four|refroid/
+
+/**
+ * Minutes de préparation : le premier temps qui n'est pas un repos ou une cuisson
+ * (« 20 min » → 20, « 1 h 30 » → 90, « 10 min + 2 h au frais » → 10, « 6 h au frais » → rien), sinon null.
+ */
 export function prepMinutes(temps: string | undefined): number | null {
   if (!temps) return null
   const t = normalize(temps)
-  const h = /(\d+)\s*h(?:eures?)?\s*(\d+)?/.exec(t)
-  const m = /(\d+)\s*min/.exec(t)
-  // Le premier des deux qui apparaît dans le texte.
-  if (h && (!m || h.index < m.index)) return Number(h[1]) * 60 + (h[2] ? Number(h[2]) : 0)
-  if (m) return Number(m[1])
+  for (const m of t.matchAll(/(\d+)\s*(?:h(?:eures?)?\s*(\d+)?|min)\b/g)) {
+    const after = t.slice((m.index ?? 0) + m[0].length, (m.index ?? 0) + m[0].length + 14)
+    if (NOT_PREP.test(after)) continue
+    const isHours = /h/.test(m[0].replace(/min/, ''))
+    return isHours ? Number(m[1]) * 60 + (m[2] ? Number(m[2]) : 0) : Number(m[1])
+  }
   return null
 }
 
