@@ -556,3 +556,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Contrôles avant publication : compilation, 473 tests TypeScript, 29 tests Rust, construction de production réussie.
 - Attention : une base qui a reçu les migrations 7 à 21 ne s'ouvre plus avec une version antérieure à 0.47.0 (la liste des migrations connues doit contenir toutes celles déjà appliquées). Installer la 0.47.0 avant de rouvrir un ancien Form.
 - À vérifier avec le vrai installateur : lecture des miniatures par la Carte (réglage CSP `connect-src`), mise à jour automatique, DirectML.dll dans l'installateur.
+
+## 2026-10-26 — v0.47.1 : correctifs de fabrication (la v0.47.0 n'a pas d'installateur)
+- La fabrication de la v0.47.0 a échoué : les modules Tauri côté interface (npm) et côté Rust n'étaient plus aux mêmes versions (`tauri build` refuse). Les modules npm `plugin-fs`, `plugin-sql`, `plugin-notification` et `plugin-updater` sont alignés sur les versions Rust (2.7.1, 2.6.0, 2.7.0, 2.14.0).
+- Trouvé avant la nouvelle fabrication, en lançant un vrai programme de production en local : « migration 7 was previously applied but has been modified ». Les migrations 7 à 21 avaient été enregistrées dans la base avec des fins de ligne LF, alors que Git sous Windows réécrit les fichiers en CRLF (l'empreinte change). Ajout de `.gitattributes` : `src-tauri/migrations/*_biblio_*.sql text eol=lf` (poste de Victor et GitHub). Les migrations 1 à 6 restent comme avant (CRLF).
+- La v0.47.1 contient exactement les nouveautés de la v0.47.0.

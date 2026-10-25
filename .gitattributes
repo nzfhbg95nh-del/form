@@ -1,0 +1,2 @@
+# Migrations de la bibliothèque : fins de ligne LF imposées (l'empreinte enregistrée dans la base en dépend).
+src-tauri/migrations/*_biblio_*.sql text eol=lf
