@@ -508,3 +508,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Sûr : une recette déjà dans Form (même adresse de post, ou même titre sans adresse) n'est jamais réimportée ni écrasée, donc on peut relancer l'import après avoir complété des fiches dans Klippr.
 - Code : `src/lib/klippr.ts` (lecture, rubriques, minutes, pages) + `importKlipprRecipes` dans le store. Tests : 272 (9 nouveaux). Pas de migration.
 - Fichier prêt : `Bureau\recettes-klippr.json` (81 recettes avec photo, 4,3 Mo). Sauvegarde de la base de Form avant l'essai : `Bureau\form-sauvegarde-avant-recettes-klippr.db`.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 1 : le socle (branche bibliotheque, pas encore publié)
+- Le code de Klippr qui travaille en arrière-plan est copié dans `src-tauri/src/biblio/` : scan du dossier de Social Saver, miniatures (dont HEIC), IA locale (CLIP), couleurs, texte des vidéos, corbeille Windows. Les sauvegardes de Klippr ne sont pas reprises : Form a les siennes.
+- Les 15 migrations de Klippr deviennent les migrations 7 à 21 de Form (mêmes tables, toutes préfixées `lib_`). Seul changement : la table `settings`, qui existait déjà dans Form (même forme clé/valeur), n'est pas recréée.
+- Réglages Tauri : accès aux fichiers de la bibliothèque (miniatures et vidéos) autorisé, moteur d'IA et DirectML.dll ajoutés à l'installateur. Les commandes de la bibliothèque sont enregistrées dans Form.
+- Vérifié : compilation, 29 tests Rust, 272 tests TypeScript ; Form démarre, applique les 21 migrations sur la vraie base (18 tables `lib_`), ses 81 recettes sont intactes. Rien de visible dans l'appli à ce stade.
+- À savoir : Form va chercher les miniatures et les modèles d'IA dans son propre dossier de données ; ils seront copiés à l'étape 2.
