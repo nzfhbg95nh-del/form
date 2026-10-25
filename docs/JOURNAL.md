@@ -501,3 +501,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Notification Windows 3 jours avant la date limite (une seule fois par période), avec le chiffre d'affaires à déclarer. Elle respecte l'interrupteur général des rappels.
 - Ces échéances sont calculées, jamais enregistrées : elles n'encombrent ni l'agenda ni les pages.
 - Tests : 263.
+
+## 2026-10-25 — Recettes de Klippr dans Form (branche recettes-klippr, pas encore publié)
+- Page Recettes : nouveau bouton « 📥 Depuis Klippr » (à côté de « Depuis une vidéo ou un texte »). Il lit un fichier `recettes-klippr.json` exporté par Klippr et crée une vraie page de recette pour chacune dans la base « Recettes » : photo, nombre de portions, ingrédients à cocher (par groupe : « Marinade », « Sauce »…), étapes numérotées, notes avec l'auteur et le temps.
+- Rangement : la catégorie de Klippr (mêmes noms que dans Form) devient la propriété « Catégorie » ; la préparation (premier temps lu : « 20 min », « 1 h 30 ») va dans « Préparation (min) » ; l'adresse du post va dans « Source ».
+- Sûr : une recette déjà dans Form (même adresse de post, ou même titre sans adresse) n'est jamais réimportée ni écrasée, donc on peut relancer l'import après avoir complété des fiches dans Klippr.
+- Code : `src/lib/klippr.ts` (lecture, rubriques, minutes, pages) + `importKlipprRecipes` dans le store. Tests : 272 (9 nouveaux). Pas de migration.
+- Fichier prêt : `Bureau\recettes-klippr.json` (81 recettes avec photo, 4,3 Mo). Sauvegarde de la base de Form avant l'essai : `Bureau\form-sauvegarde-avant-recettes-klippr.db`.

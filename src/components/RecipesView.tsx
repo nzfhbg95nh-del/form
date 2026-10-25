@@ -9,6 +9,7 @@ import {
   addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
   setEntryEmoji, sortRecipes, defaultSortDescending, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
+import { parseKlipprFile } from '@/lib/klippr'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
@@ -156,6 +157,22 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title), sortDesc)
 
   const save = (next: Schema) => void saveSchema(db.id, next)
+
+  // ── Recettes exportées par Klippr ──
+  const klipprFile = useRef<HTMLInputElement>(null)
+  const importKlipprRecipes = useApp((s) => s.importKlipprRecipes)
+  const importFromKlippr = async (file: File | undefined, input: HTMLInputElement) => {
+    if (!file) return
+    input.value = ''
+    const say = (text: string) => {
+      useApp.setState({ toast: text })
+      window.setTimeout(() => useApp.setState({ toast: null }), 5000)
+    }
+    const parsed = parseKlipprFile(await file.text())
+    if ('error' in parsed) return say(parsed.error)
+    const { created, skipped } = await importKlipprRecipes(parsed.recipes)
+    say(created === 0 ? 'Ces recettes sont déjà dans Form.' : `${created} recette${created > 1 ? 's' : ''} ajoutée${created > 1 ? 's' : ''} depuis Klippr${skipped > 0 ? ` (${skipped} déjà présente${skipped > 1 ? 's' : ''})` : ''}.`)
+  }
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
 
   /** Supprimer une ligne : une catégorie disparaît (ses recettes passent dans « Sans catégorie »), « Sans catégorie » met ses recettes à la corbeille. */
@@ -272,6 +289,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     <div className="mx-auto max-w-3xl px-12 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-4xl font-bold leading-[1.3]">Recettes</h1>
+        <input ref={klipprFile} type="file" accept=".json,application/json" className="hidden" aria-label="Fichier de recettes exporté par Klippr" onChange={(e) => void importFromKlippr(e.target.files?.[0], e.target)} />
+        <button className={button} onClick={() => klipprFile.current?.click()} title="Ajouter les recettes exportées par Klippr (celles déjà là ne sont pas touchées)">📥 Depuis Klippr</button>
         <button className={button} onClick={() => setAssistant('recipe')} title="Écrire la recette à partir d'une vidéo YouTube ou d'un texte collé">✨ Depuis une vidéo ou un texte</button>
         <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
