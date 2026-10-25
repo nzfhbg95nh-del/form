@@ -6,3 +6,6 @@ public/emoji/
 
 # Cle privee de signature des mises a jour (ne jamais publier)
 .cle-mise-a-jour/
+
+# Copie de DirectML.dll faite par build.rs
+src-tauri/DirectML.dll

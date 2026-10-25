@@ -501,3 +501,58 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Notification Windows 3 jours avant la date limite (une seule fois par période), avec le chiffre d'affaires à déclarer. Elle respecte l'interrupteur général des rappels.
 - Ces échéances sont calculées, jamais enregistrées : elles n'encombrent ni l'agenda ni les pages.
 - Tests : 263.
+
+## 2026-10-25 — Recettes de Klippr dans Form (branche recettes-klippr, pas encore publié)
+- Page Recettes : nouveau bouton « 📥 Depuis Klippr » (à côté de « Depuis une vidéo ou un texte »). Il lit un fichier `recettes-klippr.json` exporté par Klippr et crée une vraie page de recette pour chacune dans la base « Recettes » : photo, nombre de portions, ingrédients à cocher (par groupe : « Marinade », « Sauce »…), étapes numérotées, notes avec l'auteur et le temps.
+- Rangement : la catégorie de Klippr (mêmes noms que dans Form) devient la propriété « Catégorie » ; la préparation (premier temps lu : « 20 min », « 1 h 30 ») va dans « Préparation (min) » ; l'adresse du post va dans « Source ».
+- Sûr : une recette déjà dans Form (même adresse de post, ou même titre sans adresse) n'est jamais réimportée ni écrasée, donc on peut relancer l'import après avoir complété des fiches dans Klippr.
+- Code : `src/lib/klippr.ts` (lecture, rubriques, minutes, pages) + `importKlipprRecipes` dans le store. Tests : 272 (9 nouveaux). Pas de migration.
+- Fichier prêt : `Bureau\recettes-klippr.json` (81 recettes avec photo, 4,3 Mo). Sauvegarde de la base de Form avant l'essai : `Bureau\form-sauvegarde-avant-recettes-klippr.db`.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 1 : le socle (branche bibliotheque, pas encore publié)
+- Le code de Klippr qui travaille en arrière-plan est copié dans `src-tauri/src/biblio/` : scan du dossier de Social Saver, miniatures (dont HEIC), IA locale (CLIP), couleurs, texte des vidéos, corbeille Windows. Les sauvegardes de Klippr ne sont pas reprises : Form a les siennes.
+- Les 15 migrations de Klippr deviennent les migrations 7 à 21 de Form (mêmes tables, toutes préfixées `lib_`). Seul changement : la table `settings`, qui existait déjà dans Form (même forme clé/valeur), n'est pas recréée.
+- Réglages Tauri : accès aux fichiers de la bibliothèque (miniatures et vidéos) autorisé, moteur d'IA et DirectML.dll ajoutés à l'installateur. Les commandes de la bibliothèque sont enregistrées dans Form.
+- Vérifié : compilation, 29 tests Rust, 272 tests TypeScript ; Form démarre, applique les 21 migrations sur la vraie base (18 tables `lib_`), ses 81 recettes sont intactes. Rien de visible dans l'appli à ce stade.
+- À savoir : Form va chercher les miniatures et les modèles d'IA dans son propre dossier de données ; ils seront copiés à l'étape 2.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 2 : les données de Klippr (branche bibliotheque, pas encore publié)
+- Réglages > nouvel onglet « Bibliothèque » : le bouton « Importer ma bibliothèque Klippr » lit la base de Klippr (jamais modifiée) et copie, table par table, dans celle de Form : blocs, fichiers, collections et sous-collections, types, empreintes de l'IA (images et textes), couleurs, positions de la Carte, texte lu dans les vidéos, liste « à ne plus réimporter », liens. Pas les moodboards ni les recettes de Klippr (Form a les siens). Réglages repris sans écraser ceux de Form : dossier de Social Saver, types déjà créés, version du classement.
+- Relançable sans doublon (`INSERT OR IGNORE`). À la fin, un tableau compare le nombre de lignes de chaque table des deux côtés.
+- Les miniatures (17 071, 594 Mo) et les modèles d'IA (580 Mo) ont été copiés avec robocopy dans le dossier de données de Form.
+- Vérifié sur la vraie base : 10 021 blocs, 17 071 fichiers, 1 761 collections, 21 578 rangements, 17 071 empreintes et couleurs, 10 021 positions, 1 625 textes : tout identique des deux côtés, en 10 secondes. Exemples contrôlés (couleurs, position, empreinte, plus grosses collections). Les 81 recettes de Form sont intactes.
+- Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape2.db`. Tests : 279 (7 nouveaux).
+
+## 2026-10-26 — Bibliothèque dans Form, étape 3 : la section et la page « Tout » (branche bibliotheque, pas encore publié)
+- Barre latérale : nouvelle section « Bibliothèque », juste sous « Mon entreprise », avec l'entrée « Tout » (elle se replie comme les autres sections).
+- Page « Tout » : la grille de Klippr dans Form, sur les vraies données (10 021 blocs) : taille réglable, mode « Organiser », filtres (type d'image, couleur, source, format, date), tirage « Aléatoire », recherche par auteur ou par ce qu'on voit (« 25 sur 10 021 blocs · dont 24 trouvés par ressemblance »), vue détail avec images similaires, rangement dans les collections, corbeille de la bibliothèque. La page se charge à la première ouverture, puis reste en place (position de défilement gardée).
+- Code : 53 fichiers copiés dans `src/biblio/` (composants, calculs, stores, avec leurs tests), pour ne pas se mélanger aux fichiers de Form qui portent les mêmes noms. Branché sur la base `form.db`. Les styles `.btn` et `.spin` sont ajoutés à `index.css`.
+- Caché pour l'instant (`src/biblio/flags.ts`) : « Voir sur la carte » (étape 4) et « Ajouter à un moodboard » (étape 5).
+- Pas encore automatique (étape 6) : le scan du dossier de Social Saver, les miniatures et les calculs de l'IA ne se lancent pas tout seuls ; la bibliothèque affiche ce qui a été copié à l'étape 2.
+- Vérifié : compilation, 435 tests, ouverture de la page, ouverture d'une image, recherche. Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape3.db`.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 4 : Collections et Carte (branche bibliotheque, pas encore publié)
+- La section « Bibliothèque » a maintenant trois entrées : Tout, Collections, Carte. Collections : tes tableaux (22), sous-tableaux, couvertures, glisser pour réordonner, nom et description. Ouvrir un tableau amène à sa grille ; le bouton retour remonte au tableau parent puis aux Collections ; l'entrée « Collections » reste surlignée tant qu'un tableau est ouvert.
+- Carte : tes 10 021 images placées par ressemblance, îlots nommés, zoom, clic pour voir les voisines, mode voyage (4 sauts). Les positions viennent de l'étape 2 (rien n'est recalculé). « Voir sur la carte » (vue détail, tableau) est de retour et ouvre la Carte sur la bonne image.
+- Chaque page se monte à sa première ouverture puis reste en place (défilement et position sur la Carte gardés). Code : `LibraryPage.tsx`, `store/nav.ts`, 8 fichiers copiés (dont les tests de la Carte et du voyage).
+- Sécurité de l'installateur : la lecture des miniatures par la Carte (`fetch` sur le protocole des fichiers) est ajoutée au réglage CSP (`connect-src`) de Form, et de Klippr. À vérifier avec un vrai installateur (étape 7).
+- Vérifié : compilation, 455 tests, Collections, ouverture d'un tableau, Carte, saut du voyage, « Voir sur la carte ». Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape4.db`.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 5 : ajouter aux moodboards de Form (branche bibliotheque, pas encore publié)
+- Clic droit sur une ou plusieurs images de la bibliothèque > « Ajouter à un moodboard… » : liste des moodboards de Form + « Nouveau moodboard… ». Dans la vue détail : « Dans : … » (les moodboards qui contiennent déjà une image du bloc, un clic les ouvre), liste « Ajouter à un moodboard… » et « + Nouveau moodboard avec cette image ».
+- Chaque image est copiée dans le moodboard comme un glisser-déposer (réduite à 2 400 px, miniature de 512 px, enregistrées dans `board_assets`) : l'original d'abord, sinon la miniature (HEIC, fichier absent). Un carrousel apporte ses images (10 au plus) ; une vidéo apporte son image d'aperçu. Les copies portent une étiquette `biblio:<bloc>|<fichier>` dans leur nom, qui permet de retrouver les moodboards d'une image.
+- Placement : à droite de ce qui est déjà sur la toile, en lignes sans chevauchement (au centre d'une toile vide). Un moodboard ouvert est rechargé après l'ajout (`store/boardReload.ts`, clé de la toile dans `App.tsx`).
+- Code : `biblio/lib/formBoards.ts` (accès à la base) et `formBoardsPure.ts` (calculs testés), `viewMath.ts` (zoom et cadrage de la Carte). Le code des moodboards de Klippr (toile, tests, store) est supprimé de `src/biblio/`.
+- Vérifié : compilation, 428 tests ; dans la vraie fenêtre, une image Pinterest puis un carrousel ajoutés à un moodboard neuf, 3 images bien placées, « Dans : TEST bibliothèque » affiché. Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape5.db`. Le moodboard « TEST bibliothèque » est resté dans Form (à mettre à la corbeille).
+
+## 2026-10-26 — Bibliothèque dans Form, étape 6 : réglages et mise à jour automatique (branche bibliotheque, pas encore publié)
+- Réglages > Bibliothèque est maintenant la page de réglages de la bibliothèque : dossier de Social Saver (Choisir…, « Mettre à jour la bibliothèque »), chiffres (blocs, fichiers, miniatures prêtes, à faire, impossibles), interrupteur « Mettre à jour la bibliothèque au démarrage de Form », IA locale (empreintes, modèle de texte, classement par type et son seuil), texte lu dans les vidéos (« Lire le texte des vidéos », « Relire les recettes en détail »), corbeille de la bibliothèque (restaurer, ou « Supprimer définitivement » = Corbeille Windows, même règle que dans Klippr), et en bas « Reprendre ma bibliothèque Klippr » (l'import de l'étape 2).
+- Mise à jour automatique : 8 secondes après le lancement de Form (fenêtre principale seulement, si l'interrupteur est activé) : scan du dossier de Social Saver, miniatures, empreintes d'IA, couleurs, texte des nouvelles vidéos, classement. Rien ne se lance s'il n'y a rien de nouveau. Une ligne discrète sous « Bibliothèque » dans la barre latérale (« Lecture du dossier… », « IA : classement… ») pendant le travail.
+- Code : `src/biblio/startup.ts`, `components/LibrarySettings.tsx`, `components/LibraryStatus.tsx`, 9 fichiers copiés (corbeille, classement, calculs d'IA) avec leurs tests. `useAi.init(run)` : sans calcul de départ quand on ouvre les réglages avec la mise à jour coupée.
+- Vérifié sur la vraie base : au rechargement, la mise à jour automatique s'est lancée (« Lecture du dossier… » puis « IA : classement… ») et annonce « 17 071 fichiers lus, 0 nouveaux, 0 disparus » ; la page de réglages, le texte des vidéos (1 625 lues, 851 avec du texte) et la corbeille (vide) s'affichent. Suppression définitive non testée sur de vrais fichiers (règle de sécurité) ; les tests de `trash.rs` la couvrent. Compilation et 473 tests. Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape6.db`.
+
+## 2026-10-26 — Bibliothèque de Klippr dans Form : prêt à publier (v0.47.0)
+- Version 0.47.0 : Recettes de Klippr importables (« 📥 Depuis Klippr »), section « Bibliothèque » (Tout, Collections, Carte), ajout des images aux moodboards de Form, réglages de la bibliothèque (dossier de Social Saver, IA locale, texte des vidéos, corbeille) et mise à jour automatique au démarrage. 15 nouvelles migrations (7 à 21, tables `lib_*`).
+- Contrôles avant publication : compilation, 473 tests TypeScript, 29 tests Rust, construction de production réussie.
+- Attention : une base qui a reçu les migrations 7 à 21 ne s'ouvre plus avec une version antérieure à 0.47.0 (la liste des migrations connues doit contenir toutes celles déjà appliquées). Installer la 0.47.0 avant de rouvrir un ancien Form.
+- À vérifier avec le vrai installateur : lecture des miniatures par la Carte (réglage CSP `connect-src`), mise à jour automatique, DirectML.dll dans l'installateur.

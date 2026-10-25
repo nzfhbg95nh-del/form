@@ -1,4 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { LibraryOverlays, LibraryPage } from '@/biblio/LibraryPage'
+import { useBoardReload } from '@/biblio/store/boardReload'
 import { ClientsView, ServicesView } from '@/components/BusinessViews'
 import { InvoicesView } from '@/components/InvoicesView'
 import { PaymentsView } from '@/components/PaymentsView'
@@ -30,10 +32,23 @@ export default function App() {
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
 
   useReminders()
+  const boardReloads = useBoardReload((s) => s.n)
+  // La bibliothèque se charge à la première ouverture, puis reste en place (position de défilement gardée).
+  const [libraryOpened, setLibraryOpened] = useState(false)
+  useEffect(() => {
+    if (view === 'library') setLibraryOpened(true)
+  }, [view])
 
   useEffect(() => {
     void init()
   }, [init])
+
+  // Mise à jour automatique de la bibliothèque, quelques secondes après le lancement.
+  useEffect(() => {
+    if (!repo || !isTauri()) return
+    const timer = window.setTimeout(() => void import('@/biblio/startup').then((m) => m.startLibraryBackground()), 8000)
+    return () => window.clearTimeout(timer)
+  }, [repo])
 
   // Raccourcis dans l'app : Ctrl+K (recherche) et Ctrl+Alt+N (capture rapide).
   useEffect(() => {
@@ -177,7 +192,7 @@ export default function App() {
         )}
         <div className="flex min-h-0 flex-1">
           <main className="relative min-w-0 flex-1 overflow-y-auto">
-            {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : selected?.type === 'moodboard' ? <MoodboardView key={selected.id} board={selected} /> : <PageView />)}
+            {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : selected?.type === 'moodboard' ? <MoodboardView key={`${selected.id}:${boardReloads[selected.id] ?? 0}`} board={selected} /> : <PageView />)}
             {view === 'home' && <HomeView />}
             {view === 'trash' && <TrashView />}
             {view === 'settings' && <SettingsPage />}
@@ -188,10 +203,12 @@ export default function App() {
             {view === 'payments' && <PaymentsView />}
             {view === 'dashboard' && <DashboardView />}
             {view === 'mail' && <MailView />}
+            {libraryOpened && <div className="h-full" hidden={view !== 'library'}><LibraryPage active={view === 'library'} /></div>}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>
       </div>
+      <LibraryOverlays />
       {movingId && <MovePicker key={movingId} id={movingId} />}
       {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}

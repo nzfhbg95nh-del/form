@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
+import { LibraryStatus } from '@/biblio/components/LibraryStatus'
+import { useGrid } from '@/biblio/store/grid'
+import { useLibraryNav } from '@/biblio/store/nav'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
 import { isSystemDatabase, parseSchema } from '@/lib/database'
@@ -214,6 +217,11 @@ export function Sidebar() {
   const {
     objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
+  // Bibliothèque : la page ouverte, et si un tableau est ouvert (il compte alors comme « Collections »).
+  const libPage = useLibraryNav((s) => s.page)
+  const goLibrary = useLibraryNav((s) => s.go)
+  const openedCollection = useGrid((s) => !!s.filters.collection)
+  const setLibFilters = useGrid((s) => s.setFilters)
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
@@ -275,6 +283,22 @@ export function Sidebar() {
         <Item active={view === 'mail'} onClick={() => void openMail()}>
           <Mail size={14} /> Courrier
         </Item>
+          </>
+        )}
+
+        <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
+        {!collapsed.library && (
+          <>
+            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('all'); show('library') }}>
+              <LayoutGrid size={14} /> Tout
+            </Item>
+            <Item active={view === 'library' && (libPage === 'collections' || (libPage === 'all' && openedCollection))} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('collections'); show('library') }}>
+              <FolderOpen size={14} /> Collections
+            </Item>
+            <Item active={view === 'library' && libPage === 'map'} onClick={() => { goLibrary('map'); show('library') }}>
+              <MapIcon size={14} /> Carte
+            </Item>
+            <LibraryStatus />
           </>
         )}
 

@@ -18,12 +18,13 @@ import {
   type Draft,
 } from '@/lib/invoices'
 import { configProblems, fetchMail, loadMailConfig, mailSchema, newMailItems, rowFromMail } from '@/lib/mail'
-import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipeBodyBlocks, recipesSchema, recipeValues } from '@/lib/recipes'
+import { klipprBlocks, klipprValues, newKlipprRecipes, type KlipprRecipe } from '@/lib/klippr'
+import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipeBodyBlocks, recipeCategories, recipesSchema, recipeValues } from '@/lib/recipes'
 import type { AiMode, AiTask, Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'mail'
+export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'mail' | 'library'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -149,6 +150,8 @@ interface AppState {
   setAssistant(mode: AiMode | null): void
   /** Range la recette lue par l'assistant dans la base « Recettes » et l'ouvre. */
   createRecipePage(recipe: Recipe, categoryId?: string): Promise<void>
+  /** Ajoute dans « Recettes » les recettes exportées par Klippr (celles déjà là sont laissées telles quelles). */
+  importKlipprRecipes(recipes: KlipprRecipe[]): Promise<{ created: number; skipped: number }>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
   openRecipes(): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
@@ -821,6 +824,26 @@ export const useApp = create<AppState>((set, get) => ({
 
   async createRecipePage(recipe, categoryId) {
     await addRecipeRow(get, set, { title: recipe.title, values: { ...recipeValues(recipe), ...(categoryId ? { [RECIPE.type]: categoryId } : {}) }, content: recipeBodyBlocks(recipe) })
+  },
+
+  async importKlipprRecipes(recipes) {
+    const repo = get().repo
+    const db = await ensureRecipesDb(get, set)
+    if (!repo || !db) return { created: 0, skipped: recipes.length }
+    const categories = recipeCategories(parseSchema(db.properties))
+    const existing = get().objects
+      .filter((o) => o.parent_id === db.id && o.type === 'row' && !o.deleted_at)
+      .map((o) => ({ title: o.title, source: String(parseValues(o.properties)[RECIPE.source] ?? '') || undefined }))
+    const fresh = newKlipprRecipes(recipes, existing)
+    const added: ObjectRow[] = []
+    for (const r of fresh) {
+      const row = await repo.createPage(db.id, 'row', JSON.stringify(klipprValues(r, categories)))
+      const patch = { title: r.titre, icon: '🍳', content: JSON.stringify(klipprBlocks(r)) }
+      await repo.updateObject(row.id, patch)
+      added.push({ ...row, ...patch })
+    }
+    if (added.length > 0) set((s) => ({ objects: [...s.objects, ...added] }))
+    return { created: added.length, skipped: recipes.length - added.length }
   },
 
   async addTasksFromAi(tasks, dbId, open = true) {
