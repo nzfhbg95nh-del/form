@@ -530,3 +530,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Caché pour l'instant (`src/biblio/flags.ts`) : « Voir sur la carte » (étape 4) et « Ajouter à un moodboard » (étape 5).
 - Pas encore automatique (étape 6) : le scan du dossier de Social Saver, les miniatures et les calculs de l'IA ne se lancent pas tout seuls ; la bibliothèque affiche ce qui a été copié à l'étape 2.
 - Vérifié : compilation, 435 tests, ouverture de la page, ouverture d'une image, recherche. Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape3.db`.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 4 : Collections et Carte (branche bibliotheque, pas encore publié)
+- La section « Bibliothèque » a maintenant trois entrées : Tout, Collections, Carte. Collections : tes tableaux (22), sous-tableaux, couvertures, glisser pour réordonner, nom et description. Ouvrir un tableau amène à sa grille ; le bouton retour remonte au tableau parent puis aux Collections ; l'entrée « Collections » reste surlignée tant qu'un tableau est ouvert.
+- Carte : tes 10 021 images placées par ressemblance, îlots nommés, zoom, clic pour voir les voisines, mode voyage (4 sauts). Les positions viennent de l'étape 2 (rien n'est recalculé). « Voir sur la carte » (vue détail, tableau) est de retour et ouvre la Carte sur la bonne image.
+- Chaque page se monte à sa première ouverture puis reste en place (défilement et position sur la Carte gardés). Code : `LibraryPage.tsx`, `store/nav.ts`, 8 fichiers copiés (dont les tests de la Carte et du voyage).
+- Sécurité de l'installateur : la lecture des miniatures par la Carte (`fetch` sur le protocole des fichiers) est ajoutée au réglage CSP (`connect-src`) de Form, et de Klippr. À vérifier avec un vrai installateur (étape 7).
+- Vérifié : compilation, 455 tests, Collections, ouverture d'un tableau, Carte, saut du voyage, « Voir sur la carte ». Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape4.db`.
