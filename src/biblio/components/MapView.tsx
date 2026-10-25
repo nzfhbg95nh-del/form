@@ -4,7 +4,7 @@ import { loadColorIndex, paletteDistance, type ColorIndex } from '@/biblio/lib/c
 import { computeMap, loadMap, type MapData } from '@/biblio/lib/mapData.ts'
 import { kmeans2d, labelClusters, mulberry32, nearestByVector } from '@/biblio/lib/mapLayout.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
-import { boundsOf, clampZoom, fitView, zoomAt, type View } from '@/biblio/lib/moodboard.ts'
+import { boundsOf, clampZoom, fitView, zoomAt, type View } from '@/biblio/lib/viewMath.ts'
 import { pickStep, STEP_LABELS, type StepKind } from '@/biblio/lib/voyage.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
 import { useMapRequest } from '@/biblio/store/map.ts'

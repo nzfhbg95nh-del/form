@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { FEATURES } from '@/biblio/flags.ts'
-import { refOf } from '@/biblio/lib/moodboards.ts'
+import { addBlocksToBoard, addedMessage, createBoard, useFormBoards } from '@/biblio/lib/formBoards.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
-import { useMoodboards } from '@/biblio/store/moodboards.ts'
+import { useToast } from '@/biblio/store/toast.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { CollectionPicker } from './CollectionPicker.tsx'
 import { NameInput } from './NameInput.tsx'
@@ -30,15 +30,11 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
   const open = useGrid((s) => s.filters.collection)
   const collectionBlocks = useGrid((s) => s.collectionBlocks)
   const blocks = useGrid((s) => s.blocks)
-  const moodboards = useMoodboards()
+  const boards = useFormBoards()
   const trash = useTrash((s) => s.trash)
   // Un déplacement ouvre tout de suite le choix de la collection.
   const [view, setView] = useState<'main' | 'collection' | 'moodboard'>(moveFrom ? 'collection' : 'main')
   const [naming, setNaming] = useState(false)
-
-  useEffect(() => {
-    if (!moodboards.loaded) void moodboards.load()
-  }, [moodboards])
 
   const picked = useMemo(() => {
     const wanted = new Set(blockIds)
@@ -47,6 +43,16 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
   // On peut retirer de la collection ouverte si c'est une des miennes et si tous les blocs y sont.
   const openIsMine = open && cards.find((c) => c.id === open.id)?.kind === 'manual'
   const removable = openIsMine && blockIds.every((id) => collectionBlocks?.has(id))
+  /** Ajoute les images choisies au moodboard de Form, puis le dit. */
+  const addTo = async (boardId: string, name: string) => {
+    try {
+      const { added, failed } = await addBlocksToBoard(boardId, picked)
+      useToast.getState().show(addedMessage(added, failed, name))
+    } catch (e) {
+      useToast.getState().show(e instanceof Error ? e.message : String(e))
+    }
+    finish()
+  }
   const finish = () => {
     onDone?.()
     onClose()
@@ -84,9 +90,9 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
             <button className="flex items-center gap-1 px-2 pb-1 pt-1 text-xs" style={{ color: 'var(--fg-muted)' }} onClick={() => setView('main')}><ChevronLeft size={14} /> Retour</button>
             <div className={head} style={{ color: 'var(--fg-muted)' }}>Ajouter à un moodboard{count}</div>
             <div className="max-h-64 overflow-auto">
-              {moodboards.cards.length === 0 && <div className="px-2 py-1.5 text-sm" style={{ color: 'var(--fg-muted)' }}>Tu n'as encore aucun moodboard.</div>}
-              {moodboards.cards.map((m) => (
-                <button key={m.id} className={item} onClick={() => void moodboards.addBlocks(m.id, m.name, picked.map(refOf)).then(finish)}>{m.name}</button>
+              {boards.length === 0 && <div className="px-2 py-1.5 text-sm" style={{ color: 'var(--fg-muted)' }}>Tu n'as encore aucun moodboard.</div>}
+              {boards.map((m) => (
+                <button key={m.id} className={item} onClick={() => void addTo(m.id, m.name)}>{m.name}</button>
               ))}
             </div>
             {naming ? (
@@ -95,7 +101,7 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
                 confirmLabel="Créer"
                 className="p-1"
                 onCancel={() => setNaming(false)}
-                onSubmit={(name) => void moodboards.create(name).then((id) => moodboards.addBlocks(id, name, picked.map(refOf))).then(finish)}
+                onSubmit={(name) => void createBoard(name).then((id) => addTo(id, name.trim() || 'Moodboard'))}
               />
             ) : (
               <button className={item} onClick={() => setNaming(true)}>+ Nouveau moodboard…</button>

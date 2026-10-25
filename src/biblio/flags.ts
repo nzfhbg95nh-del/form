@@ -3,5 +3,5 @@ export const FEATURES = {
   /** Page « Carte » (étape 4). */
   carte: true,
   /** Ajouter aux moodboards de Form (étape 5). */
-  moodboards: false,
+  moodboards: true,
 } as const

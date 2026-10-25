@@ -15,11 +15,12 @@ import { BlockMenu } from './BlockMenu.tsx'
 import { PickerPopover } from './CollectionPicker.tsx'
 import { NameInput } from './NameInput.tsx'
 import { collectionPath, loadBlockCollectionIds, manualCollections } from '@/biblio/lib/collections.ts'
-import { refOf } from '@/biblio/lib/moodboards.ts'
+import { addBlocksToBoard, addedMessage, boardsContaining, createBoard, useFormBoards } from '@/biblio/lib/formBoards.ts'
 import { FEATURES } from '@/biblio/flags.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useMapRequest } from '@/biblio/store/map.ts'
-import { useMoodboards } from '@/biblio/store/moodboards.ts'
+import { useToast } from '@/biblio/store/toast.ts'
+import { useApp } from '@/store/app'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
@@ -312,35 +313,77 @@ function BlockCollections({ blockId }: { blockId: string }) {
   )
 }
 
-/** Ajouter ce bloc à un moodboard (existant ou nouveau), sans copier le fichier. */
+/** Moodboards de Form : ceux qui contiennent déjà une image de ce bloc, et ajouter ce bloc à un moodboard (existant ou nouveau). */
 function BlockMoodboards({ block }: { block: GridBlock }) {
-  const { cards, loaded, load, create, addBlocks } = useMoodboards()
+  const boards = useFormBoards()
   const [naming, setNaming] = useState(false)
+  const [containing, setContaining] = useState<string[]>([])
+  const [busy, setBusy] = useState(false)
+  const [tick, setTick] = useState(0)
+
   useEffect(() => {
-    if (!loaded) void load()
-  }, [loaded, load])
+    let cancelled = false
+    void boardsContaining(block.id).then((ids) => {
+      if (!cancelled) setContaining(ids)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [block.id, tick])
+
+  const add = async (boardId: string, name: string) => {
+    setBusy(true)
+    try {
+      const { added, failed } = await addBlocksToBoard(boardId, [block])
+      useToast.getState().show(addedMessage(added, failed, name))
+    } catch (e) {
+      useToast.getState().show(e instanceof Error ? e.message : String(e))
+    }
+    setBusy(false)
+    setTick((t) => t + 1)
+  }
+  const inBoards = boards.filter((b) => containing.includes(b.id))
   return (
     <div className="mt-6">
       <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Moodboard</div>
-      {cards.length > 0 && (
+      {inBoards.length > 0 && (
+        <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+          Dans :
+          {inBoards.map((b) => (
+            <button
+              key={b.id}
+              className="rounded border px-1.5 py-0.5 hover:bg-[var(--bg-hover)]"
+              style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
+              onClick={() => {
+                useGrid.getState().open(null)
+                useApp.getState().select(b.id)
+              }}
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+      )}
+      {boards.length > 0 && (
         <select
           value=""
+          disabled={busy}
           onChange={(e) => {
-            const m = cards.find((c) => c.id === e.target.value)
-            if (m) void addBlocks(m.id, m.name, [refOf(block)])
+            const m = boards.find((c) => c.id === e.target.value)
+            if (m) void add(m.id, m.name)
           }}
           className="w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
           style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
           aria-label="Ajouter à un moodboard"
         >
           <option value="">Ajouter à un moodboard…</option>
-          {cards.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
+          {boards.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
         </select>
       )}
       {naming ? (
-        <NameInput className="mt-2" placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void create(name).then((id) => addBlocks(id, name, [refOf(block)])).then(() => setNaming(false))} />
+        <NameInput className="mt-2" placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void createBoard(name).then((id) => add(id, name.trim() || 'Moodboard')).then(() => setNaming(false))} />
       ) : (
-        <button className="btn mt-2 w-full" onClick={() => setNaming(true)}>+ Nouveau moodboard avec cette image</button>
+        <button className="btn mt-2 w-full" disabled={busy} onClick={() => setNaming(true)}>+ Nouveau moodboard avec cette image</button>
       )}
     </div>
   )
