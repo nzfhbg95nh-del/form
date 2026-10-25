@@ -36,8 +36,8 @@ export function LibraryImport() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl px-12 py-8">
-      <h2 className="text-2xl font-bold">Bibliothèque</h2>
+    <div className="py-4">
+      <h2 className="text-base font-semibold">Reprendre ma bibliothèque Klippr</h2>
       <p className="mt-2 text-sm text-[var(--fg-muted)]">
         La bibliothèque d'images et de vidéos de Klippr (tes enregistrements Instagram et Pinterest) rejoint Form. Cette étape copie ses données :
         blocs, collections, types, empreintes de l'IA, couleurs, Carte, texte lu dans les vidéos. Klippr n'est pas modifié et doit être fermé pendant la copie.

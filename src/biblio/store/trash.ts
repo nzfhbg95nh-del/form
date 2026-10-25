@@ -6,13 +6,13 @@ import { useLibrary } from '@/biblio/store/library.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 
 interface TrashState {
-  /** Nombre d'images dans la corbeille de Klippr. */
+  /** Nombre d'images dans la corbeille de la bibliothèque. */
   count: number
   refresh: () => Promise<void>
-  /** Met des images à la corbeille de Klippr (rien n'est touché sur le disque) ; un bouton « Annuler » les remet. */
+  /** Met des images à la corbeille de la bibliothèque (rien n'est touché sur le disque) ; un bouton « Annuler » les remet. */
   trash: (ids: string[]) => Promise<void>
   restore: (ids: string[]) => Promise<void>
-  /** Supprime définitivement : les fichiers partent dans la Corbeille Windows et Klippr oublie les images. */
+  /** Supprime définitivement : les fichiers partent dans la Corbeille Windows et Form oublie les images. */
   purge: (ids: string[]) => Promise<{ deleted: number; failed: number }>
 }
 

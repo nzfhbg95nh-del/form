@@ -43,6 +43,13 @@ export default function App() {
     void init()
   }, [init])
 
+  // Mise à jour automatique de la bibliothèque, quelques secondes après le lancement.
+  useEffect(() => {
+    if (!repo || !isTauri()) return
+    const timer = window.setTimeout(() => void import('@/biblio/startup').then((m) => m.startLibraryBackground()), 8000)
+    return () => window.clearTimeout(timer)
+  }, [repo])
+
   // Raccourcis dans l'app : Ctrl+K (recherche) et Ctrl+Alt+N (capture rapide).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

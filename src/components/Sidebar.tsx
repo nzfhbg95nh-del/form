@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
+import { LibraryStatus } from '@/biblio/components/LibraryStatus'
 import { useGrid } from '@/biblio/store/grid'
 import { useLibraryNav } from '@/biblio/store/nav'
 import { AppMenu } from '@/components/AppMenu'
@@ -297,6 +298,7 @@ export function Sidebar() {
             <Item active={view === 'library' && libPage === 'map'} onClick={() => { goLibrary('map'); show('library') }}>
               <MapIcon size={14} /> Carte
             </Item>
+            <LibraryStatus />
           </>
         )}
 

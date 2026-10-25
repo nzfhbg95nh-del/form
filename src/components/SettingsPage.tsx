@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AiSettings } from '@/components/AiSettings'
 import { CgvSettings, CompanySettings } from '@/components/CompanySettings'
-import { LibraryImport } from '@/components/LibraryImport'
+import { LibrarySettings } from '@/biblio/components/LibrarySettings'
 import { MailSettings } from '@/components/MailSettings'
 import { NotionImport } from '@/components/NotionImport'
 import { GeneralSettings } from '@/components/SettingsView'
@@ -37,7 +37,7 @@ export function SettingsPage() {
       {tab === 'ai' && <AiSettings />}
       {tab === 'mail' && <MailSettings />}
       {tab === 'notion' && <NotionImport />}
-      {tab === 'library' && <LibraryImport />}
+      {tab === 'library' && <LibrarySettings />}
     </div>
   )
 }

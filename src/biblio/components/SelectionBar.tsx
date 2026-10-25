@@ -39,7 +39,7 @@ export function SelectionBar() {
             <FolderMinus size={15} /> Retirer du tableau
           </button>
         )}
-        <button className="btn" onClick={() => void trash(ids)} title="Elles disparaissent de Klippr ; tu peux les restaurer depuis Paramètres → Corbeille"><Trash2 size={15} /> Corbeille</button>
+        <button className="btn" onClick={() => void trash(ids)} title="Elles disparaissent de la bibliothèque ; tu peux les restaurer depuis Réglages → Bibliothèque → Corbeille"><Trash2 size={15} /> Corbeille</button>
         <button className="btn" onClick={clear} aria-label="Tout désélectionner"><X size={15} /> Annuler</button>
       </div>
       {menu && <BlockMenu x={menu.x} y={Math.max(8, menu.y)} blockIds={ids} moveFrom={menu.move ? fromMine?.id : undefined} onClose={() => setMenu(null)} onDone={clear} />}
