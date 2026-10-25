@@ -515,3 +515,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Réglages Tauri : accès aux fichiers de la bibliothèque (miniatures et vidéos) autorisé, moteur d'IA et DirectML.dll ajoutés à l'installateur. Les commandes de la bibliothèque sont enregistrées dans Form.
 - Vérifié : compilation, 29 tests Rust, 272 tests TypeScript ; Form démarre, applique les 21 migrations sur la vraie base (18 tables `lib_`), ses 81 recettes sont intactes. Rien de visible dans l'appli à ce stade.
 - À savoir : Form va chercher les miniatures et les modèles d'IA dans son propre dossier de données ; ils seront copiés à l'étape 2.
+
+## 2026-10-26 — Bibliothèque dans Form, étape 2 : les données de Klippr (branche bibliotheque, pas encore publié)
+- Réglages > nouvel onglet « Bibliothèque » : le bouton « Importer ma bibliothèque Klippr » lit la base de Klippr (jamais modifiée) et copie, table par table, dans celle de Form : blocs, fichiers, collections et sous-collections, types, empreintes de l'IA (images et textes), couleurs, positions de la Carte, texte lu dans les vidéos, liste « à ne plus réimporter », liens. Pas les moodboards ni les recettes de Klippr (Form a les siens). Réglages repris sans écraser ceux de Form : dossier de Social Saver, types déjà créés, version du classement.
+- Relançable sans doublon (`INSERT OR IGNORE`). À la fin, un tableau compare le nombre de lignes de chaque table des deux côtés.
+- Les miniatures (17 071, 594 Mo) et les modèles d'IA (580 Mo) ont été copiés avec robocopy dans le dossier de données de Form.
+- Vérifié sur la vraie base : 10 021 blocs, 17 071 fichiers, 1 761 collections, 21 578 rangements, 17 071 empreintes et couleurs, 10 021 positions, 1 625 textes : tout identique des deux côtés, en 10 secondes. Exemples contrôlés (couleurs, position, empreinte, plus grosses collections). Les 81 recettes de Form sont intactes.
+- Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape2.db`. Tests : 279 (7 nouveaux).
