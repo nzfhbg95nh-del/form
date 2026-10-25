@@ -522,3 +522,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les miniatures (17 071, 594 Mo) et les modèles d'IA (580 Mo) ont été copiés avec robocopy dans le dossier de données de Form.
 - Vérifié sur la vraie base : 10 021 blocs, 17 071 fichiers, 1 761 collections, 21 578 rangements, 17 071 empreintes et couleurs, 10 021 positions, 1 625 textes : tout identique des deux côtés, en 10 secondes. Exemples contrôlés (couleurs, position, empreinte, plus grosses collections). Les 81 recettes de Form sont intactes.
 - Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape2.db`. Tests : 279 (7 nouveaux).
+
+## 2026-10-26 — Bibliothèque dans Form, étape 3 : la section et la page « Tout » (branche bibliotheque, pas encore publié)
+- Barre latérale : nouvelle section « Bibliothèque », juste sous « Mon entreprise », avec l'entrée « Tout » (elle se replie comme les autres sections).
+- Page « Tout » : la grille de Klippr dans Form, sur les vraies données (10 021 blocs) : taille réglable, mode « Organiser », filtres (type d'image, couleur, source, format, date), tirage « Aléatoire », recherche par auteur ou par ce qu'on voit (« 25 sur 10 021 blocs · dont 24 trouvés par ressemblance »), vue détail avec images similaires, rangement dans les collections, corbeille de la bibliothèque. La page se charge à la première ouverture, puis reste en place (position de défilement gardée).
+- Code : 53 fichiers copiés dans `src/biblio/` (composants, calculs, stores, avec leurs tests), pour ne pas se mélanger aux fichiers de Form qui portent les mêmes noms. Branché sur la base `form.db`. Les styles `.btn` et `.spin` sont ajoutés à `index.css`.
+- Caché pour l'instant (`src/biblio/flags.ts`) : « Voir sur la carte » (étape 4) et « Ajouter à un moodboard » (étape 5).
+- Pas encore automatique (étape 6) : le scan du dossier de Social Saver, les miniatures et les calculs de l'IA ne se lancent pas tout seuls ; la bibliothèque affiche ce qui a été copié à l'étape 2.
+- Vérifié : compilation, 435 tests, ouverture de la page, ouverture d'une image, recherche. Sauvegarde avant : `Bureau\form-sauvegarde-avant-etape3.db`.

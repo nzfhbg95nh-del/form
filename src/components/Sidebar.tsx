@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, LayoutGrid, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
@@ -276,6 +276,13 @@ export function Sidebar() {
           <Mail size={14} /> Courrier
         </Item>
           </>
+        )}
+
+        <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
+        {!collapsed.library && (
+          <Item active={view === 'library'} onClick={() => show('library')}>
+            <LayoutGrid size={14} /> Tout
+          </Item>
         )}
 
         {favorites.length > 0 && (

@@ -1,4 +1,5 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import { LibraryOverlays, LibraryPage } from '@/biblio/LibraryPage'
 import { ClientsView, ServicesView } from '@/components/BusinessViews'
 import { InvoicesView } from '@/components/InvoicesView'
 import { PaymentsView } from '@/components/PaymentsView'
@@ -30,6 +31,11 @@ export default function App() {
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
 
   useReminders()
+  // La bibliothèque se charge à la première ouverture, puis reste en place (position de défilement gardée).
+  const [libraryOpened, setLibraryOpened] = useState(false)
+  useEffect(() => {
+    if (view === 'library') setLibraryOpened(true)
+  }, [view])
 
   useEffect(() => {
     void init()
@@ -188,10 +194,12 @@ export default function App() {
             {view === 'payments' && <PaymentsView />}
             {view === 'dashboard' && <DashboardView />}
             {view === 'mail' && <MailView />}
+            {libraryOpened && <div className="h-full" hidden={view !== 'library'}><LibraryPage active={view === 'library'} /></div>}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
         </div>
       </div>
+      <LibraryOverlays />
       {movingId && <MovePicker key={movingId} id={movingId} />}
       {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}
