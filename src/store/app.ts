@@ -25,6 +25,16 @@ import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quo
 
 export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
 
+/** Si un écran (Devis, Tout…) est affiché sans onglet à lui, on lui en crée un et on le rend actif : il ne disparaît pas quand on ouvre un autre onglet. */
+function withShownView(t: Tabs, view: View): Tabs {
+  if (view === 'page' || parseViewTab(t.ids[t.active] ?? '')) return t
+  const lib = view === 'library' ? useLibraryNav.getState().page : undefined
+  const id = viewTabId(view, lib)
+  const existing = t.ids.indexOf(id)
+  if (existing >= 0) return { ids: t.ids, active: existing }
+  return { ids: [...t.ids, id], active: t.ids.length }
+}
+
 /** L'écran à afficher pour l'onglet actif : une page, ou un écran (et sa page de bibliothèque) pour un onglet « view: ». */
 function viewOfTab(t: Tabs): { view: View } {
   const parsed = parseViewTab(t.ids[t.active] ?? '')
@@ -390,7 +400,7 @@ export const useApp = create<AppState>((set, get) => ({
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
     const previous = get().selectedId
-    const tabs = openTab(get().tabs, id, opts?.newTab)
+    const tabs = openTab(opts?.newTab ? withShownView(get().tabs, get().view) : get().tabs, id, opts?.newTab)
     // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
     const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
     set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
@@ -495,8 +505,10 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   openViewTab(view, libPage) {
+    // L'écran qu'on regarde devient lui-même un onglet avant d'en ouvrir un autre : il reste là, rien n'est écrasé.
+    const base = withShownView(get().tabs, get().view)
     if (libPage) useLibraryNav.getState().go(libPage)
-    const tabs = openTab(get().tabs, viewTabId(view, view === 'library' ? libPage : undefined), true)
+    const tabs = openTab(base, viewTabId(view, view === 'library' ? libPage : undefined), true)
     set({ tabs, selectedId: null, view })
   },
 
