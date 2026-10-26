@@ -63,9 +63,10 @@ export interface Board {
   pattern: Pattern
 }
 
-/** « dots » (les points d'avant) n'est plus proposé : un ancien moodboard qui l'avait devient « cells ». */
-export type Pattern = 'cells' | 'dots' | 'grid' | 'none'
+/** Fonds proposés : petits points (par défaut), cases (carrés ouverts aux coins), grille, uni. */
+export type Pattern = 'dots' | 'cells' | 'grid' | 'none'
 export const PATTERNS: { id: Pattern; label: string }[] = [
+  { id: 'dots', label: 'Points' },
   { id: 'cells', label: 'Cases' },
   { id: 'grid', label: 'Grille' },
   { id: 'none', label: 'Uni' },
@@ -99,17 +100,14 @@ export const NOTE_COLORS = ['#fff3a3', '#ffd6e0', '#cfeaff', '#d4f5d0', '#ffffff
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
 
 export function emptyBoard(): Board {
-  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'cells' }
+  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'dots' }
 }
 
 export function parseBoard(content: string | null): Board {
   if (!content) return emptyBoard()
   try {
     const data = JSON.parse(content)
-    if (data && data.v === 1 && Array.isArray(data.items)) {
-      const board = { ...emptyBoard(), ...data }
-      return board.pattern === 'dots' ? { ...board, pattern: 'cells' } : board
-    }
+    if (data && data.v === 1 && Array.isArray(data.items)) return { ...emptyBoard(), ...data }
   } catch {
     /* plan illisible : on repart d'une toile vide */
   }

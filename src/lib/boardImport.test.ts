@@ -192,10 +192,10 @@ describe('fond « Cases »', () => {
     expect(svg).toContain('M22.4 0.5H137.6')
     expect(svg).toContain('M0.5 22.4V137.6')
   })
-  it('c\'est le fond d\'un nouveau moodboard ; les anciens points deviennent des cases', () => {
-    expect(emptyBoard().pattern).toBe('cells')
-    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'dots' })).pattern).toBe('cells')
+  it('les petits points restent le fond d\'un nouveau moodboard ; les cases sont un choix de plus', () => {
+    expect(emptyBoard().pattern).toBe('dots')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'dots' })).pattern).toBe('dots')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'cells' })).pattern).toBe('cells')
     expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'grid' })).pattern).toBe('grid')
-    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'none' })).pattern).toBe('none')
   })
 })
