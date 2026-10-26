@@ -20,7 +20,7 @@ export function Mosaic({ card, thumbsDir }: { card: CollectionCard; thumbsDir: s
   const [a, b, c] = card.previews
   const img = (thumb: string) => <img src={fileUrl(thumbPath(thumbsDir, thumb))} alt="" draggable={false} decoding="async" loading="lazy" className="h-full w-full object-cover" />
   return (
-    <div className="grid aspect-[4/3] w-full gap-0.5 overflow-hidden rounded-2xl shadow-[var(--shadow-soft)] transition-[transform,box-shadow] duration-200 group-hover:-translate-y-0.5 group-hover:shadow-[var(--shadow-lift)]" style={{ background: 'var(--bg-hover)', gridTemplateColumns: b ? '2fr 1fr' : '1fr', gridTemplateRows: c ? '1fr 1fr' : '1fr' }}>
+    <div className="grid aspect-[4/3] w-full gap-0.5 overflow-hidden rounded-2xl shadow-[var(--shadow-soft)]" style={{ background: 'var(--bg-hover)', gridTemplateColumns: b ? '2fr 1fr' : '1fr', gridTemplateRows: c ? '1fr 1fr' : '1fr' }}>
       <div className={c ? 'row-span-2' : ''}>{a && img(a)}</div>
       {b && <div className={c ? '' : 'row-span-1'}>{img(b)}</div>}
       {c && <div>{img(c)}</div>}

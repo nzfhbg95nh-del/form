@@ -35,6 +35,7 @@ function PageCard({ page }: { page: ObjectRow }) {
   const select = useApp((s) => s.select)
   return (
     <button
+      data-lift
       onClick={() => select(page.id)}
       className="flex h-28 w-40 shrink-0 flex-col justify-between rounded-xl border border-[var(--border)] p-3 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]"
     >
@@ -266,7 +267,7 @@ function WidgetBody({ widget }: { widget: Widget }) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cells.map((c) => (
-          <button key={c.label} onClick={() => show(c.view)} className="rounded-xl border border-[var(--border)] p-4 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]">
+          <button key={c.label} data-lift onClick={() => show(c.view)} className="rounded-xl border border-[var(--border)] p-4 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]">
             <div className="text-xs text-[var(--fg-muted)]">{c.label}</div>
             <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{c.value}</div>
             {c.hint && <div className="text-xs text-[var(--fg-muted)]">{c.hint}</div>}

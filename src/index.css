@@ -7,7 +7,7 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
 }
 
 :root {
@@ -117,18 +117,17 @@ button, a, [role="menuitem"], input, select, textarea {
 }
 /* Un appui se sent : le bouton s'enfonce très légèrement. */
 /* Seuls les vrais boutons s'enfoncent ; les éléments de liste, onglets et outils (appui long = menu) ne bougent pas pendant qu'on appuie. */
-.btn:active:not(:disabled) { transform: scale(1.04, 0.9); }
+.btn:active:not(:disabled) { transform: scale(1.02, 0.95); }
 .btn-primary { box-shadow: 0 1px 2px rgba(35, 131, 226, 0.35); }
 /* Les cartes cliquables se soulèvent au survol (pages récentes, chiffres de l'accueil…). */
-button.rounded-lg.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
-button.rounded-lg.border:not(:disabled):active { transform: translateY(0); }
+button[data-lift]:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+button[data-lift]:not(:disabled):active { transform: translateY(0); }
 /* Menus et fenêtres : ils s'ouvrent en douceur au lieu d'apparaître d'un coup. */
-[role="menu"], [role="dialog"], [data-popup] { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; box-shadow: var(--shadow-lift); }
-@keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+[role="menu"], [role="dialog"], [data-popup] { box-shadow: var(--shadow-lift); }
 /* Changement de page : un léger fondu. */
 /* « backwards » : l'animation ne garde rien une fois finie (sinon un menu « fixed » à l'intérieur se mettrait à suivre ce bloc au lieu de la fenêtre). */
 main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backwards; }
-@keyframes form-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes form-fade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
@@ -178,15 +177,10 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 .btn svg.lucide-plus { transition: transform 0.4s var(--ease-spring); }
 .btn:hover:not(:disabled) svg.lucide-plus { transform: rotate(90deg) scale(1.2); }
 /* Les menus et fenêtres jaillissent avec un petit dépassement. */
-[role="menu"], [role="dialog"], [data-popup] { animation: form-boing 0.3s var(--ease-out-soft) backwards; }
-@keyframes form-boing { 0% { opacity: 0; transform: translateY(-6px) scale(0.86); } 55% { opacity: 1; transform: translateY(1px) scale(1.035); } 100% { opacity: 1; transform: none; } }
 /* Les messages en bas rebondissent en arrivant. */
 .form-toast { animation: form-toast-in 0.45s var(--ease-spring) backwards; }
-@keyframes form-toast-in { 0% { opacity: 0; transform: translate(-50%, 24px) scale(0.8); } 100% { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@keyframes form-toast-in { 0% { opacity: 0; transform: translate(-50%, 10px); } 100% { opacity: 1; transform: translate(-50%, 0); } }
 /* L'icône d'un élément de la barre latérale se trémousse au survol. */
 button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; }
 @keyframes form-wiggle { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-12deg) scale(1.15); } 45% { transform: rotate(10deg) scale(1.15); } 70% { transform: rotate(-5deg) scale(1.05); } }
-/* Les cartes cliquables se soulèvent avec un ressort. */
-button.rounded-lg.border:not(:disabled), button.rounded-xl.border:not(:disabled) { transition: box-shadow 0.2s, transform 0.5s var(--ease-spring), background-color 0.15s; }
-button.rounded-xl.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-3px) rotate(-0.4deg); }
 @media (prefers-reduced-motion: reduce) { .btn svg.lucide-plus, button.group:hover > svg:first-child, .form-toast { animation: none !important; transition: none !important; } }
