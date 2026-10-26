@@ -848,7 +848,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                     <MenuHead>Forme</MenuHead>
                     {SHAPES.map((sh) => <MenuBtn key={sh.id} label={sh.label} onClick={() => addShape(menu.world, sh.id)} />)}
                     <MenuHead>Autres</MenuHead>
-                    <MenuBtn label="Couleur…" onClick={() => { colorAt.current = menu.world; colorInput.current?.click() }} />
                     <MenuBtn label="Lien (Pinterest, Instagram, autre)…" onClick={() => { linkAt.current = menu.world; setLinkInput('') }} />
                   </div>
                 )}
