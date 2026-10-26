@@ -762,3 +762,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Pas branchés (le moteur les a mais ils demandent des polices ou des rendus que Form n'a pas encore) : texte sur un tracé, Texte vertical, Touch Type, distorsions, dégradés, maillage, symboles, graphes, plans de travail.
 - Tests : 592 (TypeScript) + 7 (moteur, Rust).
 - (suite) Forme de tache : elle repeint une zone remplie comme avant, mais une boucle ne se remplit plus. Cause : un tracé du moteur peut avoir plusieurs morceaux (le contour de la tache + le trou de la boucle) ; Form les faisait deux éléments séparés, donc le trou était repeint. Un élément a maintenant des morceaux en plus (`sub`), dessinés en un seul tracé (règle pair-impair). Test Rust : une boucle de tache garde son trou.
+
+## 2026-10-26 — Analyse de tous les outils de dessin (après la v0.47.2, pas encore publié)
+- Balayage automatique (test Rust `sonde_tous_les_outils`) : 42 outils du moteur reçoivent huit gestes différents (glisser, bord, point, courbe, vide, double-clic, traversée) + Entrée / Échap sur trois tracés d'essai. Résultat : **aucune erreur, aucun plantage**, et tous les types de dessins renvoyés par le moteur sont bien affichés par l'écran.
+- Gestes adaptés, vérifiés par tests : baguette magique (choisit les tracés de même remplissage), lasso, pipette (copie le style), rotation, échelle, couteau, ciseaux. Tous se comportent comme prévu.
+- Limites connues (pas des bugs, fonctions non branchées) : texte sur tracé, texte vertical, Touch Type, distorsions, dégradés, maillage, symboles, graphes, plans de travail ; pas de fenêtre d'options d'outil (taille de la gomme, fidélité du crayon).

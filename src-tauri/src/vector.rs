@@ -652,4 +652,171 @@ mod tests {
         assert_eq!(out.paths.len(), 1, "{:?}", out.paths.iter().map(|p| p.points.len()).collect::<Vec<_>>());
         assert!(!out.paths[0].subs.is_empty(), "le trou de la boucle doit rester un morceau du même tracé");
     }
+
+
+    fn trois() -> Vec<PathIo> {
+        vec![
+            pio("a", true, &[(100.0, 100.0), (300.0, 100.0), (300.0, 250.0), (100.0, 250.0)]),
+            pio("b", false, &[(400.0, 100.0), (500.0, 200.0), (600.0, 120.0)]),
+            PathIo { fill: Some("#00ff00".into()), ..pio("c", true, &[(150.0, 350.0), (350.0, 350.0), (250.0, 480.0)]) },
+        ]
+    }
+    fn demarre(tool: &str, sel: &[&str]) -> Vector {
+        let mut v = Vector::default();
+        let sel: Vec<String> = sel.iter().map(|s| s.to_string()).collect();
+        v.start(&trois(), &sel, tool, 1.0, &StyleIo { fill: None, stroke: Some("#000000".into()), sw: 1.0 }).expect("démarrage");
+        v
+    }
+
+    #[test]
+    fn les_outils_de_selection_choisissent_les_bons_tracés() {
+        let mut v = demarre("magicWand", &[]);
+        let o = click(&mut v, 250.0, 420.0);
+        assert_eq!(o.selected, vec!["c".to_string()], "la baguette magique choisit les tracés de même remplissage");
+        let mut v = demarre("lasso", &[]);
+        ptr(&mut v, "down", 100.0, 300.0);
+        for (x, y) in [(400.0, 300.0), (400.0, 520.0), (100.0, 520.0), (100.0, 300.0)] {
+            ptr(&mut v, "drag", x, y);
+        }
+        let o = ptr(&mut v, "up", 100.0, 300.0);
+        assert!(o.selected.contains(&"c".to_string()), "le lasso choisit ce qu'il entoure : {:?}", o.selected);
+    }
+
+    #[test]
+    fn la_pipette_copie_le_style() {
+        let mut v = demarre("eyedropper", &["a"]);
+        let o = click(&mut v, 250.0, 420.0);
+        let a = o.paths.iter().find(|p| p.id == "a").unwrap();
+        assert_eq!(a.fill.as_deref(), Some("#00ff00"), "la pipette donne le remplissage de c à a");
+    }
+
+    #[test]
+    fn la_rotation_tourne_la_selection() {
+        let mut v = demarre("rotate", &["a"]);
+        let avant = fingerprint(&v.snapshot(1.0, vec![]).unwrap());
+        ptr(&mut v, "down", 200.0, 175.0);
+        ptr(&mut v, "up", 200.0, 175.0);
+        ptr(&mut v, "down", 400.0, 175.0);
+        ptr(&mut v, "drag", 200.0, 300.0);
+        let o = ptr(&mut v, "up", 200.0, 300.0);
+        assert_ne!(avant, fingerprint(&o), "la rotation doit changer le tracé choisi");
+    }
+
+    #[test]
+    fn la_mise_a_l_echelle_agrandit_la_selection() {
+        let mut v = demarre("scale", &["a"]);
+        let avant = fingerprint(&v.snapshot(1.0, vec![]).unwrap());
+        ptr(&mut v, "down", 100.0, 100.0);
+        ptr(&mut v, "up", 100.0, 100.0);
+        ptr(&mut v, "down", 300.0, 250.0);
+        ptr(&mut v, "drag", 400.0, 350.0);
+        let o = ptr(&mut v, "up", 400.0, 350.0);
+        assert_ne!(avant, fingerprint(&o));
+    }
+
+    #[test]
+    fn le_couteau_et_les_ciseaux_coupent() {
+        let mut v = demarre("knife", &[]);
+        ptr(&mut v, "down", 50.0, 175.0);
+        ptr(&mut v, "drag", 200.0, 175.0);
+        ptr(&mut v, "drag", 350.0, 175.0);
+        let o = ptr(&mut v, "up", 350.0, 175.0);
+        assert!(o.paths.len() > 3, "le couteau coupe a en deux : {} tracés", o.paths.len());
+        let mut v = demarre("scissors", &[]);
+        let o = click(&mut v, 200.0, 100.0);
+        assert!(fingerprint(&o) != fingerprint(&demarre("scissors", &[]).snapshot(1.0, vec![]).unwrap()), "les ciseaux coupent le tracé au clic");
+    }
+
+    fn pio(id: &str, closed: bool, pts: &[(f64, f64)]) -> PathIo {
+        PathIo { id: id.into(), closed, points: pts.iter().map(|&(x, y)| PointIo { x, y, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }).collect(), fill: Some("#ff0000".into()), stroke: Some("#000000".into()), sw: 2.0, subs: vec![] }
+    }
+
+    fn fingerprint(o: &VectorOut) -> String {
+        o.paths
+            .iter()
+            .map(|p| format!("{}:{}:{:?}:{:?}:{}:{}", p.id, p.closed, p.fill, p.stroke, p.sw, p.points.iter().map(|q| format!("{:.1},{:.1},{:.1},{:.1},{:.1},{:.1}", q.x, q.y, q.ix, q.iy, q.ox, q.oy)).collect::<Vec<_>>().join(";") + &p.subs.len().to_string()))
+            .collect::<Vec<_>>()
+            .join("|")
+    }
+
+    /// Balayage de tous les outils de la barre : chacun reçoit des gestes variés sur un moodboard d'essai ; on relève les erreurs, les paniques,
+    /// les dessins que l'écran ne sait pas montrer et les gestes qui ne changent jamais rien.
+    #[test]
+    fn sonde_tous_les_outils() {
+        let tools = [
+            "directSelection", "groupSelection", "magicWand", "lasso", "pen", "addAnchor", "deleteAnchor", "anchorPoint", "curvature", "lineSegment", "arc", "spiral",
+            "rectangularGrid", "polarGrid", "rectangle", "roundedRectangle", "ellipse", "polygon", "star", "flare", "paintbrush", "blobBrush", "shaper", "pencil", "smooth",
+            "pathEraser", "join", "eraser", "scissors", "knife", "mirrorCut", "lineCut", "rectCut", "rotate", "reflect", "scale", "shear", "reshape", "freeTransform",
+            "shapeBuilder", "eyedropper", "measure",
+        ];
+        let mut report = vec![];
+        for tool in tools {
+            let paths = vec![
+                pio("a", true, &[(100.0, 100.0), (300.0, 100.0), (300.0, 250.0), (100.0, 250.0)]),
+                pio("b", false, &[(400.0, 100.0), (500.0, 200.0), (600.0, 120.0)]),
+                pio("c", true, &[(150.0, 350.0), (350.0, 350.0), (250.0, 480.0)]),
+            ];
+            let mut v = Vector::default();
+            let run = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                let mut notes: Vec<String> = vec![];
+                let mut last = match v.start(&paths, &["a".to_string()], tool, 1.0, &StyleIo { fill: Some("#00ff00".into()), stroke: Some("#0000ff".into()), sw: 2.0 }) {
+                    Ok(o) => o,
+                    Err(e) => return vec![format!("ERREUR au démarrage : {e}")],
+                };
+                let mut kinds: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+                let gestures: Vec<(&str, Vec<(&str, f64, f64)>)> = vec![
+                    ("glisser", vec![("down", 120.0, 120.0), ("drag", 200.0, 160.0), ("drag", 280.0, 220.0), ("up", 280.0, 220.0)]),
+                    ("glisser-sur-bord", vec![("down", 300.0, 175.0), ("drag", 340.0, 175.0), ("drag", 380.0, 190.0), ("up", 380.0, 190.0)]),
+                    ("clic-point", vec![("down", 300.0, 100.0), ("up", 300.0, 100.0)]),
+                    ("clic-courbe", vec![("down", 200.0, 100.0), ("up", 200.0, 100.0)]),
+                    ("clic-vide", vec![("down", 700.0, 500.0), ("up", 700.0, 500.0)]),
+                    ("double", vec![("down", 500.0, 200.0), ("up", 500.0, 200.0), ("double", 500.0, 200.0)]),
+                    ("traverse", vec![("down", 50.0, 175.0), ("drag", 200.0, 175.0), ("drag", 650.0, 175.0), ("up", 650.0, 175.0)]),
+                    ("glisser-2e", vec![("down", 420.0, 130.0), ("drag", 450.0, 150.0), ("drag", 520.0, 260.0), ("up", 520.0, 260.0)]),
+                ];
+                let mut changing = vec![];
+                for (name, evs) in gestures {
+                    let before = fingerprint(&last);
+                    for (kind, x, y) in evs {
+                        match v.pointer(&PointerIn { kind: kind.into(), x, y, mods: ModsIn::default(), pressure: None }, 1.0) {
+                            Ok(o) => {
+                                for ov in &o.overlays {
+                                    if let Some(t) = ov.get("t").and_then(|t| t.as_str()) {
+                                        kinds.insert(t.to_string());
+                                    }
+                                }
+                                if o.switch_tool.is_some() {
+                                    notes.push(format!("{name}: demande l'outil {:?}", o.switch_tool));
+                                }
+                                if o.status.is_some() {
+                                    notes.push(format!("{name}: état {:?}", o.status));
+                                }
+                                last = o;
+                            }
+                            Err(e) => notes.push(format!("ERREUR {name}/{kind} : {e}")),
+                        }
+                    }
+                    if fingerprint(&last) != before {
+                        changing.push(name);
+                    }
+                    for key in ["Enter", "Escape"] {
+                        match v.key(key, ModsIn::default(), 1.0) {
+                            Ok(o) => last = o,
+                            Err(e) => notes.push(format!("ERREUR {name}/{key} : {e}")),
+                        }
+                    }
+                }
+                notes.push(format!("change avec : {changing:?}"));
+                notes.push(format!("dessins : {kinds:?}"));
+                notes
+            }));
+            match run {
+                Ok(notes) => report.push(format!("{tool:16} {}", notes.join(" | "))),
+                Err(_) => report.push(format!("{tool:16} PANIQUE")),
+            }
+        }
+        eprintln!("
+{}", report.join("
+"));
+    }
 }
