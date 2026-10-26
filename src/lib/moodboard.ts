@@ -38,6 +38,8 @@ export interface BoardItem {
   align?: 'left' | 'center' | 'right'
   lh?: number
   ls?: number
+  /** Rotation, en degrés (sens des aiguilles d'une montre), autour du centre de l'élément. */
+  rot?: number
   /** texte : `false` = zone de texte (largeur fixe, retour à la ligne automatique) ; sinon texte de point (s'agrandit en tapant). */
   auto?: boolean
   /** forme : laquelle. La couleur est dans `color` ; `filled` : remplie (sinon, seulement le contour) ; `sw` : épaisseur du trait. */
@@ -102,12 +104,37 @@ export const serializeBoard = (b: Board) => JSON.stringify(b)
 
 // ───────────────────────── Géométrie ─────────────────────────
 
-export function boundsOf(items: Pick<BoardItem, 'x' | 'y' | 'w' | 'h'>[]): Rect | null {
+type Pt2 = { x: number; y: number }
+
+/** Tourne un point autour d'un centre (en degrés, sens des aiguilles d'une montre à l'écran). */
+export function rotatePoint(p: Pt2, c: Pt2, deg: number): Pt2 {
+  const a = (deg * Math.PI) / 180
+  const cos = Math.cos(a)
+  const sin = Math.sin(a)
+  const dx = p.x - c.x
+  const dy = p.y - c.y
+  return { x: c.x + dx * cos - dy * sin, y: c.y + dx * sin + dy * cos }
+}
+
+export const centerOf = (i: Pick<BoardItem, 'x' | 'y' | 'w' | 'h'>): Pt2 => ({ x: i.x + i.w / 2, y: i.y + i.h / 2 })
+
+/** Le plus petit rectangle droit qui contient l'élément, tourné ou non. */
+export function itemBounds(i: Pick<BoardItem, 'x' | 'y' | 'w' | 'h' | 'rot'>): Rect {
+  if (!i.rot) return { x: i.x, y: i.y, w: i.w, h: i.h }
+  const c = centerOf(i)
+  const pts = [{ x: i.x, y: i.y }, { x: i.x + i.w, y: i.y }, { x: i.x + i.w, y: i.y + i.h }, { x: i.x, y: i.y + i.h }].map((p) => rotatePoint(p, c, i.rot as number))
+  const x1 = Math.min(...pts.map((p) => p.x))
+  const y1 = Math.min(...pts.map((p) => p.y))
+  return { x: x1, y: y1, w: Math.max(...pts.map((p) => p.x)) - x1, h: Math.max(...pts.map((p) => p.y)) - y1 }
+}
+
+export function boundsOf(items: Pick<BoardItem, 'x' | 'y' | 'w' | 'h' | 'rot'>[]): Rect | null {
   if (items.length === 0) return null
-  const x1 = Math.min(...items.map((i) => i.x))
-  const y1 = Math.min(...items.map((i) => i.y))
-  const x2 = Math.max(...items.map((i) => i.x + i.w))
-  const y2 = Math.max(...items.map((i) => i.y + i.h))
+  const all = items.map(itemBounds)
+  const x1 = Math.min(...all.map((i) => i.x))
+  const y1 = Math.min(...all.map((i) => i.y))
+  const x2 = Math.max(...all.map((i) => i.x + i.w))
+  const y2 = Math.max(...all.map((i) => i.y + i.h))
   return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 }
 }
 
@@ -142,7 +169,7 @@ export function normalizeRect(a: { x: number; y: number }, b: { x: number; y: nu
 }
 
 export function itemsInRect(items: BoardItem[], rect: Rect): string[] {
-  return items.filter((i) => rectsIntersect(i, rect)).map((i) => i.id)
+  return items.filter((i) => rectsIntersect(itemBounds(i), rect)).map((i) => i.id)
 }
 
 /** Si un élément d'un groupe est sélectionné, tout le groupe l'est. */
@@ -157,7 +184,8 @@ export function expandGroups(items: BoardItem[], ids: Iterable<string>): Set<str
 export function hitTest(items: BoardItem[], p: { x: number; y: number }): BoardItem | undefined {
   for (let i = items.length - 1; i >= 0; i--) {
     const it = items[i]
-    if (p.x >= it.x && p.x <= it.x + it.w && p.y >= it.y && p.y <= it.y + it.h) return it
+    const q = it.rot ? rotatePoint(p, centerOf(it), -it.rot) : p
+    if (q.x >= it.x && q.x <= it.x + it.w && q.y >= it.y && q.y <= it.y + it.h) return it
   }
   return undefined
 }
@@ -392,6 +420,98 @@ export function sendBackward(items: BoardItem[], ids: Set<string>): BoardItem[] 
     if (ids.has(out[i].id) && !ids.has(out[i - 1].id)) [out[i - 1], out[i]] = [out[i], out[i - 1]]
   }
   return out
+}
+
+// ───────────────────────── Rotation et guides (comme Illustrator) ─────────────────────────
+
+const normalizeDeg = (d: number) => Math.round((((d % 360) + 360) % 360) * 100) / 100
+
+/** Arrondit un angle au pas donné (Maj pendant la rotation : de 15° en 15°). */
+export const snapRotation = (deg: number, step = 15) => Math.round(deg / step) * step
+
+/** Tourne des éléments de `delta` degrés autour d'un centre commun : chacun tourne sur lui-même et son centre fait le tour du centre commun. */
+export function rotateItems(items: BoardItem[], ids: Set<string>, center: Pt2, delta: number): BoardItem[] {
+  return items.map((it) => {
+    if (!ids.has(it.id)) return it
+    const c = rotatePoint(centerOf(it), center, delta)
+    return { ...it, x: c.x - it.w / 2, y: c.y - it.h / 2, rot: normalizeDeg((it.rot ?? 0) + delta) }
+  })
+}
+
+/**
+ * Tirer une poignée d'un élément seul, même tourné : on travaille dans le repère de l'élément (là où il est droit), puis on remet le résultat à sa place.
+ * Rend l'élément redimensionné et les facteurs d'agrandissement (pour agrandir aussi les lettres d'un texte).
+ */
+export function resizeRotated(item: BoardItem, h: Handle, world: Pt2, opts: { alt?: boolean; uniform?: boolean } = {}): { item: BoardItem; fx: number; fy: number } {
+  const rot = item.rot ?? 0
+  const c = centerOf(item)
+  const local = rot ? rotatePoint(world, c, -rot) : world
+  const box = { x: item.x, y: item.y, w: item.w, h: item.h }
+  const { anchor, fx, fy } = resizeScale(box, h, local, opts)
+  const w = Math.max(2, box.w * fx)
+  const hh = Math.max(2, box.h * fy)
+  const nx = anchor.x + (box.x - anchor.x) * fx
+  const ny = anchor.y + (box.y - anchor.y) * fy
+  const localCenter = { x: nx + w / 2, y: ny + hh / 2 }
+  const wc = rot ? rotatePoint(localCenter, c, rot) : localCenter
+  return { item: { ...item, x: wc.x - w / 2, y: wc.y - hh / 2, w, h: hh }, fx, fy }
+}
+
+/** Un trait d'alignement à montrer : vertical (`axis: 'x'`, à la position `pos`) ou horizontal (`axis: 'y'`), de `from` à `to`. */
+export interface Guide {
+  axis: 'x' | 'y'
+  pos: number
+  from: number
+  to: number
+}
+
+const marks = (a: number, size: number) => [a, a + size / 2, a + size]
+
+/**
+ * Aimantation pendant un déplacement : si un bord ou le centre du rectangle déplacé est presque aligné avec un bord ou le centre d'un autre élément
+ * (à moins de `threshold` unités), on corrige le déplacement (`dx`, `dy`) et on rend les traits d'alignement à dessiner.
+ */
+export function snapMove(moving: Rect, others: readonly Rect[], threshold: number): { dx: number; dy: number; guides: Guide[] } {
+  const best = (start: 'x' | 'y') => {
+    const size = start === 'x' ? moving.w : moving.h
+    const mine = marks(moving[start], size)
+    let found: number | null = null
+    for (const o of others) {
+      for (const t of marks(o[start], start === 'x' ? o.w : o.h)) {
+        for (const m of mine) {
+          const diff = t - m
+          if (Math.abs(diff) <= threshold && (found === null || Math.abs(diff) < Math.abs(found))) found = diff
+        }
+      }
+    }
+    return found ?? 0
+  }
+  const dx = best('x')
+  const dy = best('y')
+  const box = { x: moving.x + dx, y: moving.y + dy, w: moving.w, h: moving.h }
+  const guides: Guide[] = []
+  const seen = new Set<string>()
+  for (const o of others) {
+    for (const [axis, size] of [['x', 'w'], ['y', 'h']] as const) {
+      const cross = axis === 'x' ? 'y' : 'x'
+      const crossSize = axis === 'x' ? 'h' : 'w'
+      for (const t of marks(o[axis], o[size])) {
+        if (!marks(box[axis], box[size]).some((m) => Math.abs(m - t) < 0.5)) continue
+        const key = `${axis}:${Math.round(t * 2)}`
+        const from = Math.min(box[cross], o[cross])
+        const to = Math.max(box[cross] + box[crossSize], o[cross] + o[crossSize])
+        const existing = guides.find((g) => g.axis === axis && Math.abs(g.pos - t) < 0.5)
+        if (existing) {
+          existing.from = Math.min(existing.from, from)
+          existing.to = Math.max(existing.to, to)
+        } else if (!seen.has(key)) {
+          seen.add(key)
+          guides.push({ axis, pos: t, from, to })
+        }
+      }
+    }
+  }
+  return { dx, dy, guides }
 }
 
 // ───────────────────────── Nouveaux éléments ─────────────────────────

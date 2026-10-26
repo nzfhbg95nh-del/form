@@ -4,11 +4,11 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, arrowHead, bringForward, handlePoint, HANDLES, isCorner, resizeScale, sendBackward, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  alignItems, arrangeColumn, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
-  type AlignMode, type Board, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
+  type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
@@ -30,12 +30,15 @@ type Pt = { x: number; y: number }
 
 type Drag =
   | { type: 'pan'; start: Pt; view: View }
-  | { type: 'move'; start: Pt; ids: Set<string>; items: BoardItem[] }
-  | { type: 'resize'; handle: Handle; box: Rect; uniform: boolean; ids: Set<string>; items: BoardItem[] }
+  | { type: 'move'; start: Pt; ids: Set<string>; items: BoardItem[]; others: Rect[] }
+  | { type: 'rotate'; center: Pt; start: number; base: number; ids: Set<string>; items: BoardItem[] }
+  | { type: 'resize'; handle: Handle; box: Rect; uniform: boolean; ids: Set<string>; items: BoardItem[]; single?: BoardItem }
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
   | { type: 'text'; start: Pt; end: Pt }
 
 /** Couleurs proposées pour les formes et les textes. */
+/** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
+const ROTATE_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.5-5.8'/%3E%3Cpath d='M20 3v5h-5'/%3E%3C/svg%3E") 12 12, crosshair`
 const SHAPE_PALETTE = [SHAPE_COLOR, '#ff5c5c', '#ffd43b', '#51cf66', '#ffffff', '#111111']
 const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
@@ -69,6 +72,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   // Outil actif : la flèche (sélection) ou le texte (touche T) ; et le texte en cours de frappe.
   const [tool, setTool] = useState<'select' | 'text' | 'hand'>('select')
   const [draft, setDraft] = useState('')
+  // Les traits d'alignement montrés pendant un déplacement (guides intelligents).
+  const [guides, setGuides] = useState<Guide[]>([])
   // Où poser ce qu'on ajoute depuis le menu « Ajouter » (le point du clic droit), pour les fenêtres de choix qui s'ouvrent ensuite.
   const fileAt = useRef<Pt | null>(null)
   const colorAt = useRef<Pt | null>(null)
@@ -102,6 +107,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const commitItems = useCallback((next: BoardItem[]) => setHist((h) => commit(h, next)), [])
   const selected = useMemo(() => items.filter((i) => selection.has(i.id)), [items, selection])
   const selBox = useMemo(() => boundsOf(selected), [selected])
+  // Le cadre de sélection : celui de l'élément (tourné avec lui) quand il est seul, sinon le rectangle qui contient toute la sélection.
+  const frame = useMemo(() => {
+    if (selected.length === 1) return { x: selected[0].x, y: selected[0].y, w: selected[0].w, h: selected[0].h, rot: selected[0].rot ?? 0 }
+    return selBox ? { ...selBox, rot: 0 } : null
+  }, [selected, selBox])
 
   // ── Taille de la zone, images enregistrées ──
   useEffect(() => {
@@ -386,12 +396,21 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
     const world = screenToWorld(v, pt)
     const cur = itemsRef.current
+    const rotateAt = target.dataset.rotate
+    if (rotateAt && selBox) {
+      const picked = cur.filter((i) => selRef.current.has(i.id))
+      const one = picked.length === 1 ? picked[0] : null
+      const center = one ? centerOf(one) : { x: selBox.x + selBox.w / 2, y: selBox.y + selBox.h / 2 }
+      dragRef.current = { type: 'rotate', center, start: Math.atan2(world.y - center.y, world.x - center.x), base: one?.rot ?? 0, ids: new Set(selRef.current), items: cur }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
     const handle = target.dataset.handle as Handle | undefined
     if (handle && selBox) {
       const single = cur.filter((i) => selRef.current.has(i.id))
       // Un texte de point grandit toujours avec ses lettres (proportions gardées) ; Maj garde les proportions des autres.
       const uniform = single.length === 1 && isPointText(single[0])
-      dragRef.current = { type: 'resize', handle, box: selBox, uniform, ids: new Set(selRef.current), items: cur }
+      dragRef.current = { type: 'resize', handle, box: selBox, uniform, ids: new Set(selRef.current), items: cur, single: single.length === 1 ? single[0] : undefined }
       e.currentTarget.setPointerCapture(e.pointerId)
       return
     }
@@ -435,7 +454,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           moving = copy.newIds
           setSelection(copy.newIds)
         }
-        dragRef.current = { type: 'move', start: world, ids: moving, items: from }
+        dragRef.current = { type: 'move', start: world, ids: moving, items: from, others: from.filter((i) => !moving.has(i.id)).map(itemBounds) }
         e.currentTarget.setPointerCapture(e.pointerId)
       }
       return
@@ -461,11 +480,37 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       let dx = world.x - d.start.x
       let dy = world.y - d.start.y
       // Maj : le déplacement reste horizontal ou vertical.
-      if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0 }
-      if (live || Math.hypot(dx, dy) * v.zoom > 3) setLive(moveItems(d.items, d.ids, dx, dy))
+      let locked: 'dx' | 'dy' | null = null
+      if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) { dy = 0; locked = 'dy' } else { dx = 0; locked = 'dx' } }
+      const started = !!live || Math.hypot(dx, dy) * v.zoom > 3
+      // Guides intelligents : un bord ou le centre qui s'aligne sur un autre élément s'y colle (Ctrl pour désactiver).
+      let shown: Guide[] = []
+      if (started && !(e.ctrlKey || e.metaKey) && d.others.length > 0) {
+        const mb = boundsOf(d.items.filter((i) => d.ids.has(i.id)))
+        if (mb) {
+          const sn = snapMove({ ...mb, x: mb.x + dx, y: mb.y + dy }, d.others, 6 / v.zoom)
+          if (locked !== 'dx') dx += sn.dx
+          if (locked !== 'dy') dy += sn.dy
+          shown = sn.guides
+        }
+      }
+      setGuides(shown)
+      if (started) setLive(moveItems(d.items, d.ids, dx, dy))
     } else if (d.type === 'resize') {
-      const { anchor, fx, fy } = resizeScale(d.box, d.handle, world, { alt: e.altKey, uniform: d.uniform || e.shiftKey })
-      setLive(scaleTexts(scaleItems(d.items, d.ids, anchor, fx, fy), d.items, d.ids, fx, fy))
+      const opts = { alt: e.altKey, uniform: d.uniform || e.shiftKey }
+      if (d.single) {
+        const r = resizeRotated(d.single, d.handle, world, opts)
+        setLive(scaleTexts(d.items.map((i) => (i.id === r.item.id ? r.item : i)), d.items, d.ids, r.fx, r.fy))
+      } else {
+        const { anchor, fx, fy } = resizeScale(d.box, d.handle, world, opts)
+        setLive(scaleTexts(scaleItems(d.items, d.ids, anchor, fx, fy), d.items, d.ids, fx, fy))
+      }
+    } else if (d.type === 'rotate') {
+      // Tirer autour du centre : l'angle suit la souris ; Maj arrondit de 15° en 15°.
+      let delta = ((Math.atan2(world.y - d.center.y, world.x - d.center.x) - d.start) * 180) / Math.PI
+      if (e.shiftKey) delta = snapRotation(d.base + delta) - d.base
+      setLive(rotateItems(d.items, d.ids, d.center, delta))
+      setFlash(`${Math.round((((d.base + delta) % 360) + 360) % 360)}°`)
     } else if (d.type === 'text') {
       d.end = world
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
@@ -486,7 +531,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (rect.w * zoomNow > 6 || rect.h * zoomNow > 6) addText({ x: rect.x, y: rect.y }, { w: Math.max(40, rect.w) })
       else addText(d.start)
     }
-    if ((d.type === 'move' || d.type === 'resize') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
+    if ((d.type === 'move' || d.type === 'resize' || d.type === 'rotate') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
+    if (d.type === 'rotate') setFlash(null)
+    setGuides([])
     setLive(null)
     setMarquee(null)
     setPanning(false)
@@ -644,6 +691,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const base: React.CSSProperties = {
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
       outline: isSel ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
+      transform: it.rot ? `rotate(${it.rot}deg)` : undefined, transformOrigin: 'center',
     }
     if (it.kind === 'image') {
       const a = it.assetId ? assets[it.assetId] : undefined
@@ -784,25 +832,37 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
         {items.map(renderItem)}
-        {selBox && !marquee && !editing && (
-          <>
-            <div style={{ position: 'absolute', left: selBox.x, top: selBox.y, width: selBox.w, height: selBox.h, outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }} />
+        {frame && !marquee && !editing && (
+          <div style={{ position: 'absolute', left: frame.x, top: frame.y, width: frame.w, height: frame.h, transform: frame.rot ? `rotate(${frame.rot}deg)` : undefined, transformOrigin: 'center', outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }}>
+            {/* Zones de rotation : juste à l'extérieur des coins */}
+            {([['nw', -22 / zoom, -22 / zoom], ['ne', frame.w, -22 / zoom], ['se', frame.w, frame.h], ['sw', -22 / zoom, frame.h]] as const).map(([c, left, top]) => (
+              <div key={c} data-rotate={c} style={{ position: 'absolute', left, top, width: 22 / zoom, height: 22 / zoom, cursor: ROTATE_CURSOR, pointerEvents: 'auto' }} />
+            ))}
             {HANDLES.filter((h) => isCorner(h) || !(selected.length === 1 && isPointText(selected[0]))).map((h) => {
-              const at = handlePoint(selBox, h)
+              const at = handlePoint({ x: 0, y: 0, w: frame.w, h: frame.h }, h)
               return (
                 <div
                   key={h}
                   data-handle={h}
                   style={{
-                    position: 'absolute', width: hs, height: hs, background: '#fff', border: `${1.5 / zoom}px solid #4da3ff`,
+                    position: 'absolute', width: hs, height: hs, background: '#fff', border: `${1.5 / zoom}px solid #4da3ff`, pointerEvents: 'auto',
                     left: at.x - hs / 2, top: at.y - hs / 2,
                     cursor: h === 'n' || h === 's' ? 'ns-resize' : h === 'e' || h === 'w' ? 'ew-resize' : h === 'nw' || h === 'se' ? 'nwse-resize' : 'nesw-resize',
                   }}
                 />
               )
             })}
-          </>
+          </div>
         )}
+        {guides.map((g, i) => (
+          <div
+            key={i}
+            style={{
+              position: 'absolute', background: '#ff2d95', pointerEvents: 'none',
+              ...(g.axis === 'x' ? { left: g.pos - 0.5 / zoom, top: g.from, width: 1 / zoom, height: g.to - g.from } : { left: g.from, top: g.pos - 0.5 / zoom, width: g.to - g.from, height: 1 / zoom }),
+            }}
+          />
+        ))}
       </div>
 
       {marquee && <div style={{ position: 'absolute', left: marquee.x, top: marquee.y, width: marquee.w, height: marquee.h, border: '1px solid #4da3ff', background: 'rgba(77,163,255,.12)', pointerEvents: 'none' }} />}

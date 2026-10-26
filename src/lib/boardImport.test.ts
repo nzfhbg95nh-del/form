@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { classifyLink, imageTypeOf, importMessage } from './boardImport'
-import { arrowHead, bringForward, handlePoint, makeShape, makeText, resizeScale, sendBackward, type BoardItem } from './moodboard'
+import { arrowHead, boundsOf, bringForward, handlePoint, hitTest, itemBounds, makeShape, makeText, resizeRotated, resizeScale, rotateItems, rotatePoint, sendBackward, snapMove, snapRotation, type BoardItem } from './moodboard'
 
 describe('classifyLink', () => {
   it('reconnaît un tableau Pinterest, avec ou sans suite de paramètres', () => {
@@ -107,5 +107,78 @@ describe('ordre des éléments', () => {
     expect(ids(sendBackward(abcd, new Set(['d'])))).toBe('abdc')
     expect(ids(sendBackward(abcd, new Set(['c', 'd'])))).toBe('acdb')
     expect(ids(sendBackward(abcd, new Set(['a'])))).toBe('abcd')
+  })
+})
+
+const near = (a: number, b: number) => expect(a).toBeCloseTo(b, 6)
+
+describe('rotation', () => {
+  it('tourne un point autour d\'un centre, dans le sens des aiguilles d\'une montre', () => {
+    const p = rotatePoint({ x: 10, y: 0 }, { x: 0, y: 0 }, 90)
+    near(p.x, 0)
+    near(p.y, 10)
+  })
+  it('les limites d\'un élément tourné de 90° échangent largeur et hauteur autour du centre', () => {
+    const b = itemBounds({ x: 0, y: 0, w: 100, h: 50, rot: 90 })
+    near(b.w, 50)
+    near(b.h, 100)
+    near(b.x, 25)
+    near(b.y, -25)
+  })
+  it('boundsOf et la sélection au rectangle tiennent compte de la rotation', () => {
+    const b = boundsOf([{ x: 0, y: 0, w: 100, h: 50, rot: 90 }])
+    near(b?.w ?? 0, 50)
+  })
+  it('on clique sur ce qui est visible, pas sur l\'ancien cadre non tourné', () => {
+    const tall: BoardItem = { id: 'r', kind: 'note', x: 0, y: 0, w: 100, h: 20, rot: 90 }
+    expect(hitTest([tall], { x: 50, y: 50 })?.id).toBe('r') // le milieu du rectangle tourné
+    expect(hitTest([tall], { x: 5, y: 10 })).toBeUndefined() // un coin de l'ancien cadre, maintenant vide
+  })
+  it('rotateItems fait tourner chaque élément sur lui-même et autour du centre commun', () => {
+    const a: BoardItem = { id: 'a', kind: 'note', x: 90, y: -10, w: 20, h: 20 } // centré en (100, 0)
+    const [out] = rotateItems([a], new Set(['a']), { x: 0, y: 0 }, 90)
+    near(out.x + out.w / 2, 0)
+    near(out.y + out.h / 2, 100)
+    expect(out.rot).toBe(90)
+  })
+  it('l\'angle reste entre 0 et 360 et Maj arrondit de 15° en 15°', () => {
+    const a: BoardItem = { id: 'a', kind: 'note', x: 0, y: 0, w: 10, h: 10, rot: 350 }
+    expect(rotateItems([a], new Set(['a']), { x: 5, y: 5 }, 20)[0].rot).toBe(10)
+    expect(snapRotation(37)).toBe(30)
+    expect(snapRotation(38)).toBe(45)
+  })
+  it('redimensionner un élément tourné se fait dans son propre repère', () => {
+    const a: BoardItem = { id: 'a', kind: 'note', x: 0, y: 0, w: 100, h: 50, rot: 90 } // centre (50, 25)
+    // le côté droit (poignée « e ») de l'élément tourné de 90° est tourné vers le bas de l'écran : on tire vers le bas pour l'allonger
+    const { item, fx, fy } = resizeRotated(a, 'e', { x: 50, y: 25 + 100 })
+    near(fx, 1.5)
+    near(fy, 1)
+    near(item.w, 150)
+    near(item.h, 50)
+    near(item.rot ?? 0, 90)
+  })
+})
+
+describe('guides intelligents', () => {
+  const other = { x: 100, y: 100, w: 50, h: 50 }
+  it('aimante le bord gauche sur le bord gauche d\'un autre, sous le seuil', () => {
+    const r = snapMove({ x: 102, y: 300, w: 10, h: 40 }, [other], 6)
+    expect(r.dx).toBe(-2)
+    expect(r.guides.some((g) => g.axis === 'x' && g.pos === 100)).toBe(true)
+  })
+  it('aimante aussi les centres, et choisit l\'alignement le plus proche', () => {
+    const r = snapMove({ x: 107, y: 300, w: 30, h: 30 }, [other], 6) // centre 122 -> centre de l'autre : 125
+    expect(r.dx).toBe(3)
+    expect(r.dy).toBe(0)
+  })
+  it('ne bouge pas au-delà du seuil et ne montre aucun guide', () => {
+    const r = snapMove({ x: 300, y: 300, w: 40, h: 40 }, [other], 6)
+    expect(r).toEqual({ dx: 0, dy: 0, guides: [] })
+  })
+  it('le trait d\'alignement relie les deux éléments', () => {
+    const r = snapMove({ x: 100, y: 300, w: 40, h: 40 }, [other], 6)
+    const g = r.guides.find((x) => x.axis === 'x' && x.pos === 100)
+    expect(g?.from).toBe(100)
+    expect(g?.to).toBe(340)
   })
 })
