@@ -17,6 +17,7 @@ import { itemPathD } from '@/lib/boardPath'
 import { applyVcPaths, DEFAULT_PAINT, isEngineTool, isPathItem, itemToVcPath, VectorSession, type PaintStyle, type VcKind, type VcMods, type VcOut, type VcOverlay } from '@/lib/vectorEngine'
 import { SHORTCUTS, VectorToolbar } from '@/components/VectorToolbar'
 import { VectorOverlay, vectorCursor } from '@/components/VectorOverlay'
+import { TOOL_HINTS } from '@/lib/vectorHints'
 import { cornerRadius, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeStyleOf, starPoints } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
@@ -89,7 +90,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   // Outil actif : la flèche (sélection) ou le texte (touche T) ; et le texte en cours de frappe.
   const [tool, setTool] = useState<Tool>('select')
   // Remplissage et contour des prochains tracés (et des tracés choisis), comme le panneau de la barre d'outils d'Illustrator.
-  const [paint, setPaint] = useState<PaintStyle>(() => ({ ...DEFAULT_PAINT, stroke: appTheme === 'dark' ? '#ffffff' : '#111111' }))
+  const [paint, setPaint] = useState<PaintStyle>(DEFAULT_PAINT)
   const [draft, setDraft] = useState('')
   // Les traits d'alignement montrés pendant un déplacement (guides intelligents).
   const [guides, setGuides] = useState<Guide[]>([])
@@ -1236,6 +1237,12 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
+      )}
+      {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
+      {!compact && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
+        <div data-ui className="pointer-events-none absolute bottom-10 left-1/2 max-w-[80%] -translate-x-1/2 truncate rounded-md border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-1 text-xs text-[var(--fg-muted)] shadow-sm">
+          {TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool].map(([text, bold], i) => (bold ? <b key={i} className="font-semibold text-[var(--fg)]">{text}</b> : <span key={i}>{text}</span>))}
+        </div>
       )}
       {isFloatingElsewhere && (
         <div data-ui className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[var(--bg)]/95 p-6 text-center">

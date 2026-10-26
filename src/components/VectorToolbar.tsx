@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { TOOL_GROUPS, type ToolInfo } from '@/lib/vectorTools'
-import type { PaintStyle } from '@/lib/vectorEngine'
+import { DEFAULT_PAINT, type PaintStyle } from '@/lib/vectorEngine'
 
 // Les icônes de VectorCraft (Lucide, ISC, et les siennes, MIT ou Apache-2.0) : des SVG qu'on dessine dans la couleur du texte.
 const RAW = import.meta.glob('../assets/vc-icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
@@ -146,11 +146,11 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
         </div>
         <div className="flex gap-1">
           <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="rounded px-1 text-xs hover:bg-[var(--bg-hover)]">⇄</button>
-          <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint({ fill: null, stroke: '#111111', sw: 2 })} className="rounded px-1 text-xs hover:bg-[var(--bg-hover)]">▣</button>
+          <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="rounded px-1 text-xs hover:bg-[var(--bg-hover)]">▣</button>
           <button title="Aucun (/)" aria-label="Aucune couleur" onClick={() => onPaint(active === 'fill' ? { ...paint, fill: null } : { ...paint, stroke: null })} className="rounded px-1 text-xs text-red-500 hover:bg-[var(--bg-hover)]">⁄</button>
         </div>
         <label className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]" title="Épaisseur du contour (pt)">
-          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#111111' }) }} className="w-12 rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs text-[var(--fg)] outline-none" aria-label="Épaisseur du contour (pt)" />
+          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className="w-12 rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs text-[var(--fg)] outline-none" aria-label="Épaisseur du contour (pt)" />
           pt
         </label>
       </div>

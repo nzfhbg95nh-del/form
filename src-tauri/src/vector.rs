@@ -240,7 +240,9 @@ impl Vector {
         out.paths = found.into_iter().flat_map(|(_, subs)| subs).filter(|p| p.points.len() >= 2).collect();
         out.selected = selected_nodes.iter().filter_map(|n| self.to_board.get(n).cloned()).collect();
         let s = self.session.as_mut().ok_or("Le moteur de dessin n'est pas démarré.")?;
-        out.overlays = s.overlays(v).iter().map(overlay_json).collect();
+        let mut overlays = selection_overlays(s);
+        overlays.extend(s.overlays(v).iter().map(overlay_json));
+        out.overlays = overlays;
         out.tool = s.tool_id().to_string();
         out.busy = s.tool_busy();
         for r in requests {
@@ -314,6 +316,88 @@ fn key_of(s: &str) -> Option<ToolKey> {
         l if l.chars().count() == 1 && l.chars().next().is_some_and(|c| c.is_ascii_alphabetic()) => ToolKey::Letter(l.chars().next()?.to_ascii_lowercase()),
         _ => return None,
     })
+}
+
+/// Ce que l'écran de VectorCraft dessine pour les objets choisis (son « selection_overlay », dans `crates/ui-egui/src/canvas.rs`) : le contour de
+/// chaque objet choisi dans la couleur de son calque, ses points d'ancrage (pleins s'ils sont choisis) et les poignées des points choisis.
+fn selection_overlays(s: &Session) -> Vec<Value> {
+    use vectorcraft_engine::doc::NodeKind;
+    let Ok(st) = s.doc() else { return vec![] };
+    let tool = s.tool_id();
+    let direct = vectorcraft_engine::tools::catalog::edits_anchors(tool);
+    let curvature = tool == "curvature";
+    // Taille des points : 4 (5 pour les outils de points) quand « Taille » vaut 3, comme par défaut.
+    let size = |d: bool| if d { 5.0 } else { 4.0 };
+    let mut out: Vec<Value> = vec![];
+    let mut handles: Vec<(Point, Point, [u8; 3])> = vec![];
+    let mut with_handles = 0;
+    for id in &st.selection.objects {
+        let Some(n) = st.doc.node(*id) else { continue };
+        let color = st.doc.layer_color(*id);
+        let partial = st.selection.partial(*id);
+        if let Some(mut outline) = n.stroke_path() {
+            outline.apply_affine(Affine::translate((-OFFSET, -OFFSET)));
+            out.push(json!({ "t": "path", "d": outline.to_svg(), "color": color, "width": 1.0, "dashed": false }));
+        }
+        let NodeKind::Path { path, .. } = &n.kind else { continue };
+        let selected_segments = st.selection.segments.get(id);
+        if let Some(segments) = selected_segments {
+            for &(si, seg) in segments {
+                let Some(sp) = path.subpaths.get(si).filter(|sp| seg < sp.segment_count()) else { continue };
+                let curve = sp.segment(seg);
+                let mut bp = vectorcraft_geom::BezPath::new();
+                bp.move_to(curve.p0);
+                if sp.segment_is_line(seg) {
+                    bp.line_to(curve.p3);
+                } else {
+                    bp.curve_to(curve.p1, curve.p2, curve.p3);
+                }
+                bp.apply_affine(Affine::translate((-OFFSET, -OFFSET)));
+                out.push(json!({ "t": "path", "d": bp.to_svg(), "color": color, "width": 2.0, "dashed": false }));
+            }
+        }
+        for (si, ai, a) in path.anchors() {
+            // Un objet choisi en entier a tous ses points choisis ; les poignées ne se montrent que pour les outils de points.
+            let (sel, handles_shown) = match partial {
+                Some(set) => {
+                    let sel = set.contains(&(si, ai));
+                    (sel, sel)
+                }
+                None => (true, direct),
+            };
+            if !curvature && handles_shown {
+                with_handles += 1;
+                let sides = path.subpaths.get(si).map(|subpath| st.selection.handle_sides(*id, si, ai, subpath)).unwrap_or((true, true));
+                for (h, show) in [(a.h_in, sides.0), (a.h_out, sides.1)] {
+                    if show && h.distance(a.p) > 1e-6 {
+                        handles.push((a.p, h, color));
+                    }
+                }
+            }
+            let anchor_selected = sel && selected_segments.is_none();
+            let ink = if anchor_selected && partial.is_some() && color == [0x4f, 0x80, 0xff] { [0x3d, 0x82, 0xff] } else { color };
+            if curvature {
+                out.push(json!({ "t": "curvePoint", "p": p2(&a.p), "color": ink, "filled": anchor_selected && partial.is_some(), "size": 6.0 }));
+            } else {
+                out.push(json!({ "t": "anchor", "p": p2(&a.p), "color": ink, "filled": anchor_selected, "size": size(partial.is_some() || direct) }));
+            }
+        }
+    }
+    // Les poignées de rayon des coins (Sélection et Sélection directe) : un petit rond à chaque coin qu'on peut arrondir.
+    if matches!(tool, "selection" | "directSelection") {
+        if let Some(w) = vectorcraft_engine::tools::corners::CornerWidgets::showing(&st.doc, &st.selection, 1.0, tool == "directSelection", true, s.prefs.hide_corner_widget_above) {
+            for (id, q) in w.visible_on() {
+                out.push(json!({ "t": "cornerWidget", "p": p2(&q), "color": st.doc.layer_color(id) }));
+            }
+        }
+    }
+    if s.prefs.show_handles_multiple_anchors || with_handles <= 1 {
+        for (a, h, color) in handles {
+            out.push(json!({ "t": "line", "a": p2(&a), "b": p2(&h), "color": color, "dashed": false }));
+            out.push(json!({ "t": "handle", "p": p2(&h), "color": color }));
+        }
+    }
+    out
 }
 
 fn p2(p: &Point) -> Value {

@@ -49,6 +49,13 @@ export function VectorOverlay({ overlays, zoom }: { overlays: VcOverlay[]; zoom:
             )
           case 'highlight':
             return <polygon key={i} points={o.quad.map((q) => q.join(',')).join(' ')} fill={rgba(o.color)} />
+          case 'cornerWidget':
+            return (
+              <g key={i}>
+                <circle cx={o.p[0]} cy={o.p[1]} r={3 * k} fill="#fff" stroke={rgb(o.color)} strokeWidth={k} />
+                <circle cx={o.p[0]} cy={o.p[1]} r={k} fill={rgb(o.color)} />
+              </g>
+            )
           case 'swatch':
             return <circle key={i} cx={o.p[0]} cy={o.p[1]} r={5 * k} fill={rgba(o.color)} stroke={o.selected ? '#4da3ff' : '#888'} strokeWidth={1.5 * k} />
           default:

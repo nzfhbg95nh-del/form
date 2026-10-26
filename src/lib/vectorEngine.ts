@@ -30,6 +30,7 @@ export type VcOverlay =
   | { t: 'highlight'; quad: Pt[]; color: number[] }
   | { t: 'swatch'; p: Pt; color: number[]; selected: boolean }
   | { t: 'gridLine'; a: Pt; b: Pt; color: number[] }
+  | { t: 'cornerWidget'; p: Pt; color: number[] }
   | { t: 'none' }
 
 export interface VcOut {
@@ -46,7 +47,8 @@ export interface VcOut {
 export interface VcMods { shift: boolean; alt: boolean; ctrl: boolean; space: boolean }
 export type VcKind = 'down' | 'move' | 'drag' | 'up' | 'double'
 
-export const DEFAULT_PAINT: PaintStyle = { fill: null, stroke: '#111111', sw: 2 }
+/** Comme VectorCraft au départ : remplissage blanc, contour noir de 1 pt. */
+export const DEFAULT_PAINT: PaintStyle = { fill: '#ffffff', stroke: '#000000', sw: 1 }
 
 /** Un élément « tracé » du moodboard, au format du moteur (points sur la toile, poignées en écarts) avec son style. */
 export const isPathItem = (i: BoardItem) => i.kind === 'shape' && i.shape === 'path' && !!i.path
