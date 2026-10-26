@@ -1189,7 +1189,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
         )
         return (
-          <div data-ui className="absolute left-[72px] top-14 z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+          <div data-ui className="absolute left-[104px] top-14 z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
             <div className="flex items-center">
               <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
               <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>

@@ -6,16 +6,19 @@ import { DEFAULT_PAINT, type PaintStyle } from '@/lib/vectorEngine'
 const RAW = import.meta.glob('../assets/vc-icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
 const iconSource = (name: string) => RAW[`../assets/vc-icons/${name}.svg`] ?? RAW['../assets/vc-icons/square-dashed.svg'] ?? ''
 
-/** Un outil du moteur, ou un des nôtres (`ours`) qui prend sa place dans la barre. */
+/** Un outil du moteur, ou un des nôtres qui prend sa place dans la barre. */
 export interface BarTool extends ToolInfo {
   /** L'identifiant de l'outil dans Form (le moteur : le même que le sien ; sinon select / text / hand). */
   tool: string
 }
 
-/** Les groupes de la barre : ceux de VectorCraft, dans son ordre, avec les outils que Form sait faire. */
-const GROUP_FIRST = ['selection', 'directSelection', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'eyedropper', 'hand']
+/**
+ * Les groupes de la barre, dans l'ordre de celle d'Illustrator (deux colonnes, de gauche à droite puis ligne par ligne) :
+ * Sélection, Sélection directe / Baguette magique, Lasso / Plume, Courbure / Texte, Trait / Forme, Pinceau / Crayon, Gomme / Rotation, Échelle / …
+ */
+const GROUP_FIRST = ['selection', 'directSelection', 'magicWand', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'freeTransform', 'shapeBuilder', 'eyedropper', 'hand']
 const OURS: Record<string, string> = { selection: 'select', type: 'text', areaType: 'text', hand: 'hand' }
-const HIDDEN = new Set(['typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType'])
+const HIDDEN = new Set(['typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType', 'puppetWarp', 'livePaintBucket', 'livePaintSelection'])
 
 const HAND: ToolInfo = { id: 'hand', en: 'Hand Tool', label: 'Outil Main', shortcut: 'H', svg: 'hand' }
 
@@ -35,22 +38,28 @@ export const SHORTCUTS: Record<string, string> = (() => {
   return map
 })()
 
-function ToolIcon({ svg, size = 18 }: { svg: string; size?: number }) {
+function ToolIcon({ svg, size = 20 }: { svg: string; size?: number }) {
   // Les flèches de sélection ont un fond noir (pleine) ou blanc (directe), quel que soit le thème.
   const fill = svg === 'dc-selection' ? '#000' : svg === 'dc-direct' ? '#fff' : null
   return (
     <span className="relative inline-block" style={{ width: size, height: size }}>
       {fill && <span aria-hidden className="absolute inset-0 [&>svg]:h-full [&>svg]:w-full" style={{ color: fill, fill }} dangerouslySetInnerHTML={{ __html: iconSource('dc-arrow-fill') }} />}
-      <span aria-hidden className="absolute inset-0 [&>svg]:h-full [&>svg]:w-full [&>svg]:[stroke-width:1.6]" dangerouslySetInnerHTML={{ __html: iconSource(svg) }} />
+      <span aria-hidden className="absolute inset-0 [&>svg]:h-full [&>svg]:w-full [&>svg]:[stroke-width:1.5]" dangerouslySetInnerHTML={{ __html: iconSource(svg) }} />
     </span>
   )
 }
 
-const labelOf = (t: BarTool) => t.label.replace(/^Outil /, 'Outil ')
+// Les couleurs de la barre d'Illustrator : un gris moyen avec des icônes claires, quel que soit le thème de l'appli.
+const PANEL = '#535353'
+const PANEL_EDGE = '#3b3b3b'
+const ICON = '#dedede'
+const HOVER = '#666666'
+const ACTIVE = '#2f2f2f'
 
 /**
- * La barre d'outils du moodboard, à la manière de VectorCraft : un bouton par groupe, qui montre le dernier outil choisi du groupe ;
- * un appui long (ou un clic droit) ouvre la liste des outils du groupe, avec leur raccourci. En bas : remplissage et contour.
+ * La barre d'outils du moodboard, à la manière de celle d'Illustrator : un panneau gris à deux colonnes, un bouton par groupe qui montre le dernier outil
+ * choisi du groupe (petit triangle dans le coin) ; un appui long (ou un clic droit) ouvre la liste des outils du groupe, avec leur raccourci.
+ * En bas : remplissage et contour, couleur / dégradé / aucun.
  */
 export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; onTool: (t: string) => void; paint: PaintStyle; onPaint: (p: PaintStyle) => void }) {
   const [chosen, setChosen] = useState<Record<number, string>>({})
@@ -60,6 +69,8 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   const timer = useRef<number | undefined>(undefined)
   const fired = useRef(false)
   const [active, setActive] = useState<'fill' | 'stroke'>('fill')
+  const [single, setSingle] = useState(false)
+  const [hidden, setHidden] = useState(false)
   const fillInput = useRef<HTMLInputElement>(null)
   const strokeInput = useRef<HTMLInputElement>(null)
 
@@ -70,90 +81,116 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
 
   const shown = (g: BarTool[], i: number) => g.find((t) => t.id === chosen[i]) ?? g[0]
   const isActive = (g: BarTool[]) => g.some((t) => t.tool === tool)
-
   const swap = () => onPaint({ ...paint, fill: paint.stroke, stroke: paint.fill ?? paint.stroke })
-  const colorOf = (c: string | null, none: string) => c ?? none
+
+  if (hidden) {
+    return (
+      <button data-ui title="Afficher la barre d'outils" aria-label="Afficher la barre d'outils" onClick={() => setHidden(false)} className="absolute left-3 top-14 z-30 rounded px-2 py-1 text-xs shadow-sm" style={{ background: PANEL, color: ICON }}>
+        »
+      </button>
+    )
+  }
 
   return (
-    <div data-ui className="absolute left-3 top-14 z-30 flex max-h-[calc(100%-120px)] flex-col gap-1 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-sm" data-scroll>
-      {BAR_GROUPS.map((g, i) => {
-        const t = shown(g, i)
-        return (
-          <div key={g[0].id} className="relative">
-            <button
-              title={`${labelOf(t)}${t.shortcut ? ` (${t.shortcut})` : ''}`}
-              aria-label={labelOf(t)}
-              aria-pressed={isActive(g)}
-              onPointerDown={g.length > 1 ? (e) => {
-                fired.current = false
-                window.clearTimeout(timer.current)
-                const el = e.currentTarget
-                timer.current = window.setTimeout(() => { fired.current = true; openAt(i, el) }, 400)
-              } : undefined}
-              onPointerUp={() => window.clearTimeout(timer.current)}
-              onPointerLeave={() => window.clearTimeout(timer.current)}
-              onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); openAt(i, e.currentTarget) } : undefined}
-              onClick={() => { if (fired.current) { fired.current = false; return } onTool(t.tool) }}
-              className={'flex h-8 w-8 items-center justify-center rounded ' + (isActive(g) ? 'bg-[var(--accent)] text-white' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')}
-            >
-              <ToolIcon svg={t.svg} />
-            </button>
-            {g.length > 1 && <span aria-hidden className="pointer-events-none absolute bottom-0.5 right-0.5 h-0 w-0 border-b-[5px] border-l-[5px] border-b-current border-l-transparent opacity-60" />}
-            {open?.i === i && (
-              <>
-                <div className="fixed inset-0 z-[60]" onPointerDown={() => setOpen(null)} />
-                <div role="menu" style={{ left: open.x, top: open.y }} className="fixed z-[70] flex min-w-64 flex-col rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
-                  {g.map((x) => (
-                    <button
-                      key={x.id}
-                      role="menuitem"
-                      className={'flex items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] ' + (x.id === t.id ? 'text-[var(--accent)]' : '')}
-                      onClick={() => { setOpen(null); setChosen((c) => ({ ...c, [i]: x.id })); onTool(x.tool) }}
-                    >
-                      <ToolIcon svg={x.svg} size={16} />
-                      <span className="flex-1">{labelOf(x)}</span>
-                      {x.shortcut && <span className="text-xs text-[var(--fg-muted)]">({x.shortcut})</span>}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        )
-      })}
+    <div data-ui data-scroll className="absolute left-3 top-14 z-30 flex max-h-[calc(100%-100px)] flex-col overflow-y-auto rounded-md shadow-md" style={{ background: PANEL, border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
+      {/* En-tête : replier (deux colonnes ↔ une colonne), masquer, poignée */}
+      <div className="flex items-center justify-between px-1.5 pt-1 text-[11px]" style={{ background: '#3d3d3d' }}>
+        <button title={single ? 'Deux colonnes' : 'Une colonne'} aria-label={single ? 'Deux colonnes' : 'Une colonne'} onClick={() => setSingle(!single)} className="rounded px-0.5 hover:bg-[#555]">{single ? '»' : '«'}</button>
+        {!single && <button title="Masquer la barre d'outils" aria-label="Masquer la barre d'outils" onClick={() => setHidden(true)} className="rounded px-0.5 hover:bg-[#555]">✕</button>}
+      </div>
+      <div aria-hidden className="mx-auto my-1 h-[5px] w-[calc(100%-14px)]" style={{ backgroundImage: 'repeating-linear-gradient(90deg, #6d6d6d 0 1px, transparent 1px 3px)' }} />
 
-      {/* Remplissage et contour (comme dans la barre d'Illustrator) */}
-      <div className="mt-1 flex flex-col items-center gap-1 border-t border-[var(--border)] pt-2">
-        <div className="relative h-12 w-12">
+      <div className={'grid gap-[2px] p-1 ' + (single ? 'grid-cols-1' : 'grid-cols-2')}>
+        {BAR_GROUPS.map((g, i) => {
+          const t = shown(g, i)
+          return (
+            <div key={g[0].id} className="relative">
+              <button
+                title={`${t.label}${t.shortcut ? ` (${t.shortcut})` : ''}`}
+                aria-label={t.label}
+                aria-pressed={isActive(g)}
+                onPointerDown={g.length > 1 ? (e) => {
+                  fired.current = false
+                  window.clearTimeout(timer.current)
+                  const el = e.currentTarget
+                  timer.current = window.setTimeout(() => { fired.current = true; openAt(i, el) }, 400)
+                } : undefined}
+                onPointerUp={() => window.clearTimeout(timer.current)}
+                onPointerLeave={() => window.clearTimeout(timer.current)}
+                onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); openAt(i, e.currentTarget) } : undefined}
+                onClick={() => { if (fired.current) { fired.current = false; return } onTool(t.tool) }}
+                className="flex h-9 w-9 items-center justify-center rounded-[3px]"
+                style={{ background: isActive(g) ? ACTIVE : 'transparent', color: ICON }}
+                onMouseEnter={(e) => { if (!isActive(g)) e.currentTarget.style.background = HOVER }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = isActive(g) ? ACTIVE : 'transparent' }}
+              >
+                <ToolIcon svg={t.svg} />
+              </button>
+              {g.length > 1 && <span aria-hidden className="pointer-events-none absolute bottom-[3px] right-[3px] h-0 w-0 border-b-[5px] border-l-[5px] border-l-transparent" style={{ borderBottomColor: ICON, opacity: 0.8 }} />}
+              {open?.i === i && (
+                <>
+                  <div className="fixed inset-0 z-[60]" onPointerDown={() => setOpen(null)} />
+                  <div role="menu" style={{ left: open.x, top: open.y, background: '#3c3c3c', color: ICON, border: `1px solid ${PANEL_EDGE}` }} className="fixed z-[70] flex min-w-72 flex-col rounded-md p-1 shadow-xl">
+                    {g.map((x) => (
+                      <button
+                        key={x.id}
+                        role="menuitem"
+                        className="flex items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[#555]"
+                        style={x.id === t.id ? { color: '#ff7a59' } : undefined}
+                        onClick={() => { setOpen(null); setChosen((c) => ({ ...c, [i]: x.id })); onTool(x.tool) }}
+                      >
+                        <span className="flex w-2 justify-center text-[8px]">{x.id === t.id ? '■' : ''}</span>
+                        <ToolIcon svg={x.svg} size={18} />
+                        <span className="flex-1">{x.label}</span>
+                        {x.shortcut && <span className="text-xs opacity-70">({x.shortcut})</span>}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Remplissage et contour, comme dans la barre d'Illustrator */}
+      <div className="flex flex-col items-center gap-1.5 px-1 pb-2 pt-1" style={{ borderTop: `1px solid ${PANEL_EDGE}` }}>
+        <div className="relative" style={{ width: single ? 36 : 70, height: single ? 38 : 66 }}>
           <button
             title="Contour (X pour passer du remplissage au contour)"
             aria-label="Couleur du contour"
             onClick={() => { setActive('stroke'); strokeInput.current?.click() }}
-            className="absolute bottom-0 right-0 h-8 w-8 rounded-sm border border-[var(--border)]"
-            style={{ background: 'var(--bg)', outline: active === 'stroke' ? '2px solid var(--accent)' : undefined }}
+            className="absolute bottom-0 right-0 h-[40px] w-[40px]"
+            style={{ background: paint.stroke ?? '#fff', border: `1px solid ${active === 'stroke' ? '#fff' : '#222'}`, zIndex: active === 'stroke' ? 2 : 1 }}
           >
-            <span className="absolute inset-1.5 rounded-[1px] border-[5px]" style={{ borderColor: colorOf(paint.stroke, 'transparent'), background: 'var(--bg)' }} />
-            {!paint.stroke && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[140%] origin-left -rotate-45 bg-red-500" /></span>}
+            <span className="absolute inset-[9px]" style={{ background: PANEL, border: '1px solid #222' }} />
+            {paint.stroke === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
           </button>
           <button
             title="Remplissage"
             aria-label="Couleur de remplissage"
             onClick={() => { setActive('fill'); fillInput.current?.click() }}
-            className="absolute left-0 top-0 h-8 w-8 rounded-sm border border-[var(--border)]"
-            style={{ background: paint.fill ?? 'var(--bg)', outline: active === 'fill' ? '2px solid var(--accent)' : undefined }}
+            className="absolute left-0 top-0 h-[40px] w-[40px]"
+            style={{ background: paint.fill ?? '#fff', border: `1px solid ${active === 'fill' ? '#fff' : '#222'}`, zIndex: active === 'fill' ? 2 : 1 }}
           >
-            {!paint.fill && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[140%] origin-left -rotate-45 bg-red-500" /></span>}
+            {paint.fill === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
           </button>
+          <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="absolute -right-1 -top-1 text-sm leading-none hover:text-white">↷</button>
+          <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="absolute -bottom-1 -left-1 h-3 w-3 border border-[#222] bg-white text-[0px]" style={{ outline: '2px solid #000', outlineOffset: -4 }}>d</button>
           <input ref={fillInput} type="color" className="sr-only" tabIndex={-1} value={paint.fill ?? '#ffffff'} onChange={(e) => onPaint({ ...paint, fill: e.target.value })} aria-hidden />
           <input ref={strokeInput} type="color" className="sr-only" tabIndex={-1} value={paint.stroke ?? '#000000'} onChange={(e) => onPaint({ ...paint, stroke: e.target.value, sw: paint.sw > 0 ? paint.sw : 1 })} aria-hidden />
         </div>
-        <div className="flex gap-1">
-          <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="rounded px-1 text-xs hover:bg-[var(--bg-hover)]">⇄</button>
-          <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="rounded px-1 text-xs hover:bg-[var(--bg-hover)]">▣</button>
-          <button title="Aucun (/)" aria-label="Aucune couleur" onClick={() => onPaint(active === 'fill' ? { ...paint, fill: null } : { ...paint, stroke: null })} className="rounded px-1 text-xs text-red-500 hover:bg-[var(--bg-hover)]">⁄</button>
-        </div>
-        <label className="flex items-center gap-1 text-[11px] text-[var(--fg-muted)]" title="Épaisseur du contour (pt)">
-          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className="w-12 rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs text-[var(--fg)] outline-none" aria-label="Épaisseur du contour (pt)" />
+        {!single && (
+          <div className="flex gap-1 rounded p-0.5" style={{ background: '#474747' }}>
+            <button title="Couleur" aria-label="Couleur" onClick={() => (active === 'fill' ? fillInput : strokeInput).current?.click()} className="h-[22px] w-[22px] border border-[#222] bg-white" />
+            <button title="Dégradé (pas encore disponible)" aria-label="Dégradé" disabled className="h-[22px] w-[22px] border border-[#222] opacity-70" style={{ background: 'linear-gradient(90deg, #fff, #000)' }} />
+            <button title="Aucun (/)" aria-label="Aucune couleur" onClick={() => onPaint(active === 'fill' ? { ...paint, fill: null } : { ...paint, stroke: null })} className="relative h-[22px] w-[22px] overflow-hidden border border-[#222] bg-white">
+              <span aria-hidden className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" />
+            </button>
+          </div>
+        )}
+        <label className="flex items-center gap-1 text-[11px] opacity-80" title="Épaisseur du contour (pt)">
+          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className="w-10 rounded border border-[#333] bg-[#3d3d3d] px-1 py-0.5 text-xs outline-none" style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
           pt
         </label>
       </div>
