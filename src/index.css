@@ -120,10 +120,11 @@ button:active:not(:disabled), .btn:active:not(:disabled) { transform: scale(0.97
 button.rounded-lg.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
 button.rounded-lg.border:not(:disabled):active { transform: translateY(0) scale(0.99); }
 /* Menus et fenêtres : ils s'ouvrent en douceur au lieu d'apparaître d'un coup. */
-[role="menu"], [role="dialog"], [data-popup] { animation: form-pop 0.16s var(--ease-out-soft) both; transform-origin: top left; box-shadow: var(--shadow-lift); }
+[role="menu"], [role="dialog"], [data-popup] { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; box-shadow: var(--shadow-lift); }
 @keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
 /* Changement de page : un léger fondu. */
-main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) both; }
+/* « backwards » : l'animation ne garde rien une fois finie (sinon un menu « fixed » à l'intérieur se mettrait à suivre ce bloc au lieu de la fenêtre). */
+main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backwards; }
 @keyframes form-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

@@ -16,9 +16,9 @@ export interface BarTool extends ToolInfo {
  * Les groupes de la barre, dans l'ordre de celle d'Illustrator (deux colonnes, de gauche à droite puis ligne par ligne) :
  * Sélection, Sélection directe / Baguette magique, Lasso / Plume, Courbure / Texte, Trait / Forme, Pinceau / Crayon, Gomme / Rotation, Échelle / …
  */
-const GROUP_FIRST = ['selection', 'directSelection', 'magicWand', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'freeTransform', 'shapeBuilder', 'eyedropper', 'hand']
+const GROUP_FIRST = ['selection', 'directSelection', 'magicWand', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'eyedropper', 'hand']
 const OURS: Record<string, string> = { selection: 'select', type: 'text', areaType: 'text', hand: 'hand' }
-const HIDDEN = new Set(['typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType', 'puppetWarp', 'livePaintBucket', 'livePaintSelection'])
+const HIDDEN = new Set(['typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType', 'puppetWarp', 'livePaintBucket', 'livePaintSelection', 'freeTransform', 'shapeBuilder'])
 
 const HAND: ToolInfo = { id: 'hand', en: 'Hand Tool', label: 'Outil Main', shortcut: 'H', svg: 'hand' }
 
@@ -65,7 +65,8 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   const [chosen, setChosen] = useState<Record<number, string>>({})
   // La liste d'un groupe : sa position à l'écran (la barre défile, la liste ne doit pas être coupée par elle).
   const [open, setOpen] = useState<{ i: number; x: number; y: number } | null>(null)
-  const openAt = (i: number, el: HTMLElement) => { const r = el.getBoundingClientRect(); setOpen({ i, x: r.right + 8, y: r.top }) }
+  // La liste s'ouvre juste à côté de la barre (pas sur sa deuxième colonne), à la hauteur du bouton.
+  const openAt = (i: number, el: HTMLElement) => { const r = el.getBoundingClientRect(); const bar = boxRef.current?.getBoundingClientRect(); setOpen({ i, x: (bar?.right ?? r.right) + 6, y: r.top }) }
   const timer = useRef<number | undefined>(undefined)
   const fired = useRef(false)
   const [active, setActive] = useState<'fill' | 'stroke'>('fill')
@@ -130,7 +131,9 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
         {!single && <button title="Masquer la barre d'outils" aria-label="Masquer la barre d'outils" onClick={() => setHidden(true)} className="rounded px-0.5 hover:bg-[var(--bg-hover)]">✕</button>}
       </div>
       {/* La poignée : tirer ces petits points déplace la barre */}
-      <div role="separator" aria-label="Déplacer la barre d'outils" title="Tire pour déplacer la barre d'outils" onPointerDown={startMove} className="mx-auto my-1 h-[9px] w-[calc(100%-14px)] cursor-move touch-none" style={{ backgroundImage: 'repeating-linear-gradient(90deg, var(--fg-muted) 0 1px, transparent 1px 3px)', backgroundSize: '100% 5px', backgroundRepeat: 'no-repeat', backgroundPosition: 'center' }} />
+      <div role="separator" aria-label="Déplacer la barre d'outils" title="Tire pour déplacer la barre d'outils" onPointerDown={startMove} className="group mx-auto flex h-4 w-[calc(100%-14px)] cursor-grab touch-none items-center justify-center active:cursor-grabbing">
+        <span className="h-1 w-8 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--fg-muted)]" />
+      </div>
 
       <div className={'grid gap-[2px] p-1 ' + (single ? 'grid-cols-1' : 'grid-cols-2')}>
         {BAR_GROUPS.map((g, i) => {
@@ -162,7 +165,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
               {open?.i === i && (
                 <>
                   <div className="fixed inset-0 z-[60]" onPointerDown={() => setOpen(null)} />
-                  <div role="menu" style={{ left: open.x, top: open.y, background: 'var(--bg)', color: ICON, border: `1px solid ${PANEL_EDGE}` }} className="fixed z-[70] flex min-w-72 flex-col rounded-md p-1 shadow-xl">
+                  <div role="menu" style={{ left: open.x, top: open.y, background: 'var(--bg)', color: ICON, border: `1px solid ${PANEL_EDGE}` }} className="fixed z-[70] flex min-w-72 flex-col rounded-xl p-1.5 shadow-xl">
                     {g.map((x) => (
                       <button
                         key={x.id}
