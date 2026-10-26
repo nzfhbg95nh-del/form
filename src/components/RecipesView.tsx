@@ -58,7 +58,8 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
         onClick={() => setOpen((o) => !o)}
         title="Trier les recettes"
         aria-label="Trier les recettes"
-        className={'flex items-center gap-1.5 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (plainSort ? 'text-[var(--fg-muted)] hover:text-[var(--fg)]' : 'text-[var(--accent)]')}
+        aria-pressed={!plainSort}
+        className="btn !px-3 !py-1.5"
       >
         <ArrowUpDown size={14} />
         {plainSort ? 'Trier' : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
@@ -116,7 +117,8 @@ function CategoryFilter({ entries, countOf, selected, onChange, onManage }: { en
       <button
         onClick={() => setOpen((o) => !o)}
         aria-label="Filtrer par catégorie"
-        className={'flex items-center gap-1.5 rounded border border-[var(--border)] px-3 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (selected.length > 0 ? 'text-[var(--accent)]' : '')}
+        aria-pressed={selected.length > 0}
+        className="btn !px-3 !py-1.5"
       >
         Catégorie{selected.length > 0 ? ` (${selected.length})` : ''} <ChevronDown size={14} />
       </button>
@@ -351,7 +353,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
             onClick={() => create(entry.isNone ? undefined : entry.id)}
-            className="flex h-[168px] flex-col items-center justify-center gap-1 rounded-md border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
+            className="flex h-[168px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
           >
             <Plus size={18} /> Nouvelle recette
           </button>
@@ -366,7 +368,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     <div className="px-6 py-8">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
-        <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
+        <button className="btn btn-primary" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
       <QuickNotes db={db} />
