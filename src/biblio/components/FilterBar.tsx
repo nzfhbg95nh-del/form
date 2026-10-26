@@ -54,7 +54,7 @@ export function FilterBar() {
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
             placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
-            className="w-full rounded-md border py-1.5 pl-8 pr-2 text-sm outline-none focus:border-[var(--accent)]"
+            className="w-full rounded-full border py-1.5 pl-9 pr-3 text-sm outline-none focus:border-[var(--accent)]"
             style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
             aria-label="Rechercher"
           />

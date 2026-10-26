@@ -828,6 +828,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
       transform: it.rot ? `rotate(${it.rot}deg)` : undefined, transformOrigin: 'center',
+      ...(it.kind === 'image' || it.kind === 'note' ? { borderRadius: 8 } : {}),
+      ...(it.kind === 'image' ? { overflow: 'hidden', boxShadow: '0 10px 24px -14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.12)' } : {}),
     }
     if (it.kind === 'image') {
       const a = it.assetId ? assets[it.assetId] : undefined

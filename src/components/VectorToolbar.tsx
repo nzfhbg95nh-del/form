@@ -54,7 +54,7 @@ const PANEL = 'var(--bg)'
 const PANEL_EDGE = 'var(--border)'
 const ICON = 'var(--fg)'
 const HOVER = 'var(--bg-hover)'
-const ACTIVE = 'var(--accent)'
+const ACTIVE = 'var(--bg)'
 
 /**
  * La barre d'outils du moodboard, à la manière de celle d'Illustrator : un panneau gris à deux colonnes, un bouton par groupe qui montre le dernier outil
@@ -123,7 +123,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   }
 
   return (
-    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-100px)] flex-col overflow-y-auto rounded-md shadow-md" style={{ left: pos.x, top: pos.y, background: PANEL, border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
+    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-100px)] flex-col overflow-y-auto rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'var(--bg-side)', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
       {/* En-tête : replier (deux colonnes ↔ une colonne), masquer, poignée */}
       <div className="flex items-center justify-between px-1.5 pt-1 text-[11px] text-[var(--fg-muted)]" style={{ background: 'var(--bg-side)' }}>
         <button title={single ? 'Deux colonnes' : 'Une colonne'} aria-label={single ? 'Deux colonnes' : 'Une colonne'} onClick={() => setSingle(!single)} className="rounded px-0.5 hover:bg-[var(--bg-hover)]">{single ? '»' : '«'}</button>
@@ -151,8 +151,8 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
                 onPointerLeave={() => window.clearTimeout(timer.current)}
                 onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); openAt(i, e.currentTarget) } : undefined}
                 onClick={() => { if (fired.current) { fired.current = false; return } onTool(t.tool) }}
-                className="flex h-9 w-9 items-center justify-center rounded"
-                style={{ background: isActive(g) ? ACTIVE : 'transparent', color: isActive(g) ? '#fff' : ICON }}
+                className="flex h-9 w-9 items-center justify-center rounded-xl"
+                style={{ background: isActive(g) ? ACTIVE : 'transparent', color: isActive(g) ? 'var(--accent)' : ICON, boxShadow: isActive(g) ? 'var(--shadow-soft)' : undefined }}
                 onMouseEnter={(e) => { if (!isActive(g)) e.currentTarget.style.background = HOVER }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = isActive(g) ? ACTIVE : 'transparent' }}
               >
