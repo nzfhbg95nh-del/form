@@ -707,12 +707,6 @@ export function MapView() {
           </div>
         )}
 
-        {status === 'ready' && !focus && (
-          <div className="pointer-events-none absolute left-3 top-3 max-w-sm rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--bg)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
-            Les images proches se ressemblent. Molette : zoomer · glisser : se déplacer · clic sur une image : voir ce qu'il y a autour.
-          </div>
-        )}
-
         {focus && focusBlock && (
           <div className="absolute right-3 top-3 flex w-[300px] flex-col overflow-hidden rounded-xl border shadow-lg" style={{ background: 'var(--bg)', borderColor: 'var(--border)', bottom: 12 }}>
             <div className="flex items-center gap-2 border-b px-3 py-2" style={{ borderColor: 'var(--border)' }}>
