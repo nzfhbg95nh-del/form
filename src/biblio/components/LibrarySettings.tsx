@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
@@ -6,7 +7,6 @@ import { formatBytes, formatSeconds } from '@/biblio/lib/vectors.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
-import { LibraryImport } from '@/components/LibraryImport'
 import { TrashView } from './TrashView.tsx'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -31,7 +31,7 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
 
 /** IA locale : modèle d'images (téléchargé une fois, sur demande) et empreintes de toutes les images. */
 function AiSection() {
-  const { status, dlDone, dlTotal, embedDone, embedTotal, embedded, pending, provider, failed, lastRun, error, download, embed, classifying, classDone, classTotal, lastClassify, clearAuto, classify, threshold, setThreshold, text, textDone, downloadText, ocrDone, ocrWithText, ocrPending, computeOcr, computeRecipeOcr } = useAi()
+  const { status, dlDone, dlTotal, embedDone, embedTotal, embedded, pending, provider, failed, lastRun, error, download, embed, classifying, classDone, classTotal, lastClassify, clearAuto, classify, threshold, setThreshold, text, textDone, downloadText } = useAi()
   const [cleared, setCleared] = useState<number | null>(null)
   if (!status) return null
   const downloading = status.downloading
@@ -79,14 +79,6 @@ function AiSection() {
               <ProgressBar done={embedDone} total={embedTotal} />
             </div>
           )}
-          <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-            <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Texte lu dans les vidéos</div>
-            <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-              Les mots affichés dans tes vidéos (ingrédients d'une recette, étapes…) sont lus avec l'outil de Windows, puis retrouvés dans la barre de recherche. {new Intl.NumberFormat('fr-FR').format(ocrDone)} vidéos lues, dont {new Intl.NumberFormat('fr-FR').format(ocrWithText)} avec du texte · {new Intl.NumberFormat('fr-FR').format(ocrPending)} à lire.
-            </p>
-            <button className="btn mt-2" onClick={() => void computeOcr()} disabled={ocrPending === 0}><RefreshCw size={16} /> Lire le texte des vidéos</button>
-            <button className="btn mt-2 ml-2" onClick={() => void computeRecipeOcr()} title="Une image toutes les 2 secondes, pour les vidéos classées Recette">Relire les recettes en détail</button>
-          </div>
           <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
             <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Descriptions en mots (Typo, Recette, astuces)</div>
             {text?.ready ? (
@@ -163,6 +155,32 @@ function TrashSection({ onOpen }: { onOpen: () => void }) {
 }
 
 /** Mise à jour automatique au démarrage de Form (activée au départ). */
+/** Social Saver : l'appli qui télécharge les enregistrements Instagram et Pinterest ; on l'ouvre d'ici (le Bureau de Victor). */
+function SocialSaverSection() {
+  const [error, setError] = useState<string | null>(null)
+  const openIt = async () => {
+    setError(null)
+    try {
+      await invoke('social_saver_open')
+    } catch (e) {
+      setError(String(e))
+    }
+  }
+  return (
+    <div className="py-4">
+      <h2 className="text-base font-semibold">Social Saver</h2>
+      <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
+        Social Saver télécharge tes enregistrements Instagram et Pinterest dans ton dossier d'images. Ouvre-le d'ici, lance un téléchargement, puis reviens et clique sur
+        « Mettre à jour la bibliothèque » : les nouvelles images arrivent dans « Tout ».
+      </p>
+      <div className="mt-4">
+        <button className="btn" onClick={() => void openIt()}>Ouvrir Social Saver</button>
+      </div>
+      {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
+    </div>
+  )
+}
+
 function AutoUpdate() {
   const [on, setOn] = useState<boolean | null>(null)
   useEffect(() => {
@@ -260,7 +278,7 @@ export function LibrarySettings() {
       <AiSection />
       <TrashSection onOpen={() => setTrashOpen(true)} />
       <section className="mt-10 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-        <LibraryImport />
+        <SocialSaverSection />
       </section>
     </div>
   )

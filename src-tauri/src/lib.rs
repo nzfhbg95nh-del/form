@@ -163,6 +163,7 @@ pub fn run() {
             gemini::gemini_models,
             gemini::gemini_image,
             biblio::scan::scan_folder,
+            biblio::social::social_saver_open,
             biblio::thumbs::start_thumbs,
             biblio::thumbs::thumbs_dir,
             biblio::ai::ai_status,

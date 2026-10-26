@@ -6,5 +6,6 @@ pub mod clip_tokenizer;
 pub mod colors;
 pub mod ocr;
 pub mod scan;
+pub mod social;
 pub mod thumbs;
 pub mod trash;

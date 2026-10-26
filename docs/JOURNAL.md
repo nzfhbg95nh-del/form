@@ -594,3 +594,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Dans le choix de collection (vue détail, clic droit, sélection), les collections qui contiennent déjà l'image (ou une partie de la sélection) passent tout en haut, sous le titre « Déjà enregistrée dans », avec une coche et « Déjà enregistrée » (ou « 2 sur 5 déjà dedans » pour une sélection). Elles ne sont pas répétées plus bas ; dans une recherche, elles passent aussi en premier. Les sous-tableaux s'affichent avec leur chemin.
 - Nouvelle lecture `loadCollectionCounts` (un seul appel, par paquets de 500 images). Tests : `savedCollections`, `savedNote`.
 - Compilation, 477 tests : OK.
+
+## 2026-10-26 — Réglages : retraits et bouton Social Saver provisoire (pas encore publié)
+- Retiré des réglages de la bibliothèque : « Texte lu dans les vidéos » (les deux boutons) et « Reprendre ma bibliothèque Klippr » (composant `LibraryImport` supprimé ; le code d'import reste en réserve). Retiré : le texte « IA : classement… » sous « Bibliothèque ».
+- Provisoire : un bloc « Social Saver » avec un bouton « Ouvrir Social Saver » (commande Windows `social_saver_open`, qui lance `Bureau\Social Saver\Social Saver.exe` sans rien modifier). Victor veut en réalité que Social Saver (et NoMoreDuplicates) soient intégrés dans Form : sources introuvables sur le Bureau (seulement les .exe), plan à valider avec lui.
+- Compilation, 477 tests, vérification Rust : OK.
