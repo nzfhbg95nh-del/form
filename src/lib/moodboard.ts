@@ -63,26 +63,12 @@ export interface Board {
   pattern: Pattern
 }
 
-/** Fonds proposés : petits points (par défaut), cases (carrés ouverts aux coins), grille, uni. */
-export type Pattern = 'dots' | 'cells' | 'grid' | 'none'
+/** Fonds proposés : petits points (par défaut) ou uni. Un ancien moodboard qui avait la grille ou les cases repasse en petits points. */
+export type Pattern = 'dots' | 'none'
 export const PATTERNS: { id: Pattern; label: string }[] = [
   { id: 'dots', label: 'Points' },
-  { id: 'cells', label: 'Cases' },
-  { id: 'grid', label: 'Grille' },
   { id: 'none', label: 'Uni' },
 ]
-
-/**
- * Le motif « Cases » du fond : des carrés dont chaque côté est tracé au milieu seulement, avec un vide à chaque coin (comme des repères de découpe).
- * Rend l'image (SVG) d'une case de `step` pixels, à répéter ; les traits font 1 pixel quelle que soit la taille.
- */
-export function cellsTile(step: number, color: string): string {
-  const a = Math.round(step * 0.14 * 100) / 100
-  const b = Math.round(step * 0.86 * 100) / 100
-  const s = Math.round(step * 100) / 100
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><path d="M${a} 0.5H${b}M0.5 ${a}V${b}" stroke="${color}" stroke-width="1" fill="none"/></svg>`
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`
-}
 
 export interface Rect {
   x: number
@@ -107,7 +93,10 @@ export function parseBoard(content: string | null): Board {
   if (!content) return emptyBoard()
   try {
     const data = JSON.parse(content)
-    if (data && data.v === 1 && Array.isArray(data.items)) return { ...emptyBoard(), ...data }
+    if (data && data.v === 1 && Array.isArray(data.items)) {
+      const board = { ...emptyBoard(), ...data }
+      return board.pattern === 'none' ? board : { ...board, pattern: 'dots' }
+    }
   } catch {
     /* plan illisible : on repart d'une toile vide */
   }
