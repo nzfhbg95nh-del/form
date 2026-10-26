@@ -149,8 +149,8 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         {!filters.collection && <span className="lib-count">{nf.format(blocks.length)} blocs</span>}
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des vignettes" />
-          <button className="btn" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
-          <button className="btn" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
+          <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
+          <button className="btn h-9" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
         </div>
       </div>
 

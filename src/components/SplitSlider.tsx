@@ -40,7 +40,7 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right,
       <div className="flex min-w-0 items-center overflow-hidden rounded-lg px-2.5" style={{ background: 'color-mix(in srgb, var(--accent) 18%, transparent)', border: '1px solid color-mix(in srgb, var(--accent) 30%, transparent)' }}>
         <span className={mono + ' truncate whitespace-nowrap'} style={{ color: 'color-mix(in srgb, var(--accent) 70%, var(--fg))' }}>{label} <b className="font-semibold text-[var(--accent)]">{Math.round(pct)}%</b></span>
       </div>
-      <div className="self-center rounded-full bg-[var(--fg)] transition-transform duration-150 group-hover:scale-y-105 group-active:scale-y-105" style={{ width: 4, height: 'calc(100% - 6px)', boxShadow: '0 0 0 2px var(--bg)' }} />
+      <div className="self-center rounded-full bg-[var(--fg)] transition-transform duration-150 group-hover:scale-x-125 group-active:scale-x-125" style={{ width: 4, height: '100%', boxShadow: '0 0 0 2px var(--bg)' }} />
       <div className="flex min-w-0 items-center justify-end overflow-hidden rounded-lg px-2.5" style={{ background: 'color-mix(in srgb, var(--fg) 8%, transparent)', border: '1px solid color-mix(in srgb, var(--fg) 10%, transparent)' }}>
         <span className={mono + ' truncate whitespace-nowrap text-[var(--fg-muted)]'}>{right}</span>
       </div>
