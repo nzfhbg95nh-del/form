@@ -1097,7 +1097,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const isSel = selection.has(it.id)
     const base: React.CSSProperties = {
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
-      outline: isSel ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
+      outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
       transform: it.rot ? `rotate(${it.rot}deg)` : undefined, transformOrigin: 'center',
     }
     if (it.kind === 'image') {
@@ -1224,7 +1224,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
             ) : it.shape === 'star' ? (
               <polygon points={pointsAttr(starPoints(w, h, ss.points, ss.inner, sw / 2))} {...paint} />
             ) : it.shape === 'path' ? (
-              <path d={itemPathD(it, w, h)} {...paint} />
+              <>
+                <path d={itemPathD(it, w, h)} {...paint} />
+                {isSel && <path d={itemPathD(it, w, h)} fill="none" stroke="#4da3ff" strokeWidth={1.5 / zoom} strokeLinejoin="round" />}
+              </>
             ) : it.shape === 'line' || it.shape === 'arrow' ? (
               <>
                 <line x1={sw} y1={sw} x2={w - sw} y2={h - sw} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dashArray(ss.dash, sw)} />
@@ -1310,7 +1313,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           const first = editPts[0]
           const draft = penPts.length > 0
           const closeNear = draft && penCursor && editPts.length >= 2 && Math.hypot(penCursor.x - first.x, penCursor.y - first.y) * zoom < 9
-          const rubber = draft && penCursor && tool === 'pen' ? [...editPts, anchor(penCursor.x, penCursor.y)] : editPts
+          const rubber = editPts
           const k = 1 / zoom
           const shown = new Set(nodeSel)
           if (draft) shown.add(editPts.length - 1)
