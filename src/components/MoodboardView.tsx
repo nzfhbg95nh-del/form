@@ -725,7 +725,15 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     say(`${list.length} élément${list.length > 1 ? 's' : ''} copié${list.length > 1 ? 's' : ''}`)
   }
 
+  /** Alt, Ctrl ou Maj pressés ou relâchés sans bouger la souris : le moteur reçoit un déplacement sur place pour que le curseur et les repères changent tout de suite. */
+  const modifierChanged = (e: React.KeyboardEvent) => {
+    if (!engine || !['Alt', 'Control', 'Shift', 'Meta'].includes(e.key)) return
+    if (e.key === 'Alt') e.preventDefault() // sinon Windows donne le focus à la barre de menus au relâchement de Alt
+    vcSend(dragRef.current ? 'drag' : 'move', screenToWorld(viewRef.current, lastPt.current), e)
+  }
+
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    modifierChanged(e)
     const tag = (e.target as HTMLElement).tagName
     if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') {
       if (e.key === 'Escape') (e.target as HTMLElement).blur()
@@ -766,7 +774,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else handled = false
     if (handled) { e.preventDefault(); e.stopPropagation() } // évite que Ctrl+D duplique la page entière, etc.
   }
-  const onKeyUp = (e: React.KeyboardEvent) => { if (e.key === ' ') setSpaceDown(false) }
+  const onKeyUp = (e: React.KeyboardEvent) => { modifierChanged(e); if (e.key === ' ') setSpaceDown(false) }
 
   const onContextMenu = (e: React.MouseEvent<HTMLDivElement>) => {
     e.preventDefault()

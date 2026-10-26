@@ -728,6 +728,33 @@ mod tests {
     }
 
 
+
+    fn avec(v: &mut Vector, kind: &str, x: f64, y: f64, alt: bool, ctrl: bool) -> VectorOut {
+        v.pointer(&PointerIn { kind: kind.into(), x, y, mods: ModsIn { alt, ctrl, ..ModsIn::default() }, pressure: None }, 1.0).expect("geste")
+    }
+
+    #[test]
+    fn la_plume_avec_alt_convertit_un_point_et_avec_ctrl_deplace() {
+        // Alt + glisser sur un point d'angle : des poignées sortent (conversion de point).
+        let mut v = demarre("pen", &["b"]);
+        avec(&mut v, "move", 500.0, 200.0, true, false);
+        avec(&mut v, "down", 500.0, 200.0, true, false);
+        avec(&mut v, "drag", 540.0, 240.0, true, false);
+        let o = avec(&mut v, "up", 540.0, 240.0, true, false);
+        let b = o.paths.iter().find(|p| p.id == "b").expect("b");
+        assert_eq!(b.points.len(), 3, "alt ne doit pas ajouter de point");
+        assert!(b.points[1].ox != 0.0 || b.points[1].oy != 0.0, "alt + glisser donne des poignées : {:?}", b.points[1]);
+        // Ctrl + glisser sur un point : la flèche blanche le déplace.
+        let mut v = demarre("pen", &["b"]);
+        avec(&mut v, "move", 500.0, 200.0, false, true);
+        avec(&mut v, "down", 500.0, 200.0, false, true);
+        avec(&mut v, "drag", 520.0, 260.0, false, true);
+        let o = avec(&mut v, "up", 520.0, 260.0, false, true);
+        let b = o.paths.iter().find(|p| p.id == "b").expect("b");
+        assert_eq!(b.points.len(), 3);
+        assert!((b.points[1].x - 520.0).abs() < 1.0 && (b.points[1].y - 260.0).abs() < 1.0, "ctrl + glisser déplace le point : {:?}", b.points[1]);
+    }
+
     fn pio(id: &str, closed: bool, pts: &[(f64, f64)]) -> PathIo {
         PathIo { id: id.into(), closed, points: pts.iter().map(|&(x, y)| PointIo { x, y, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }).collect(), fill: Some("#ff0000".into()), stroke: Some("#000000".into()), sw: 2.0, subs: vec![] }
     }
