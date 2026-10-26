@@ -122,6 +122,22 @@ export function SaverSection() {
         Seules les nouveautés sont téléchargées. Il utilise tes fichiers <b>cookies.txt</b> (jamais ton mot de passe) et fait des pauses entre les fichiers pour ne pas gêner ton compte.
         Les cookies expirent vite : refais l'export depuis Chrome avant une session.
       </p>
+      <div className="mt-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
+        <div className="font-medium">Avant de télécharger : exporter les cookies depuis Chrome</div>
+        <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>Extension nécessaire : « Get cookies.txt LOCALLY » (Chrome Web Store).</p>
+        <div className="mt-2 font-medium">Pour Instagram</div>
+        <ol className="ml-5 list-decimal" style={{ color: 'var(--fg-muted)' }}>
+          <li>Ouvre Chrome, va sur https://www.instagram.com (vérifie que tu es connecté).</li>
+          <li>Clique sur l'icône de l'extension (icône puzzle, puis épingle si besoin).</li>
+          <li>Clique sur « Export » et enregistre le fichier : <b>www.instagram.com_cookies.txt</b></li>
+        </ol>
+        <div className="mt-2 font-medium">Pour Pinterest</div>
+        <ol className="ml-5 list-decimal" style={{ color: 'var(--fg-muted)' }}>
+          <li>Va sur https://www.pinterest.com (vérifie que tu es connecté).</li>
+          <li>Clique sur l'icône de l'extension, puis « Export ».</li>
+          <li>Enregistre le fichier : <b>www.pinterest.com_cookies.txt</b></li>
+        </ol>
+      </div>
       {prefilled && <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Réglages repris de ton Social Saver (qui n'a pas été modifié).</p>}
 
       {loaded && (

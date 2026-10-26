@@ -4,7 +4,23 @@ import { ChevronDown } from 'lucide-react'
 /** Bouton qui ouvre un petit panneau ; se ferme d'un clic à côté ou avec Échap. */
 export function Popover({ label, active, children, width = 260 }: { label: string; active?: boolean; children: ReactNode; width?: number }) {
   const [open, setOpen] = useState(false)
+  const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
+  const button = useRef<HTMLButtonElement>(null)
+
+  // Le panneau est posé sous le bouton mais reste toujours dans la fenêtre : il ne se coupe plus sur le bord, même dans une petite fenêtre.
+  const place = () => {
+    const r = button.current?.getBoundingClientRect()
+    if (!r) return
+    const w = Math.min(width, window.innerWidth - 16)
+    setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - w - 8)), top: r.bottom + 4, maxHeight: Math.max(160, window.innerHeight - r.bottom - 16) })
+  }
+  useEffect(() => {
+    if (!open) return
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return
@@ -25,6 +41,7 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
   return (
     <div ref={ref} className="relative">
       <button
+        ref={button}
         className="btn"
         onClick={() => setOpen((o) => !o)}
         style={active ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
@@ -32,10 +49,10 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
       >
         {label} <ChevronDown size={14} />
       </button>
-      {open && (
+      {open && pos && (
         <div
-          className="absolute left-0 top-full z-30 mt-1 rounded-lg border p-2 shadow-lg"
-          style={{ width, background: 'var(--bg)', borderColor: 'var(--border)' }}
+          className="fixed z-30 overflow-auto rounded-lg border p-2 shadow-lg"
+          style={{ left: pos.left, top: pos.top, width: Math.min(width, window.innerWidth - 16), maxHeight: pos.maxHeight, background: 'var(--bg)', borderColor: 'var(--border)' }}
         >
           {children}
         </div>

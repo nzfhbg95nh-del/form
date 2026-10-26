@@ -614,3 +614,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - gallery-dl : version officielle 2026.10.26 (gdl-org/builds, `gallery-dl_windows.exe`, 23 360 594 octets, SHA-256 73ab3f3d…19d0, `--version` : 1.32.18). Copie locale dans `src-tauri/resources/` (ignorée par Git) ; la fabrication de l'installateur (`release.yml`) la télécharge et vérifie l'empreinte avant de construire ; elle est ajoutée aux ressources de l'installateur (`tauri.conf.json`).
 - Règle `Save images` : Form écrit désormais les nouveaux fichiers téléchargés dans ce dossier (comme Social Saver), voulu par Victor ; rien n'est déplacé, renommé ni modifié ; `_archive.sqlite3` est utilisé comme par Social Saver (liste des fichiers déjà reçus).
 - Tests : 2 tests Rust (réglages identiques à Social Saver, lecture des lignes), 6 tests de logique (adresses, ce qui manque, avertissement cookies). Compilation, 493 tests : OK. Aucun téléchargement réel lancé (comptes de Victor) : à essayer d'abord sur un petit tableau Pinterest.
+
+## 2026-10-26 — Aide aux cookies, panneaux de filtres qui ne se coupent plus (pas encore publié)
+- « Télécharger mes enregistrements » : encadré d'aide en haut (extension « Get cookies.txt LOCALLY », étapes d'export des cookies Instagram et Pinterest, noms des fichiers).
+- Bibliothèque : les panneaux de filtres (Date, Couleur, Type d'image, Source, Format) sont posés en position fixe sous leur bouton et restent dans la fenêtre (décalés vers la gauche près du bord, rétrécis dans une petite fenêtre, hauteur limitée avec défilement).
