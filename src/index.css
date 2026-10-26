@@ -161,3 +161,11 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 
 /* Le cadre de focus clavier ne s'affiche pas autour d'un bloc de l'éditeur (moodboard, base…) quand on clique dedans : seuls les vrais boutons et champs gardent le leur. */
 .bn-block-outer [tabindex]:not(button):not(input):not(textarea):not(select):focus-visible, .bn-block-outer:focus-visible, .bn-block:focus-visible, .bn-block-content:focus-visible { outline: none; }
+
+/* Dernier filet : rien ne se dessine autour d'un moodboard / d'une base intégrés (ni voile, ni cadre, ni ombre de sélection), quel que soit l'état de l'éditeur. Les boutons à l'intérieur gardent leur focus. */
+.bn-block-content[data-content-type='moodboard'], .bn-block-content[data-content-type='database'],
+.bn-block-content[data-content-type='moodboard'] > *, .bn-block-content[data-content-type='database'] > * { outline: none !important; box-shadow: none !important; }
+.bn-block-content[data-content-type='moodboard'] > *::before, .bn-block-content[data-content-type='moodboard'] > *::after,
+.bn-block-content[data-content-type='database'] > *::before, .bn-block-content[data-content-type='database'] > *::after { content: none !important; display: none !important; }
+.bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type='moodboard']), .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type='database']),
+.bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type='moodboard']) > .bn-block, .bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type='database']) > .bn-block { outline: none !important; box-shadow: none !important; }
