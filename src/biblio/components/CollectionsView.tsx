@@ -9,7 +9,6 @@ import { useGrid } from '@/biblio/store/grid.ts'
 import { CollectionSettings } from './CollectionSettings.tsx'
 import { NameInput } from './NameInput.tsx'
 import { useReorder } from './useReorder.ts'
-import { useScrollbarWidth } from '@/biblio/lib/useScrollbarWidth.ts'
 
 const nf = new Intl.NumberFormat('fr-FR')
 
@@ -128,11 +127,10 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
   const sections = useMemo(() => groupCollections(cards, query), [cards, query])
   const none = cardsLoaded && Object.values(sections).every((s) => s.length === 0)
   const searching = query.trim() !== ''
-  const [scrollRef, sbw] = useScrollbarWidth<HTMLDivElement>()
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)', paddingRight: 24 + sbw }}>
+      <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         <h1 className="text-base font-semibold">Collections</h1>
         <SearchInput className="w-[26rem] max-w-full" placeholder="Chercher une collection ou un tableau" label="Chercher une collection" value={query} onChange={setQuery} />
         <div className="ml-auto">
@@ -148,7 +146,7 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
           )}
         </div>
       </div>
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-6">
+      <div className="min-h-0 flex-1 overflow-auto p-6">
         {!cardsLoaded ? <LoadingState label="Chargement des collections…" /> : none ? (
           <EmptyState icon={<FolderOpen size={24} />} title={searching ? 'Aucune collection ne correspond' : 'Aucune collection pour le moment'} hint={searching ? undefined : 'Indexe d\'abord la bibliothèque dans Réglages > Bibliothèque.'} />
         ) : (

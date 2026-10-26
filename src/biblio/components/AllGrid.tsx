@@ -69,17 +69,6 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   const phase = useLibrary((s) => s.phase)
   const root = useLibrary((s) => s.root)
   const scroller = useRef<HTMLDivElement>(null)
-  // Largeur de la barre de défilement de la grille : la barre du haut laisse la même place à droite, pour que ses boutons tombent pile sur le bord des images.
-  const [scrollbarW, setScrollbarW] = useState(0)
-  useEffect(() => {
-    const el = scroller.current
-    if (!el) return
-    const measure = () => setScrollbarW(el.offsetWidth - el.clientWidth)
-    measure()
-    const ro = new ResizeObserver(measure)
-    ro.observe(el)
-    return () => ro.disconnect()
-  }, [])
   const [box, setBox] = useState({ w: 0, h: 800 })
   const [top, setTop] = useState(0)
   const heroRef = useRef<HTMLDivElement>(null)
@@ -152,7 +141,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
 
   return (
     <div className="flex h-full flex-col" style={{ display: active ? undefined : 'none' }}>
-      <div className="flex items-center gap-4 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)', paddingRight: 16 + scrollbarW }}>
+      <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         {filters.collection && (
           <button className="btn" onClick={onBack} aria-label="Retour aux collections"><ChevronLeft size={15} /> Collections</button>
         )}
