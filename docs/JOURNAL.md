@@ -720,3 +720,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Le tracé terminé est une forme comme les autres : déplacer, agrandir (le tracé se déforme avec le cadre), tourner, remplissage, contour, tirets, opacité (panneau Forme et contour).
 - Pas fait : modifier les points d'un tracé déjà posé (déplacer un point, tirer une poignée, ajouter ou retirer un point).
 - Tests : 585.
+
+## 2026-10-26 — La Plume comme Illustrator : modifier les points (après la v0.47.2, pas encore publié)
+- D'après la vidéo de Victor (Illustrator) : avec la plume, Ctrl = flèche blanche (déplacer un point ou une poignée du tracé en cours ou du tracé sélectionné), Alt = convertir un point (clic : lisse → angle ; glisser depuis un point d'angle : poignées ; glisser une poignée : elle bouge seule).
+- Nouvel outil Sélection directe (flèche blanche, touche A) : clic sur un point (Maj : ajouter), glisser un point (Maj : angle de 45°), glisser une poignée (le point lisse garde ses poignées alignées ; Alt les sépare), glisser la courbe pour la déformer, Suppr pour retirer les points choisis.
+- Plume sur un tracé sélectionné : clic sur la courbe = ajouter un point (la forme ne change pas), clic sur un point = le retirer, clic sur le bout d'un tracé ouvert = on continue à dessiner à partir de là.
+- Pendant le tracé : Maj garde un angle de 45°, Espace déplace le point qu'on est en train de poser, Ctrl+clic ailleurs termine le tracé.
+- Le cadre de sélection disparaît pendant l'édition des points. Un tracé modifié perd sa rotation « cuite » dans ses points (même forme à l'écran).
+- Tests : logique de modification dans `boardPathEdit.test.ts`. Pas vérifié à l'écran (la fenêtre d'Illustrator reprenait le premier plan pendant mes essais).
