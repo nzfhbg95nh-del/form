@@ -167,7 +167,7 @@ function QuickNotes({ db }: { db: ObjectRow }) {
   return (
     <section className="mt-8 border-t border-[var(--border)] pt-4" aria-label="Notes rapides">
       <h2 className="mb-1 text-sm font-medium text-[var(--fg-muted)]">Notes rapides</h2>
-      <div className="-mx-12">
+      <div className="-mx-6">
         <PageEditor
           key={db.id}
           pageId={db.id}
@@ -319,7 +319,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   if (current !== null && entry) {
     const list = sorted(listOf(entry))
     return (
-      <div className="mx-auto max-w-5xl px-12 py-10">
+      <div className="px-6 py-8">
         <button className={button + ' mb-4 flex items-center gap-1'} onClick={() => setCurrent(null)}><ArrowLeft size={14} /> Recettes</button>
         <div className="mb-6 flex items-center gap-3">
           <IconPicker
@@ -363,7 +363,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
 
   // ── Accueil des recettes : la liste des catégories ──
   return (
-    <div className="mx-auto max-w-5xl px-12 py-10">
+    <div className="px-6 py-8">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
         <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>

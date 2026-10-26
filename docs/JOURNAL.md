@@ -680,3 +680,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Mesuré : la Carte s'ouvre en moins d'une seconde (la disposition) et ses images se remplissent en 1 à 2 secondes ; « Tout » s'affiche en moins de 3 secondes. Le mode sombre est correct sur Clients, Factures, Réglages, Recettes, Moodboards, Carte.
 - Constaté, non modifié : la fenêtre ne peut pas être réduite sous environ 800 pixels de large ; une page vide (liste sans élément) garde à la fois le bouton « Nouveau… » en haut et celui de l'état vide (voulu : le bouton du haut reste au même endroit).
 - `tsc -b` et 555 tests : OK.
+
+## 2026-10-26 — Recettes pleine largeur, icônes pour le voyage de la Carte (après la v0.47.2, pas encore publié)
+- La page Recettes prend la même largeur que « Tout » de la Bibliothèque (marges `px-6`), sans barre de défilement horizontale.
+- Les 4 boutons du voyage de la Carte (même, différent, couleurs, surprends-moi) sont de simples icônes ; le nom reste en infobulle.

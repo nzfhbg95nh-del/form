@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ExternalLink, Map as MapIcon, RefreshCw, X } from 'lucide-react'
+import { Dices, Equal, Expand, ExternalLink, Map as MapIcon, Palette, RefreshCw, Shapes, X } from 'lucide-react'
 import { loadColorIndex, paletteDistance, type ColorIndex } from '@/biblio/lib/colors.ts'
 import { computeMap, loadMap, type MapData } from '@/biblio/lib/mapData.ts'
 import { kmeans2d, labelClusters, mulberry32, nearestByVector } from '@/biblio/lib/mapLayout.ts'
@@ -10,6 +10,9 @@ import { useGrid } from '@/biblio/store/grid.ts'
 import { useMapRequest } from '@/biblio/store/map.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 import { BlockMenu } from './BlockMenu.tsx'
+
+/** L'icône de chacune des quatre façons de continuer le voyage sur la carte. */
+const STEP_ICONS: Record<StepKind, typeof Equal> = { same: Equal, different: Shapes, colors: Palette, surprise: Dices }
 
 /** Les images qui apparaissent autour de celle qu'on regarde. */
 const AROUND = 12
@@ -722,10 +725,16 @@ export function MapView() {
                 <button className="btn flex-1" onClick={() => useGrid.getState().open(focus)}><ExternalLink size={15} /> Ouvrir</button>
                 <button className="btn flex-1" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); setMenu({ x: r.left - 230, y: r.bottom + 6, ids: [focus] }) }}>Ajouter à…</button>
               </div>
-              <div className="mt-3 grid grid-cols-2 gap-2">
-                {(Object.keys(STEP_LABELS) as StepKind[]).map((k) => (
-                  <button key={k} className="btn" onClick={() => void step(k)}>{STEP_LABELS[k]}</button>
-                ))}
+              {/* Les quatre façons de continuer le voyage : de simples icônes ; le nom s'affiche au survol. */}
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                {(Object.keys(STEP_LABELS) as StepKind[]).map((k) => {
+                  const StepIcon = STEP_ICONS[k]
+                  return (
+                    <button key={k} className="btn justify-center" title={STEP_LABELS[k]} aria-label={STEP_LABELS[k]} onClick={() => void step(k)}>
+                      <StepIcon size={18} />
+                    </button>
+                  )
+                })}
               </div>
               <div className="mb-1.5 mt-4 flex items-center justify-between">
                 <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Autour de celle-ci</div>
