@@ -1,5 +1,6 @@
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import { getSetting } from '@/biblio/lib/library.ts'
+import { getSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
@@ -10,6 +11,8 @@ import { useLibrary } from '@/biblio/store/library.ts'
  */
 export async function startLibraryBackground() {
   if (getCurrentWindow().label !== 'main') return
+  // Les empreintes sont lues en arrière-plan dès le lancement : la Carte et la recherche par contenu les trouvent déjà prêtes.
+  window.setTimeout(() => void getSearchIndex().catch(() => undefined), 3000)
   const auto = (await getSetting('library_auto_update')) !== '0'
   if (!auto) return
   await useLibrary.getState().init(true)

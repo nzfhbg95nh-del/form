@@ -583,3 +583,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Nouveau composant `RowMenu` (colonne « ⋯ » à droite d'une ligne de tableau, visible au survol, sans ouvrir la ligne). Branché sur : Devis (Ouvrir, Dupliquer, statuts pour un devis envoyé, Supprimer), Factures (Ouvrir, Créer un avoir, Supprimer), Clients (Ouvrir, Supprimer), Tarifs (Ouvrir, Supprimer) et le Livre des recettes (Ouvrir la facture, Supprimer le paiement).
 - Règles gardées : « Supprimer » est grisé pour un devis numéroté et pour une facture émise (la facture se corrige par un avoir) ; un brouillon supprimé est effacé pour de bon (confirmation) ; un client avec des documents ne se supprime pas (message d'explication). Les erreurs s'affichent dans un message en bas de l'écran.
 - Compilation, 473 tests : OK.
+
+## 2026-10-26 — Barre latérale réglable, Carte plus rapide à ouvrir (pas encore publié)
+- Barre latérale : on tire son bord droit pour l'agrandir ou la rétrécir (de 200 à 520 px) ; la largeur est retenue ; double-clic sur le bord = taille de départ (256 px).
+- Carte : le temps d'ouverture venait de la lecture des 17 071 empreintes d'images (46,6 Mo de texte à passer de la base à l'écran, d'un seul bloc). Elles sont maintenant lues par paquets de 2 000 (l'écran garde la main entre deux paquets) et surtout lues en arrière-plan 3 secondes après le lancement de Form : à l'ouverture de la Carte, elles sont déjà prêtes. Une lecture ratée n'est plus gardée en mémoire (la suivante réessaie). Même gain pour la recherche par contenu.
+- Non mesuré à l'écran : à confirmer sur le vrai usage (première ouverture de la Carte après un lancement).
+- Compilation, 473 tests : OK.

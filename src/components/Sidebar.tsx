@@ -213,7 +213,44 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
   )
 }
 
+const SIDEBAR_KEY = 'form-sidebar-width'
+const SIDEBAR_MIN = 200
+const SIDEBAR_MAX = 520
+const SIDEBAR_DEFAULT = 256
+
+/** La largeur de la barre latérale, qu'on règle en tirant son bord droit (retenue d'une fois sur l'autre ; double-clic = largeur de départ). */
+function useSidebarWidth() {
+  const [width, setWidth] = useState(() => {
+    try {
+      const n = Number(localStorage.getItem(SIDEBAR_KEY))
+      if (n >= SIDEBAR_MIN && n <= SIDEBAR_MAX) return n
+    } catch { /* largeur par défaut */ }
+    return SIDEBAR_DEFAULT
+  })
+  const save = (n: number) => { try { localStorage.setItem(SIDEBAR_KEY, String(n)) } catch { /* sans importance */ } }
+  const startDrag = (e: React.PointerEvent<HTMLElement>) => {
+    e.preventDefault()
+    const left = (e.currentTarget.parentElement as HTMLElement).getBoundingClientRect().left
+    let last = width
+    const move = (ev: PointerEvent) => { last = Math.round(Math.min(SIDEBAR_MAX, Math.max(SIDEBAR_MIN, ev.clientX - left))); setWidth(last) }
+    const up = () => {
+      window.removeEventListener('pointermove', move)
+      window.removeEventListener('pointerup', up)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+      save(last)
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    window.addEventListener('pointermove', move)
+    window.addEventListener('pointerup', up)
+  }
+  const reset = () => { setWidth(SIDEBAR_DEFAULT); save(SIDEBAR_DEFAULT) }
+  return { width, startDrag, reset }
+}
+
 export function Sidebar() {
+  const { width, startDrag, reset } = useSidebarWidth()
   const {
     objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
@@ -243,7 +280,16 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex h-full w-64 shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2">
+    <aside className="relative flex h-full shrink-0 flex-col border-r border-[var(--border)] bg-[var(--bg-side)] p-2" style={{ width }}>
+      <div
+        role="separator"
+        aria-orientation="vertical"
+        aria-label="Largeur de la barre latérale"
+        title="Tire pour agrandir ou rétrécir (double-clic : taille de départ)"
+        className="absolute -right-1 top-0 z-30 h-full w-2 cursor-col-resize hover:bg-[var(--accent)] hover:opacity-40"
+        onPointerDown={startDrag}
+        onDoubleClick={reset}
+      />
       <AppMenu />
       <Item active={view === 'home'} onClick={() => show('home')}>
         <Home size={14} /> Accueil
