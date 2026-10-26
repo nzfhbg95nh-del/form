@@ -350,10 +350,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }
   }, [tool]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Remplissage et contour : on les change pour les objets choisis (le moteur pour les tracés, nous pour les anciennes formes) et pour les prochains. */
+  /** Remplissage et contour : on les change pour les formes et tracés choisis (tout de suite, même si le moteur n'est pas lancé : outil Sélection) et pour les prochains. */
   const changePaint = (next: PaintStyle) => {
     setPaint(next)
-    const legacy = itemsRef.current.filter((i) => selRef.current.has(i.id) && i.kind === 'shape' && i.shape !== 'path')
+    const legacy = itemsRef.current.filter((i) => selRef.current.has(i.id) && i.kind === 'shape')
     if (legacy.length > 0) {
       const ids = new Set(legacy.map((i) => i.id))
       commitItems(itemsRef.current.map((it) => (ids.has(it.id) ? { ...it, fill: next.fill ?? 'none', color: next.stroke ?? it.color, sw: next.stroke ? next.sw : 0, filled: undefined } : it)))
