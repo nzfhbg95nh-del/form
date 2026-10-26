@@ -79,14 +79,16 @@ html.floating #root {
   white-space: nowrap;
   gap: 6px;
   padding: 7px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--bg);
+  border: 1px solid transparent;
+  border-radius: 10px;
+  /* Un bloc teinté sans contour (comme les blocs de la maquette Coffee / Milk) : il se devine au fond, devient plus sombre au survol, prend la couleur de l'accent quand il est actif. */
+  background: color-mix(in srgb, var(--fg) 6%, transparent);
   color: var(--fg);
   font-size: 14px;
   cursor: pointer;
 }
-.btn:hover:not(:disabled) { background: var(--bg-hover); }
+.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 11%, transparent); }
+.btn[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
 .btn:disabled { opacity: 0.5; cursor: default; }
 .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
 .btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
@@ -114,7 +116,6 @@ button, a, [role="menuitem"], input, select, textarea {
 }
 /* Un appui se sent : le bouton s'enfonce très légèrement. */
 button:active:not(:disabled), .btn:active:not(:disabled) { transform: scale(0.97); }
-.btn { border-radius: 8px; }
 .btn-primary { box-shadow: 0 1px 2px rgba(35, 131, 226, 0.35); }
 /* Les cartes cliquables se soulèvent au survol (pages récentes, chiffres de l'accueil…). */
 button.rounded-lg.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
@@ -133,3 +134,15 @@ main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backward
 /* Tableaux : un peu d'air entre le bord d'une ligne (survol, sélection) et son contenu, à gauche comme à droite. */
 table.w-full.border-collapse > thead > tr > :first-child, table.w-full.border-collapse > tbody > tr > :first-child { padding-left: 0.75rem; }
 table.w-full.border-collapse > thead > tr > :last-child, table.w-full.border-collapse > tbody > tr > :last-child { padding-right: 0.75rem; }
+
+/* Barres de la bibliothèque : décompte en petites capitales à chasse fixe, champs de recherche teintés, curseurs à poignée blanche (comme la barre Coffee / Milk). */
+.lib-count { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
+.lib-input { border-color: transparent !important; background: color-mix(in srgb, var(--fg) 6%, transparent) !important; }
+.lib-input:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
+.lib-hint { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px !important; letter-spacing: 0.02em; background: color-mix(in srgb, var(--accent) 8%, var(--bg)) !important; border-color: color-mix(in srgb, var(--accent) 22%, transparent) !important; backdrop-filter: blur(8px); }
+input[type="range"] {
+  -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; outline: none; cursor: ew-resize;
+  background: linear-gradient(to right, color-mix(in srgb, var(--accent) 38%, transparent) var(--p, 0%), color-mix(in srgb, var(--fg) 12%, transparent) var(--p, 0%));
+}
+input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 6px; height: 22px; border-radius: 999px; background: var(--fg); box-shadow: 0 0 0 3px var(--bg), var(--shadow-soft); transition: transform 0.15s var(--ease-out-soft); }
+input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }

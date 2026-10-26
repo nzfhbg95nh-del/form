@@ -643,7 +643,7 @@ export function MapView() {
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
         <h1 className="text-base font-semibold">Carte</h1>
-        <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>
+        <span className="lib-count">
           {status === 'ready' && pts ? `${pts.ids.length.toLocaleString('fr-FR')} images${missing > 0 ? ` · ${missing.toLocaleString('fr-FR')} pas encore analysées par l'IA` : ''}` : ''}
         </span>
         <div className="ml-auto flex items-center gap-2">
@@ -708,7 +708,7 @@ export function MapView() {
         )}
 
         {status === 'ready' && !focus && (
-          <div className="pointer-events-none absolute left-3 top-3 max-w-sm rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--bg)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
+          <div className="lib-hint pointer-events-none absolute left-3 top-3 max-w-sm rounded-xl px-3 py-2" style={{ background: 'var(--bg)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
             Les images proches se ressemblent. Molette : zoomer · glisser : se déplacer · clic sur une image : voir ce qu'il y a autour.
           </div>
         )}
