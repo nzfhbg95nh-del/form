@@ -746,3 +746,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Supprimer un point : les voisins gardent leur direction et leurs poignées sont recalculées (moindres carrés) pour qu'une seule courbe suive les deux segments ; deux segments droits n'en font qu'un.
 - Crayon : les bouts d'un tracé ouvert n'ont plus de poignée.
 - Tests : 609. Pas repris : aimantation aux repères intelligents, étoile du curseur « nouveau tracé », éléments de fusion.
+
+## 2026-10-26 — Outils de dessin = le moteur de VectorCraft, réutilisé tel quel (après la v0.47.2, pas encore publié)
+- Demande de Victor : « réutilise les outils du GitHub, ne les réécris pas ». Mes versions TypeScript de la plume, de la flèche blanche, de l'ajout/suppression/conversion de point, du crayon, du lisseur, de la gomme et de la jonction sont **supprimées**.
+- À la place : `vectorcraft-engine` (dépôt storytold/vectorcraft, MIT ou Apache-2.0, version figée par son commit dans `src-tauri/Cargo.toml`) tourne côté Rust (`src-tauri/src/vector.rs` : commandes `vc_load`, `vc_tool`, `vc_pointer`, `vc_key`, `vc_close`). Le moteur reçoit les tracés du moodboard et les gestes de la souris, renvoie les tracés modifiés, les dessins à poser par-dessus (points, poignées, repères « anchor » / « handle », rectangle de sélection) et la forme du curseur.
+- Côté écran : `src/lib/vectorEngine.ts` (pont, un seul déplacement en attente à la fois), `src/components/VectorOverlay.tsx` (dessins et curseurs), `MoodboardView.tsx` n'a plus que l'aiguillage des gestes.
+- Outils du moteur branchés : plume (P), flèche blanche (A, ou Ctrl avec la plume), ajout/suppression de point, conversion de point (Maj+C), crayon (N), lisseur, gomme de tracé, jonction. Tout le reste de la liste de VectorCraft (formes, texte sur tracé, Shaper, ciseaux, transformations…) est disponible côté moteur mais pas encore branché.
+- Attribution : `docs/THIRD-PARTY-VECTORCRAFT.md` et `docs/LICENSE-VECTORCRAFT-MIT.txt`.
+- Conséquence : la première compilation de Form est plus longue et l'appli plus lourde (le moteur embarque aussi les lecteurs PDF/SVG de VectorCraft).

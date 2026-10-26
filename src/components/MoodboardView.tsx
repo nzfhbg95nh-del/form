@@ -13,9 +13,9 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
-import { anchor, dedupePoints, dragHandle, itemPathD, penToItem, type PenPoint } from '@/lib/boardPath'
-import { endpointNear, eraseAt, fitSmooth, joinEnds, pencilToPath, simplifyPolyline, smoothAround } from '@/lib/boardPathTools'
-import { constrainAngle, insertAnchor, moveAnchors, moveHandle, nearestOnPath, rebuildPathItem, removeAnchorsFit, reshapeSegment, toCorner, worldPoints } from '@/lib/boardPathEdit'
+import { itemPathD } from '@/lib/boardPath'
+import { applyVcPaths, ENGINE_TOOLS, isEngineTool, isPathItem, itemToVcPath, VectorSession, type VcKind, type VcMods, type VcOut, type VcOverlay } from '@/lib/vectorEngine'
+import { VectorOverlay, vectorCursor } from '@/components/VectorOverlay'
 import { cornerRadius, DASHES, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeFromDrag, shapeStyleOf, starPoints, type ShapeStyle } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
@@ -41,12 +41,7 @@ type Drag =
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
   | { type: 'text'; start: Pt; end: Pt }
   | { type: 'shape'; start: Pt; end: Pt }
-  | { type: 'pen'; last: Pt }
-  | { type: 'pencil'; pts: Pt[] }
-  | { type: 'smooth'; work: BoardItem[] }
-  | { type: 'erase'; work: BoardItem[] }
-  | { type: 'join'; id: string; end: 'start' | 'end'; from: Pt }
-  | { type: 'node'; mode: 'anchor' | 'handle' | 'segment' | 'convert' | 'close' | 'lastOut'; id: string | null; closed: boolean; base: PenPoint[]; start: Pt; idx: number; which?: 'in' | 'out'; seg?: number; t?: number; alt: boolean; moved: boolean; sel: Set<number> }
+  | { type: 'engine' }
 
 /** Couleurs proposées pour les formes et les textes. */
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
@@ -87,20 +82,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [flyout, setFlyout] = useState<null | 'shape' | 'pen' | 'pencil'>(null)
   const [penVariant, setPenVariant] = useState<(typeof PEN_TOOLS)[number][0]>('pen')
   const [pencilVariant, setPencilVariant] = useState<(typeof PENCIL_TOOLS)[number][0]>('pencil')
-  const [pencilPts, setPencilPts] = useState<Pt[]>([])
-  const [joinLine, setJoinLine] = useState<{ from: Pt; to: Pt } | null>(null)
-  // Plume : les points posés (en coordonnées de la toile) et la position de la souris, pour montrer le segment en cours.
-  const [penPts, setPenPts] = useState<PenPoint[]>([])
-  const penRef = useRef<PenPoint[]>([])
-  const [penCursor, setPenCursor] = useState<Pt | null>(null)
-  const setPen = (pts: PenPoint[]) => { penRef.current = pts; setPenPts(pts) }
-  // Points d'ancrage sélectionnés (outil Sélection directe), et tracé existant qu'on prolonge avec la plume.
-  const [nodeSel, setNodeSel] = useState<Set<number>>(new Set())
-  const nodeSelRef = useRef<Set<number>>(new Set())
-  const setNodes = (v: Set<number>) => { nodeSelRef.current = v; setNodeSel(v) }
-  const [penEditId, setPenEditId] = useState<string | null>(null)
-  const penEditRef = useRef<string | null>(null)
-  const setPenEdit = (id: string | null) => { penEditRef.current = id; setPenEditId(id) }
+  // Moteur de dessin (VectorCraft) : sa conversation, ce qu'il demande de dessiner par-dessus, la forme du curseur, et les éléments tels qu'il les connaît.
+  const vc = useRef<VectorSession>(new VectorSession())
+  const [vcOverlays, setVcOverlays] = useState<VcOverlay[]>([])
+  const [vcCursor, setVcCursor] = useState('default')
+  const vcItems = useRef<BoardItem[] | null>(null)
   const longPress = useRef<{ timer: number | undefined; fired: boolean }>({ timer: undefined, fired: false })
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
@@ -308,242 +294,66 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'text' ? fit({ ...it, ...patch }) : it)))
   }
 
-  /** Termine le tracé de la plume : `closed` si on revient au premier point ; sinon le tracé reste ouvert. */
+  // ── Outils de dessin vectoriel (le moteur de VectorCraft) ──
+  const engine = isEngineTool(tool) ? tool : null
+  const presentRef = useRef(hist.present)
+  presentRef.current = hist.present
+  const resolvedPenStyle = (): ShapeStyle => ({ ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color })
+  const modsOf = (e: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }): VcMods => ({ shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey || e.metaKey, space: spaceDown })
+  const toolOfEngine = (id: string): Tool => (Object.entries(ENGINE_TOOLS).find(([, v]) => v === id)?.[0] as Tool | undefined) ?? 'select'
+
+  /** Applique la réponse du moteur : les tracés (provisoirement pendant un geste, pour de bon à la fin), les dessins par-dessus, le curseur et la sélection. */
+  const vcApply = (out: VcOut | null, kind: string) => {
+    if (!out || !engine) return
+    setVcOverlays(out.overlays)
+    setVcCursor(out.cursor)
+    const base = presentRef.current
+    const next = applyVcPaths(kind === 'move' ? base : itemsRef.current, out.paths, resolvedPenStyle())
+    const changed = next.length !== base.length || next.some((it, i) => it !== base[i])
+    const final = kind === 'up' || kind === 'double' || kind === 'key'
+    if (final) {
+      setLive(null)
+      if (changed) { vcItems.current = next; commitItems(next) }
+    } else if (kind !== 'move') setLive(changed ? next : null)
+    if (kind !== 'move') {
+      selRef.current = new Set(out.selected)
+      setSelection(new Set(out.selected))
+    }
+    if (out.status) say(out.status)
+    if (out.switch_tool) setTool(toolOfEngine(out.switch_tool))
+  }
+
+  /** Envoie un geste au moteur (en le remettant d'abord à jour avec les tracés du moodboard si ceux-ci ont changé depuis, par exemple après Annuler). */
+  const vcSend = (kind: VcKind, world: Pt, e: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
+    if (!engine) return
+    const s = vc.current
+    const zoomNow = viewRef.current.zoom
+    if (kind === 'down' && (!s.loaded || vcItems.current !== presentRef.current)) {
+      vcItems.current = presentRef.current
+      void s.load(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, zoomNow)
+    }
+    void s.pointer(kind, world.x, world.y, modsOf(e), zoomNow).then((out) => vcApply(out, kind))
+  }
+
+  // Un outil du moteur choisi : le moteur démarre avec les tracés du moodboard ; un autre outil : il s'arrête.
   useEffect(() => {
-    if (tool !== 'pen' && penRef.current.length > 0) finishPen(false)
-    nodeSelRef.current = new Set()
-    setNodeSel(new Set())
-  }, [tool])
-  useEffect(() => { nodeSelRef.current = new Set(); setNodeSel(new Set()) }, [selection])
-
-  const finishPen = (closed: boolean): BoardItem | null => {
-    const pts = dedupePoints(penRef.current)
-    const editId = penEditRef.current
-    setPen([])
-    setPenCursor(null)
-    setPenEdit(null)
-    if (pts.length < 2) return null
-    const base = editId ? itemsRef.current.find((i) => i.id === editId) : undefined
-    const sh = base ? rebuildPathItem(base, pts, closed) : penToItem(pts, closed, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color })
-    commitItems(base ? itemsRef.current.map((i) => (i.id === sh.id ? sh : i)) : [...itemsRef.current, sh])
-    setSelection(new Set([sh.id]))
-    return sh
-  }
-
-  /** Relie le tracé en cours à un autre tracé ouvert, dont on a cliqué un bout : les deux n'en font plus qu'un. */
-  const joinDraftTo = (other: { id: string; end: 'start' | 'end'; pts: PenPoint[] }) => {
-    const otherItem = itemsRef.current.find((i) => i.id === other.id)
-    const dpts = dedupePoints(penRef.current)
-    const baseId = penEditRef.current
-    setPen([])
-    setPenCursor(null)
-    setPenEdit(null)
-    if (!otherItem || dpts.length < 1) return
-    const merged = rebuildPathItem(otherItem, joinEnds(dpts, 'end', other.pts, other.end, 4 / viewRef.current.zoom), false)
-    commitItems(itemsRef.current.filter((i) => i.id !== baseId).map((i) => (i.id === merged.id ? merged : i)))
-    setSelection(new Set([merged.id]))
-  }
-
-  /** Abandonne le tracé en cours (le tracé qu'on prolongeait reste tel qu'il était). */
-  const cancelPen = () => { setPen([]); setPenCursor(null); setPenEdit(null) }
-
-  // ── Modifier les points d'un tracé (comme Illustrator : Ctrl = flèche blanche, Alt = convertir un point).
-  /** Le tracé qu'on peut modifier : celui qu'on est en train de dessiner, ou le tracé sélectionné. */
-  const pathTarget = (): { pts: PenPoint[]; closed: boolean; id: string | null } | null => {
-    if (penRef.current.length > 0) return { pts: penRef.current, closed: false, id: null }
-    const sel = itemsRef.current.filter((i) => selRef.current.has(i.id))
-    const one = sel.length === 1 ? sel[0] : null
-    if (one && one.kind === 'shape' && one.shape === 'path' && one.path) return { pts: worldPoints(one), closed: !!one.closed, id: one.id }
-    return null
-  }
-  /** Applique de nouveaux points : au tracé en cours, ou à l'élément (provisoirement pendant un glisser, ou pour de bon). */
-  const applyPts = (id: string | null, closed: boolean, pts: PenPoint[], final: boolean) => {
-    if (id === null) { setPen(pts); return }
-    const next = itemsRef.current.map((i) => (i.id === id ? rebuildPathItem(i, pts, closed) : i))
-    if (final) commitItems(next)
-    else setLive(next)
-  }
-  /** Ce qui se trouve sous la souris : une poignée (des points sélectionnés), un point d'ancrage ou un morceau de courbe. */
-  const hitNode = (pts: PenPoint[], closed: boolean, world: Pt, isDraft: boolean) => {
-    const zoom = viewRef.current.zoom
-    const r = 8 / zoom
-    const shown = new Set(nodeSelRef.current)
-    if (isDraft && pts.length > 0) shown.add(pts.length - 1)
-    for (const i of shown) {
-      const q = pts[i]
-      if (!q) continue
-      if ((q.ox || q.oy) && Math.hypot(q.x + q.ox - world.x, q.y + q.oy - world.y) < r) return { kind: 'handle' as const, idx: i, which: 'out' as const }
-      if ((q.ix || q.iy) && Math.hypot(q.x + q.ix - world.x, q.y + q.iy - world.y) < r) return { kind: 'handle' as const, idx: i, which: 'in' as const }
+    const s = vc.current
+    if (engine) {
+      const present = presentRef.current
+      vcItems.current = present
+      void s.load(present.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom).then((out) => {
+        setVcOverlays(out.overlays)
+        setVcCursor(out.cursor)
+      })
+    } else if (s.loaded) {
+      void s.close()
+      setVcOverlays([])
     }
-    for (let i = pts.length - 1; i >= 0; i--) if (Math.hypot(pts[i].x - world.x, pts[i].y - world.y) < r) return { kind: 'anchor' as const, idx: i }
-    const near = nearestOnPath(pts, closed, world)
-    if (near && near.dist * zoom < 6) return { kind: 'segment' as const, seg: near.seg, t: near.t }
-    return null
-  }
-  /** Un appui sur un tracé : renvoie vrai si on s'en est occupé. `direct` : flèche blanche ; `convert` : Alt ; `pen` : la plume sur un tracé sélectionné (ajouter, retirer un point, prolonger). */
-  const nodePointerDown = (e: React.PointerEvent<HTMLDivElement>, world: Pt, mode: 'direct' | 'convert' | 'pen'): boolean => {
-    const target = pathTarget()
-    if (!target) return false
-    const hit = hitNode(target.pts, target.closed, world, target.id === null)
-    if (!hit) return false
-    const { pts, closed, id } = target
-    if (mode === 'pen') {
-      if (id === null || e.shiftKey) return false
-      if (hit.kind === 'anchor') {
-        if (!closed && (hit.idx === 0 || hit.idx === pts.length - 1)) {
-          // le bout d'un tracé ouvert : on continue à dessiner à partir de là
-          const flip = (q: PenPoint): PenPoint => ({ ...q, ix: q.ox, iy: q.oy, ox: q.ix, oy: q.iy })
-          setPenEdit(id)
-          setPen(hit.idx === 0 ? [...pts].reverse().map(flip) : pts)
-          setSelection(new Set())
-        } else {
-          const rest = removeAnchorsFit(pts, closed, new Set([hit.idx]))
-          if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== id)); setSelection(new Set()) }
-          else applyPts(id, closed, rest, true)
-          setNodes(new Set())
-        }
-        return true
-      }
-      if (hit.kind === 'segment') {
-        const out = insertAnchor(pts, closed, hit.seg, hit.t)
-        applyPts(id, closed, out.pts, true)
-        setNodes(new Set([out.index]))
-        return true
-      }
-      return false
-    }
-    const base = { type: 'node' as const, id, closed, base: pts, start: world, alt: mode === 'convert', moved: false }
-    if (hit.kind === 'handle') {
-      dragRef.current = { ...base, mode: 'handle', idx: hit.idx, which: hit.which, alt: true && mode === 'convert', sel: new Set(nodeSelRef.current) }
-    } else if (hit.kind === 'anchor') {
-      let sel = new Set(nodeSelRef.current)
-      if (mode === 'convert') sel = new Set([hit.idx])
-      else if (e.shiftKey) { if (sel.has(hit.idx)) sel.delete(hit.idx); else sel.add(hit.idx) }
-      else if (!sel.has(hit.idx)) sel = new Set([hit.idx])
-      setNodes(sel)
-      dragRef.current = { ...base, mode: mode === 'convert' ? 'convert' : 'anchor', idx: hit.idx, sel }
-    } else {
-      dragRef.current = { ...base, mode: 'segment', idx: hit.seg, seg: hit.seg, t: hit.t, sel: new Set() }
-    }
-    e.currentTarget.setPointerCapture(e.pointerId)
-    return true
-  }
-  const isPathItem = (i: BoardItem) => i.kind === 'shape' && i.shape === 'path' && !!i.path
-  /** Le tracé le plus haut sous la souris (près de sa courbe ou d'un de ses points), avec ses points sur la toile. */
-  const pathUnder = (world: Pt) => {
-    const zoom = viewRef.current.zoom
-    const list = itemsRef.current
-    for (let k = list.length - 1; k >= 0; k--) {
-      const it = list[k]
-      if (!isPathItem(it)) continue
-      const pts = worldPoints(it)
-      const near = nearestOnPath(pts, !!it.closed, world)
-      const anchorHit = pts.findIndex((q) => Math.hypot(q.x - world.x, q.y - world.y) * zoom < 8)
-      if (anchorHit >= 0 || (near && near.dist * zoom < 8)) return { item: it, pts, near, anchorHit }
-    }
-    return null
-  }
-  /** Outils « Ajouter » et « Supprimer un point d'ancrage ». */
-  const anchorToolClick = (kind: 'addAnchor' | 'deleteAnchor', world: Pt) => {
-    const u = pathUnder(world)
-    if (!u) return
-    const closed = !!u.item.closed
-    const replace = (pts: PenPoint[]) => commitItems(itemsRef.current.map((i) => (i.id === u.item.id ? rebuildPathItem(i, pts, closed) : i)))
-    selRef.current = new Set([u.item.id])
-    setSelection(new Set([u.item.id]))
-    if (kind === 'addAnchor') {
-      if (u.anchorHit >= 0 || !u.near) return
-      const out = insertAnchor(u.pts, closed, u.near.seg, u.near.t)
-      replace(out.pts)
-      setNodes(new Set([out.index]))
-    } else {
-      if (u.anchorHit < 0) return
-      const rest = removeAnchorsFit(u.pts, closed, new Set([u.anchorHit]))
-      if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== u.item.id)); setSelection(new Set()) } else replace(rest)
-      setNodes(new Set())
-    }
-  }
-  /** Lisseur : les points proches de la souris se rapprochent de la moyenne de leurs voisins. */
-  const smoothAt = (world: Pt, work: BoardItem[]): BoardItem[] => {
-    const r = 18 / viewRef.current.zoom
-    return work.map((it) => {
-      if (!isPathItem(it)) return it
-      const pts = worldPoints(it)
-      const out = smoothAround(pts, !!it.closed, world, r, 0.5)
-      return out === pts ? it : rebuildPathItem(it, out, !!it.closed)
-    })
-  }
-  /** Gomme de tracé : coupe les tracés touchés ; un tracé coupé en deux donne deux éléments. */
-  const eraseAtPoint = (world: Pt, work: BoardItem[]): BoardItem[] => {
-    const r = 7 / viewRef.current.zoom
-    const out: BoardItem[] = []
-    for (const it of work) {
-      const pieces = isPathItem(it) ? eraseAt(worldPoints(it), !!it.closed, world, r) : null
-      if (!pieces) { out.push(it); continue }
-      pieces.forEach((pc, k) => out.push(rebuildPathItem(k === 0 ? it : { ...it, id: newId() }, pc, false)))
-    }
-    return out
-  }
-  /** Le bout d'un tracé ouvert près de la souris (sauf `skip`). */
-  const joinEndAt = (world: Pt, skip?: { id: string; end: 'start' | 'end' }) => {
-    const list = itemsRef.current
-    for (let k = list.length - 1; k >= 0; k--) {
-      const it = list[k]
-      if (!isPathItem(it) || it.closed) continue
-      const pts = worldPoints(it)
-      const hit = endpointNear(pts, false, world, 12 / viewRef.current.zoom)
-      if (hit && !(skip && skip.id === it.id && skip.end === hit.end)) return { id: it.id, end: hit.end, pts }
-    }
-    return null
-  }
-  /** Fin de l'outil Jonction : on relie les deux bouts (ou on ferme le tracé si c'est le même). */
-  const finishJoin = (from: { id: string; end: 'start' | 'end' }, world: Pt) => {
-    const a = itemsRef.current.find((i) => i.id === from.id)
-    if (!a) return
-    const A = worldPoints(a)
-    // glisser jusqu'à un autre bout ; ou simple clic : on cherche un autre bout tout près du premier
-    const target = joinEndAt(world, from) ?? joinEndAt(from.end === 'start' ? A[0] : A[A.length - 1], from)
-    if (!target) return
-    const mergeDist = 4 / viewRef.current.zoom
-    if (target.id === from.id) {
-      const closedItem = rebuildPathItem(a, A, true)
-      commitItems(itemsRef.current.map((i) => (i.id === a.id ? closedItem : i)))
-      setSelection(new Set([a.id]))
-      return
-    }
-    const merged = rebuildPathItem(a, joinEnds(A, from.end, target.pts, target.end, mergeDist), false)
-    commitItems(itemsRef.current.filter((i) => i.id !== target.id).map((i) => (i.id === a.id ? merged : i)))
-    setSelection(new Set([a.id]))
-  }
-  /** Fin du Crayon : les points relevés sont simplifiés puis lissés en courbes ; un geste qui revient à son départ ferme le tracé. */
-  const finishPencil = (raw: Pt[]) => {
-    setPencilPts([])
-    if (raw.length < 3) return
-    const zoom = viewRef.current.zoom
-    const tol = 2.5 / zoom
-    const simp = simplifyPolyline(raw, tol)
-    const closed = simp.length >= 4 && Math.hypot(raw[0].x - raw[raw.length - 1].x, raw[0].y - raw[raw.length - 1].y) * zoom < 10
-    const pts = closed ? fitSmooth(simp.slice(0, -1), true) : pencilToPath(raw, tol)
-    if (pts.length < 2) return
-    const sh = penToItem(pts, closed, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color })
-    commitItems([...itemsRef.current, sh])
-    setSelection(new Set([sh.id]))
-  }
-
-  /** Retire les points sélectionnés du tracé sélectionné ; renvoie vrai s'il y avait quelque chose à retirer. */
-  const removeSelectedNodes = (): boolean => {
-    const target = pathTarget()
-    if (!target || target.id === null || nodeSelRef.current.size === 0) return false
-    const rest = removeAnchorsFit(target.pts, target.closed, nodeSelRef.current)
-    if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== target.id)); setSelection(new Set()) }
-    else applyPts(target.id, target.closed, rest, true)
-    setNodes(new Set())
-    return true
-  }
+  }, [tool]) // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Change le style des formes sélectionnées, et celui des prochaines formes. */
   const setShapeProps = (patch: Partial<ShapeStyle>) => {
-    if (tool === 'pen') setPenStyle((prev) => ({ ...prev, ...patch }))
+    if (engine) setPenStyle((prev) => ({ ...prev, ...patch }))
     else setShapeStyle((prev) => ({ ...prev, ...patch }))
     if (selRef.current.size === 0) return
     commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'shape' ? restyleShape(it, patch) : it)))
@@ -698,81 +508,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return
     }
 
-    if (tool === 'addAnchor' || tool === 'deleteAnchor') { anchorToolClick(tool, world); return }
-    if (tool === 'convert') {
-      const u = pathUnder(world)
-      if (u) { selRef.current = new Set([u.item.id]); setSelection(new Set([u.item.id])) }
-      if (!nodePointerDown(e, world, 'convert')) setSelection(new Set())
-      return
-    }
-    if (tool === 'pencil') {
-      setSelection(new Set())
-      dragRef.current = { type: 'pencil', pts: [world] }
-      setPencilPts([world])
+    if (engine) {
       e.currentTarget.setPointerCapture(e.pointerId)
-      return
-    }
-    if (tool === 'smooth' || tool === 'eraser') {
-      setSelection(new Set())
-      const work = tool === 'smooth' ? smoothAt(world, itemsRef.current) : eraseAtPoint(world, itemsRef.current)
-      dragRef.current = tool === 'smooth' ? { type: 'smooth', work } : { type: 'erase', work }
-      setLive(work)
-      e.currentTarget.setPointerCapture(e.pointerId)
-      return
-    }
-    if (tool === 'join') {
-      const hit = joinEndAt(world)
-      if (!hit) return
-      const from = hit.end === 'start' ? hit.pts[0] : hit.pts[hit.pts.length - 1]
-      dragRef.current = { type: 'join', id: hit.id, end: hit.end, from }
-      setJoinLine({ from, to: world })
-      e.currentTarget.setPointerCapture(e.pointerId)
-      return
-    }
-
-    // Plume sans rien dans la main : cliquer le bout d'un tracé ouvert le prolonge (comme Illustrator).
-    if (tool === 'pen' && penRef.current.length === 0 && !e.altKey && !e.ctrlKey) {
-      const cont = joinEndAt(world)
-      if (cont) {
-        const flip = (q: PenPoint): PenPoint => ({ ...q, ix: q.ox, iy: q.oy, ox: q.ix, oy: q.iy })
-        setPenEdit(cont.id)
-        setPen(cont.end === 'start' ? [...cont.pts].reverse().map(flip) : cont.pts)
-        setSelection(new Set())
-        setNodes(new Set())
-        return
-      }
-    }
-    const nodeMode = tool === 'direct' ? 'direct' : tool === 'pen' && e.altKey ? 'convert' : tool === 'pen' && e.ctrlKey ? 'direct' : tool === 'pen' && penRef.current.length === 0 ? 'pen' : null
-    if (nodeMode && nodePointerDown(e, world, nodeMode)) return
-    if (tool === 'pen' && e.ctrlKey && penRef.current.length > 0) { finishPen(false); return }
-
-    if (tool === 'pen') {
-      setSelection(new Set())
-      setNodes(new Set())
-      const pts = penRef.current
-      const nearPx = (q: PenPoint) => Math.hypot(world.x - q.x, world.y - q.y) * v.zoom
-      // Un clic sur le premier point ferme le tracé ; en glissant, on façonne la courbe de fermeture.
-      if (pts.length >= 2 && nearPx(pts[0]) < 9) {
-        const closedItem = finishPen(true)
-        if (closedItem) {
-          dragRef.current = { type: 'node', mode: 'close', id: closedItem.id, closed: true, base: worldPoints(closedItem), start: world, idx: 0, alt: false, moved: false, sel: new Set() }
-          e.currentTarget.setPointerCapture(e.pointerId)
-        }
-        return
-      }
-      // Un clic sur le bout d'un autre tracé ouvert : les deux tracés n'en font plus qu'un.
-      const other = joinEndAt(world)
-      if (other && other.id !== penEditRef.current && pts.length >= 1) { joinDraftTo(other); return }
-      // Un clic sur le dernier point retire sa poignée de sortie ; glisser en sort une nouvelle.
-      if (pts.length >= 2 && nearPx(pts[pts.length - 1]) < 9) {
-        dragRef.current = { type: 'node', mode: 'lastOut', id: null, closed: false, base: pts, start: world, idx: pts.length - 1, alt: false, moved: false, sel: new Set() }
-        e.currentTarget.setPointerCapture(e.pointerId)
-        return
-      }
-      const at = e.shiftKey && pts.length > 0 ? constrainAngle(pts[pts.length - 1], world) : world
-      setPen([...pts, anchor(at.x, at.y)])
-      dragRef.current = { type: 'pen', last: world }
-      e.currentTarget.setPointerCapture(e.pointerId)
+      dragRef.current = { type: 'engine' }
+      vcSend('down', world, e)
       return
     }
 
@@ -838,7 +577,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     lastPt.current = local(e)
     const d = dragRef.current
-    if (tool === 'pen' && penRef.current.length > 0) setPenCursor(screenToWorld(viewRef.current, local(e)))
+    if (engine) { vcSend(d ? 'drag' : 'move', screenToWorld(viewRef.current, local(e)), e); return }
     if (!d) return
     const pt = local(e)
     const v = viewRef.current
@@ -880,49 +619,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (e.shiftKey) delta = snapRotation(d.base + delta) - d.base
       setLive(rotateItems(d.items, d.ids, d.center, delta))
       setFlash(`${Math.round((((d.base + delta) % 360) + 360) % 360)}°`)
-    } else if (d.type === 'pen') {
-      // Glisser après le clic : on tire les poignées du point qu'on vient de poser (point lisse). Espace : on déplace le point ; Maj : angle de 45° ; Alt : poignées indépendantes.
-      const pts = [...penRef.current]
-      const last = pts[pts.length - 1]
-      if (last && spaceDown) {
-        pts[pts.length - 1] = { ...last, x: last.x + world.x - d.last.x, y: last.y + world.y - d.last.y }
-        d.last = world
-        setPen(pts)
-      } else if (last && Math.hypot(world.x - last.x, world.y - last.y) * v.zoom > 3) {
-        const wp = e.shiftKey ? constrainAngle(last, world) : world
-        d.last = world
-        pts[pts.length - 1] = dragHandle(last, wp.x, wp.y, !e.altKey)
-        setPen(pts)
-      }
-    } else if (d.type === 'pencil') {
-      const last = d.pts[d.pts.length - 1]
-      if (Math.hypot(world.x - last.x, world.y - last.y) * v.zoom > 1.5) {
-        d.pts.push(world)
-        setPencilPts([...d.pts])
-      }
-    } else if (d.type === 'smooth') {
-      d.work = smoothAt(world, d.work)
-      setLive(d.work)
-    } else if (d.type === 'erase') {
-      d.work = eraseAtPoint(world, d.work)
-      setLive(d.work)
-    } else if (d.type === 'join') {
-      setJoinLine({ from: d.from, to: world })
-    } else if (d.type === 'node') {
-      if (Math.hypot(world.x - d.start.x, world.y - d.start.y) * v.zoom > 3) d.moved = true
-      if (!d.moved) return
-      const w = e.shiftKey && d.mode === 'anchor' ? constrainAngle(d.start, world) : world
-      let pts: PenPoint[]
-      if (d.mode === 'anchor') pts = moveAnchors(d.base, d.sel, w.x - d.start.x, w.y - d.start.y)
-      else if (d.mode === 'handle') pts = moveHandle(d.base, d.idx, d.which ?? 'out', world.x, world.y, d.alt || e.altKey)
-      else if (d.mode === 'convert') pts = d.base.map((q, i) => (i === d.idx ? dragHandle(toCorner(q), world.x, world.y, true) : q))
-      else if (d.mode === 'close') pts = d.base.map((q, i) => (i === 0 ? { ...q, ix: -(world.x - q.x), iy: -(world.y - q.y), ...(e.altKey ? {} : { ox: world.x - q.x, oy: world.y - q.y }) } : q))
-      else if (d.mode === 'lastOut') {
-        const wp = e.shiftKey ? constrainAngle(d.base[d.idx], world) : world
-        pts = d.base.map((q, i) => (i === d.idx ? { ...q, ox: wp.x - q.x, oy: wp.y - q.y } : q))
-      }
-      else pts = reshapeSegment(d.base, d.seg ?? 0, d.t ?? 0.5, world.x - d.start.x, world.y - d.start.y)
-      applyPts(d.id, d.closed, pts, false)
     } else if (d.type === 'text' || d.type === 'shape') {
       d.end = world
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
@@ -943,14 +639,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (rect.w * zoomNow > 6 || rect.h * zoomNow > 6) addText({ x: rect.x, y: rect.y }, { w: Math.max(40, rect.w) })
       else addText(d.start)
     }
-    if (d.type === 'pencil') finishPencil(d.pts)
-    if (d.type === 'smooth' || d.type === 'erase') { if (live) commitItems(live) }
-    if (d.type === 'join') { setJoinLine(null); finishJoin({ id: d.id, end: d.end }, e ? screenToWorld(viewRef.current, local(e)) : d.from) }
-    if (d.type === 'node') {
-      if (!d.moved && d.mode === 'convert') applyPts(d.id, d.closed, d.base.map((q, i) => (i === d.idx ? toCorner(q) : q)), true)
-      else if (!d.moved && d.mode === 'lastOut') applyPts(d.id, d.closed, d.base.map((q, i) => (i === d.idx ? { ...q, ox: 0, oy: 0 } : q)), true)
-      else if (d.moved && d.id && live) commitItems(live)
-    }
+    if (d.type === 'engine' && e) vcSend('up', screenToWorld(viewRef.current, local(e)), e)
     if (d.type === 'shape') {
       const rect = normalizeRect(d.start, d.end)
       const big = rect.w * viewRef.current.zoom > 6 || rect.h * viewRef.current.zoom > 6
@@ -974,7 +663,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const onDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
     if (target.closest('[data-ui]') || target.tagName === 'TEXTAREA') return
-    if (tool === 'pen') { finishPen(false); return }
+    if (engine) { vcSend('double', screenToWorld(viewRef.current, local(e)), e); return }
     const world = screenToWorld(viewRef.current, local(e))
     const el = target.closest('[data-item]') as HTMLElement | null
     if (!el) { addNote({ x: world.x - 110, y: world.y - 70 }); return }
@@ -1056,12 +745,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     let handled = true
-    if (tool === 'pen' && penRef.current.length > 0 && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete')) {
-      // Entrée : terminer le tracé ; Retour arrière : retirer le dernier point.
-      if (e.key === 'Enter') finishPen(false)
-      else setPen(penRef.current.slice(0, -1))
-    } else if ((e.key === 'Delete' || e.key === 'Backspace') && (tool === 'direct' || tool === 'pen') && removeSelectedNodes()) {
-      // points retirés
+    if (engine && ['Enter', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      // Ces touches sont celles du moteur (Entrée et Échap terminent un tracé, Suppr retire les points choisis, les flèches les déplacent).
+      void vc.current.key(e.key, modsOf(e), viewRef.current.zoom).then((out) => vcApply(out, 'key'))
     } else if (e.key === ' ') setSpaceDown(true)
     else if (e.key === 'Delete' || e.key === 'Backspace') act.remove()
     else if (!mod && e.shiftKey && key === 'a') setMenu({ x: lastPt.current.x, y: lastPt.current.y, world: screenToWorld(viewRef.current, lastPt.current), mode: 'full', add: true })
@@ -1086,9 +772,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else if (!mod && key === 'h') setTool('hand')
     else if (!mod && key === 'v') setTool('select')
     else if (e.key === 'Escape') {
-      // Échap termine le tracé de la plume en le laissant ouvert ; sinon il désélectionne.
-      if (tool === 'pen' && penRef.current.length > 0) finishPen(false)
-      else { setSelection(new Set()); setMenu(null); setEditing(null); cancelPen(); setNodes(new Set()); setTool('select') }
+      setSelection(new Set()); setMenu(null); setEditing(null); setTool('select')
     }
     else if (e.key.startsWith('Arrow') && selRef.current.size > 0) {
       const step = e.shiftKey ? 10 : 1
@@ -1130,13 +814,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   // Fond : par défaut la couleur de l'application, avec de petits points très discrets, ou uni.
   const isDark = bg === 'theme' ? appTheme === 'dark' : readableOn(bg) === '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
-  // Le tracé de la plume en cours de dessin : un vrai élément dès le deuxième point, dessiné comme le tracé fini.
-  const draftItem: BoardItem | null = penPts.length >= 2
-    ? (() => {
-        const base = penEditId ? items.find((i) => i.id === penEditId) : undefined
-        return base ? rebuildPathItem(base, penPts, false) : { ...penToItem(penPts, false, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color }), id: 'pen-draft' }
-      })()
-    : null
   const bgColor = bg === 'theme' ? 'var(--bg)' : bg
   const step = 28 * view.zoom
   // Les petits points sont discrets : ils se devinent à peine.
@@ -1317,13 +994,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const selNotes = selected.some((i) => i.kind === 'note')
   const textSel = selected.filter((i) => i.kind === 'text')
   const shapeSel = selected.filter((i) => i.kind === 'shape')
-  // Un tracé de plume sélectionné (avec la plume ou la flèche blanche) : ses points s'affichent et se modifient.
-  const pointTool = tool === 'pen' || tool === 'direct' || tool === 'addAnchor' || tool === 'deleteAnchor' || tool === 'convert'
-  const editItem = pointTool && penPts.length === 0 && selected.length === 1 && selected[0].kind === 'shape' && selected[0].shape === 'path' && selected[0].path ? selected[0] : null
-  const editPts = pointTool ? (penPts.length > 0 ? penPts : editItem ? worldPoints(editItem) : null) : null
   // Le panneau du texte est posé en bas à droite de la toile (comme les panneaux d'Illustrator), et la palette de couleurs reste en haut à droite.
   const showTextPanel = !compact && textSel.length > 0 && !marquee && !live
-  const showShapePanel = !compact && !showTextPanel && (shapeSel.length > 0 || tool === 'shape' || tool === 'pen') && !marquee && !live
+  const showShapePanel = !compact && !showTextPanel && (shapeSel.length > 0 || tool === 'shape' || engine === 'pen' || engine === 'pencil') && !marquee && !live
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -1342,7 +1015,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : tool === 'shape' || tool === 'pen' || tool === 'pencil' || tool === 'eraser' || tool === 'smooth' || tool === 'join' ? 'crosshair' : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : tool === 'shape' ? 'crosshair' : engine ? vectorCursor(vcCursor) : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -1355,44 +1028,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       onDrop={onDrop}
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
-        {items.filter((i) => i.id !== penEditId).map((it) => renderItem(it))}
-        {draftItem && renderItem(draftItem, true)}
-        {tool === 'pencil' && pencilPts.length > 1 && (
-          <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
-            <polyline points={pencilPts.map((q) => `${q.x},${q.y}`).join(' ')} fill="none" stroke="#4da3ff" strokeWidth={1.5 / zoom} strokeLinejoin="round" strokeLinecap="round" />
-          </svg>
-        )}
-        {joinLine && (
-          <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
-            <line x1={joinLine.from.x} y1={joinLine.from.y} x2={joinLine.to.x} y2={joinLine.to.y} stroke="#4da3ff" strokeWidth={1.5 / zoom} strokeDasharray={`${4 / zoom} ${3 / zoom}`} />
-          </svg>
-        )}
-        {editPts && (() => {
-          const first = editPts[0]
-          const draft = penPts.length > 0
-          const closeNear = draft && penCursor && editPts.length >= 2 && Math.hypot(penCursor.x - first.x, penCursor.y - first.y) * zoom < 9
-          const k = 1 / zoom
-          const shown = new Set(nodeSel)
-          if (draft) shown.add(editPts.length - 1)
-          return (
-            <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
-              {[...shown].map((i) => {
-                const q = editPts[i]
-                if (!q) return null
-                return (
-                  <g key={'h' + i} stroke="#4da3ff" strokeWidth={k}>
-                    {(q.ox !== 0 || q.oy !== 0) && <><line x1={q.x} y1={q.y} x2={q.x + q.ox} y2={q.y + q.oy} /><circle cx={q.x + q.ox} cy={q.y + q.oy} r={3.5 * k} fill="#4da3ff" /></>}
-                    {(q.ix !== 0 || q.iy !== 0) && <><line x1={q.x} y1={q.y} x2={q.x + q.ix} y2={q.y + q.iy} /><circle cx={q.x + q.ix} cy={q.y + q.iy} r={3.5 * k} fill="#4da3ff" /></>}
-                  </g>
-                )
-              })}
-              {editPts.map((pt, i) => (
-                <rect key={i} x={pt.x - 3.5 * k} y={pt.y - 3.5 * k} width={7 * k} height={7 * k} fill={nodeSel.has(i) || (draft && i === editPts.length - 1) || (i === 0 && closeNear) ? '#4da3ff' : '#fff'} stroke="#4da3ff" strokeWidth={1.5 * k} />
-              ))}
-            </svg>
-          )
-        })()}
-        {frame && !marquee && !editing && !editItem && (
+        {items.map((it) => renderItem(it))}
+        {engine && <VectorOverlay overlays={vcOverlays} zoom={zoom} />}
+        {frame && !marquee && !editing && !engine && (
           <div style={{ position: 'absolute', left: frame.x, top: frame.y, width: frame.w, height: frame.h, transform: frame.rot ? `rotate(${frame.rot}deg)` : undefined, transformOrigin: 'center', outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }}>
             {/* Zones de rotation : juste à l'extérieur des coins */}
             {([['nw', -22 / zoom, -22 / zoom], ['ne', frame.w, -22 / zoom], ['se', frame.w, frame.h], ['sw', -22 / zoom, frame.h]] as const).map(([c, left, top]) => (

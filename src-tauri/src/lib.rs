@@ -2,6 +2,7 @@ mod backup;
 mod biblio;
 mod gemini;
 mod secrets;
+mod vector;
 
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
@@ -141,6 +142,7 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .manage(vector::VectorState::default())
         .setup(|app| {
             // Une restauration de sauvegarde demandée avant la fermeture s'applique ici, avant l'ouverture de la base.
             backup::apply_pending_restore(app.handle());
@@ -159,6 +161,11 @@ pub fn run() {
             backup::restart_app,
             backup::prune_backups,
             backup::default_backup_dir,
+            vector::vc_load,
+            vector::vc_tool,
+            vector::vc_pointer,
+            vector::vc_key,
+            vector::vc_close,
             gemini::gemini_generate,
             gemini::gemini_generate_video,
             gemini::gemini_models,

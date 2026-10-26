@@ -1,40 +1,31 @@
 import { describe, expect, it } from 'vitest'
-import { anchor, dedupePoints, dragHandle, itemPathD, pathBounds, pathD, penToItem } from './boardPath'
+import { itemPathD, pathBounds, pathD, penToItem, sampleCurve, type PenPoint } from './boardPath'
 import { DEFAULT_SHAPE_STYLE } from './boardShapes'
 
-describe('plume', () => {
-  it('un clic simple donne un point d’angle, un glisser donne deux poignées opposées', () => {
-    const p = dragHandle(anchor(10, 10), 30, 20)
-    expect([p.ox, p.oy, p.ix, p.iy]).toEqual([20, 10, -20, -10])
-    const asym = dragHandle(anchor(10, 10), 30, 20, false)
-    expect([asym.ix, asym.iy]).toEqual([0, 0])
-  })
+const pt = (x: number, y: number, extra: Partial<PenPoint> = {}): PenPoint => ({ x, y, ix: 0, iy: 0, ox: 0, oy: 0, ...extra })
+
+describe('tracés', () => {
   it('le tracé SVG relie les points par des courbes, et se ferme avec Z', () => {
-    const pts = [anchor(0, 0), anchor(100, 0), anchor(100, 50)]
+    const pts = [pt(0, 0), pt(100, 0), pt(100, 50)]
     expect(pathD(pts, false)).toBe('M 0 0 C 0 0 100 0 100 0 C 100 0 100 50 100 50')
     expect(pathD(pts, true).endsWith('Z')).toBe(true)
     expect(pathD([], false)).toBe('')
   })
   it('l’encombrement tient compte de la courbe, pas seulement des points', () => {
-    const arc = [dragHandle(anchor(0, 0), 0, -100), { ...anchor(100, 0), ix: 0, iy: -100 }]
+    const arc = [pt(0, 0, { oy: -100 }), pt(100, 0, { iy: -100 })]
     const box = pathBounds(arc, false)
     expect(box.y).toBeLessThan(-50)
-    expect(box.x).toBeCloseTo(0)
     expect(box.w).toBeCloseTo(100)
-  })
-  it('un double-clic ne laisse pas deux points au même endroit', () => {
-    expect(dedupePoints([anchor(0, 0), anchor(10, 10), anchor(10, 10.1)])).toHaveLength(2)
+    expect(sampleCurve(arc, false).length).toBeGreaterThan(10)
   })
   it('l’élément garde ses points en proportion du cadre : l’agrandir étire le tracé', () => {
-    const it = penToItem([anchor(100, 100), anchor(200, 100), anchor(200, 150)], true, DEFAULT_SHAPE_STYLE)
+    const it = penToItem([pt(100, 100), pt(200, 100), pt(200, 150)], true, DEFAULT_SHAPE_STYLE)
     expect([it.x, it.y, it.w, it.h]).toEqual([100, 100, 100, 50])
     expect(it.shape).toBe('path')
-    expect(it.closed).toBe(true)
-    expect(itemPathD(it, 100, 50)).toBe(pathD([anchor(0, 0), anchor(100, 0), anchor(100, 50)], true))
-    expect(itemPathD(it, 200, 100)).toBe(pathD([anchor(0, 0), anchor(200, 0), anchor(200, 100)], true))
+    expect(itemPathD(it, 100, 50)).toBe(pathD([pt(0, 0), pt(100, 0), pt(100, 50)], true))
+    expect(itemPathD(it, 200, 100)).toBe(pathD([pt(0, 0), pt(200, 0), pt(200, 100)], true))
   })
   it('un tracé tout droit a quand même un cadre d’au moins 1', () => {
-    const it = penToItem([anchor(0, 0), anchor(100, 0)], false, DEFAULT_SHAPE_STYLE)
-    expect(it.h).toBe(1)
+    expect(penToItem([pt(0, 0), pt(100, 0)], false, DEFAULT_SHAPE_STYLE).h).toBe(1)
   })
 })

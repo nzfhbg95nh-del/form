@@ -32,3 +32,16 @@ sha2 = "0.10"
 base64 = "0.22"
 trash = "5"
 regex = "1"
+
+# Outils de dessin vectoriel (plume, flèche blanche, crayon…) : le moteur de VectorCraft (MIT ou Apache-2.0), utilisé tel quel.
+vectorcraft-engine = { git = "https://github.com/storytold/vectorcraft", rev = "e2a8280134a7c3c9b4e117ee668b9b3e7eb3e315", default-features = false }
+vectorcraft-geom = { git = "https://github.com/storytold/vectorcraft", rev = "e2a8280134a7c3c9b4e117ee668b9b3e7eb3e315" }
+
+# Les mêmes versions modifiées que VectorCraft utilise pour la lecture des PDF (nécessaires pour compiler son moteur).
+[patch.crates-io]
+hayro-syntax = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }
+hayro-interpret = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }
+hayro-jbig2 = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }
+hayro-cmap = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }
+hayro-postscript = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }
+krilla = { git = "https://github.com/storytold/craft-libs", rev = "a0916808f7d78bed8c7b90cdf937176015454a7f" }

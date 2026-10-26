@@ -14,15 +14,6 @@ export interface PenPoint {
   oy: number
 }
 
-export const anchor = (x: number, y: number): PenPoint => ({ x, y, ix: 0, iy: 0, ox: 0, oy: 0 })
-
-/** Tire la poignée de départ jusqu'à (x, y) ; l'autre poignée prend l'écart opposé (point lisse) sauf si `symmetric` est faux. */
-export function dragHandle(p: PenPoint, x: number, y: number, symmetric = true): PenPoint {
-  const dx = x - p.x
-  const dy = y - p.y
-  return symmetric ? { ...p, ox: dx, oy: dy, ix: -dx, iy: -dy } : { ...p, ox: dx, oy: dy }
-}
-
 const n = (v: number) => Math.round(v * 100) / 100
 
 /** Le tracé SVG d'une suite de points ; `closed` : on revient au premier point. */
@@ -65,11 +56,6 @@ export function pathBounds(points: PenPoint[], closed: boolean): Rect {
   const x = n(Math.min(...xs))
   const y = n(Math.min(...ys))
   return { x, y, w: n(Math.max(...xs) - x), h: n(Math.max(...ys) - y) }
-}
-
-/** Retire les points posés deux fois au même endroit (un double-clic en pose deux). */
-export function dedupePoints(points: PenPoint[], minDistance = 0.5): PenPoint[] {
-  return points.filter((p, i) => i === 0 || Math.hypot(p.x - points[i - 1].x, p.y - points[i - 1].y) >= minDistance)
 }
 
 /**
