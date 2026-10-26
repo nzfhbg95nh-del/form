@@ -263,6 +263,149 @@ pub fn saver_file_age_days(path: String) -> Option<u64> {
     Some(std::time::SystemTime::now().duration_since(modified).ok()?.as_secs() / 86_400)
 }
 
+// ───────────────────────── Images d'un lien (moodboard) ─────────────────────────
+// Un tableau Pinterest ou un post Instagram est téléchargé dans un dossier TEMPORAIRE (jamais dans la bibliothèque), avec les mêmes pauses
+// que Social Saver, puis Form lit les images, les pose sur la toile et efface le dossier.
+
+/// Les réglages de gallery-dl pour un import dans un moodboard : tout à plat dans un dossier, sans liste d'archive (on re-télécharge à chaque fois),
+/// sans les vidéos (une toile de moodboard n'accueille que des images).
+pub fn build_import_config(dir: &Path) -> Value {
+    json!({
+        "extractor": {
+            "base-directory": dir.to_string_lossy(),
+            "sleep-request": [2.0, 5.0],
+            "sleep": [0.5, 1.5],
+            "retries": 4,
+            "instagram": { "directory": [], "filename": "{shortcode}_{num:>02}.{extension}", "videos": false },
+            "pinterest": { "directory": [], "filename": "{id}.{extension}", "videos": false }
+        }
+    })
+}
+
+#[derive(Serialize)]
+pub struct LinkFetch {
+    pub dir: String,
+    pub files: Vec<String>,
+}
+
+#[derive(Serialize, Clone)]
+struct LinkCount {
+    count: usize,
+}
+
+fn import_root(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("link-import"))
+}
+
+/// Libère le « téléchargement en cours » quoi qu'il arrive (erreur, arrêt).
+struct RunGuard;
+impl Drop for RunGuard {
+    fn drop(&mut self) {
+        RUNNING.store(false, Ordering::SeqCst);
+        if let Ok(mut c) = CHILD.lock() {
+            *c = None;
+        }
+    }
+}
+
+fn fetch_link(app: &AppHandle, url: &str, cookies: Option<&str>, limit: u32) -> Result<LinkFetch, String> {
+    let exe = find_gallery_dl(app).ok_or("Je ne trouve pas gallery-dl, le programme qui télécharge. Il est fourni avec l'installateur de Form : réinstalle Form.")?;
+    if RUNNING.swap(true, Ordering::SeqCst) {
+        return Err("Un téléchargement est déjà en cours.".into());
+    }
+    let _guard = RunGuard;
+    STOP.store(false, Ordering::SeqCst);
+    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_millis()).unwrap_or(0);
+    let root = import_root(app)?;
+    let dir = root.join(stamp.to_string());
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Impossible de créer le dossier temporaire : {e}"))?;
+    let conf = root.join(format!("{stamp}.conf"));
+    std::fs::write(&conf, serde_json::to_string_pretty(&build_import_config(&dir)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+
+    let mut cmd = Command::new(&exe);
+    cmd.args(["--config-ignore", "--config"]).arg(&conf);
+    if let Some(c) = cookies.filter(|c| !c.trim().is_empty() && Path::new(c).is_file()) {
+        cmd.arg("--cookies").arg(c);
+    }
+    cmd.arg("--range").arg(format!("1-{}", limit.max(1))).arg(url);
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+    hide_window(&mut cmd);
+    let mut child = cmd.spawn().map_err(|e| format!("Impossible de lancer gallery-dl : {e}"))?;
+    let stdout = child.stdout.take();
+    let stderr = child.stderr.take();
+    *CHILD.lock().map_err(|e| e.to_string())? = Some(child);
+
+    let log: std::sync::Arc<Mutex<Vec<String>>> = std::sync::Arc::new(Mutex::new(Vec::new()));
+    let err_log = log.clone();
+    let err_thread = stderr.map(|s| {
+        std::thread::spawn(move || {
+            read_lines(s, |l| {
+                if !l.trim().is_empty() {
+                    if let Ok(mut v) = err_log.lock() {
+                        v.push(l);
+                    }
+                }
+            })
+        })
+    });
+    let mut count = 0usize;
+    if let Some(out) = stdout {
+        read_lines(out, |line| {
+            if classify_line(&line) == LineKind::New {
+                count += 1;
+                let _ = app.emit("linkimport-count", LinkCount { count });
+            } else if classify_line(&line) == LineKind::Log {
+                if let Ok(mut v) = log.lock() {
+                    v.push(line);
+                }
+            }
+        });
+    }
+    if let Some(t) = err_thread {
+        let _ = t.join();
+    }
+    if let Some(mut child) = CHILD.lock().map_err(|e| e.to_string())?.take() {
+        let _ = child.wait();
+    }
+    let _ = std::fs::remove_file(&conf);
+    let stopped = STOP.swap(false, Ordering::SeqCst);
+
+    let mut files: Vec<String> = std::fs::read_dir(&dir)
+        .map(|rd| rd.filter_map(|e| e.ok()).map(|e| e.path()).filter(|p| p.is_file()).map(|p| p.to_string_lossy().to_string()).collect())
+        .unwrap_or_default();
+    files.sort();
+    if files.is_empty() {
+        let _ = std::fs::remove_dir_all(&dir);
+        if stopped {
+            return Err("Arrêté.".into());
+        }
+        let last = log.lock().ok().and_then(|v| v.iter().rev().find(|l| l.contains("error") || l.contains("Error") || l.contains("warning")).cloned().or_else(|| v.last().cloned()));
+        return Err(match last {
+            Some(l) => format!("Aucune image reçue. gallery-dl dit : {l}"),
+            None => "Aucune image reçue : vérifie le lien (et tes cookies pour Instagram).".to_string(),
+        });
+    }
+    Ok(LinkFetch { dir: dir.to_string_lossy().to_string(), files })
+}
+
+/// Télécharge dans un dossier temporaire les images d'un tableau Pinterest ou d'un post Instagram (au plus `limit`). Événement : « linkimport-count ».
+#[tauri::command]
+pub async fn link_fetch(app: AppHandle, url: String, cookies: Option<String>, limit: u32) -> Result<LinkFetch, String> {
+    tauri::async_runtime::spawn_blocking(move || fetch_link(&app, &url, cookies.as_deref(), limit)).await.map_err(|e| e.to_string())?
+}
+
+/// Efface le dossier temporaire d'un import (seulement un dossier de `link-import`, jamais ailleurs).
+#[tauri::command]
+pub fn link_cleanup(app: AppHandle, dir: String) -> Result<(), String> {
+    let root = import_root(&app)?;
+    let target = PathBuf::from(&dir);
+    let inside = target.canonicalize().ok().zip(root.canonicalize().ok()).map(|(t, r)| t.starts_with(r) && t != root.canonicalize().unwrap_or_default()).unwrap_or(false);
+    if !inside {
+        return Err("Dossier refusé : ce n'est pas un dossier d'import.".into());
+    }
+    std::fs::remove_dir_all(&target).map_err(|e| e.to_string())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -279,6 +422,17 @@ mod tests {
         assert_eq!(e["instagram"]["filename"], "{date:%Y%m%d}_{shortcode}_{num:>02}.{extension}");
         assert_eq!(e["pinterest"]["directory"][2], "{board[name]|'sans-board'}");
         assert_eq!(e["pinterest"]["filename"], "{id}.{extension}");
+    }
+
+    #[test]
+    fn the_import_config_is_flat_without_archive_or_videos() {
+        let c = build_import_config(Path::new("C:/tmp/imp"));
+        let e = &c["extractor"];
+        assert_eq!(e["instagram"]["directory"], json!([]));
+        assert_eq!(e["instagram"]["videos"], false);
+        assert_eq!(e["pinterest"]["directory"], json!([]));
+        assert!(e.get("archive").is_none());
+        assert_eq!(e["sleep-request"], json!([2.0, 5.0]));
     }
 
     #[test]

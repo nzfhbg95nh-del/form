@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, StickyNote, Droplet } from 'lucide-react'
+import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, StickyNote, Droplet } from 'lucide-react'
+import { convertFileSrc, invoke } from '@tauri-apps/api/core'
+import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
-  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, moveItems,
-  newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld,
+  alignItems, arrangeColumn, arrowHead, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
+  newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
-  type AlignMode, type Board, type BoardItem, type NormalizeMode, type Pattern, type Rect, type View,
+  type AlignMode, type Board, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
+import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
+import { loadSaverSettings } from '@/biblio/lib/saver.ts'
 import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 
@@ -30,6 +34,8 @@ type Drag =
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
 
 const HANDLES = ['nw', 'ne', 'sw', 'se'] as const
+/** Couleurs proposées pour les formes et les textes. */
+const SHAPE_PALETTE = [SHAPE_COLOR, '#ff5c5c', '#ffd43b', '#51cf66', '#ffffff', '#111111']
 const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
@@ -51,13 +57,21 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [selection, setSelection] = useState<Set<string>>(new Set())
   const [marquee, setMarquee] = useState<Rect | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
-  const [menu, setMenu] = useState<{ x: number; y: number; world: Pt; mode: 'full' | 'organize' } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; world: Pt; mode: 'full' | 'organize'; add?: boolean } | null>(null)
   const [size, setSize] = useState({ w: 800, h: 600 })
   const [assets, setAssets] = useState<Record<string, Asset>>({})
   const [flash, setFlash] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [palette, setPalette] = useState<string[]>([])
   const [linkInput, setLinkInput] = useState<string | null>(null)
+  const [importUrl, setImportUrl] = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
+  // Où poser ce qu'on ajoute depuis le menu « Ajouter » (le point du clic droit), pour les fenêtres de choix qui s'ouvrent ensuite.
+  const importAt = useRef<Pt | null>(null)
+  const fileAt = useRef<Pt | null>(null)
+  const colorAt = useRef<Pt | null>(null)
+  const linkAt = useRef<Pt | null>(null)
+  const lastPt = useRef<Pt>({ x: 200, y: 200 })
   const [onTop, setOnTop] = useState(false)
   const isFloatingElsewhere = useApp((s) => s.floatingBoards.includes(board.id)) && !floatingBoardId()
   const [panning, setPanning] = useState(false)
@@ -199,6 +213,56 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!text) setEditing(note.id)
   }, [commitItems])
 
+  const addText = useCallback((at: Pt) => {
+    const t = makeText({ x: at.x - 130, y: at.y - 28 })
+    commitItems([...itemsRef.current, t])
+    setSelection(new Set([t.id]))
+    setEditing(t.id)
+  }, [commitItems])
+
+  const addShape = useCallback((at: Pt, kind: ShapeKind) => {
+    const sh = makeShape(at, kind)
+    commitItems([...itemsRef.current, sh])
+    setSelection(new Set([sh.id]))
+  }, [commitItems])
+
+  /** Ajoute les images d'un tableau Pinterest, d'une épingle ou d'un post Instagram : elles sont téléchargées dans un dossier temporaire (pas dans la bibliothèque), posées sur la toile, puis le dossier est effacé. */
+  const runImport = async (text: string, at: Pt) => {
+    const { info, problem } = classifyLink(text)
+    if (!info) { say(problem ?? 'Lien non pris en charge.'); return }
+    if (!isTauri()) { say("L'import par lien n'existe que dans l'application Windows."); return }
+    const saved = (await loadSaverSettings().catch(() => null))?.settings
+    const cookies = info.site === 'instagram' ? saved?.igCookies : saved?.pinCookies
+    if (info.site === 'instagram' && !cookies) { say("Pour Instagram, choisis d'abord ton fichier cookies dans les paramètres de la bibliothèque (Télécharger mes enregistrements)."); return }
+    setImportUrl(null)
+    setImporting(true)
+    say('Téléchargement des images…')
+    const off = await listen<{ count: number }>('linkimport-count', (e) => say(`${e.payload.count} image${e.payload.count > 1 ? 's' : ''} reçue${e.payload.count > 1 ? 's' : ''}…`))
+    try {
+      const { dir, files } = await invoke<{ dir: string; files: string[] }>('link_fetch', { url: info.url, cookies: cookies || null, limit: IMPORT_LIMIT })
+      try {
+        const images: File[] = []
+        for (const path of files) {
+          const type = imageTypeOf(path)
+          if (!type) continue
+          try {
+            const blob = await (await fetch(convertFileSrc(path))).blob()
+            images.push(new File([blob], path.split(/[\\/]/).pop() ?? 'image', { type }))
+          } catch { /* fichier illisible : ignoré */ }
+        }
+        await addFiles(images, at)
+        say(importMessage(images.length, files.length - images.length))
+      } finally {
+        await invoke('link_cleanup', { dir }).catch(() => undefined)
+      }
+    } catch (e) {
+      say(String(e))
+    } finally {
+      off()
+      setImporting(false)
+    }
+  }
+
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const a = document.activeElement as HTMLElement | null
@@ -315,6 +379,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   }
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    lastPt.current = local(e)
     const d = dragRef.current
     if (!d) return
     const pt = local(e)
@@ -367,7 +432,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!el) { addNote({ x: world.x - 110, y: world.y - 70 }); return }
     const it = itemsRef.current.find((i) => i.id === el.dataset.item)
     if (!it) return
-    if (it.kind === 'note') setEditing(it.id)
+    if (it.kind === 'note' || it.kind === 'text') setEditing(it.id)
     else if (it.kind === 'link' && it.url) {
       void (isTauri() ? import('@tauri-apps/plugin-opener').then((m) => m.openUrl(it.url as string)) : Promise.resolve(window.open(it.url, '_blank')))
     } else if (it.kind === 'color' && it.color) {
@@ -400,6 +465,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     normalize: (m: NormalizeMode) => withSelection((i, s) => normalizeItems(i, s, m)),
     align: (m: AlignMode) => withSelection((i, s) => alignItems(i, s, m)),
     noteColor: (color: string) => withSelection((i, s) => i.map((it) => (s.has(it.id) && it.kind === 'note' ? { ...it, color } : it))),
+    shapeColor: (color: string) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && (it.kind === 'shape' || it.kind === 'text') ? { ...it, color } : it))),
+    toggleFill: () => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, filled: !it.filled } : it))),
+    stroke: (d: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, sw: Math.min(40, Math.max(1, (it.sw ?? 4) + d)) } : it))),
+    fontSize: (f: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'text' ? { ...it, size: Math.min(400, Math.max(8, Math.round((it.size ?? 32) * f))) } : it))),
     selectAll: () => setSelection(new Set(itemsRef.current.map((i) => i.id))),
   }
   const doUndo = () => { setHist((h) => undo(h)); setSelection(new Set()) }
@@ -424,6 +493,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     let handled = true
     if (e.key === ' ') setSpaceDown(true)
     else if (e.key === 'Delete' || e.key === 'Backspace') act.remove()
+    else if (!mod && e.shiftKey && key === 'a') setMenu({ x: lastPt.current.x, y: lastPt.current.y, world: screenToWorld(viewRef.current, lastPt.current), mode: 'full', add: true })
     else if (mod && key === 'a') act.selectAll()
     else if (mod && key === 'd') act.duplicate()
     else if (mod && key === 'g') (e.shiftKey ? act.ungroup() : act.group())
@@ -527,6 +597,48 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         </div>
       )
     }
+    if (it.kind === 'text') {
+      const color = it.color ?? textColor
+      const common: React.CSSProperties = { width: '100%', height: '100%', padding: 4, fontSize: it.size ?? 32, lineHeight: 1.2, fontWeight: 600, color, fontFamily: 'inherit', boxSizing: 'border-box' }
+      return (
+        <div key={it.id} data-item={it.id} style={{ ...base, overflow: 'hidden' }}>
+          {editing === it.id ? (
+            <textarea
+              autoFocus
+              defaultValue={it.text}
+              onBlur={(e) => { commitItems(itemsRef.current.map((i) => (i.id === it.id ? { ...i, text: e.target.value } : i))); setEditing(null) }}
+              style={{ ...common, resize: 'none', border: 0, outline: 0, background: 'transparent' }}
+            />
+          ) : (
+            <div style={{ ...common, whiteSpace: 'pre-wrap', overflow: 'hidden', pointerEvents: 'none' }}>{it.text || <span style={{ opacity: 0.4 }}>Texte…</span>}</div>
+          )}
+        </div>
+      )
+    }
+    if (it.kind === 'shape') {
+      const sw = it.sw ?? 4
+      const color = it.color ?? SHAPE_COLOR
+      const fill = it.filled ? color : 'none'
+      const w = Math.max(2, it.w)
+      const h = Math.max(2, it.h)
+      const head = it.shape === 'arrow' ? arrowHead(sw, sw, w - sw, h - sw, Math.max(14, sw * 4)) : null
+      return (
+        <div key={it.id} data-item={it.id} style={base}>
+          <svg width={w} height={h} style={{ display: 'block', overflow: 'visible', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }}>
+            {it.shape === 'ellipse' ? (
+              <ellipse cx={w / 2} cy={h / 2} rx={Math.max(1, (w - sw) / 2)} ry={Math.max(1, (h - sw) / 2)} fill={fill} stroke={color} strokeWidth={sw} />
+            ) : it.shape === 'line' || it.shape === 'arrow' ? (
+              <>
+                <line x1={sw} y1={sw} x2={w - sw} y2={h - sw} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+                {head && <polygon points={head.map((pt) => pt.join(',')).join(' ')} fill={color} stroke={color} strokeWidth={sw / 2} strokeLinejoin="round" />}
+              </>
+            ) : (
+              <rect x={sw / 2} y={sw / 2} width={Math.max(1, w - sw)} height={Math.max(1, h - sw)} rx={6} fill={fill} stroke={color} strokeWidth={sw} />
+            )}
+          </svg>
+        </div>
+      )
+    }
     if (it.kind === 'color') {
       const color = it.color ?? '#888888'
       return (
@@ -545,6 +657,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
   const hasSel = selection.size > 0
   const selNotes = selected.some((i) => i.kind === 'note')
+  const selShapes = selected.some((i) => i.kind === 'shape')
+  const selTexts = selected.some((i) => i.kind === 'text')
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -601,7 +715,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center" style={{ color: textColor, opacity: 0.55 }}>
           <div>
             <div className={compact ? 'text-base font-semibold' : 'mb-2 text-2xl font-semibold'}>Dépose tes images ici</div>
-            {!compact && <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note<br />molette = zoom · clic molette ou Espace + glisser = déplacer la toile</div>}
+            {!compact && <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note · clic droit ou Maj+A pour ajouter<br />molette = zoom · clic molette ou Espace + glisser = déplacer la toile</div>}
           </div>
         </div>
       )}
@@ -629,8 +743,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         ))}
       </div>
       )}
-      <input ref={colorInput} type="color" className="hidden" onChange={(e) => { const c = viewCenter(); const s = makeSwatch({ x: c.x - 60, y: c.y - 60 }, e.target.value); commitItems([...itemsRef.current, s]); setSelection(new Set([s.id])) }} />
-      <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { void addFiles(Array.from(e.target.files ?? []), viewCenter()); e.target.value = '' }} />
+      <input ref={colorInput} type="color" className="hidden" onChange={(e) => { const c = colorAt.current ?? viewCenter(); colorAt.current = null; const s = makeSwatch({ x: c.x - 60, y: c.y - 60 }, e.target.value); commitItems([...itemsRef.current, s]); setSelection(new Set([s.id])) }} />
+      <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
 
       {linkInput !== null && (
         <div data-ui className="absolute left-3 top-14 flex gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
@@ -643,13 +757,43 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               e.stopPropagation()
               if (e.key === 'Escape') setLinkInput(null)
               if (e.key === 'Enter' && looksLikeUrl(linkInput)) {
-                const c = viewCenter()
+                const c = linkAt.current ?? viewCenter()
+                linkAt.current = null
                 const l = makeLink({ x: c.x - 130, y: c.y - 32 }, linkInput.trim())
                 commitItems([...itemsRef.current, l]); setSelection(new Set([l.id])); setLinkInput(null)
               }
             }}
             className="w-72 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
           />
+        </div>
+      )}
+
+      {importUrl !== null && (
+        <div data-ui className="absolute left-3 top-14 z-40 w-[26rem] max-w-[90%] rounded-md border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
+          <div className="mb-1 text-sm font-medium">Ajouter les images d'un lien</div>
+          <input
+            autoFocus
+            value={importUrl}
+            placeholder="Lien d'un tableau Pinterest ou d'un post Instagram"
+            onChange={(e) => setImportUrl(e.target.value)}
+            onKeyDown={(e) => {
+              e.stopPropagation()
+              if (e.key === 'Escape') setImportUrl(null)
+              if (e.key === 'Enter') void runImport(importUrl, importAt.current ?? viewCenter())
+            }}
+            className="w-full rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
+          />
+          <p className="mt-1.5 text-xs text-[var(--fg-muted)]">Les images sont téléchargées temporairement, posées sur la toile (au plus {IMPORT_LIMIT}), puis le téléchargement est effacé. Pour Instagram, il faut ton fichier cookies (réglages de la bibliothèque).</p>
+          <div className="mt-2 flex gap-1.5">
+            <button className={bar} onClick={() => void runImport(importUrl, importAt.current ?? viewCenter())}>Ajouter</button>
+            <button className={bar} onClick={() => setImportUrl(null)}>Annuler</button>
+          </div>
+        </div>
+      )}
+      {importing && (
+        <div data-ui className="absolute left-3 top-14 z-40 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-md">
+          Téléchargement en cours…
+          <button className={bar} onClick={() => void invoke('saver_stop')}>Arrêter</button>
         </div>
       )}
 
@@ -699,10 +843,34 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {menu && (
         <>
           <div data-ui className="fixed inset-0 z-40" onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
-          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-60 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.min(menu.x, size.w - 250), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
+          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-72 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.max(0, Math.min(menu.x, size.w - 290)), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
+            {menu.mode === 'full' && (
+              <>
+                <button
+                  onClick={() => setMenu({ ...menu, add: !menu.add })}
+                  className="flex w-full items-center justify-between gap-6 rounded px-2 py-1 text-left text-sm font-medium hover:bg-[var(--bg-hover)]"
+                >
+                  <span className="flex items-center gap-1.5"><Plus size={14} /> Ajouter</span>
+                  <span className="text-xs font-normal text-[var(--fg-muted)]">Maj+A</span>
+                </button>
+                {menu.add && (
+                  <div className="mb-1 ml-3 border-l border-[var(--border)] pl-1">
+                    <MenuBtn label="Image…" onClick={() => { fileAt.current = menu.world; fileInput.current?.click() }} />
+                    <MenuBtn label="Depuis un lien Pinterest / Instagram…" onClick={() => { importAt.current = menu.world; setImportUrl('') }} />
+                    <MenuBtn label="Texte" onClick={() => addText(menu.world)} />
+                    <MenuBtn label="Note" onClick={() => addNote({ x: menu.world.x - 110, y: menu.world.y - 70 })} />
+                    <MenuHead>Forme</MenuHead>
+                    {SHAPES.map((sh) => <MenuBtn key={sh.id} label={sh.label} onClick={() => addShape(menu.world, sh.id)} />)}
+                    <MenuHead>Autres</MenuHead>
+                    <MenuBtn label="Couleur…" onClick={() => { colorAt.current = menu.world; colorInput.current?.click() }} />
+                    <MenuBtn label="Lien (adresse)…" onClick={() => { linkAt.current = menu.world; setLinkInput('') }} />
+                  </div>
+                )}
+                <div className="my-1 border-t border-[var(--border)]" />
+              </>
+            )}
             {menu.mode === 'full' && !hasSel && (
               <>
-                <MenuBtn label="Nouvelle note" onClick={() => addNote({ x: menu.world.x - 110, y: menu.world.y - 70 })} />
                 <MenuBtn label="Tout sélectionner" hint="Ctrl+A" onClick={act.selectAll} />
                 <MenuBtn label="Tout afficher" hint="F" onClick={() => fitTo(items)} />
                 <MenuHead>Fond</MenuHead>
@@ -720,6 +888,25 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                     <MenuBtn label="Mettre à l'arrière-plan" onClick={act.back} />
                     {selection.size > 1 && !selGrouped && <MenuBtn label="Grouper" hint="Ctrl+G" onClick={act.group} />}
                     {selGrouped && <MenuBtn label="Dissocier" hint="Ctrl+Maj+G" onClick={act.ungroup} />}
+                    {(selShapes || selTexts) && (
+                      <>
+                        <MenuHead>{selShapes ? 'Couleur de la forme' : 'Couleur du texte'}</MenuHead>
+                        <div className="flex gap-2 px-2 py-1">{SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeColor(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}</div>
+                        {selShapes && (
+                          <>
+                            <MenuBtn label="Remplie / contour seulement" onClick={act.toggleFill} />
+                            <MenuBtn label="Trait plus épais" onClick={() => act.stroke(2)} />
+                            <MenuBtn label="Trait plus fin" onClick={() => act.stroke(-2)} />
+                          </>
+                        )}
+                        {selTexts && (
+                          <>
+                            <MenuBtn label="Lettres plus grandes" onClick={() => act.fontSize(1.25)} />
+                            <MenuBtn label="Lettres plus petites" onClick={() => act.fontSize(0.8)} />
+                          </>
+                        )}
+                      </>
+                    )}
                     {selNotes && (
                       <>
                         <MenuHead>Couleur de la note</MenuHead>

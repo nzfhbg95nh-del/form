@@ -165,6 +165,8 @@ pub fn run() {
             biblio::scan::scan_folder,
             biblio::saver::saver_start,
             biblio::saver::saver_stop,
+            biblio::saver::link_fetch,
+            biblio::saver::link_cleanup,
             biblio::saver::saver_defaults,
             biblio::saver::saver_file_age_days,
             biblio::thumbs::start_thumbs,

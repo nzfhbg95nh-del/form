@@ -1,7 +1,16 @@
 // Logique « pure » de la toile du moodboard : positions, zoom, sélection, organisation, historique.
 // Rien ici ne touche à l'écran : tout est testé automatiquement.
 
-export type ItemKind = 'image' | 'note' | 'color' | 'link'
+export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape'
+
+/** Les formes qu'on peut ajouter : rectangle, rond, ligne et flèche (la ligne et la flèche vont d'un coin à l'autre du cadre ; « retourner » change la diagonale). */
+export type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
+export const SHAPES: { id: ShapeKind; label: string }[] = [
+  { id: 'rect', label: 'Rectangle' },
+  { id: 'ellipse', label: 'Rond' },
+  { id: 'line', label: 'Ligne' },
+  { id: 'arrow', label: 'Flèche' },
+]
 
 export interface BoardItem {
   id: string
@@ -22,6 +31,12 @@ export interface BoardItem {
   color?: string
   /** lien : l'adresse. */
   url?: string
+  /** texte : taille des lettres. */
+  size?: number
+  /** forme : laquelle. La couleur est dans `color` ; `filled` : remplie (sinon, seulement le contour) ; `sw` : épaisseur du trait. */
+  shape?: ShapeKind
+  filled?: boolean
+  sw?: number
 }
 
 export interface View {
@@ -337,6 +352,31 @@ export const makeSwatch = (at: { x: number; y: number }, color: string): BoardIt
 export const makeLink = (at: { x: number; y: number }, url: string, title = ''): BoardItem => ({
   id: newId(), kind: 'link', x: at.x, y: at.y, w: 260, h: 64, url, text: title || url,
 })
+
+/** Texte libre posé sur la toile (sans fond) ; sa couleur est celle du fond de la toile tant qu'on n'en choisit pas. */
+export const makeText = (at: { x: number; y: number }, text = ''): BoardItem => ({
+  id: newId(), kind: 'text', x: at.x, y: at.y, w: 260, h: 56, text, size: 32,
+})
+
+export const SHAPE_COLOR = '#4da3ff'
+
+export function makeShape(at: { x: number; y: number }, shape: ShapeKind): BoardItem {
+  const linear = shape === 'line' || shape === 'arrow'
+  const w = linear ? 240 : 200
+  const h = linear ? 120 : 140
+  return { id: newId(), kind: 'shape', shape, x: at.x - w / 2, y: at.y - h / 2, w, h, color: SHAPE_COLOR, filled: false, sw: 4 }
+}
+
+/** Les trois points de la pointe d'une flèche qui finit en (x2, y2) : une pointe de `size` unités, ouverte de 28° de chaque côté. */
+export function arrowHead(x1: number, y1: number, x2: number, y2: number, size: number): [number, number][] {
+  const angle = Math.atan2(y2 - y1, x2 - x1)
+  const spread = (28 * Math.PI) / 180
+  return [
+    [x2, y2],
+    [x2 - size * Math.cos(angle - spread), y2 - size * Math.sin(angle - spread)],
+    [x2 - size * Math.cos(angle + spread), y2 - size * Math.sin(angle + spread)],
+  ]
+}
 
 export function looksLikeUrl(text: string): boolean {
   return /^https?:\/\/\S+$/i.test(text.trim())
