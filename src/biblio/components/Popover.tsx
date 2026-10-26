@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { ChevronDown } from 'lucide-react'
 
 /** Bouton qui ouvre un petit panneau ; se ferme d'un clic à côté ou avec Échap. */
@@ -7,6 +7,33 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
   const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null)
   const ref = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
+  const panel = useRef<HTMLDivElement>(null)
+  const inner = useRef<HTMLDivElement>(null)
+  const played = useRef(false)
+
+  // Ouverture « liquide » (comme la pastille de la maquette) : le panneau naît du bouton, comme une goutte qui s'étire vers le bas,
+  // d'abord petit et tout rond, puis il s'ouvre avec un petit ressort pendant que son contenu apparaît.
+  useLayoutEffect(() => {
+    if (!open) { played.current = false; return }
+    if (!pos || played.current || !panel.current || !button.current) return
+    played.current = true
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    const b = button.current.getBoundingClientRect()
+    const p = panel.current.getBoundingClientRect()
+    if (p.width === 0 || p.height === 0) return
+    const rightInset = Math.max(0, p.width - b.width)
+    const bottomInset = Math.max(0, p.height - b.height)
+    const drop = -(b.height + 4)
+    const timing: KeyframeAnimationOptions = { duration: 520, easing: 'cubic-bezier(0.34, 1.25, 0.64, 1)' }
+    panel.current.animate(
+      [
+        { clipPath: `inset(0px ${rightInset}px ${bottomInset}px 0px round ${b.height / 2}px)`, transform: `translateY(${drop}px)` },
+        { clipPath: 'inset(0px 0px 0px 0px round 12px)', transform: 'translateY(0)' },
+      ],
+      timing,
+    )
+    inner.current?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration: 520, easing: 'ease-out' })
+  }, [open, pos])
 
   // Le panneau est posé sous le bouton mais reste toujours dans la fenêtre : il ne se coupe plus sur le bord, même dans une petite fenêtre.
   const place = () => {
@@ -51,10 +78,11 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
       </button>
       {open && pos && (
         <div
-          className="fixed z-30 overflow-auto rounded-lg border p-2 shadow-lg"
+          ref={panel}
+          className="fixed z-30 overflow-auto rounded-xl border p-2 shadow-lg"
           style={{ left: pos.left, top: pos.top, width: Math.min(width, window.innerWidth - 16), maxHeight: pos.maxHeight, background: 'var(--bg)', borderColor: 'var(--border)' }}
         >
-          {children}
+          <div ref={inner}>{children}</div>
         </div>
       )}
     </div>
