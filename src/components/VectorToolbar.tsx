@@ -124,7 +124,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   }
 
   return (
-    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-100px)] flex-col overflow-y-auto rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'var(--bg-side)', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
+    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-100px)] flex-col overflow-hidden rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'var(--bg-side)', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
       {/* En-tête : replier (deux colonnes ↔ une colonne), masquer, poignée */}
       <div className="flex items-center justify-between px-1.5 pt-1 text-[11px] text-[var(--fg-muted)]" style={{ background: 'var(--bg-side)' }}>
         <button title={single ? 'Deux colonnes' : 'Une colonne'} aria-label={single ? 'Deux colonnes' : 'Une colonne'} onClick={() => setSingle(!single)} className="rounded px-0.5 hover:bg-[var(--bg-hover)]">{single ? '»' : '«'}</button>
@@ -135,7 +135,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
         <span className="h-1 w-8 rounded-full bg-[var(--border)] transition-colors group-hover:bg-[var(--fg-muted)]" />
       </div>
 
-      <div className={'grid gap-[2px] p-1 ' + (single ? 'grid-cols-1' : 'grid-cols-2')}>
+      <div data-scroll className={'grid min-h-0 flex-1 gap-[2px] overflow-y-auto overflow-x-hidden p-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ' + (single ? 'grid-cols-1' : 'grid-cols-2')} style={{ alignContent: 'start' }}>
         {BAR_GROUPS.map((g, i) => {
           const t = shown(g, i)
           return (
@@ -189,7 +189,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
       </div>
 
       {/* Remplissage et contour, comme dans la barre d'Illustrator */}
-      <div className="flex flex-col items-center gap-1.5 px-1 pb-2 pt-1" style={{ borderTop: `1px solid ${PANEL_EDGE}` }}>
+      <div className="flex shrink-0 flex-col items-center gap-1.5 px-1 pb-2 pt-1" style={{ borderTop: `1px solid ${PANEL_EDGE}` }}>
         <div className="relative" style={{ width: single ? 36 : 70, height: single ? 38 : 66 }}>
           <button
             title="Contour (X pour passer du remplissage au contour)"
