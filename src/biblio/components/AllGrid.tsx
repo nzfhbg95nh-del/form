@@ -1,3 +1,4 @@
+import { SplitSlider } from '@/components/SplitSlider'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/States'
 import { ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Search } from 'lucide-react'
@@ -147,10 +148,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         {!filters.collection && <h1 className="text-base font-semibold">Tout</h1>}
         {!filters.collection && <span className="lib-count">{nf.format(blocks.length)} blocs</span>}
         <div className="ml-auto flex items-center gap-3">
-          <label className="flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-            Taille
-            <input type="range" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={(e) => setSize(Number(e.target.value))} aria-label="Taille des vignettes" className="w-44" style={{ ['--p' as string]: `${((size - SIZE_MIN) / (SIZE_MAX - SIZE_MIN)) * 100}%` }} />
-          </label>
+          <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des vignettes" />
           <button className="btn" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
           <button className="btn" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
         </div>
