@@ -88,7 +88,7 @@ function CardMenu({ card }: { card: BoardCard }) {
   const close = () => setMode('closed')
   const item = 'block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
   return (
-    <div className="absolute right-1.5 top-1.5 z-10" onClick={(e) => e.stopPropagation()}>
+    <div className="pointer-events-auto absolute bottom-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
       <button
         className="rounded-md bg-black/55 p-1 text-white opacity-0 group-hover:opacity-100 focus:opacity-100"
         style={mode !== 'closed' ? { opacity: 1 } : undefined}
@@ -101,7 +101,7 @@ function CardMenu({ card }: { card: BoardCard }) {
       {mode !== 'closed' && mode !== 'cover' && (
         <>
           <div className="fixed inset-0 z-10" onMouseDown={close} />
-          <div className="absolute right-0 top-8 z-20 w-64 rounded-lg border p-1.5 shadow-lg" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+          <div className="absolute bottom-8 right-0 z-20 w-64 rounded-lg border p-1.5 shadow-lg" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
             {mode === 'menu' && (
               <>
                 <button className={item} onClick={() => setMode('rename')}>Renommer</button>
@@ -193,7 +193,8 @@ export function MoodboardsView() {
                     </div>
                   </div>
                 </button>
-                <CardMenu card={b} />
+                {/* Les trois petits points : en bas à droite de l'image (le calque a la même forme que l'aperçu, 4/3). */}
+                <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]"><CardMenu card={b} /></div>
               </div>
             ))}
           </div>
