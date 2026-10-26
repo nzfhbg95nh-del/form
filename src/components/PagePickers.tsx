@@ -144,7 +144,7 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   placeholder="Filtrer…"
-                  className="min-w-0 flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
+                  className="min-w-0 flex-1 lib-input rounded-xl border px-3 py-1.5 text-sm outline-none"
                 />
                 <button className="rounded p-1.5 hover:bg-[var(--bg-hover)]" title="Au hasard" aria-label="Emoji au hasard" disabled={!all.length} onClick={() => choose(randomEmoji(all))}>🎲</button>
                 <div className="relative">
@@ -207,7 +207,7 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
 
           {tab === 'upload' && (
             <div className="p-4 text-center">
-              <button className="rounded border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--bg-hover)]" onClick={() => file.current?.click()}>Charger une image…</button>
+              <button className="rounded-lg border border-[var(--border)] px-3 py-2 text-sm hover:bg-[var(--bg-hover)]" onClick={() => file.current?.click()}>Charger une image…</button>
               <p className="mt-2 text-xs text-[var(--fg-muted)]">Elle sera recadrée en carré et réduite (128 px).</p>
               <input
                 ref={file}
@@ -233,14 +233,14 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
                     onChange={(e) => setAiText(e.target.value)}
                     rows={2}
                     placeholder="Décris l’icône : « un singe qui fait de la céramique »…"
-                    className="w-full resize-none rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
+                    className="w-full resize-none lib-input rounded-xl border px-3 py-1.5 text-sm outline-none"
                   />
                   <div className="mt-2 flex gap-2">
-                    <button disabled={aiBusy || !aiText.trim()} className="rounded border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-50"
+                    <button disabled={aiBusy || !aiText.trim()} className="btn !px-2.5 !py-1 disabled:opacity-50"
                       onClick={() => void runAi(async () => { setDrawn(null); setSuggested(await suggestEmojis(aiText, await aiModel())) })}>
                       Proposer des emojis
                     </button>
-                    <button disabled={aiBusy || !aiText.trim()} className="rounded border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-50"
+                    <button disabled={aiBusy || !aiText.trim()} className="btn !px-2.5 !py-1 disabled:opacity-50"
                       onClick={() => void runAi(async () => { setSuggested([]); setDrawn(await shrinkImage(await generateIconImage(aiText))) })}>
                       Dessiner une icône
                     </button>
@@ -251,7 +251,7 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
                   {drawn && (
                     <div className="mt-2 flex items-center gap-3">
                       <Icon value={drawn} size={64} />
-                      <button className="rounded border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)]" onClick={() => choose(drawn)}>Utiliser cette icône</button>
+                      <button className="rounded-lg border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)]" onClick={() => choose(drawn)}>Utiliser cette icône</button>
                     </div>
                   )}
                   <p className="mt-3 text-xs text-[var(--fg-muted)]">Seule ta description part chez Google, et seulement quand tu cliques. Le dessin d’icônes n’est pas toujours inclus dans le palier gratuit.</p>
@@ -281,7 +281,7 @@ export function CoverPicker({ value, onChange }: { value: string | null; onChang
               <button
                 key={c}
                 aria-label="Choisir cette couverture"
-                className="h-10 rounded border border-[var(--border)]"
+                className="h-10 rounded-lg border border-[var(--border)]"
                 style={coverStyle(c)}
                 onClick={() => { onChange(c); setOpen(false) }}
               />

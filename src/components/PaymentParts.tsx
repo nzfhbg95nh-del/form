@@ -10,9 +10,9 @@ import { useApp } from '@/store/app'
 import type { Invoice, Payment, PaymentMethod } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
   return (

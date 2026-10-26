@@ -12,8 +12,8 @@ import { Icon } from '@/components/Icon'
 import { RecipesView } from '@/components/RecipesView'
 import { askConfirm } from '@/lib/confirm'
 
-const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
-const input = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
+const btn = 'flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm hover:bg-[var(--bg-hover)]'
+const input = 'rounded-lg border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
 /** Bouton qui ferme un panneau de filtres, de tris ou de réglages (les changements sont déjà appliqués). */
 function ValidateButton({ onClose }: { onClose: () => void }) {
   return (
@@ -213,7 +213,7 @@ function ColumnMenu({ col, schema, objects, onChange }: { col: Column; schema: S
                     <div key={o.id} className="mb-1 flex items-center gap-1">
                       <button
                         title="Changer la couleur"
-                        className="h-5 w-5 rounded border border-[var(--border)]"
+                        className="h-5 w-5 rounded-lg border border-[var(--border)]"
                         style={{ background: o.color }}
                         onClick={() => {
                           const next = OPTION_COLORS[(OPTION_COLORS.indexOf(o.color) + 1) % OPTION_COLORS.length]
@@ -288,7 +288,7 @@ function AddColumn({ db, schema, objects, onChange }: { db: ObjectRow; schema: S
                 {databases.map((d) => <option key={d.id} value={d.id}>{d.title || 'Nouvelle page'}</option>)}
               </select>
             )}
-            <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={add}>Ajouter</button>
+            <button className="btn btn-primary" onClick={add}>Ajouter</button>
           </div>
         </>
       )}

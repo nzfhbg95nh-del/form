@@ -135,7 +135,7 @@ export function AppMenu() {
             <div className="mb-1 text-3xl font-bold">Form</div>
             <div className="mb-3 text-sm text-[var(--fg-muted)]">Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '?'}</div>
             <p className="mb-4 text-sm">Le Notion du créatif freelance : pages, bases de données, moodboards, devis et factures. Tout reste sur ton PC.</p>
-            <button className="rounded border border-[var(--border)] px-4 py-1.5 text-sm hover:bg-[var(--bg-hover)]" onClick={() => setAbout(false)}>Fermer</button>
+            <button className="btn" onClick={() => setAbout(false)}>Fermer</button>
           </div>
         </div>
       )}

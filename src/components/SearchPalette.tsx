@@ -15,7 +15,7 @@ type Entry =
   | { type: 'client'; id: string; title: string; subtitle: string }
   | { type: 'service'; id: string; title: string; subtitle: string }
 
-const kbd = 'rounded border border-[var(--border)] px-1 text-[11px]'
+const kbd = 'rounded-lg border border-[var(--border)] px-1 text-[11px]'
 
 function PageGlyph({ o }: { o: ObjectRow }) {
   if (o.icon) return <Icon value={o.icon} size={18} />

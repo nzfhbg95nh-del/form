@@ -13,9 +13,9 @@ import { detectSensitive, planSend, summarize } from '@/lib/sensitive'
 import { extractText } from '@/lib/search'
 import { useApp } from '@/store/app'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 const HINTS: Record<AiMode, string> = {
   recipe: 'Colle une recette (page web, message, notes…). Gemini en fait une page propre : portions, ingrédients, étapes.',
@@ -154,7 +154,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
           <>
             <p className="mb-2 text-sm text-[var(--fg-muted)]">{HINTS[mode]}</p>
             {mode === 'recipe' && (
-              <div className="mb-4 rounded border border-[var(--border)] p-3">
+              <div className="mb-4 rounded-lg border border-[var(--border)] p-3">
                 <div className="mb-1 text-sm font-medium">Depuis une vidéo YouTube</div>
                 <p className="mb-2 text-xs text-[var(--fg-muted)]">
                   Colle le lien : Gemini regarde et écoute la vidéo, lit sa description, et écrit les ingrédients et les étapes. Seul le lien est envoyé à Google. Pour Instagram, TikTok ou Facebook (non lisibles), copie la légende dans la zone de texte plus bas.
@@ -171,7 +171,7 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
             )}
 
             {text.trim() !== '' && (
-              <div className="mt-3 rounded border border-[var(--border)] p-3 text-sm">
+              <div className="mt-3 rounded-lg border border-[var(--border)] p-3 text-sm">
                 <div className="mb-1 font-medium">Ce qui sera envoyé à Google</div>
                 <p className="mb-2 text-xs text-[var(--fg-muted)]">
                   Uniquement le texte ci-dessous, rien d'autre (ni ta base, ni tes factures). Sur le palier gratuit, Google peut utiliser les textes envoyés pour améliorer ses services.
@@ -267,7 +267,7 @@ function LineEdit({ line, onChange, onRemove }: { line: AiLine; onChange: (l: Ai
   const [qty, setQty] = useState(String(line.quantity_milli / 1000).replace('.', ','))
   const [price, setPrice] = useState(line.unit_price_cents === null ? '' : centsToInput(line.unit_price_cents))
   return (
-    <div className="mb-2 rounded border border-[var(--border)] p-2">
+    <div className="mb-2 rounded-lg border border-[var(--border)] p-2">
       <div className="flex items-start gap-2">
         <div className="flex-1">
           <input className={field} value={line.label} onChange={(e) => onChange({ ...line, label: e.target.value })} />

@@ -12,8 +12,8 @@ import { PaymentForm, ReminderModal } from '@/components/PaymentParts'
 import { RowMenu, RowMenuHead, runRowAction } from '@/components/RowMenu'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const field = 'lib-input rounded-xl border px-3 py-2 text-sm outline-none'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 const MONTHS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
 
 export function PaymentsView() {

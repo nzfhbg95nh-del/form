@@ -147,9 +147,9 @@ function CalendarWidget() {
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === 'Enter') addTask() }}
         placeholder={`Nouvel événement ${mode === 'agenda' ? 'aujourd’hui' : `le ${shortDay(day)}`}…`}
-        className="min-w-0 flex-1 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]"
+        className="min-w-0 flex-1 lib-input rounded-xl border px-3 py-1.5 text-sm outline-none"
       />
-      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Heure (facultative)" title="Heure (facultative)" className="w-28 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm outline-none focus:border-[var(--accent)]" />
+      <input type="time" value={time} onChange={(e) => setTime(e.target.value)} aria-label="Heure (facultative)" title="Heure (facultative)" className="w-28 lib-input rounded-xl border px-3 py-1.5 text-sm outline-none" />
       <button onClick={addTask} disabled={!draft.trim()} className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white disabled:opacity-40">Ajouter</button>
     </div>
   )
@@ -168,7 +168,7 @@ function CalendarWidget() {
         {mode === 'agenda' && <div className="text-sm font-semibold">À venir</div>}
         <div className="flex-1" />
         {agendaDb && <button className="mr-2 text-xs text-[var(--accent)] hover:underline" onClick={() => select(agendaDb.id, { newTab: true })} title="S’ouvre dans un nouvel onglet">Ouvrir l’agenda ↗</button>}
-        <div className="flex rounded border border-[var(--border)] p-0.5" role="group" aria-label="Affichage du calendrier">
+        <div className="flex rounded-lg border border-[var(--border)] p-0.5" role="group" aria-label="Affichage du calendrier">
           {MODES.map((m) => (
             <button key={m.id} aria-pressed={mode === m.id} onClick={() => pickMode(m.id)} className={cn('rounded px-2 py-0.5 text-xs', mode === m.id ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}>{m.label}</button>
           ))}

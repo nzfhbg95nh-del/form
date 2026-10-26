@@ -92,7 +92,7 @@ export function GeneralSettings() {
       await restoreBackup(chosen)
     })
 
-  const btn = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+  const btn = 'whitespace-nowrap rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
@@ -114,7 +114,7 @@ export function GeneralSettings() {
         Les rappels ne fonctionnent que lorsque Form est ouvert. Une tâche n'est rappelée qu'une fois par jour.
       </p>
       <button
-        className="mb-8 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40"
+        className="btn mb-8 disabled:opacity-40"
         disabled={!desktop}
         onClick={() => void run(async () => ((await notify('Form', 'Les notifications fonctionnent.')) ? 'Notification envoyée.' : "Impossible d'envoyer la notification : vérifie que Windows autorise les notifications pour Form."))}
       >
@@ -129,7 +129,7 @@ export function GeneralSettings() {
       <p className="mb-3 text-xs text-[var(--fg-muted)]">
         Form cherche tout seul une nouvelle version au démarrage, puis toutes les 6 heures. Rien n'est installé sans ton clic.
       </p>
-      <button className="mb-8 rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>
+      <button className="btn mb-8 disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>
         Rechercher une mise à jour
       </button>
 
@@ -161,7 +161,7 @@ export function GeneralSettings() {
             setKeep(n)
             void repo?.setSetting('backup_keep', String(n))
           }}
-          className="w-20 rounded border border-[var(--border)] bg-transparent px-2 py-1"
+          className="w-20 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1"
         />
         dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
       </label>

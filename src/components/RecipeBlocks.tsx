@@ -9,7 +9,7 @@ import { useApp } from '@/store/app'
 type Ed = BlockNoteEditor<never, never, never>
 type AnyBlock = { id: string; type: string; props: Record<string, unknown> }
 
-const btn = 'rounded border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const btn = 'btn !px-2 !py-1 disabled:opacity-40'
 
 // ───────────────────────── « Pour N personnes » ─────────────────────────
 

@@ -17,7 +17,7 @@ import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
 
-const button = 'rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
+const button = 'rounded-lg px-2.5 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
 function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
@@ -99,7 +99,7 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
               ))}
             </div>
             <div className="p-1">
-              <button className="w-full rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setOpen(false)}>Valider</button>
+              <button className="btn btn-primary w-full justify-center" onClick={() => setOpen(false)}>Valider</button>
             </div>
           </div>
         </>

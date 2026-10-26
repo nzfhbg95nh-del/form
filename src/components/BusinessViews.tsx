@@ -12,9 +12,9 @@ import { useApp } from '@/store/app'
 import type { Client, Service } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 function Row({ label, hint, children, className }: { label: string; hint?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -116,7 +116,7 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
 
       {problem && <div className="mb-2 rounded border border-red-500/50 p-2 text-sm text-red-500">{problem}</div>}
       {errors.map((e) => <div key={e} className="mb-2 text-sm text-red-500">{e}</div>)}
-      {warnings.map((w) => <div key={w} className="mb-2 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>)}
+      {warnings.map((w) => <div key={w} className="mb-2 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>)}
 
       <div className="mt-4 flex items-center gap-2">
         <button className={primary} disabled={errors.length > 0} onClick={() => void done()}>Enregistrer</button>

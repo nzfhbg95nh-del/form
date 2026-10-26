@@ -10,9 +10,9 @@ import { todayISO } from '@/lib/backup'
 import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 /** Champ de montant en euros, enregistré en centimes. */
 function MoneyInput({ value, onChange }: { value: number; onChange: (cents: number) => void }) {
@@ -96,7 +96,7 @@ export function CompanySettings() {
         <div className="mb-3 rounded border border-green-600/40 bg-green-600/10 p-3 text-sm">Les mentions obligatoires sont complètes.</div>
       )}
       {warnings.map((w) => (
-        <div key={w} className="mb-2 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>
+        <div key={w} className="mb-2 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>
       ))}
 
       <h2 className="mb-2 mt-6 text-lg font-semibold">Identité</h2>
@@ -222,7 +222,7 @@ export function CompanySettings() {
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Logo</h2>
       <div className="mb-6 flex items-center gap-3">
-        {company.logo ? <img src={company.logo} alt="Logo" className="h-16 rounded border border-[var(--border)]" /> : <span className="text-sm text-[var(--fg-muted)]">Aucun logo</span>}
+        {company.logo ? <img src={company.logo} alt="Logo" className="h-16 rounded-lg border border-[var(--border)]" /> : <span className="text-sm text-[var(--fg-muted)]">Aucun logo</span>}
         <button className={secondary} onClick={() => logoInput.current?.click()}>Choisir une image…</button>
         {company.logo && <button className={secondary} onClick={() => set('logo', null)}>Retirer</button>}
         <input

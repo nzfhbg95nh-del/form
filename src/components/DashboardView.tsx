@@ -108,7 +108,7 @@ export function DashboardView() {
 
       <Card title={`Plafonds ${year}`} className="mb-4">
         {!confirmed && (
-          <div className="mb-3 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
+          <div className="mb-3 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
             Ces plafonds n'ont pas encore été vérifiés : les alertes sont indicatives. <Link onClick={() => show('settings')}>Les vérifier dans Réglages &gt; Entreprise</Link>
           </div>
         )}
@@ -138,7 +138,7 @@ export function DashboardView() {
 
       <Card title="Cotisations (estimation)" className="mb-4">
         {!company.ratesConfirmed && (
-          <div className="mb-3 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
+          <div className="mb-3 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
             Le taux de cotisations n'a pas encore été vérifié : les montants sont indicatifs. <Link onClick={() => show('settings')}>Le vérifier dans Réglages &gt; Entreprise</Link>
           </div>
         )}

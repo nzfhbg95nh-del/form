@@ -25,7 +25,7 @@ export function ConfirmHost() {
       >
         <p id="confirm-message" className="whitespace-pre-line text-sm leading-relaxed text-[var(--fg)]">{pending.message}</p>
         <div className="mt-5 flex justify-end gap-2">
-          <button ref={cancel} className="rounded border border-[var(--border)] px-4 py-1.5 text-sm hover:bg-[var(--bg-hover)]" onClick={() => answerConfirm(false)}>Annuler</button>
+          <button ref={cancel} className="btn" onClick={() => answerConfirm(false)}>Annuler</button>
           <button
             ref={ok}
             className={'rounded px-4 py-1.5 text-sm text-white hover:opacity-90 ' + (pending.danger ? 'bg-[#d44c47]' : 'bg-[var(--accent)]')}

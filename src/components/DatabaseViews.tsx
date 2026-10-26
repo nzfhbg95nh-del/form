@@ -23,7 +23,7 @@ export interface ViewProps {
   renderHeader?: (col: Column) => React.ReactNode
 }
 
-const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
+const btn = 'flex items-center gap-1 rounded-lg px-2.5 py-1 text-sm hover:bg-[var(--bg-hover)]'
 const MONTHS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre']
 const DAYS = ['lun.', 'mar.', 'mer.', 'jeu.', 'ven.', 'sam.', 'dim.']
 
@@ -219,7 +219,7 @@ export function KanbanView({ db, schema, view, rows }: ViewProps) {
               onDragStart={(e) => { e.dataTransfer.setData('text/plain', row.id); setDragId(row.id) }}
               onDragEnd={() => { setDragId(null); setOverId(null) }}
               onClick={() => select(row.id)}
-              className="mb-2 cursor-pointer rounded border border-[var(--border)] bg-[var(--bg)] p-2 text-sm shadow-sm hover:bg-[var(--bg-hover)]"
+              className="mb-2 cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--bg)] p-2 text-sm shadow-sm hover:bg-[var(--bg-hover)]"
             >
               <RowTitle row={row} />
               <div className="mt-1"><ChoiceChips row={row} schema={schema} skip={col.id} /></div>

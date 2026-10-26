@@ -3,8 +3,8 @@ import { analyze, readZip, runImport, type ImportResult } from '@/lib/notionImpo
 import type { NotionFile, Plan } from '@/lib/notion'
 import { useApp } from '@/store/app'
 
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 export function NotionImport() {
   const { repo, objects, reloadObjects } = useApp()
@@ -86,7 +86,7 @@ export function NotionImport() {
             <strong>{plan.stats.databases}</strong> base{plan.stats.databases > 1 ? 's' : ''} de données ({plan.stats.rows} ligne{plan.stats.rows > 1 ? 's' : ''}) et <strong>{plan.stats.images}</strong> image{plan.stats.images > 1 ? 's' : ''}.
           </p>
           <ul className="mb-3 ml-5 list-disc text-xs text-[var(--fg-muted)]">{plan.warnings.map((w) => <li key={w}>{w}</li>)}</ul>
-          <div className="mb-3 max-h-56 overflow-y-auto rounded border border-[var(--border)] p-2 text-sm">
+          <div className="mb-3 max-h-56 overflow-y-auto rounded-lg border border-[var(--border)] p-2 text-sm">
             {plan.nodes.filter((n) => n.kind !== 'row').slice(0, 120).map((n) => (
               <div key={n.key} style={{ paddingLeft: Math.max(0, depth(n.key) - 1) * 14 }}>
                 {n.kind === 'database' ? '▦' : '📄'} {n.title}

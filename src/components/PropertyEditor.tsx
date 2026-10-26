@@ -94,7 +94,7 @@ function OptionPicker({
               placeholder="Créer une option…"
               onChange={(e) => setText(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') create() }}
-              className="mt-1 w-full rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none"
+              className="mt-1 w-full rounded-lg border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none"
             />
           </div>
         </>

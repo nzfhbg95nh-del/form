@@ -139,6 +139,7 @@ table.w-full.border-collapse > thead > tr > :last-child, table.w-full.border-col
 /* Barres de la bibliothèque : décompte en petites capitales à chasse fixe, champs de recherche teintés, curseurs à poignée blanche (comme la barre Coffee / Milk). */
 .lib-count { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
 .lib-input { border-color: transparent !important; background: color-mix(in srgb, var(--fg) 6%, transparent) !important; }
+.lib-input.border-yellow-500, .lib-input.border-red-500 { border-color: currentColor !important; }
 .lib-input:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
 .lib-hint { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px !important; letter-spacing: 0.02em; background: color-mix(in srgb, var(--accent) 8%, var(--bg)) !important; border-color: color-mix(in srgb, var(--accent) 22%, transparent) !important; backdrop-filter: blur(8px); }
 input[type="range"] {
@@ -147,3 +148,6 @@ input[type="range"] {
 }
 input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 6px; height: 22px; border-radius: 999px; background: var(--fg); box-shadow: 0 0 0 3px var(--bg), var(--shadow-soft); transition: transform 0.15s var(--ease-out-soft); }
 input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
+
+.lib-input.border-yellow-500 { border-color: #eab308 !important; }
+.lib-input.border-red-500 { border-color: #ef4444 !important; }

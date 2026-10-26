@@ -19,9 +19,9 @@ import { useApp } from '@/store/app'
 import type { Quote, QuoteLine, QuoteStatus } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 function StatusChip({ status }: { status: QuoteStatus }) {
   return <span className="rounded px-2 py-0.5 text-xs" style={{ background: STATUS_COLORS[status], color: '#37352f' }}>{STATUS_LABELS[status]}</span>
@@ -140,7 +140,7 @@ export function LineRow<T extends LineLike>({
   const priceOk = parsePrice(price) !== null
 
   return (
-    <div className="mb-2 rounded border border-[var(--border)] p-2">
+    <div className="mb-2 rounded-lg border border-[var(--border)] p-2">
       <div className="flex items-start gap-2">
         <div className="min-w-0 flex-1">
           <input className={field} placeholder="Libellé de la prestation" value={line.label} disabled={locked} onChange={(e) => onChange({ ...line, label: e.target.value })} />
@@ -280,7 +280,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
 
         {locked && (
-          <div className="mb-4 rounded border border-[var(--border)] bg-[var(--bg-side)] p-3 text-sm">
+          <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--bg-side)] p-3 text-sm">
             🔒 Ce devis est envoyé : son contenu est figé. Pour le modifier, dupliquez-le en nouveau brouillon.
           </div>
         )}
@@ -416,7 +416,7 @@ function PdfPreview({ data }: { data: QuotePdfData }) {
   }, [key])
 
   return (
-    <div className="mt-4 rounded border border-[var(--border)]">
+    <div className="mt-4 rounded-lg border border-[var(--border)]">
       {error && <div className="p-3 text-sm text-red-500">Impossible de générer l’aperçu : {error}</div>}
       {!url && !error && <div className="p-3 text-sm text-[var(--fg-muted)]">Génération du PDF…</div>}
       {url && <iframe title="Aperçu du devis" src={url} className="h-[80vh] w-full rounded bg-white" />}
@@ -442,7 +442,7 @@ function QuoteBilling({ quote }: { quote: Quote }) {
   }
 
   return (
-    <div className="mt-6 rounded border border-[var(--border)] p-4">
+    <div className="mt-6 rounded-lg border border-[var(--border)] p-4">
       <h2 className="mb-2 text-lg font-semibold">Facturation</h2>
       {linked.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Aucune facture pour ce devis.</p>}
       {linked.map((i) => {

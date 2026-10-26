@@ -21,9 +21,9 @@ import { LineRow } from '@/components/QuotesView'
 import type { AuditEntry, Invoice, InvoiceKind, InvoiceLine } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
-const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
-const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
+const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
+const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 function Chip({ label, color }: { label: string; color: string }) {
   return <span className="rounded px-2 py-0.5 text-xs" style={{ background: color, color: '#37352f' }}>{label}</span>
@@ -293,7 +293,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
         </div>
 
         {locked && (
-          <div className="mb-4 rounded border border-[var(--border)] bg-[var(--bg-side)] p-3 text-sm">
+          <div className="mb-4 rounded-lg border border-[var(--border)] bg-[var(--bg-side)] p-3 text-sm">
             🔒 {credit ? 'Cet avoir est émis : il est définitif' : 'Cette facture est émise : elle est définitive'} et ne peut plus être modifié{credit ? '' : 'e'}.
             {!credit && ' Pour corriger une erreur, crée un avoir : il annule la facture, puis tu en refais une nouvelle.'}
           </div>
@@ -369,7 +369,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
         </Row>
 
         {error && <div className="mb-3 rounded border border-red-500/50 bg-red-500/10 p-2 text-sm text-red-500">{error}</div>}
-        {!locked && warnings.map((w) => <div key={w} className="mb-2 rounded border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>)}
+        {!locked && warnings.map((w) => <div key={w} className="mb-2 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>)}
         {!locked && blockers.length > 0 && (
           <div className="mb-3 rounded border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">
             <strong>Pour émettre :</strong>
@@ -433,7 +433,7 @@ function PdfPreview({ data }: { data: InvoicePdfData }) {
   }, [key])
 
   return (
-    <div className="mt-4 rounded border border-[var(--border)]">
+    <div className="mt-4 rounded-lg border border-[var(--border)]">
       {error && <div className="p-3 text-sm text-red-500">Impossible de générer l’aperçu : {error}</div>}
       {!url && !error && <div className="p-3 text-sm text-[var(--fg-muted)]">Génération du PDF…</div>}
       {url && <iframe title="Aperçu de la facture" src={url} className="h-[80vh] w-full rounded bg-white" />}
