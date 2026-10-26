@@ -64,7 +64,7 @@ export function QuotesView() {
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Devis</h1>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <select className={field + ' w-48 shrink-0'} value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
+        <select className={field + ' w-48! shrink-0'} value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
           <option value="all">Tous les statuts</option>
           {(Object.keys(STATUS_LABELS) as QuoteStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
         </select>

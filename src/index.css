@@ -128,3 +128,7 @@ main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) both; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* Tableaux : un peu d'air entre le bord d'une ligne (survol, sélection) et son contenu, à gauche comme à droite. */
+table.w-full.border-collapse > thead > tr > :first-child, table.w-full.border-collapse > tbody > tr > :first-child { padding-left: 0.75rem; }
+table.w-full.border-collapse > thead > tr > :last-child, table.w-full.border-collapse > tbody > tr > :last-child { padding-right: 0.75rem; }

@@ -239,8 +239,8 @@ export function AssistantModal({ initialMode = 'recipe', onApplyLines, onClose }
               <div key={i} className="mb-1 flex items-center gap-2">
                 <input type="checkbox" checked={t.keep} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, keep: e.target.checked } : x)))} />
                 <input className={field + ' flex-1'} value={t.title} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, title: e.target.value } : x)))} />
-                <input type="date" className={field + ' w-40'} value={t.due ?? ''} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, due: e.target.value || null } : x)))} />
-                <select className={field + ' w-32'} value={t.priority ?? ''} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, priority: (e.target.value || null) as AiPriority | null } : x)))}>
+                <input type="date" className={field + ' w-40!'} value={t.due ?? ''} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, due: e.target.value || null } : x)))} />
+                <select className={field + ' w-32!'} value={t.priority ?? ''} onChange={(e) => setTasks(tasks.map((x, j) => (j === i ? { ...x, priority: (e.target.value || null) as AiPriority | null } : x)))}>
                   <option value="">Priorité —</option><option value="haute">Haute</option><option value="moyenne">Moyenne</option><option value="basse">Basse</option>
                 </select>
               </div>
@@ -273,9 +273,9 @@ function LineEdit({ line, onChange, onRemove }: { line: AiLine; onChange: (l: Ai
           <input className={field} value={line.label} onChange={(e) => onChange({ ...line, label: e.target.value })} />
           <input className={field + ' mt-1 text-xs'} placeholder="Détails" value={line.description} onChange={(e) => onChange({ ...line, description: e.target.value })} />
         </div>
-        <input className={field + ' w-16'} value={qty} onChange={(e) => setQty(e.target.value)} onBlur={() => { const n = Number(qty.replace(',', '.')); if (n > 0) onChange({ ...line, quantity_milli: Math.round(n * 1000) }); else setQty(String(line.quantity_milli / 1000).replace('.', ',')) }} />
-        <select className={field + ' w-24'} value={line.unit} onChange={(e) => onChange({ ...line, unit: e.target.value })}>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
-        <input className={field + ' w-28 text-right' + (line.unit_price_cents === null ? ' border-yellow-500' : '')} value={price} placeholder="à compléter" onChange={(e) => setPrice(e.target.value)} onBlur={() => onChange({ ...line, unit_price_cents: price.trim() === '' ? null : parseEuros(price) })} />
+        <input className={field + ' w-16!'} value={qty} onChange={(e) => setQty(e.target.value)} onBlur={() => { const n = Number(qty.replace(',', '.')); if (n > 0) onChange({ ...line, quantity_milli: Math.round(n * 1000) }); else setQty(String(line.quantity_milli / 1000).replace('.', ',')) }} />
+        <select className={field + ' w-24!'} value={line.unit} onChange={(e) => onChange({ ...line, unit: e.target.value })}>{UNITS.map((u) => <option key={u} value={u}>{u}</option>)}</select>
+        <input className={field + ' w-28! text-right' + (line.unit_price_cents === null ? ' border-yellow-500' : '')} value={price} placeholder="à compléter" onChange={(e) => setPrice(e.target.value)} onBlur={() => onChange({ ...line, unit_price_cents: price.trim() === '' ? null : parseEuros(price) })} />
         <button title="Retirer cette ligne" className="w-6 text-red-500" onClick={onRemove}>×</button>
       </div>
       {line.unit_price_cents !== null && <div className="mt-1 text-right text-xs text-[var(--fg-muted)]">{formatEuros(Math.floor((line.unit_price_cents * line.quantity_milli + 500) / 1000))}</div>}

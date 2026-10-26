@@ -1140,7 +1140,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const num = (name: string, value: number, unit: string, set: (v: number) => void, step = 1) => (
           <div className={row}>
             <span className={label}>{name}</span>
-            <input className={field + ' w-16'} type="number" step={step} value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) set(v) }} aria-label={`${name} (${unit})`} />
+            <input className={field + ' w-16!'} type="number" step={step} value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) set(v) }} aria-label={`${name} (${unit})`} />
             <span className="text-[var(--fg-muted)]">{unit}</span>
           </div>
         )

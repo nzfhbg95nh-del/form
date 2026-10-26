@@ -105,11 +105,11 @@ export function InvoicesView() {
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Factures</h1>
       <div className="mb-3 flex flex-wrap items-center gap-3">
-        <select className={field + ' w-44 shrink-0'} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+        <select className={field + ' w-44! shrink-0'} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
           <option value="all">Tous les types</option>
           {(Object.keys(KIND_LABELS) as InvoiceKind[]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
-        <select className={field + ' w-44 shrink-0'} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+        <select className={field + ' w-44! shrink-0'} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
           <option value="all">Tous les statuts</option>
           {(Object.keys(DISPLAY_LABELS) as DisplayStatus[]).map((s) => <option key={s} value={s}>{DISPLAY_LABELS[s]}</option>)}
         </select>
@@ -138,7 +138,7 @@ export function InvoicesView() {
             const status = st(i)
             return (
               <tr key={i.id} onClick={() => openInvoice(i.id)} className="group cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
-                <td className="py-2 pr-3 font-medium">{i.number ?? <span className="text-[var(--fg-muted)]">Brouillon</span>}</td>
+                <td className="py-2 pr-3 font-medium">{i.number ?? <span className="font-normal text-[var(--fg-muted)]">Sans numéro</span>}</td>
                 <td className="pr-3">{KIND_LABELS[i.kind]}</td>
                 <td className="pr-3">{client ? clientDisplayName(client) : <span className="text-[var(--fg-muted)]">—</span>}</td>
                 <td className="pr-3">{formatDateFr(i.issue_date)}</td>
