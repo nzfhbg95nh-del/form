@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Expand, Hand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, Hand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
@@ -67,6 +67,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [assets, setAssets] = useState<Record<string, Asset>>({})
   const [flash, setFlash] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
+  const [alignOpen, setAlignOpen] = useState(false)
+  const [alignRef, setAlignRef] = useState<'selection' | 'screen' | 'key'>('selection')
+  const [spaceInput, setSpaceInput] = useState('')
   const [palette, setPalette] = useState<string[]>([])
   const [linkInput, setLinkInput] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
@@ -585,6 +589,19 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     grid: () => withSelection((i, s) => arrangeGrid(i, s)),
     normalize: (m: NormalizeMode) => withSelection((i, s) => normalizeItems(i, s, m)),
     align: (m: AlignMode) => withSelection((i, s) => alignItems(i, s, m)),
+    // Panneau Aligner : l'objet clé est le dernier élément sélectionné (Maj+clic) ; « écran » = la partie visible de la toile.
+    alignOn: (m: AlignMode) => withSelection((i, s) => {
+      const keyId = alignRef === 'key' ? [...selRef.current].pop() ?? null : null
+      const v = viewRef.current
+      const target = alignRef === 'screen' ? { x: -v.x / v.zoom, y: -v.y / v.zoom, w: size.w / v.zoom, h: size.h / v.zoom } : null
+      return alignItems(i, s, m, { target, keyId })
+    }),
+    distribute: (m: AlignMode) => withSelection((i, s) => distributeItems(i, s, m)),
+    space: (axis: 'x' | 'y') => withSelection((i, s) => {
+      const gap = spaceInput.trim() === '' ? null : Number(spaceInput)
+      const keyId = alignRef === 'key' ? [...selRef.current].pop() ?? null : null
+      return distributeSpacing(i, s, axis, { gap: gap !== null && Number.isFinite(gap) ? gap : null, keyId })
+    }),
     noteColor: (color: string) => withSelection((i, s) => i.map((it) => (s.has(it.id) && it.kind === 'note' ? { ...it, color } : it))),
     shapeColor: (color: string) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && (it.kind === 'shape' || it.kind === 'text') ? { ...it, color } : it))),
     toggleFill: () => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, filled: !it.filled } : it))),
@@ -932,6 +949,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'full', add: true }) }}
         ><Plus size={14} className="mr-1 inline" />Ajouter</button>
         <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
+        <button className={bar + (alignOpen ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')} title="Panneau Aligner : aligner et répartir la sélection" aria-pressed={alignOpen} onClick={() => setAlignOpen(!alignOpen)}><AlignStartVertical size={14} className="mr-1 inline" />Aligner</button>
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
         <button className={bar} title="Fond : petits points ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
@@ -1047,6 +1065,51 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="checkbox" checked={ps.hyph} onChange={(e) => setTextProps({ hyph: e.target.checked })} />
               <span>Couper les mots</span>
             </label>
+          </div>
+        )
+      })()}
+
+      {alignOpen && !compact && (() => {
+        const n = selection.size
+        const ic = (on: boolean) => 'flex h-7 w-7 items-center justify-center rounded border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)] disabled:opacity-30' + (on ? '' : '')
+        const can = n >= 1 && (alignRef === 'screen' || n >= 2)
+        const row = 'flex gap-1'
+        const pick = (id: 'selection' | 'screen' | 'key', text: string, title: string) => (
+          <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
+        )
+        return (
+          <div data-ui className="absolute left-3 top-[190px] z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+            <div className="flex items-center">
+              <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
+              <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>
+            </div>
+            <div className="text-[var(--fg-muted)]">Aligner sur</div>
+            <div className={row}>
+              {pick('selection', 'Sélection', 'Le cadre de la sélection')}
+              {pick('screen', 'Écran', 'La partie visible de la toile')}
+              {pick('key', 'Objet clé', 'Le dernier élément sélectionné (Maj+clic) ne bouge pas, les autres s’alignent sur lui')}
+            </div>
+            {alignRef === 'key' && <div className="text-[var(--fg-muted)]">Objet clé : le dernier sélectionné (Maj+clic pour le choisir).</div>}
+            <div className="text-[var(--fg-muted)]">Aligner les objets</div>
+            <div className={row}>
+              {([['left', AlignStartVertical, 'Aligner à gauche'], ['hcenter', AlignCenterVertical, 'Centrer horizontalement'], ['right', AlignEndVertical, 'Aligner à droite'], ['top', AlignStartHorizontal, 'Aligner en haut'], ['vcenter', AlignCenterHorizontal, 'Centrer verticalement'], ['bottom', AlignEndHorizontal, 'Aligner en bas']] as const).map(([m, Ico, t]) => (
+                <button key={m} className={ic(false)} title={t} aria-label={t} disabled={!can} onClick={() => act.alignOn(m)}><Ico size={14} /></button>
+              ))}
+            </div>
+            <div className="text-[var(--fg-muted)]">Répartir les objets (3 ou plus)</div>
+            <div className={row}>
+              {([['left', AlignHorizontalDistributeStart, 'Répartir les bords gauches'], ['hcenter', AlignHorizontalDistributeCenter, 'Répartir les centres (horizontal)'], ['right', AlignHorizontalDistributeEnd, 'Répartir les bords droits'], ['top', AlignVerticalDistributeStart, 'Répartir les bords hauts'], ['vcenter', AlignVerticalDistributeCenter, 'Répartir les centres (vertical)'], ['bottom', AlignVerticalDistributeEnd, 'Répartir les bords bas']] as const).map(([m, Ico, t]) => (
+                <button key={m} className={ic(false)} title={t} aria-label={t} disabled={n < 3} onClick={() => act.distribute(m)}><Ico size={14} /></button>
+              ))}
+            </div>
+            <div className="text-[var(--fg-muted)]">Répartir les espaces</div>
+            <div className="flex items-center gap-1">
+              <button className={ic(false)} title="Mêmes espaces à l’horizontale" aria-label="Mêmes espaces à l’horizontale" disabled={n < 3} onClick={() => act.space('x')}><AlignHorizontalSpaceBetween size={14} /></button>
+              <button className={ic(false)} title="Mêmes espaces à la verticale" aria-label="Mêmes espaces à la verticale" disabled={n < 3} onClick={() => act.space('y')}><AlignVerticalSpaceBetween size={14} /></button>
+              <input className="ml-1 w-14 rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs outline-none focus:border-[var(--accent)]" type="number" placeholder="auto" value={spaceInput} onChange={(e) => setSpaceInput(e.target.value)} aria-label="Espace imposé entre les éléments (pt)" title="Espace imposé entre les éléments ; vide = espaces égaux" />
+              <span className="text-[var(--fg-muted)]">pt</span>
+            </div>
+            {n === 0 && <div className="text-[var(--fg-muted)]">Sélectionne des éléments (Maj+clic pour en ajouter).</div>}
           </div>
         )
       })()}

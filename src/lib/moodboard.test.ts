@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  alignItems, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, boundsOf, bringToFront, clampZoom, commit, duplicateItems,
+  alignItems, distributeItems, distributeSpacing, itemBounds, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, boundsOf, bringToFront, clampZoom, commit, duplicateItems,
   emptyBoard, expandGroups, fitView, flipItems, groupItems, hitTest, importSize, itemsInRect, looksLikeUrl, moveItems, newHistory,
   normalizeItems, normalizeRect, parseBoard, redo, removeItems, scaleItems, screenToWorld, sendToBack, serializeBoard, undo,
   ungroupItems, worldToScreen, zoomAt, MAX_ZOOM, MIN_ZOOM, type BoardItem,
@@ -244,5 +244,44 @@ describe('palette de couleurs', () => {
     expect(hexToRgb('zzz')).toBeNull()
     expect(readableOn('#ffffff')).toBe('#111111')
     expect(readableOn('#101010')).toBe('#ffffff')
+  })
+})
+
+describe('panneau Aligner', () => {
+  const row = () => [item('a', 0, 0, 10, 10), item('b', 15, 0, 10, 10), item('c', 100, 0, 10, 10)]
+  it('aligne sur un cadre donné (l’écran) au lieu de la sélection', () => {
+    const out = alignItems(row(), ids('a', 'b'), 'left', { target: { x: 50, y: 0, w: 200, h: 100 } })
+    expect(out.map((i) => i.x)).toEqual([50, 50, 100])
+  })
+  it('aligne sur un objet clé qui ne bouge pas', () => {
+    const out = alignItems(row(), ids('a', 'b', 'c'), 'left', { keyId: 'b' })
+    expect(out.map((i) => i.x)).toEqual([15, 15, 15])
+  })
+  it('un élément tourné s’aligne par son encombrement réel', () => {
+    const items = [item('a', 0, 0, 100, 20, { rot: 90 }), item('b', 200, 0, 10, 10)]
+    const b = itemBounds(items[0])
+    const out = alignItems(items, ids('a', 'b'), 'left')
+    expect(itemBounds(out[0]).x).toBeCloseTo(b.x)
+    expect(itemBounds(out[1]).x).toBeCloseTo(b.x)
+  })
+  it('répartir les objets : espacement régulier, les extrémités ne bougent pas', () => {
+    const out = distributeItems([item('a', 0, 0, 10, 10), item('b', 20, 0, 10, 10), item('c', 100, 0, 10, 10)], ids('a', 'b', 'c'), 'left')
+    expect(out.map((i) => i.x)).toEqual([0, 50, 100])
+  })
+  it('répartir les objets demande trois éléments', () => {
+    const items = [item('a', 0, 0, 10, 10), item('b', 20, 0, 10, 10)]
+    expect(distributeItems(items, ids('a', 'b'), 'left')).toBe(items)
+  })
+  it('répartir les espaces : vides égaux', () => {
+    const out = distributeSpacing([item('a', 0, 0, 10, 10), item('b', 15, 0, 30, 10), item('c', 100, 0, 10, 10)], ids('a', 'b', 'c'), 'x')
+    expect(out.map((i) => i.x)).toEqual([0, 40, 100])
+  })
+  it('répartir les espaces avec une valeur imposée', () => {
+    const out = distributeSpacing([item('a', 0, 0, 10, 10), item('b', 15, 0, 10, 10), item('c', 100, 0, 10, 10)], ids('a', 'b', 'c'), 'x', { gap: 5 })
+    expect(out.map((i) => i.x)).toEqual([0, 15, 30])
+  })
+  it('répartir les espaces autour d’un objet clé : il ne bouge pas', () => {
+    const out = distributeSpacing([item('a', 0, 0, 10, 10), item('b', 15, 0, 10, 10), item('c', 100, 0, 10, 10)], ids('a', 'b', 'c'), 'x', { gap: 5, keyId: 'c' })
+    expect(out.map((i) => i.x)).toEqual([70, 85, 100])
   })
 })

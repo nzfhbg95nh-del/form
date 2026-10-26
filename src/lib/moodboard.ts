@@ -368,18 +368,79 @@ export function normalizeItems(items: BoardItem[], ids: Set<string>, mode: Norma
 
 export type AlignMode = 'left' | 'right' | 'top' | 'bottom' | 'hcenter' | 'vcenter'
 
-export function alignItems(items: BoardItem[], ids: Set<string>, mode: AlignMode): BoardItem[] {
-  const box = boundsOf(items.filter((i) => ids.has(i.id)))
+/**
+ * Aligne les éléments sélectionnés (comme le panneau Aligner d'Illustrator). Par défaut sur le cadre de la sélection ;
+ * `target` : sur un autre cadre (l'écran) ; `keyId` : sur un « objet clé », qui ne bouge pas. Les éléments tournés comptent par leur encombrement réel.
+ */
+export function alignItems(items: BoardItem[], ids: Set<string>, mode: AlignMode, opts: { target?: Rect | null; keyId?: string | null } = {}): BoardItem[] {
+  const chosen = items.filter((i) => ids.has(i.id))
+  const key = opts.keyId ? chosen.find((i) => i.id === opts.keyId) : undefined
+  const box = key ? itemBounds(key) : opts.target ?? boundsOf(chosen)
   if (!box) return items
   return map(items, ids, (i) => {
+    if (key && i.id === key.id) return i
+    const b = itemBounds(i)
     switch (mode) {
-      case 'left': return { ...i, x: box.x }
-      case 'right': return { ...i, x: box.x + box.w - i.w }
-      case 'top': return { ...i, y: box.y }
-      case 'bottom': return { ...i, y: box.y + box.h - i.h }
-      case 'hcenter': return { ...i, x: box.x + (box.w - i.w) / 2 }
-      case 'vcenter': return { ...i, y: box.y + (box.h - i.h) / 2 }
+      case 'left': return { ...i, x: i.x + box.x - b.x }
+      case 'right': return { ...i, x: i.x + box.x + box.w - (b.x + b.w) }
+      case 'top': return { ...i, y: i.y + box.y - b.y }
+      case 'bottom': return { ...i, y: i.y + box.y + box.h - (b.y + b.h) }
+      case 'hcenter': return { ...i, x: i.x + box.x + box.w / 2 - (b.x + b.w / 2) }
+      case 'vcenter': return { ...i, y: i.y + box.y + box.h / 2 - (b.y + b.h / 2) }
     }
+  })
+}
+
+/**
+ * Répartir les objets : les bords (ou centres) choisis sont régulièrement espacés entre le premier et le dernier élément, qui ne bougent pas.
+ * Il faut au moins trois éléments.
+ */
+export function distributeItems(items: BoardItem[], ids: Set<string>, mode: AlignMode): BoardItem[] {
+  const horizontal = mode === 'left' || mode === 'hcenter' || mode === 'right'
+  const anchor = (i: BoardItem) => {
+    const b = itemBounds(i)
+    if (horizontal) return mode === 'left' ? b.x : mode === 'right' ? b.x + b.w : b.x + b.w / 2
+    return mode === 'top' ? b.y : mode === 'bottom' ? b.y + b.h : b.y + b.h / 2
+  }
+  const list = items.filter((i) => ids.has(i.id)).sort((a, b) => anchor(a) - anchor(b))
+  if (list.length < 3) return items
+  const first = anchor(list[0])
+  const step = (anchor(list[list.length - 1]) - first) / (list.length - 1)
+  const shifts = new Map(list.map((i, n) => [i.id, first + step * n - anchor(i)]))
+  return items.map((i) => {
+    const d = shifts.get(i.id)
+    if (!d) return i
+    return horizontal ? { ...i, x: i.x + d } : { ...i, y: i.y + d }
+  })
+}
+
+/**
+ * Répartir les espaces : les vides entre les éléments deviennent tous égaux (`gap` : valeur imposée, sinon on garde l'étendue du premier au dernier).
+ * Avec un objet clé, il reste en place et les autres s'ajustent autour de lui.
+ */
+export function distributeSpacing(items: BoardItem[], ids: Set<string>, axis: 'x' | 'y', opts: { gap?: number | null; keyId?: string | null } = {}): BoardItem[] {
+  const start = (i: BoardItem) => (axis === 'x' ? itemBounds(i).x : itemBounds(i).y)
+  const len = (i: BoardItem) => (axis === 'x' ? itemBounds(i).w : itemBounds(i).h)
+  const list = items.filter((i) => ids.has(i.id)).sort((a, b) => start(a) - start(b))
+  if (list.length < 3 && opts.gap == null) return items
+  if (list.length < 2) return items
+  const last = list[list.length - 1]
+  const total = start(last) + len(last) - start(list[0])
+  const gap = opts.gap ?? (total - list.reduce((s, i) => s + len(i), 0)) / (list.length - 1)
+  const target = new Map<string, number>()
+  let at = start(list[0])
+  for (const i of list) {
+    target.set(i.id, at)
+    at += len(i) + gap
+  }
+  // Avec un objet clé : tout est décalé pour que lui ne bouge pas.
+  const key = opts.keyId ? list.find((i) => i.id === opts.keyId) : undefined
+  const offset = key ? start(key) - (target.get(key.id) as number) : 0
+  return items.map((i) => {
+    const t = target.get(i.id)
+    if (t === undefined) return i
+    const d = t + offset - start(i)
+    return axis === 'x' ? { ...i, x: i.x + d } : { ...i, y: i.y + d }
   })
 }
 

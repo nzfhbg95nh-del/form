@@ -701,3 +701,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Chaque ligne est maintenant posée par Form lui-même (même découpage que le calcul de la boîte) : retraits, puces et justification sont exacts. Pendant la frappe, retraits et espaces entre paragraphes sont mis de côté.
 - Pas fait : rotation de chaque lettre (seul le texte entier tourne) ; les réglages s'appliquent à tout le texte, pas à une partie sélectionnée.
 - Tests : 563 (8 nouveaux sur la mise en page).
+
+## 2026-10-26 — Moodboard : panneau Aligner façon Illustrator (après la v0.47.2, pas encore publié)
+- Bouton « Aligner » dans la barre du moodboard : panneau à gauche. « Aligner sur » : la sélection, l'écran (partie visible de la toile) ou un objet clé (le dernier sélectionné, qui ne bouge pas). 6 alignements, 6 répartitions d'objets (3 éléments ou plus), répartition des espaces à l'horizontale ou à la verticale, avec un espace imposé en pt (vide = égal).
+- Les éléments tournés s'alignent par leur encombrement réel (le menu clic droit « Aligner » en profite aussi).
+- Tests : 571.
