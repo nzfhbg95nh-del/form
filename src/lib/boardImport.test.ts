@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { classifyLink, imageTypeOf, importMessage } from './boardImport'
-import { arrowHead, boundsOf, bringForward, handlePoint, hitTest, itemBounds, makeShape, makeText, resizeRotated, resizeScale, rotateItems, rotatePoint, sendBackward, snapMove, snapRotation, type BoardItem } from './moodboard'
+import { arrowHead, boundsOf, cellsTile, emptyBoard, parseBoard, bringForward, handlePoint, hitTest, itemBounds, makeShape, makeText, resizeRotated, resizeScale, rotateItems, rotatePoint, sendBackward, snapMove, snapRotation, type BoardItem } from './moodboard'
 
 describe('classifyLink', () => {
   it('reconnaît un tableau Pinterest, avec ou sans suite de paramètres', () => {
@@ -180,5 +180,22 @@ describe('guides intelligents', () => {
     const g = r.guides.find((x) => x.axis === 'x' && x.pos === 100)
     expect(g?.from).toBe(100)
     expect(g?.to).toBe(340)
+  })
+})
+
+describe('fond « Cases »', () => {
+  it('une case est un petit dessin dont les côtés sont tracés au milieu, avec des vides aux coins', () => {
+    const url = cellsTile(160, 'rgba(0,0,0,0.1)')
+    expect(url.startsWith('data:image/svg+xml,')).toBe(true)
+    const svg = decodeURIComponent(url.replace('data:image/svg+xml,', ''))
+    expect(svg).toContain('width="160"')
+    expect(svg).toContain('M22.4 0.5H137.6')
+    expect(svg).toContain('M0.5 22.4V137.6')
+  })
+  it('c\'est le fond d\'un nouveau moodboard ; les anciens points deviennent des cases', () => {
+    expect(emptyBoard().pattern).toBe('cells')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'dots' })).pattern).toBe('cells')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'grid' })).pattern).toBe('grid')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'none' })).pattern).toBe('none')
   })
 })

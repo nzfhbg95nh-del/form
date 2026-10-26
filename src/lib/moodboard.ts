@@ -63,12 +63,25 @@ export interface Board {
   pattern: Pattern
 }
 
-export type Pattern = 'dots' | 'grid' | 'none'
+/** « dots » (les points d'avant) n'est plus proposé : un ancien moodboard qui l'avait devient « cells ». */
+export type Pattern = 'cells' | 'dots' | 'grid' | 'none'
 export const PATTERNS: { id: Pattern; label: string }[] = [
-  { id: 'dots', label: 'Points' },
+  { id: 'cells', label: 'Cases' },
   { id: 'grid', label: 'Grille' },
   { id: 'none', label: 'Uni' },
 ]
+
+/**
+ * Le motif « Cases » du fond : des carrés dont chaque côté est tracé au milieu seulement, avec un vide à chaque coin (comme des repères de découpe).
+ * Rend l'image (SVG) d'une case de `step` pixels, à répéter ; les traits font 1 pixel quelle que soit la taille.
+ */
+export function cellsTile(step: number, color: string): string {
+  const a = Math.round(step * 0.14 * 100) / 100
+  const b = Math.round(step * 0.86 * 100) / 100
+  const s = Math.round(step * 100) / 100
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${s}" height="${s}"><path d="M${a} 0.5H${b}M0.5 ${a}V${b}" stroke="${color}" stroke-width="1" fill="none"/></svg>`
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
 
 export interface Rect {
   x: number
@@ -86,14 +99,17 @@ export const NOTE_COLORS = ['#fff3a3', '#ffd6e0', '#cfeaff', '#d4f5d0', '#ffffff
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
 
 export function emptyBoard(): Board {
-  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'dots' }
+  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'cells' }
 }
 
 export function parseBoard(content: string | null): Board {
   if (!content) return emptyBoard()
   try {
     const data = JSON.parse(content)
-    if (data && data.v === 1 && Array.isArray(data.items)) return { ...emptyBoard(), ...data }
+    if (data && data.v === 1 && Array.isArray(data.items)) {
+      const board = { ...emptyBoard(), ...data }
+      return board.pattern === 'dots' ? { ...board, pattern: 'cells' } : board
+    }
   } catch {
     /* plan illisible : on repart d'une toile vide */
   }

@@ -4,7 +4,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  alignItems, arrangeColumn, arrowHead, bringForward, cellsTile, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
@@ -669,14 +669,20 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     } catch (err) { say(`Impossible : ${err instanceof Error ? err.message : String(err)}`) }
   }
 
-  // Fond : par défaut la couleur de l'application, avec un motif de points espacés comme un cahier à points.
+  // Fond : par défaut la couleur de l'application, avec un motif de « cases » très discret (des carrés ouverts aux coins), ou une grille, ou rien.
   const isDark = bg === 'theme' ? appTheme === 'dark' : readableOn(bg) === '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
   const bgColor = bg === 'theme' ? 'var(--bg)' : bg
   const step = 28 * view.zoom
   const ink = isDark ? 'rgba(255,255,255,0.20)' : 'rgba(0,0,0,0.22)'
+  const cell = 160 * view.zoom
+  const cellInk = isDark ? 'rgba(255,255,255,0.16)' : 'rgba(0,0,0,0.11)'
   const patternStyle: React.CSSProperties =
-    pattern === 'dots' && step >= 8
+    pattern === 'cells'
+      ? cell >= 24
+        ? { backgroundImage: `url("${cellsTile(cell, cellInk)}")`, backgroundSize: `${cell}px ${cell}px`, backgroundPosition: `${view.x}px ${view.y}px` }
+        : {}
+      : pattern === 'dots' && step >= 8
       ? { backgroundImage: `radial-gradient(circle at center, ${ink} ${Math.max(1, view.zoom * 1.1)}px, transparent ${Math.max(1.4, view.zoom * 1.1 + 0.5)}px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x - step / 2}px ${view.y - step / 2}px` }
       : pattern === 'grid' && step >= 8
         ? { backgroundImage: `linear-gradient(${ink} 1px, transparent 1px), linear-gradient(90deg, ${ink} 1px, transparent 1px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x}px ${view.y}px` }
@@ -893,7 +899,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
-        <button className={bar} title="Fond : points, grille ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
+        <button className={bar} title="Fond : cases, grille ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
         <button className={bar} title="Ouvrir dans une petite fenêtre flottante, toujours devant (comme PureRef)" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.') })}><PictureInPicture2 size={14} className="mr-1 inline" />Flottant</button>
         <button className={bar} title="Toujours au premier plan" onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
         {BACKGROUNDS.map((b) => (
