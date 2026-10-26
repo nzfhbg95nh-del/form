@@ -162,6 +162,7 @@ pub fn run() {
             backup::prune_backups,
             backup::default_backup_dir,
             vector::vc_load,
+            vector::vc_paint,
             vector::vc_tool,
             vector::vc_pointer,
             vector::vc_key,

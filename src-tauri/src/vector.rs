@@ -48,6 +48,26 @@ pub struct PathIo {
     pub id: String,
     pub closed: bool,
     pub points: Vec<PointIo>,
+    /// Couleur de remplissage (#rrggbb) ; rien = pas de remplissage.
+    #[serde(default)]
+    pub fill: Option<String>,
+    /// Couleur du contour (#rrggbb) ; rien = pas de contour.
+    #[serde(default)]
+    pub stroke: Option<String>,
+    /// Épaisseur du contour.
+    #[serde(default)]
+    pub sw: f64,
+}
+
+/// Le remplissage et le contour des prochains objets dessinés (et de la sélection quand on les change).
+#[derive(Deserialize, Serialize, Clone, Debug, Default)]
+pub struct StyleIo {
+    #[serde(default)]
+    pub fill: Option<String>,
+    #[serde(default)]
+    pub stroke: Option<String>,
+    #[serde(default)]
+    pub sw: f64,
 }
 
 #[derive(Deserialize, Default, Clone, Copy, Debug)]
@@ -111,6 +131,31 @@ fn anchor_json(p: &PointIo) -> Value {
     a
 }
 
+/// Remplissage, contour et épaisseur d'un objet (ou, sans objet, des prochains objets).
+fn set_style(s: &mut Session, id: Option<u64>, st: &StyleIo) -> Result<(), String> {
+    let target = |mut v: Value| {
+        if let Some(id) = id {
+            v["ids"] = json!([id]);
+        }
+        v["focus"] = json!(false);
+        v
+    };
+    let paint = |c: &Option<String>| match c {
+        Some(hex) => json!({ "color": hex }),
+        None => json!({ "none": true }),
+    };
+    s.execute("paint.setFill", &target(paint(&st.fill))).map_err(|e| e.to_string())?;
+    s.execute("paint.setStroke", &target(paint(&st.stroke))).map_err(|e| e.to_string())?;
+    if st.stroke.is_some() && st.sw > 0.0 {
+        let mut w = json!({ "weight": st.sw });
+        if let Some(id) = id {
+            w["ids"] = json!([id]);
+        }
+        s.execute("stroke.set", &w).map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
 fn pt(p: vectorcraft_engine::doc::NodeId) -> u64 {
     p.0
 }
@@ -121,7 +166,7 @@ impl Vector {
     }
 
     /// Le moteur repart d'un plan vide avec les tracés du moodboard.
-    fn load(&mut self, paths: &[PathIo], selected: &[String]) -> Result<(), String> {
+    fn load(&mut self, paths: &[PathIo], selected: &[String], defaults: &StyleIo) -> Result<(), String> {
         let mut s = Session::new();
         s.execute("file.new", &json!({ "width": PLAN, "height": PLAN })).map_err(|e| e.to_string())?;
         self.to_node.clear();
@@ -135,8 +180,12 @@ impl Vector {
             if let Some(id) = made.get("id").and_then(Value::as_u64) {
                 self.to_node.insert(p.id.clone(), id);
                 self.to_board.insert(id, p.id.clone());
+                set_style(&mut s, Some(id), &StyleIo { fill: p.fill.clone(), stroke: p.stroke.clone(), sw: p.sw })?;
             }
         }
+        s.execute("select.none", &json!({})).map_err(|e| e.to_string())?;
+        // Les prochains objets dessinés prennent le style choisi dans Form.
+        set_style(&mut s, None, defaults)?;
         let ids: Vec<u64> = selected.iter().filter_map(|s| self.to_node.get(s).copied()).collect();
         if ids.is_empty() {
             s.execute("select.none", &json!({})).map_err(|e| e.to_string())?;
@@ -156,11 +205,17 @@ impl Vector {
             let mut found = Vec::new();
             st.doc.walk(|n| {
                 if let Some(pd) = n.path_data() {
+                    let fill = n.appearance.fill_paint().color().map(|c| c.to_hex());
+                    let stroke = n.appearance.stroke_paint().color().map(|c| c.to_hex());
+                    let sw = n.appearance.stroke_width();
                     let subs = pd
                         .subpaths
                         .iter()
                         .map(|sp| PathIo {
                             id: String::new(),
+                            fill: fill.clone(),
+                            stroke: stroke.clone(),
+                            sw,
                             closed: sp.closed,
                             points: sp
                                 .anchors
@@ -200,8 +255,8 @@ impl Vector {
 }
 
 impl Vector {
-    fn start(&mut self, paths: &[PathIo], selected: &[String], tool: &str, zoom: f64) -> Result<VectorOut, String> {
-        self.load(paths, selected)?;
+    fn start(&mut self, paths: &[PathIo], selected: &[String], tool: &str, zoom: f64, defaults: &StyleIo) -> Result<VectorOut, String> {
+        self.load(paths, selected, defaults)?;
         self.session()?.select_tool(tool, view(zoom)).map_err(|e| e.to_string())?;
         let mut out = self.snapshot(zoom, vec![])?;
         out.cursor = cursor_name(self.session()?.cursor(Point::new(0.0, 0.0), Mods::default(), view(zoom)));
@@ -299,8 +354,17 @@ fn with<R>(state: &VectorState, f: impl FnOnce(&mut Vector) -> Result<R, String>
 
 /// Démarre le moteur avec les tracés du moodboard et choisit l'outil.
 #[tauri::command]
-pub fn vc_load(state: tauri::State<VectorState>, paths: Vec<PathIo>, selected: Vec<String>, tool: String, zoom: f64) -> Result<VectorOut, String> {
-    with(&state, |v| v.start(&paths, &selected, &tool, zoom))
+pub fn vc_load(state: tauri::State<VectorState>, paths: Vec<PathIo>, selected: Vec<String>, tool: String, zoom: f64, defaults: StyleIo) -> Result<VectorOut, String> {
+    with(&state, |v| v.start(&paths, &selected, &tool, zoom, &defaults))
+}
+
+/// Change le remplissage et le contour : ceux des objets choisis, et ceux des prochains objets.
+#[tauri::command]
+pub fn vc_paint(state: tauri::State<VectorState>, style: StyleIo, zoom: f64) -> Result<VectorOut, String> {
+    with(&state, |v| {
+        set_style(v.session()?, None, &style)?;
+        v.snapshot(zoom, vec![])
+    })
 }
 
 /// Change d'outil (le moteur termine le geste en cours).
@@ -348,7 +412,7 @@ mod tests {
     }
     fn started(tool: &str) -> Vector {
         let mut v = Vector::default();
-        v.start(&[], &[], tool, 1.0).expect("démarrage");
+        v.start(&[], &[], tool, 1.0, &StyleIo { fill: None, stroke: Some("#000000".into()), sw: 1.0 }).expect("démarrage");
         v
     }
 
@@ -384,8 +448,8 @@ mod tests {
     #[test]
     fn les_tracés_du_moodboard_sont_repris_et_modifiés_par_la_fleche_blanche() {
         let mut v = Vector::default();
-        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }] };
-        v.start(&[path], &[], "directSelection", 1.0).expect("démarrage");
+        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0 };
+        v.start(&[path], &[], "directSelection", 1.0, &StyleIo::default()).expect("démarrage");
         // on attrape le deuxième point et on le descend
         ptr(&mut v, "down", 200.0, 10.0);
         ptr(&mut v, "drag", 200.0, 60.0);
@@ -408,5 +472,23 @@ mod tests {
         assert_eq!(out.paths.len(), 1);
         let n = out.paths[0].points.len();
         assert!(n >= 2 && n < 20, "{n} points");
+    }
+
+    #[test]
+    fn le_style_fait_l_aller_retour_et_les_formes_sont_des_tracés() {
+        let mut v = Vector::default();
+        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0 };
+        let out = v.start(&[path], &[], "rectangle", 1.0, &StyleIo { fill: Some("#00ff00".into()), stroke: Some("#0000ff".into()), sw: 2.0 }).expect("démarrage");
+        assert_eq!(out.paths[0].stroke.as_deref(), Some("#ff0000"));
+        assert!((out.paths[0].sw - 3.0).abs() < 1e-6);
+        assert!(out.paths[0].fill.is_none());
+        // un rectangle dessiné prend le style choisi
+        ptr(&mut v, "down", 300.0, 300.0);
+        ptr(&mut v, "drag", 400.0, 380.0);
+        let out = ptr(&mut v, "up", 400.0, 380.0);
+        let made = out.paths.iter().find(|p| p.id != "a").expect("le rectangle");
+        assert_eq!(made.points.len(), 4);
+        assert_eq!(made.fill.as_deref(), Some("#00ff00"));
+        assert_eq!(made.stroke.as_deref(), Some("#0000ff"));
     }
 }

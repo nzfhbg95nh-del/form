@@ -1,33 +1,21 @@
-// Le moteur de dessin vectoriel de Form : les outils (plume, flèche blanche, crayon…) sont ceux de VectorCraft (MIT ou Apache-2.0),
-// qui tournent côté Rust (`src-tauri/src/vector.rs`). Ici : le pont. Form envoie les tracés du moodboard et les gestes de la souris,
-// le moteur répond avec les tracés modifiés, les dessins à poser par-dessus (points, poignées, repères) et la forme du curseur.
+// Le moteur de dessin vectoriel de Form : les outils (plume, flèche blanche, crayon, formes, gommes, ciseaux…) sont ceux de VectorCraft
+// (MIT ou Apache-2.0), qui tournent côté Rust (`src-tauri/src/vector.rs`). Ici : le pont. Form envoie les tracés du moodboard et les gestes
+// de la souris, le moteur répond avec les tracés modifiés, les dessins à poser par-dessus (points, poignées, repères) et la forme du curseur.
 
 import { invoke } from '@tauri-apps/api/core'
 import { isTauri } from './repo'
 import type { BoardItem } from './moodboard'
 import { worldPoints, rebuildPathItem } from './boardPathEdit'
-import { penToItem } from './boardPath'
-import type { PenPoint } from './boardPath'
-import type { ShapeStyle } from './boardShapes'
+import { penToItem, type PenPoint } from './boardPath'
 
-/** Les outils de Form qui sont des outils du moteur : leur identifiant côté VectorCraft. */
-export const ENGINE_TOOLS = {
-  direct: 'directSelection',
-  pen: 'pen',
-  addAnchor: 'addAnchor',
-  deleteAnchor: 'deleteAnchor',
-  convert: 'anchorPoint',
-  pencil: 'pencil',
-  smooth: 'smooth',
-  eraser: 'pathEraser',
-  join: 'join',
-} as const
-
-export type EngineTool = keyof typeof ENGINE_TOOLS
-export const isEngineTool = (tool: string): tool is EngineTool => tool in ENGINE_TOOLS
+/** Les outils qui restent ceux de Form (les autres sont ceux du moteur, qui les connaît par le même nom). */
+export const OUR_TOOLS = ['select', 'hand', 'text'] as const
+export const isEngineTool = (tool: string) => !(OUR_TOOLS as readonly string[]).includes(tool)
 
 export interface VcPoint { x: number; y: number; ix: number; iy: number; ox: number; oy: number }
-export interface VcPath { id: string; closed: boolean; points: VcPoint[] }
+/** Remplissage, contour (couleurs #rrggbb, ou rien) et épaisseur du contour. */
+export interface PaintStyle { fill: string | null; stroke: string | null; sw: number }
+export interface VcPath { id: string; closed: boolean; points: VcPoint[]; fill: string | null; stroke: string | null; sw: number }
 type Pt = [number, number]
 export type VcOverlay =
   | { t: 'marquee'; x0: number; y0: number; x1: number; y1: number }
@@ -58,19 +46,37 @@ export interface VcOut {
 export interface VcMods { shift: boolean; alt: boolean; ctrl: boolean; space: boolean }
 export type VcKind = 'down' | 'move' | 'drag' | 'up' | 'double'
 
-/** Un élément « tracé » du moodboard, au format du moteur (points sur la toile, poignées en écarts). */
+export const DEFAULT_PAINT: PaintStyle = { fill: null, stroke: '#111111', sw: 2 }
+
+/** Un élément « tracé » du moodboard, au format du moteur (points sur la toile, poignées en écarts) avec son style. */
 export const isPathItem = (i: BoardItem) => i.kind === 'shape' && i.shape === 'path' && !!i.path
-export function itemToVcPath(it: BoardItem): VcPath {
-  return { id: it.id, closed: !!it.closed, points: worldPoints(it).map((p) => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })) }
+
+/** Le remplissage d'un élément : sa couleur, ou rien. */
+export const fillOf = (it: BoardItem): string | null => (it.fill !== undefined ? (it.fill === 'none' ? null : it.fill) : it.filled ? it.color ?? null : null)
+/** Le contour d'un élément : sa couleur et son épaisseur (rien si l'épaisseur est nulle). */
+export const strokeOf = (it: BoardItem): { color: string | null; sw: number } => {
+  const sw = it.sw ?? DEFAULT_PAINT.sw
+  return { color: sw > 0 ? it.color ?? DEFAULT_PAINT.stroke : null, sw }
 }
 
-const toPen = (p: VcPoint): PenPoint => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })
+export function itemToVcPath(it: BoardItem): VcPath {
+  const { color, sw } = strokeOf(it)
+  return { id: it.id, closed: !!it.closed, fill: fillOf(it), stroke: color, sw, points: worldPoints(it).map((p) => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })) }
+}
+
+const toPen = (p: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }): PenPoint => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })
+
+/** Le style du moteur reporté sur l'élément (sans contour : épaisseur 0, la couleur du contour est gardée pour le retrouver). */
+const withStyle = (it: BoardItem, p: VcPath): BoardItem => {
+  const next: BoardItem = { ...it, fill: p.fill ?? 'none', sw: p.stroke ? p.sw : 0, color: p.stroke ?? it.color, filled: undefined }
+  return next
+}
 
 /**
- * Les éléments du moodboard une fois les tracés du moteur appliqués : les tracés connus sont mis à jour, ceux que le moteur a supprimés
- * disparaissent, ceux qu'il a créés (identifiants « vc… ») deviennent de nouveaux éléments dans le style donné. Les autres éléments ne bougent pas.
+ * Les éléments du moodboard une fois les tracés du moteur appliqués : les tracés connus sont mis à jour (forme et style), ceux que le moteur
+ * a supprimés disparaissent, ceux qu'il a créés (identifiants « vc… ») deviennent de nouveaux éléments. Les autres éléments ne bougent pas.
  */
-export function applyVcPaths(items: BoardItem[], paths: VcPath[], style: ShapeStyle): BoardItem[] {
+export function applyVcPaths(items: BoardItem[], paths: VcPath[]): BoardItem[] {
   const byId = new Map(paths.map((p) => [p.id, p]))
   const out: BoardItem[] = []
   const seen = new Set<string>()
@@ -79,14 +85,13 @@ export function applyVcPaths(items: BoardItem[], paths: VcPath[], style: ShapeSt
     const p = byId.get(it.id)
     if (!p) continue
     seen.add(it.id)
-    out.push(samePath(it, p) ? it : rebuildPathItem(it, p.points.map(toPen), p.closed))
+    const same = samePath(it, p)
+    out.push(same && sameStyle(it, p) ? it : withStyle(same ? it : rebuildPathItem(it, p.points.map(toPen), p.closed), p))
   }
   for (const p of paths) {
     if (seen.has(p.id)) continue
-    // Un tracé fait par un outil : il prend le style de la plume ; un 2e morceau d'un tracé coupé garde le style de son tracé d'origine.
-    const origin = items.find((i) => isPathItem(i) && p.id.startsWith(i.id + '#'))
-    const made = origin ? rebuildPathItem({ ...origin, id: p.id }, p.points.map(toPen), p.closed) : { ...penToItem(p.points.map(toPen), p.closed, style), id: p.id }
-    out.push(made)
+    const base = { ...penToItem(p.points.map(toPen), p.closed, { shape: 'path', color: '#111111', fill: 'none', sw: 2, dash: 'solid', opacity: 1, radius: 0, sides: 0, points: 0, inner: 0 }), id: p.id }
+    out.push(withStyle(base, p))
   }
   return out
 }
@@ -100,6 +105,11 @@ function samePath(it: BoardItem, p: VcPath): boolean {
     const r = p.points[i]
     return near(q.x, r.x) && near(q.y, r.y) && near(q.ix, r.ix) && near(q.iy, r.iy) && near(q.ox, r.ox) && near(q.oy, r.oy)
   })
+}
+
+function sameStyle(it: BoardItem, p: VcPath): boolean {
+  const { color, sw } = strokeOf(it)
+  return fillOf(it) === p.fill && color === p.stroke && Math.abs(sw - (p.stroke ? p.sw : sw)) < 0.005
 }
 
 /**
@@ -117,13 +127,18 @@ export class VectorSession {
     return run
   }
 
-  load(paths: VcPath[], selected: string[], tool: EngineTool, zoom: number): Promise<VcOut> {
+  load(paths: VcPath[], selected: string[], tool: string, zoom: number, defaults: PaintStyle): Promise<VcOut> {
     this.loaded = true
-    return this.enqueue(() => invoke<VcOut>('vc_load', { paths, selected, tool: ENGINE_TOOLS[tool], zoom }))
+    return this.enqueue(() => invoke<VcOut>('vc_load', { paths, selected, tool, zoom, defaults }))
   }
 
-  setTool(tool: EngineTool, zoom: number): Promise<VcOut> {
-    return this.enqueue(() => invoke<VcOut>('vc_tool', { tool: ENGINE_TOOLS[tool], zoom }))
+  setTool(tool: string, zoom: number): Promise<VcOut> {
+    return this.enqueue(() => invoke<VcOut>('vc_tool', { tool, zoom }))
+  }
+
+  /** Change le remplissage et le contour des objets choisis et des prochains objets. */
+  paint(style: PaintStyle, zoom: number): Promise<VcOut> {
+    return this.enqueue(() => invoke<VcOut>('vc_paint', { style, zoom }))
   }
 
   pointer(kind: VcKind, x: number, y: number, mods: VcMods, zoom: number): Promise<VcOut | null> {
