@@ -165,7 +165,7 @@ function QuickNotes({ db }: { db: ObjectRow }) {
   // Une modification en attente est enregistrée si on quitte la page avant les 0,5 s.
   useEffect(() => flush, []) // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <section className="mt-8 border-t border-[var(--border)] pt-4" aria-label="Notes rapides">
+    <section className="mb-6 border-b border-[var(--border)] pb-4" aria-label="Notes rapides">
       <h2 className="mb-1 text-sm font-medium text-[var(--fg-muted)]">Notes rapides</h2>
       <div className="-mx-6">
         <PageEditor
@@ -369,6 +369,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
+      <QuickNotes db={db} />
+
       {managing && (
         <div className="fixed inset-0 z-[45] flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={() => setManaging(false)}>
           <div
@@ -480,8 +482,6 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
       </section>
-
-      <QuickNotes db={db} />
 
       {choosing && (
         <CategoryChooser
