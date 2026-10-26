@@ -1,3 +1,4 @@
+import { SplitSlider } from '@/components/SplitSlider'
 import { useEffect, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
@@ -111,10 +112,7 @@ function AiSection() {
                 <RefreshCw size={16} className={classifying ? 'spin' : ''} /> Refaire le classement
               </button>
               <button className="btn" onClick={() => void clearAuto().then((n) => setCleared(n))} disabled={classifying}>Annuler le classement automatique</button>
-              <label className="flex items-center gap-2 text-sm">
-                Confiance minimale : {Math.round(threshold * 100)} %
-                <input type="range" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(e) => void setThreshold(Number(e.target.value) / 100)} aria-label="Confiance minimale" />
-              </label>
+              <SplitSlider small className="w-64" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(v) => void setThreshold(v / 100)} label="Confiance min." valueLabel={`${Math.round(threshold * 100)} %`} ariaLabel="Confiance minimale" />
             </div>
             {classifying && <div className="mt-3 max-w-md"><div className="text-xs" style={{ color: 'var(--fg-muted)' }}>Comparaison avec tes images rangées… {classDone} / {classTotal}</div><ProgressBar done={classDone} total={classTotal} /></div>}
             <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
