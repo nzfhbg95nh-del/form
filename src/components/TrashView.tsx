@@ -1,4 +1,5 @@
 import { useApp } from '@/store/app'
+import { askConfirm } from '@/lib/confirm'
 
 export function TrashView() {
   const { objects, restore, purge } = useApp()
@@ -20,8 +21,8 @@ export function TrashView() {
             <button className="text-[var(--accent)]" onClick={() => restore(p.id)}>Restaurer</button>
             <button
               className="text-red-500"
-              onClick={() => {
-                if (window.confirm('Supprimer définitivement cette page ? Impossible de revenir en arrière.')) void purge(p.id)
+              onClick={async () => {
+                if (await askConfirm('Supprimer définitivement cette page ? Impossible de revenir en arrière.')) void purge(p.id)
               }}
             >
               Supprimer définitivement

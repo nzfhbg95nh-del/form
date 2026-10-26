@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { RowMenu, RowMenuHead, rowToast, runRowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import type { Client, Service } from '@/lib/types'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -122,8 +123,8 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
         {!isNew && (
           <button
             className={secondary + ' text-red-500'}
-            onClick={() => {
-              if (!window.confirm(`Supprimer le client « ${clientDisplayName(initial)} » ?`)) return
+            onClick={async () => {
+              if (!(await askConfirm(`Supprimer le client « ${clientDisplayName(initial)} » ?`))) return
               void deleteClient(c.id).then((problem) => (problem ? setProblem(problem) : onClose()))
             }}
           >
@@ -172,8 +173,8 @@ export function ClientsView() {
                   { label: 'Ouvrir', onClick: () => setEditing({ kind: 'client', id: c.id }) },
                   {
                     label: 'Supprimer', danger: true,
-                    onClick: () => {
-                      if (!window.confirm(`Supprimer le client « ${clientDisplayName(c)} » ?`)) return
+                    onClick: async () => {
+                      if (!(await askConfirm(`Supprimer le client « ${clientDisplayName(c)} » ?`))) return
                       runRowAction(async () => { const problem = await deleteClient(c.id); if (problem) rowToast(problem) })
                     },
                   },
@@ -228,8 +229,8 @@ function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boo
           <button
             className={secondary + ' text-red-500'}
             title="Les devis et factures déjà faits gardent leurs lignes."
-            onClick={() => {
-              if (window.confirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) {
+            onClick={async () => {
+              if (await askConfirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) {
                 void deleteService(s.id).then(onClose)
               }
             }}
@@ -277,8 +278,8 @@ export function ServicesView() {
                   { label: 'Ouvrir', onClick: () => setEditing({ kind: 'service', id: s.id }) },
                   {
                     label: 'Supprimer', danger: true,
-                    onClick: () => {
-                      if (window.confirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) runRowAction(() => deleteService(s.id))
+                    onClick: async () => {
+                      if (await askConfirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) runRowAction(() => deleteService(s.id))
                     },
                   },
                 ]}

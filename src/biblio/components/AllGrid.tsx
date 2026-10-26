@@ -172,7 +172,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
           </div>
         )}
         {loaded && blocks.length === 0 ? (
-          <p className="p-8 text-sm" style={{ color: 'var(--fg-muted)' }}>La bibliothèque est vide. Va dans « Paramètres » pour l'indexer.</p>
+          <p className="p-8 text-sm" style={{ color: 'var(--fg-muted)' }}>La bibliothèque est vide. Va dans « Réglages &gt; Bibliothèque » pour l'indexer.</p>
         ) : loaded && shown.length === 0 && hasHero ? (
           <p className="px-8 py-4 text-sm" style={{ color: 'var(--fg-muted)' }}>Aucune image ici pour l'instant. Fais un clic droit sur une image : « Ajouter à… ».</p>
         ) : loaded && shown.length === 0 ? (

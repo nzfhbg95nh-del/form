@@ -8,6 +8,7 @@ import { DEFAULT_CGV, DEFAULT_CGV_DATE } from '@/lib/cgv'
 import { REMINDER_FIELDS } from '@/lib/payments'
 import { todayISO } from '@/lib/backup'
 import { useApp } from '@/store/app'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -267,8 +268,8 @@ export function CgvSettings() {
         <button className={primary} disabled={!dirty} onClick={() => void save({ ...company, cgvDate: todayISO() })}>Enregistrer</button>
         <button
           className={secondary}
-          onClick={() => {
-            if (window.confirm("Remettre le texte d'origine (version du 20/11/2025) ? Tes modifications seront perdues.")) {
+          onClick={async () => {
+            if (await askConfirm("Remettre le texte d'origine (version du 20/11/2025) ? Tes modifications seront perdues.")) {
               setCompany({ ...defaultCompany(), ...company, cgv: DEFAULT_CGV, cgvDate: DEFAULT_CGV_DATE })
             }
           }}

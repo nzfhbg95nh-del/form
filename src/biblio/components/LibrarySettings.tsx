@@ -203,7 +203,7 @@ export function LibrarySettings() {
 
   return (
     <div className="mx-auto max-w-3xl p-8">
-      <h1 className="text-xl font-semibold">Bibliothèque</h1>
+      <h1 className="text-3xl font-bold">Bibliothèque</h1>
       <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
         Form lit le dossier de Social Saver sans le modifier : rien n'est déplacé ni renommé. Seule exception, quand tu choisis « Supprimer définitivement » : le fichier part dans la Corbeille Windows.
       </p>

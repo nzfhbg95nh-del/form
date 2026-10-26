@@ -50,8 +50,8 @@ export function TrashView({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="mx-auto max-w-5xl p-8">
-      <button className="btn" onClick={onBack}><ChevronLeft size={15} /> Paramètres</button>
-      <h1 className="mt-4 text-xl font-semibold">Corbeille</h1>
+      <button className="btn" onClick={onBack}><ChevronLeft size={15} /> Réglages</button>
+      <h1 className="mt-4 text-3xl font-bold">Corbeille</h1>
       <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
         Les images mises à la corbeille ont disparu de la bibliothèque, mais leurs fichiers sont toujours sur ton disque. « Restaurer » les remet là où elles étaient.
         « Supprimer définitivement » envoie leurs fichiers dans la Corbeille Windows (tu peux encore les y récupérer), et Form ne les réimporte plus.

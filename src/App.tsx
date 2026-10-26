@@ -14,6 +14,7 @@ import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
 import { PeekPanel } from '@/components/PeekPanel'
 import { SearchPalette } from '@/components/SearchPalette'
+import { ConfirmHost } from '@/components/ConfirmHost'
 import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
@@ -189,6 +190,7 @@ export default function App() {
       {movingId && <MovePicker key={movingId} id={movingId} />}
       {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}
+      <ConfirmHost />
       {toast && (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-[var(--fg)] px-4 py-2 text-sm text-[var(--bg)] shadow-lg">{toast}</div>
       )}

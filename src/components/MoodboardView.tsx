@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, StickyNote, Droplet, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Hand, MousePointer2 } from 'lucide-react'
+import { Expand, ImagePlus, LayoutGrid, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Hand, MousePointer2 } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -77,7 +77,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [guides, setGuides] = useState<Guide[]>([])
   // Où poser ce qu'on ajoute depuis le menu « Ajouter » (le point du clic droit), pour les fenêtres de choix qui s'ouvrent ensuite.
   const fileAt = useRef<Pt | null>(null)
-  const colorAt = useRef<Pt | null>(null)
   const linkAt = useRef<Pt | null>(null)
   const lastPt = useRef<Pt>({ x: 200, y: 200 })
   const [onTop, setOnTop] = useState(false)
@@ -86,7 +85,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [spaceDown, setSpaceDown] = useState(false)
 
   const containerRef = useRef<HTMLDivElement>(null)
-  const colorInput = useRef<HTMLInputElement>(null)
   const fileInput = useRef<HTMLInputElement>(null)
   const dragRef = useRef<Drag | null>(null)
   const viewRef = useRef(view)
@@ -280,7 +278,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!isTauri()) { say("L'import par lien n'existe que dans l'application Windows."); return }
     const saved = (await loadSaverSettings().catch(() => null))?.settings
     const cookies = info.site === 'instagram' ? saved?.igCookies : saved?.pinCookies
-    if (info.site === 'instagram' && !cookies) { say("Pour Instagram, choisis d'abord ton fichier cookies dans les paramètres de la bibliothèque (Télécharger mes enregistrements)."); return }
+    if (info.site === 'instagram' && !cookies) { say("Pour Instagram, choisis d'abord ton fichier cookies dans Réglages > Bibliothèque (Télécharger mes enregistrements)."); return }
     setImporting(true)
     say('Téléchargement des images…')
     const off = await listen<{ count: number }>('linkimport-count', (e) => say(`${e.payload.count} image${e.payload.count > 1 ? 's' : ''} reçue${e.payload.count > 1 ? 's' : ''}…`))
@@ -886,10 +884,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         </div>
       ) : (
       <div data-ui className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
-        <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()}><ImagePlus size={14} className="mr-1 inline" />Images</button>
-        <button className={bar} title="Nouvelle note" onClick={() => { const c = viewCenter(); addNote({ x: c.x - 110, y: c.y - 70 }) }}><StickyNote size={14} className="mr-1 inline" />Note</button>
-        <button className={bar} title="Nouvelle couleur" onClick={() => colorInput.current?.click()}><Droplet size={14} className="mr-1 inline" />Couleur</button>
-        <button className={bar} title="Nouveau lien (un lien Pinterest ou Instagram ajoute ses images)" onClick={() => setLinkInput(linkInput === null ? '' : null)}><Link2 size={14} className="mr-1 inline" />Lien</button>
+        <button
+          className={bar + ' !border-[var(--accent)] !bg-[var(--accent)] !text-white hover:!opacity-90'}
+          title="Ajouter une image, un texte, une forme, un lien… (clic droit ou Maj+A sur la toile)"
+          onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'full', add: true }) }}
+        ><Plus size={14} className="mr-1 inline" />Ajouter</button>
         <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
@@ -901,7 +900,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         ))}
       </div>
       )}
-      <input ref={colorInput} type="color" className="hidden" onChange={(e) => { const c = colorAt.current ?? viewCenter(); colorAt.current = null; const s = makeSwatch({ x: c.x - 60, y: c.y - 60 }, e.target.value); commitItems([...itemsRef.current, s]); setSelection(new Set([s.id])) }} />
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
 
       {linkInput !== null && (
@@ -996,9 +994,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {!compact && (
       <div data-ui className="absolute bottom-3 left-3 flex items-center gap-2 text-xs text-[var(--fg)]">
         <button className={bar} onClick={() => setView((v) => zoomAt(v, 0.8, { x: size.w / 2, y: size.h / 2 }))}>−</button>
-        <span className="w-10 text-center tabular-nums">{Math.round(zoom * 100)} %</span>
+        <button className="w-12 rounded text-center tabular-nums hover:bg-[var(--bg-hover)]" title="Remettre à 100 %" onClick={() => setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))}>{Math.round(zoom * 100)} %</button>
         <button className={bar} onClick={() => setView((v) => zoomAt(v, 1.25, { x: size.w / 2, y: size.h / 2 }))}>+</button>
-        <button className={bar} onClick={() => setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))}>100 %</button>
         <button className={bar} disabled={hist.past.length === 0} onClick={doUndo} title="Annuler (Ctrl+Z)">↶</button>
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>

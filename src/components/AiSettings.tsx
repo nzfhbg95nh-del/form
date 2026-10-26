@@ -3,6 +3,7 @@ import { todayISO } from '@/lib/backup'
 import { aiAvailable, askGemini, DEFAULT_MODEL, deleteKey, keyExists, listModels, parseTasks, saveKey } from '@/lib/ai'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -43,7 +44,7 @@ export function AiSettings() {
     return 'Clé enregistrée dans le coffre de Windows. Elle ne s’affichera plus jamais ici.'
   })
   const remove = () => run(async () => {
-    if (!window.confirm('Supprimer la clé Gemini de ce PC ?')) return
+    if (!(await askConfirm('Supprimer la clé Gemini de ce PC ?'))) return
     await deleteKey()
     setHasKey(false)
     return 'Clé supprimée.'

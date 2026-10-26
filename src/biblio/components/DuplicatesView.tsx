@@ -102,8 +102,8 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="mx-auto max-w-5xl p-8 pb-28">
-      <button className="btn" onClick={onBack}><ChevronLeft size={15} /> Paramètres</button>
-      <h1 className="mt-4 text-xl font-semibold">Doublons</h1>
+      <button className="btn" onClick={onBack}><ChevronLeft size={15} /> Réglages</button>
+      <h1 className="mt-4 text-3xl font-bold">Doublons</h1>
       <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
         Form cherche les images en double dans ta bibliothèque. Rien n'est supprimé sans ton accord : à la fin, les images que tu as choisies partent dans la <b>Corbeille Windows</b>, où tu peux les récupérer.
       </p>

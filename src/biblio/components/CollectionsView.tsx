@@ -150,13 +150,13 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
               onSubmit={(name) => void create(name).then(() => setNaming(false))}
             />
           ) : (
-            <button className="btn" onClick={() => setNaming(true)}><Plus size={15} /> Nouvelle collection</button>
+            <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouvelle collection</button>
           )}
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">
         {!cardsLoaded ? null : none ? (
-          <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{searching ? 'Aucune collection ne correspond.' : 'Aucune collection : indexe d\'abord la bibliothèque dans « Paramètres ».'}</p>
+          <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{searching ? 'Aucune collection ne correspond.' : 'Aucune collection : indexe d\'abord la bibliothèque dans « Réglages > Bibliothèque ».'}</p>
         ) : (
           <>
             <Section

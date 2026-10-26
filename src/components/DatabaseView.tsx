@@ -10,6 +10,7 @@ import { useApp } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 import { RecipesView } from '@/components/RecipesView'
+import { askConfirm } from '@/lib/confirm'
 
 const btn = 'flex items-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
 const input = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-sm outline-none'
@@ -164,8 +165,8 @@ function ViewSettings({ schema, view, onChange, onClose }: { schema: Schema; vie
       {schema.views.length > 1 && (
         <button
           className={btn + ' text-red-500'}
-          onClick={() => {
-            if (window.confirm(`Supprimer la vue « ${view.name} » ? Les lignes ne sont pas supprimées.`)) {
+          onClick={async () => {
+            if (await askConfirm(`Supprimer la vue « ${view.name} » ? Les lignes ne sont pas supprimées.`)) {
               onChange({ ...schema, views: schema.views.filter((v) => v.id !== view.id) })
             }
           }}
@@ -229,8 +230,8 @@ function ColumnMenu({ col, schema, objects, onChange }: { col: Column; schema: S
                   ))}
                 <button
                   className={btn + ' mt-2 text-red-500'}
-                  onClick={() => {
-                    if (window.confirm(`Supprimer la propriété « ${col.name} » et ses valeurs ?`)) {
+                  onClick={async () => {
+                    if (await askConfirm(`Supprimer la propriété « ${col.name} » et ses valeurs ?`)) {
                       onChange({
                         columns: schema.columns.filter((c) => c.id !== col.id),
                         views: schema.views.map((v) => ({

@@ -691,7 +691,7 @@ export function MapView() {
             <div className="max-w-md">
               <MapIcon size={36} className="mx-auto mb-3" style={{ color: 'var(--fg-muted)' }} />
               <div className="text-lg font-semibold">La carte a besoin de l'analyse des images</div>
-              <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>Dans Paramètres, lance l'analyse par l'IA : elle permet de savoir quelles images se ressemblent. Reviens ensuite ici.</p>
+              <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>Dans Réglages &gt; Bibliothèque, lance l'analyse par l'IA : elle permet de savoir quelles images se ressemblent. Reviens ensuite ici.</p>
               <button className="btn mt-4" onClick={() => void compute()}><RefreshCw size={15} /> Réessayer</button>
             </div>
           </div>

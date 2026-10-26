@@ -14,6 +14,7 @@ import {
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
+import { askConfirm } from '@/lib/confirm'
 
 const button = 'rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
@@ -301,13 +302,13 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const create = (categoryId?: string, cover?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined, cover)
 
   /** Supprimer une ligne : une catégorie disparaît (ses recettes passent dans « Sans catégorie »), « Sans catégorie » met ses recettes à la corbeille. */
-  const confirmRemove = (e: RecipeEntry) => {
+  const confirmRemove = async (e: RecipeEntry) => {
     if (e.isNone) {
       const n = none.length
-      if (!window.confirm(`Mettre à la corbeille les ${n} recette${n > 1 ? 's' : ''} de « ${e.label} » ? Tu pourras les récupérer depuis la corbeille.`)) return
+      if (!(await askConfirm(`Mettre à la corbeille les ${n} recette${n > 1 ? 's' : ''} de « ${e.label} » ? Tu pourras les récupérer depuis la corbeille.`))) return
       void Promise.all(none.map((r) => trash(r.id)))
     } else {
-      if (!window.confirm(`Supprimer la catégorie « ${e.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`)) return
+      if (!(await askConfirm(`Supprimer la catégorie « ${e.label} » ? Ses recettes ne sont pas supprimées : elles passent dans « Sans catégorie ».`))) return
       save(removeCategory(schema, e.id))
     }
     setCurrent(null)
@@ -363,7 +364,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h1 className="flex-1 py-1 text-4xl font-bold leading-[1.3]">Recettes</h1>
+        <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
         <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 

@@ -8,6 +8,7 @@ import { isTauri } from '@/lib/repo'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import type { Invoice, Payment, PaymentMethod } from '@/lib/types'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -89,8 +90,8 @@ export function InvoicePayments({ invoice, remaining }: { invoice: Invoice; rema
   const { payments, deletePayment } = useApp()
   const [adding, setAdding] = useState(false)
   const mine = payments.filter((p) => p.invoice_id === invoice.id)
-  const del = (p: Payment) => {
-    if (window.confirm(`Supprimer ce paiement de ${formatEuros(p.amount_cents)} ? L'opération sera inscrite au journal.`)) void deletePayment(p.id)
+  const del = async (p: Payment) => {
+    if (await askConfirm(`Supprimer ce paiement de ${formatEuros(p.amount_cents)} ? L'opération sera inscrite au journal.`)) void deletePayment(p.id)
   }
 
   return (

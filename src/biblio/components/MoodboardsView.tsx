@@ -164,16 +164,19 @@ export function MoodboardsView() {
   }
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-6xl px-8 py-8">
-        <div className="mb-6 flex flex-wrap items-center gap-3">
-          <h1 className="flex-1 text-3xl font-bold">Moodboards</h1>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-4 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
+        <h1 className="text-base font-semibold">Moodboards</h1>
+        <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
+        <div className="ml-auto">
           {naming ? (
             <NameInput placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void create(name)} className="w-96" />
           ) : (
-            <button className="flex items-center gap-1.5 rounded bg-[var(--accent)] px-3 py-1.5 text-sm text-white" onClick={() => setNaming(true)}><Plus size={14} /> Nouveau moodboard</button>
+            <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
           )}
         </div>
+      </div>
+      <div className="min-h-0 flex-1 overflow-auto p-6">
         {boards.length === 0 ? (
           <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>Tu n'as pas encore de moodboard. Crée-en un ici, ou dans une page avec « /moodboard ». Pour y mettre des images, fais un clic droit sur une image de la bibliothèque puis « Ajouter à un moodboard ».</p>
         ) : (

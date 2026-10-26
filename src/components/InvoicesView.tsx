@@ -18,6 +18,7 @@ import { RowMenu, RowMenuHead, runRowAction, type RowAction } from '@/components
 import { useApp } from '@/store/app'
 import { LineRow } from '@/components/QuotesView'
 import type { AuditEntry, Invoice, InvoiceKind, InvoiceLine } from '@/lib/types'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -46,7 +47,7 @@ function NewDepositButton() {
   const pick = async (id: string) => {
     const q = quotes.find((x) => x.id === id)
     if (!q) return
-    if (q.status === 'sent' && !window.confirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé.")) return
+    if (q.status === 'sent' && !(await askConfirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé."))) return
     setOpen(false)
     if (q.status === 'sent') await setQuoteStatus(q.id, 'accepted')
     await createDepositInvoice(q.id)
@@ -91,11 +92,11 @@ export function InvoicesView() {
     return [
       { label: 'Ouvrir', onClick: () => openInvoice(i.id) },
       ...(!draft && i.kind !== 'credit'
-        ? [{ label: 'Créer un avoir', onClick: () => { if (window.confirm('Créer un avoir qui annule cette facture ?')) runRowAction(() => createCredit(i.id)) } }]
+        ? [{ label: 'Créer un avoir', onClick: async () => { if (await askConfirm('Créer un avoir qui annule cette facture ?')) runRowAction(() => createCredit(i.id)) } }]
         : []),
       {
         label: 'Supprimer', danger: true, disabled: !draft, hint: 'Une facture émise ne peut pas être supprimée : corrige-la par un avoir.',
-        onClick: () => { if (window.confirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftInvoice(i.id)) },
+        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftInvoice(i.id)) },
       },
     ]
   }
@@ -252,7 +253,7 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
 
   const issue = () => run(async () => {
     const what = credit ? "Émettre cet avoir ?" : 'Émettre cette facture ?'
-    if (!window.confirm(`${what} Elle recevra son numéro définitif et ne pourra plus jamais être modifiée : en cas d'erreur, il faudra la corriger par un avoir.`)) return
+    if (!(await askConfirm(`${what} Elle recevra son numéro définitif et ne pourra plus jamais être modifiée : en cas d'erreur, il faudra la corriger par un avoir.`))) return
     if (dirty.current) await store.saveInvoiceDraft(invoice, lines)
     dirty.current = false
     await store.issueInvoice(invoice.id)
@@ -379,9 +380,9 @@ function InvoiceEditor({ id, onBack }: { id: string; onBack: () => void }) {
           <button className={secondary} onClick={() => void download()} disabled={!pdfData}>Télécharger le PDF</button>
           {!locked && <button className={primary} disabled={blockers.length > 0} onClick={() => void issue()}>{credit ? "Émettre l'avoir (numéroter)" : 'Émettre la facture (numéroter)'}</button>}
           <div className="flex-1" />
-          {locked && !credit && <button className={secondary} onClick={() => { if (window.confirm('Créer un avoir qui annule cette facture ?')) void run(() => store.createCredit(invoice.id)) }}>Créer un avoir</button>}
+          {locked && !credit && <button className={secondary} onClick={async () => { if (await askConfirm('Créer un avoir qui annule cette facture ?')) void run(() => store.createCredit(invoice.id)) }}>Créer un avoir</button>}
           {!locked && (
-            <button className={secondary + ' text-red-500'} onClick={() => { if (window.confirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftInvoice(invoice.id)) }}>Supprimer le brouillon</button>
+            <button className={secondary + ' text-red-500'} onClick={async () => { if (await askConfirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftInvoice(invoice.id)) }}>Supprimer le brouillon</button>
           )}
         </div>
 

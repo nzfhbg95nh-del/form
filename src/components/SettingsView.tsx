@@ -4,6 +4,7 @@ import { backupFileName, DEFAULT_KEEP, joinPath, parseKeep, restoreBackup, today
 import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
+import { askConfirm } from '@/lib/confirm'
 
 export function GeneralSettings() {
   const repo = useApp((s) => s.repo)
@@ -82,7 +83,7 @@ export function GeneralSettings() {
         filters: [{ name: 'Sauvegarde Form', extensions: ['db'] }],
       })
       if (typeof chosen !== 'string') return
-      const ok = window.confirm(
+      const ok = await askConfirm(
         'Restaurer cette sauvegarde ?\n\n' + chosen + '\n\n' +
         'Tout ce que tu as fait depuis cette sauvegarde sera remplacé par son contenu. ' +
         'Ta base actuelle est gardée de côté (fichier « form.avant-restauration-… »). Form va se fermer puis se rouvrir tout seul.',

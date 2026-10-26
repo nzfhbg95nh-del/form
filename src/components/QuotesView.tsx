@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils'
 import { RowMenu, RowMenuHead, runRowAction, type RowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import type { Quote, QuoteLine, QuoteStatus } from '@/lib/types'
+import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
 const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
@@ -54,7 +55,7 @@ export function QuotesView() {
       })),
       {
         label: 'Supprimer', danger: true, disabled: !draft, hint: 'Un devis envoyé ne peut pas être supprimé.',
-        onClick: () => { if (window.confirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftQuote(q.id)) },
+        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftQuote(q.id)) },
       },
     ]
   }
@@ -250,7 +251,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
   }
 
   const send = () => run(async () => {
-    if (!window.confirm(`Envoyer ce devis ? Il recevra son numéro définitif et ne pourra plus être modifié.`)) return
+    if (!(await askConfirm(`Envoyer ce devis ? Il recevra son numéro définitif et ne pourra plus être modifié.`))) return
     if (dirty.current) await store.saveQuoteDraft(quote, lines)
     dirty.current = false
     await store.issueQuote(quote.id)
@@ -363,7 +364,7 @@ function QuoteEditor({ id, onBack }: { id: string; onBack: () => void }) {
           <div className="flex-1" />
           <button className={secondary} onClick={() => void run(() => store.duplicateQuote(quote.id))}>Dupliquer</button>
           {!locked && (
-            <button className={secondary + ' text-red-500'} onClick={() => { if (window.confirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftQuote(quote.id)) }}>Supprimer le brouillon</button>
+            <button className={secondary + ' text-red-500'} onClick={async () => { if (await askConfirm('Supprimer ce brouillon ?')) void run(() => store.deleteDraftQuote(quote.id)) }}>Supprimer le brouillon</button>
           )}
         </div>
 
@@ -431,7 +432,7 @@ function QuoteBilling({ quote }: { quote: Quote }) {
   // Un devis encore « envoyé » peut générer son acompte : le client vient de le signer, il passe en « accepté ».
   const createDeposit = async () => {
     if (quote.status === 'sent') {
-      if (!window.confirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé.")) return
+      if (!(await askConfirm("Le client a accepté ce devis ? Il passera en « Accepté » et l'acompte sera préparé."))) return
       await setQuoteStatus(quote.id, 'accepted')
     }
     await createDepositInvoice(quote.id)
