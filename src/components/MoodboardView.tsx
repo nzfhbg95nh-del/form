@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, ArrowUpRight, Circle, Expand, Hand, Hexagon, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, RectangleHorizontal, Square, Star, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, ArrowUpRight, Circle, Expand, Hand, Hexagon, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PenTool, PictureInPicture2, Pin, PinOff, Plus, RectangleHorizontal, Square, Star, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -13,6 +13,7 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
+import { anchor, dedupePoints, dragHandle, itemPathD, pathD, penToItem, type PenPoint } from '@/lib/boardPath'
 import { cornerRadius, DASHES, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeFromDrag, shapeStyleOf, starPoints, type ShapeStyle } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
@@ -38,6 +39,7 @@ type Drag =
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
   | { type: 'text'; start: Pt; end: Pt }
   | { type: 'shape'; start: Pt; end: Pt }
+  | { type: 'pen' }
 
 /** Couleurs proposées pour les formes et les textes. */
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
@@ -72,6 +74,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [arrangeOpen, setArrangeOpen] = useState(false)
   // Outil Forme : un appui long sur le bouton déplie les autres formes.
   const [shapeFlyout, setShapeFlyout] = useState(false)
+  // Plume : les points posés (en coordonnées de la toile) et la position de la souris, pour montrer le segment en cours.
+  const [penPts, setPenPts] = useState<PenPoint[]>([])
+  const penRef = useRef<PenPoint[]>([])
+  const [penCursor, setPenCursor] = useState<Pt | null>(null)
+  const setPen = (pts: PenPoint[]) => { penRef.current = pts; setPenPts(pts) }
   const longPress = useRef<{ timer: number | undefined; fired: boolean }>({ timer: undefined, fired: false })
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
@@ -81,7 +88,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [linkInput, setLinkInput] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   // Outil actif : la flèche (sélection) ou le texte (touche T) ; et le texte en cours de frappe.
-  const [tool, setTool] = useState<'select' | 'text' | 'hand' | 'shape'>('select')
+  const [tool, setTool] = useState<'select' | 'text' | 'hand' | 'shape' | 'pen'>('select')
   // Les réglages des prochaines formes (comme dans Illustrator, ils suivent le dernier réglage fait).
   const [shapeStyle, setShapeStyle] = useState<ShapeStyle>(DEFAULT_SHAPE_STYLE)
   const [draft, setDraft] = useState('')
@@ -277,6 +284,22 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'text' ? fit({ ...it, ...patch }) : it)))
   }
 
+  /** Termine le tracé de la plume : `closed` si on revient au premier point ; sinon le tracé reste ouvert. */
+  useEffect(() => {
+    if (tool !== 'pen' && penRef.current.length > 0) { penRef.current = []; setPenPts([]); setPenCursor(null) }
+  }, [tool])
+
+  const finishPen = (closed: boolean) => {
+    const pts = dedupePoints(penRef.current)
+    setPen([])
+    setPenCursor(null)
+    if (pts.length < 2) return
+    const sh = penToItem(pts, closed, shapeStyle)
+    commitItems([...itemsRef.current, sh])
+    setSelection(new Set([sh.id]))
+    setTool('select')
+  }
+
   /** Change le style des formes sélectionnées, et celui des prochaines formes. */
   const setShapeProps = (patch: Partial<ShapeStyle>) => {
     setShapeStyle((prev) => ({ ...prev, ...patch }))
@@ -433,6 +456,17 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return
     }
 
+    if (tool === 'pen') {
+      setSelection(new Set())
+      const pts = penRef.current
+      // Un clic sur le premier point ferme le tracé.
+      if (pts.length >= 2 && Math.hypot(world.x - pts[0].x, world.y - pts[0].y) * v.zoom < 9) { finishPen(true); return }
+      setPen([...pts, anchor(world.x, world.y)])
+      dragRef.current = { type: 'pen' }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
+
     if (tool === 'shape') {
       setSelection(new Set())
       dragRef.current = { type: 'shape', start: world, end: world }
@@ -495,6 +529,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     lastPt.current = local(e)
     const d = dragRef.current
+    if (tool === 'pen' && penRef.current.length > 0) setPenCursor(screenToWorld(viewRef.current, local(e)))
     if (!d) return
     const pt = local(e)
     const v = viewRef.current
@@ -536,6 +571,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (e.shiftKey) delta = snapRotation(d.base + delta) - d.base
       setLive(rotateItems(d.items, d.ids, d.center, delta))
       setFlash(`${Math.round((((d.base + delta) % 360) + 360) % 360)}°`)
+    } else if (d.type === 'pen') {
+      // Glisser après le clic : on tire les poignées du point qu'on vient de poser (point lisse).
+      const pts = [...penRef.current]
+      const last = pts[pts.length - 1]
+      if (last && Math.hypot(world.x - last.x, world.y - last.y) * v.zoom > 3) {
+        pts[pts.length - 1] = dragHandle(last, world.x, world.y, !e.altKey)
+        setPen(pts)
+      }
     } else if (d.type === 'text' || d.type === 'shape') {
       d.end = world
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
@@ -579,6 +622,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const onDoubleClick = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement
     if (target.closest('[data-ui]') || target.tagName === 'TEXTAREA') return
+    if (tool === 'pen') { finishPen(false); return }
     const world = screenToWorld(viewRef.current, local(e))
     const el = target.closest('[data-item]') as HTMLElement | null
     if (!el) { addNote({ x: world.x - 110, y: world.y - 70 }); return }
@@ -660,7 +704,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     let handled = true
-    if (e.key === ' ') setSpaceDown(true)
+    if (tool === 'pen' && penRef.current.length > 0 && (e.key === 'Enter' || e.key === 'Backspace' || e.key === 'Delete')) {
+      // Entrée : terminer le tracé ; Retour arrière : retirer le dernier point.
+      if (e.key === 'Enter') finishPen(false)
+      else setPen(penRef.current.slice(0, -1))
+    } else if (e.key === ' ') setSpaceDown(true)
     else if (e.key === 'Delete' || e.key === 'Backspace') act.remove()
     else if (!mod && e.shiftKey && key === 'a') setMenu({ x: lastPt.current.x, y: lastPt.current.y, world: screenToWorld(viewRef.current, lastPt.current), mode: 'full', add: true })
     else if (mod && key === 'a') act.selectAll()
@@ -677,9 +725,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else if (mod && (key === '[' || e.code === 'BracketLeft')) (e.shiftKey ? act.back() : act.backward())
     else if (!mod && key === 't') setTool('text')
     else if (!mod && key === 'm') setTool('shape')
+    else if (!mod && key === 'p') setTool('pen')
     else if (!mod && key === 'h') setTool('hand')
     else if (!mod && key === 'v') setTool('select')
-    else if (e.key === 'Escape') { setSelection(new Set()); setMenu(null); setEditing(null); setTool('select') }
+    else if (e.key === 'Escape') { setSelection(new Set()); setMenu(null); setEditing(null); setPen([]); setPenCursor(null); setTool('select') }
     else if (e.key.startsWith('Arrow') && selRef.current.size > 0) {
       const step = e.shiftKey ? 10 : 1
       const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
@@ -863,6 +912,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <polygon points={pointsAttr(polygonPoints(w, h, ss.sides, sw / 2))} {...paint} />
             ) : it.shape === 'star' ? (
               <polygon points={pointsAttr(starPoints(w, h, ss.points, ss.inner, sw / 2))} {...paint} />
+            ) : it.shape === 'path' ? (
+              <path d={itemPathD(it, w, h)} {...paint} />
             ) : it.shape === 'line' || it.shape === 'arrow' ? (
               <>
                 <line x1={sw} y1={sw} x2={w - sw} y2={h - sw} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dashArray(ss.dash, sw)} />
@@ -897,7 +948,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const shapeSel = selected.filter((i) => i.kind === 'shape')
   // Le panneau du texte est posé en bas à droite de la toile (comme les panneaux d'Illustrator), et la palette de couleurs reste en haut à droite.
   const showTextPanel = !compact && textSel.length > 0 && !marquee && !live
-  const showShapePanel = !compact && !showTextPanel && (shapeSel.length > 0 || tool === 'shape') && !marquee && !live
+  const showShapePanel = !compact && !showTextPanel && (shapeSel.length > 0 || tool === 'shape' || tool === 'pen') && !marquee && !live
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -916,7 +967,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : tool === 'shape' ? 'crosshair' : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : tool === 'shape' || tool === 'pen' ? 'crosshair' : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -930,6 +981,28 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
         {items.map(renderItem)}
+        {tool === 'pen' && penPts.length > 0 && (() => {
+          const first = penPts[0]
+          const closeNear = penCursor && penPts.length >= 2 && Math.hypot(penCursor.x - first.x, penCursor.y - first.y) * zoom < 9
+          const rubber = penCursor ? [...penPts, anchor(penCursor.x, penCursor.y)] : penPts
+          const last = penPts[penPts.length - 1]
+          const k = 1 / zoom
+          return (
+            <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
+              <path d={pathD(rubber, false)} fill="none" stroke="#4da3ff" strokeWidth={1.5 * k} />
+              {(last.ox !== 0 || last.oy !== 0) && (
+                <g stroke="#4da3ff" strokeWidth={k}>
+                  <line x1={last.x + last.ix} y1={last.y + last.iy} x2={last.x + last.ox} y2={last.y + last.oy} />
+                  <circle cx={last.x + last.ix} cy={last.y + last.iy} r={3 * k} fill="#fff" />
+                  <circle cx={last.x + last.ox} cy={last.y + last.oy} r={3 * k} fill="#fff" />
+                </g>
+              )}
+              {penPts.map((pt, i) => (
+                <rect key={i} x={pt.x - 3 * k} y={pt.y - 3 * k} width={6 * k} height={6 * k} fill={i === 0 && closeNear ? '#4da3ff' : '#fff'} stroke="#4da3ff" strokeWidth={1.5 * k} />
+              ))}
+            </svg>
+          )
+        })()}
         {frame && !marquee && !editing && (
           <div style={{ position: 'absolute', left: frame.x, top: frame.y, width: frame.w, height: frame.h, transform: frame.rot ? `rotate(${frame.rot}deg)` : undefined, transformOrigin: 'center', outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }}>
             {/* Zones de rotation : juste à l'extérieur des coins */}
@@ -1129,7 +1202,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
             <div className="text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Forme et contour{shapeSel.length > 1 ? ` (${shapeSel.length} formes)` : ''}</div>
             {shapeSel.length === 0 && <div className="text-[var(--fg-muted)]">Glisse sur la toile pour dessiner (Maj : carré ou cercle).</div>}
-            <div className="flex flex-wrap gap-1">
+            <div className={'flex flex-wrap gap-1' + (st.shape === 'path' ? ' hidden' : '')}>
               {kinds.map(([k, Ico, t]) => <button key={k} className={toggle(st.shape === k)} title={t} aria-label={t} aria-pressed={st.shape === k} onClick={() => setShapeProps({ shape: k })}><Ico size={14} /></button>)}
             </div>
             <div className={row}>
@@ -1166,7 +1239,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
         )
         return (
-          <div data-ui className="absolute left-3 top-[226px] z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+          <div data-ui className="absolute left-3 top-[262px] z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
             <div className="flex items-center">
               <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
               <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>
@@ -1204,7 +1277,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
       {!compact && (
         <div data-ui className="absolute left-3 top-14 z-30 flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-sm">
-          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['shape', Square, 'Forme (M) : glisse pour dessiner (Maj : carré ou cercle). Appui long : choisir une autre forme'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => {
+          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['shape', Square, 'Forme (M) : glisse pour dessiner (Maj : carré ou cercle). Appui long : choisir une autre forme'], ['pen', PenTool, 'Plume (P) : clique pour poser des points, clique-glisse pour une courbe, clique le premier point pour fermer, Entrée ou double-clic pour terminer'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => {
             const isShape = id === 'shape'
             const Ico = isShape ? SHAPE_TOOLS.find((t) => t[0] === shapeStyle.shape)?.[1] ?? Square : Icon
             return (

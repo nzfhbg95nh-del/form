@@ -4,7 +4,7 @@
 export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape'
 
 /** Les formes proposées dans le menu « Ajouter » : rectangle, rond et flèche (la flèche va d'un coin à l'autre du cadre ; « retourner » change la diagonale). Le type « line » n'est plus proposé mais reste lisible. */
-export type ShapeKind = 'rect' | 'rrect' | 'ellipse' | 'polygon' | 'star' | 'line' | 'arrow'
+export type ShapeKind = 'rect' | 'rrect' | 'ellipse' | 'polygon' | 'star' | 'path' | 'line' | 'arrow'
 export const SHAPES: { id: ShapeKind; label: string }[] = [
   { id: 'rect', label: 'Rectangle' },
   { id: 'rrect', label: 'Rectangle arrondi' },
@@ -74,6 +74,9 @@ export interface BoardItem {
   sides?: number
   points?: number
   inner?: number
+  /** forme « plume » : les points d'ancrage et leurs poignées (en proportion du cadre, 0 à 1), et si le tracé est fermé. */
+  path?: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }[]
+  closed?: boolean
 }
 
 export interface View {

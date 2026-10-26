@@ -714,3 +714,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic droit : « Disposition » (se déplie) regroupe premier plan, avancer, reculer, arrière-plan.
 - Tests : 578. Pas fait : la Plume (Bézier), prévue en dernier.
 - (suite) Retiré du clic droit : palettes Contour/Remplissage, « Remplie / contour seulement », « Trait plus épais/fin » (tout est dans le panneau Forme et contour). Le cadre de sélection d'une étoile ou d'un polygone colle maintenant à la forme (points étirés au cadre). Outil Forme : l'icône montre la forme choisie ; appui long (ou clic droit) sur le bouton = liste des autres formes. Tests : 579.
+
+## 2026-10-26 — Moodboard : la Plume (courbes de Bézier) (après la v0.47.2, pas encore publié)
+- Outil Plume (touche P, 4e bouton de la barre d'outils) : un clic pose un point d'angle, un clic-glisser pose un point lisse (poignées opposées ; Alt : poignées indépendantes). Cliquer le premier point ferme le tracé ; Entrée ou double-clic le termine ouvert ; Retour arrière retire le dernier point ; Échap abandonne.
+- Le tracé terminé est une forme comme les autres : déplacer, agrandir (le tracé se déforme avec le cadre), tourner, remplissage, contour, tirets, opacité (panneau Forme et contour).
+- Pas fait : modifier les points d'un tracé déjà posé (déplacer un point, tirer une poignée, ajouter ou retirer un point).
+- Tests : 585.
