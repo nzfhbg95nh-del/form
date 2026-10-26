@@ -14,6 +14,7 @@ import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { cssFont, FONTS, fitText, isPointText, measureTextBox, scaleTexts, textStyleOf, TEXT_PAD, type Measure } from '@/lib/boardText'
+import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
 import { loadSaverSettings } from '@/biblio/lib/saver.ts'
 import { useApp } from '@/store/app'
@@ -1074,6 +1075,16 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 {menu.mode === 'full' && (
                   <>
                     <MenuBtn label="Dupliquer" hint="Ctrl+D" onClick={act.duplicate} />
+                    {selected.length === 1 && selected[0].kind === 'image' && selected[0].assetId && (
+                      <MenuBtn
+                        label="Image de couverture du moodboard"
+                        onClick={() => {
+                          const assetId = selected[0].assetId as string
+                          const current = useApp.getState().objects.find((o) => o.id === boardId)
+                          void useApp.getState().update(boardId, { properties: withCoverAsset(current?.properties ?? null, assetId) }).then(() => say('Cette image passe en avant sur la carte du moodboard'))
+                        }}
+                      />
+                    )}
                     <MenuBtn label="Retourner (gauche-droite)" onClick={() => act.flip('x')} />
                     <MenuBtn label="Retourner (haut-bas)" onClick={() => act.flip('y')} />
                     <MenuBtn label="Avancer d'un cran" hint="Ctrl+]" onClick={act.forward} />

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { imagesLabel, listBoards } from './moodboardList.ts'
+import { coverAssetOf, imagesLabel, listBoards, withCoverAsset } from './moodboardList.ts'
 import { serializeBoard, emptyBoard, makeImage } from '@/lib/moodboard'
 import type { ObjectRow } from '@/lib/types'
 
@@ -37,5 +37,25 @@ describe('listBoards', () => {
 describe('imagesLabel', () => {
   it('dit vide, une image, plusieurs images', () => {
     expect([imagesLabel(0), imagesLabel(1), imagesLabel(4)]).toEqual(['Vide', '1 image', '4 images'])
+  })
+})
+
+describe('image de couverture', () => {
+  it('se retient dans les propriétés sans abîmer le reste', () => {
+    const p = withCoverAsset('{"autre":1}', 'img42')
+    expect(JSON.parse(p)).toEqual({ autre: 1, coverAsset: 'img42' })
+    expect(coverAssetOf(p)).toBe('img42')
+  })
+  it('se retire, et des propriétés vides ou illisibles ne cassent rien', () => {
+    expect(withCoverAsset(withCoverAsset('{}', 'a'), null)).toBe('{}')
+    expect(coverAssetOf('{}')).toBeNull()
+    expect(coverAssetOf('pas du json')).toBeNull()
+    expect(coverAssetOf(null)).toBeNull()
+    expect(JSON.parse(withCoverAsset('pas du json', 'z'))).toEqual({ coverAsset: 'z' })
+  })
+  it('la liste des moodboards donne l\'image de couverture de chacun', () => {
+    const b = listBoards([row('a', { properties: '{"coverAsset":"x1"}' }), row('b')])
+    expect(b.find((i) => i.id === 'a')?.coverAsset).toBe('x1')
+    expect(b.find((i) => i.id === 'b')?.coverAsset).toBeNull()
   })
 })
