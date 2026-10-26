@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { anchor, dragHandle, penToItem, sampleCurve } from './boardPath'
-import { constrainAngle, endpointAt, insertAnchor, isSmooth, moveAnchors, moveHandle, nearestOnPath, rebuildPathItem, removeAnchors, reshapeSegment, worldPoints } from './boardPathEdit'
+import { constrainAngle, endpointAt, insertAnchor, isSmooth, moveAnchors, moveHandle, nearestOnPath, rebuildPathItem, removeAnchorFit, removeAnchors, removeAnchorsFit, reshapeSegment, worldPoints } from './boardPathEdit'
 import { DEFAULT_SHAPE_STYLE } from './boardShapes'
 
 describe('modifier un tracé de plume', () => {
@@ -68,5 +68,37 @@ describe('modifier un tracé de plume', () => {
     expect(c.x).toBeCloseTo(Math.hypot(100, 10))
     expect(endpointAt([anchor(0, 0), anchor(50, 0), anchor(100, 0)], false, { x: 98, y: 1 }, 5)).toBe(2)
     expect(endpointAt([anchor(0, 0), anchor(50, 0), anchor(100, 0)], true, { x: 98, y: 1 }, 5)).toBe(-1)
+  })
+})
+
+describe('supprimer un point en gardant la forme', () => {
+  it('deux segments droits n’en font plus qu’un', () => {
+    const out = removeAnchorFit([anchor(0, 0), anchor(50, 0), anchor(100, 0)], false, 1)
+    expect(out).toHaveLength(2)
+    expect(out[0].ox).toBe(0)
+    expect(out[1].ix).toBe(0)
+  })
+  it('un point retiré au milieu d’un arc : la nouvelle courbe reste proche de l’ancienne', () => {
+    // un quart de cercle coupé en deux
+    const k = 0.5523 * 100
+    const half = (t: number) => ({ x: 100 * Math.sin(t), y: 100 - 100 * Math.cos(t) })
+    const a = { ...anchor(0, 0), ox: k / 2, oy: 0 }
+    const c = { ...anchor(100, 100), ix: 0, iy: -k / 2 }
+    const mid = half(Math.PI / 4)
+    const m = { x: mid.x, y: mid.y, ix: -20, iy: 8, ox: 20, oy: -8 }
+    const before = [a, m, c]
+    const after = removeAnchorFit(before, false, 1)
+    expect(after).toHaveLength(2)
+    const curve = sampleCurve(after, false, 30)
+    const far = Math.max(...curve.map((p) => Math.abs(Math.hypot(p.x - 0, p.y - 100) - 100)))
+    expect(far).toBeLessThan(8)
+  })
+  it('retirer le bout d’un tracé ouvert enlève son segment, sans poignée au nouveau bout', () => {
+    const out = removeAnchorFit([anchor(0, 0), dragHandle(anchor(50, 0), 10, 0), anchor(100, 0)], false, 2)
+    expect(out).toHaveLength(2)
+    expect(out[1].ox).toBe(0)
+  })
+  it('plusieurs points d’un coup', () => {
+    expect(removeAnchorsFit([anchor(0, 0), anchor(1, 0), anchor(2, 0), anchor(3, 0)], false, new Set([1, 2]))).toHaveLength(2)
   })
 })

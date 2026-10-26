@@ -13,9 +13,9 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
-import { anchor, dedupePoints, dragHandle, itemPathD, pathD, penToItem, type PenPoint } from '@/lib/boardPath'
+import { anchor, dedupePoints, dragHandle, itemPathD, penToItem, type PenPoint } from '@/lib/boardPath'
 import { endpointNear, eraseAt, fitSmooth, joinEnds, pencilToPath, simplifyPolyline, smoothAround } from '@/lib/boardPathTools'
-import { constrainAngle, insertAnchor, moveAnchors, moveHandle, nearestOnPath, rebuildPathItem, removeAnchors, reshapeSegment, toCorner, worldPoints } from '@/lib/boardPathEdit'
+import { constrainAngle, insertAnchor, moveAnchors, moveHandle, nearestOnPath, rebuildPathItem, removeAnchorsFit, reshapeSegment, toCorner, worldPoints } from '@/lib/boardPathEdit'
 import { cornerRadius, DASHES, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeFromDrag, shapeStyleOf, starPoints, type ShapeStyle } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
@@ -46,7 +46,7 @@ type Drag =
   | { type: 'smooth'; work: BoardItem[] }
   | { type: 'erase'; work: BoardItem[] }
   | { type: 'join'; id: string; end: 'start' | 'end'; from: Pt }
-  | { type: 'node'; mode: 'anchor' | 'handle' | 'segment' | 'convert'; id: string | null; closed: boolean; base: PenPoint[]; start: Pt; idx: number; which?: 'in' | 'out'; seg?: number; t?: number; alt: boolean; moved: boolean; sel: Set<number> }
+  | { type: 'node'; mode: 'anchor' | 'handle' | 'segment' | 'convert' | 'close' | 'lastOut'; id: string | null; closed: boolean; base: PenPoint[]; start: Pt; idx: number; which?: 'in' | 'out'; seg?: number; t?: number; alt: boolean; moved: boolean; sel: Set<number> }
 
 /** Couleurs proposées pour les formes et les textes. */
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
@@ -310,23 +310,38 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
   /** Termine le tracé de la plume : `closed` si on revient au premier point ; sinon le tracé reste ouvert. */
   useEffect(() => {
-    if (tool !== 'pen' && penRef.current.length > 0) { penRef.current = []; setPenPts([]); setPenCursor(null); penEditRef.current = null; setPenEditId(null) }
+    if (tool !== 'pen' && penRef.current.length > 0) finishPen(false)
     nodeSelRef.current = new Set()
     setNodeSel(new Set())
   }, [tool])
   useEffect(() => { nodeSelRef.current = new Set(); setNodeSel(new Set()) }, [selection])
 
-  const finishPen = (closed: boolean) => {
+  const finishPen = (closed: boolean): BoardItem | null => {
     const pts = dedupePoints(penRef.current)
     const editId = penEditRef.current
     setPen([])
     setPenCursor(null)
     setPenEdit(null)
-    if (pts.length < 2) return
+    if (pts.length < 2) return null
     const base = editId ? itemsRef.current.find((i) => i.id === editId) : undefined
     const sh = base ? rebuildPathItem(base, pts, closed) : penToItem(pts, closed, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color })
     commitItems(base ? itemsRef.current.map((i) => (i.id === sh.id ? sh : i)) : [...itemsRef.current, sh])
     setSelection(new Set([sh.id]))
+    return sh
+  }
+
+  /** Relie le tracé en cours à un autre tracé ouvert, dont on a cliqué un bout : les deux n'en font plus qu'un. */
+  const joinDraftTo = (other: { id: string; end: 'start' | 'end'; pts: PenPoint[] }) => {
+    const otherItem = itemsRef.current.find((i) => i.id === other.id)
+    const dpts = dedupePoints(penRef.current)
+    const baseId = penEditRef.current
+    setPen([])
+    setPenCursor(null)
+    setPenEdit(null)
+    if (!otherItem || dpts.length < 1) return
+    const merged = rebuildPathItem(otherItem, joinEnds(dpts, 'end', other.pts, other.end, 4 / viewRef.current.zoom), false)
+    commitItems(itemsRef.current.filter((i) => i.id !== baseId).map((i) => (i.id === merged.id ? merged : i)))
+    setSelection(new Set([merged.id]))
   }
 
   /** Abandonne le tracé en cours (le tracé qu'on prolongeait reste tel qu'il était). */
@@ -373,7 +388,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!hit) return false
     const { pts, closed, id } = target
     if (mode === 'pen') {
-      if (id === null) return false
+      if (id === null || e.shiftKey) return false
       if (hit.kind === 'anchor') {
         if (!closed && (hit.idx === 0 || hit.idx === pts.length - 1)) {
           // le bout d'un tracé ouvert : on continue à dessiner à partir de là
@@ -382,7 +397,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           setPen(hit.idx === 0 ? [...pts].reverse().map(flip) : pts)
           setSelection(new Set())
         } else {
-          const rest = removeAnchors(pts, new Set([hit.idx]))
+          const rest = removeAnchorsFit(pts, closed, new Set([hit.idx]))
           if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== id)); setSelection(new Set()) }
           else applyPts(id, closed, rest, true)
           setNodes(new Set())
@@ -443,7 +458,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       setNodes(new Set([out.index]))
     } else {
       if (u.anchorHit < 0) return
-      const rest = removeAnchors(u.pts, new Set([u.anchorHit]))
+      const rest = removeAnchorsFit(u.pts, closed, new Set([u.anchorHit]))
       if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== u.item.id)); setSelection(new Set()) } else replace(rest)
       setNodes(new Set())
     }
@@ -519,7 +534,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const removeSelectedNodes = (): boolean => {
     const target = pathTarget()
     if (!target || target.id === null || nodeSelRef.current.size === 0) return false
-    const rest = removeAnchors(target.pts, nodeSelRef.current)
+    const rest = removeAnchorsFit(target.pts, target.closed, nodeSelRef.current)
     if (rest.length < 2) { commitItems(itemsRef.current.filter((i) => i.id !== target.id)); setSelection(new Set()) }
     else applyPts(target.id, target.closed, rest, true)
     setNodes(new Set())
@@ -715,6 +730,18 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return
     }
 
+    // Plume sans rien dans la main : cliquer le bout d'un tracé ouvert le prolonge (comme Illustrator).
+    if (tool === 'pen' && penRef.current.length === 0 && !e.altKey && !e.ctrlKey) {
+      const cont = joinEndAt(world)
+      if (cont) {
+        const flip = (q: PenPoint): PenPoint => ({ ...q, ix: q.ox, iy: q.oy, ox: q.ix, oy: q.iy })
+        setPenEdit(cont.id)
+        setPen(cont.end === 'start' ? [...cont.pts].reverse().map(flip) : cont.pts)
+        setSelection(new Set())
+        setNodes(new Set())
+        return
+      }
+    }
     const nodeMode = tool === 'direct' ? 'direct' : tool === 'pen' && e.altKey ? 'convert' : tool === 'pen' && e.ctrlKey ? 'direct' : tool === 'pen' && penRef.current.length === 0 ? 'pen' : null
     if (nodeMode && nodePointerDown(e, world, nodeMode)) return
     if (tool === 'pen' && e.ctrlKey && penRef.current.length > 0) { finishPen(false); return }
@@ -723,8 +750,25 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       setSelection(new Set())
       setNodes(new Set())
       const pts = penRef.current
-      // Un clic sur le premier point ferme le tracé ; Maj garde un angle de 45°.
-      if (pts.length >= 2 && Math.hypot(world.x - pts[0].x, world.y - pts[0].y) * v.zoom < 9) { finishPen(true); return }
+      const nearPx = (q: PenPoint) => Math.hypot(world.x - q.x, world.y - q.y) * v.zoom
+      // Un clic sur le premier point ferme le tracé ; en glissant, on façonne la courbe de fermeture.
+      if (pts.length >= 2 && nearPx(pts[0]) < 9) {
+        const closedItem = finishPen(true)
+        if (closedItem) {
+          dragRef.current = { type: 'node', mode: 'close', id: closedItem.id, closed: true, base: worldPoints(closedItem), start: world, idx: 0, alt: false, moved: false, sel: new Set() }
+          e.currentTarget.setPointerCapture(e.pointerId)
+        }
+        return
+      }
+      // Un clic sur le bout d'un autre tracé ouvert : les deux tracés n'en font plus qu'un.
+      const other = joinEndAt(world)
+      if (other && other.id !== penEditRef.current && pts.length >= 1) { joinDraftTo(other); return }
+      // Un clic sur le dernier point retire sa poignée de sortie ; glisser en sort une nouvelle.
+      if (pts.length >= 2 && nearPx(pts[pts.length - 1]) < 9) {
+        dragRef.current = { type: 'node', mode: 'lastOut', id: null, closed: false, base: pts, start: world, idx: pts.length - 1, alt: false, moved: false, sel: new Set() }
+        e.currentTarget.setPointerCapture(e.pointerId)
+        return
+      }
       const at = e.shiftKey && pts.length > 0 ? constrainAngle(pts[pts.length - 1], world) : world
       setPen([...pts, anchor(at.x, at.y)])
       dragRef.current = { type: 'pen', last: world }
@@ -872,6 +916,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (d.mode === 'anchor') pts = moveAnchors(d.base, d.sel, w.x - d.start.x, w.y - d.start.y)
       else if (d.mode === 'handle') pts = moveHandle(d.base, d.idx, d.which ?? 'out', world.x, world.y, d.alt || e.altKey)
       else if (d.mode === 'convert') pts = d.base.map((q, i) => (i === d.idx ? dragHandle(toCorner(q), world.x, world.y, true) : q))
+      else if (d.mode === 'close') pts = d.base.map((q, i) => (i === 0 ? { ...q, ix: -(world.x - q.x), iy: -(world.y - q.y), ...(e.altKey ? {} : { ox: world.x - q.x, oy: world.y - q.y }) } : q))
+      else if (d.mode === 'lastOut') {
+        const wp = e.shiftKey ? constrainAngle(d.base[d.idx], world) : world
+        pts = d.base.map((q, i) => (i === d.idx ? { ...q, ox: wp.x - q.x, oy: wp.y - q.y } : q))
+      }
       else pts = reshapeSegment(d.base, d.seg ?? 0, d.t ?? 0.5, world.x - d.start.x, world.y - d.start.y)
       applyPts(d.id, d.closed, pts, false)
     } else if (d.type === 'text' || d.type === 'shape') {
@@ -899,6 +948,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (d.type === 'join') { setJoinLine(null); finishJoin({ id: d.id, end: d.end }, e ? screenToWorld(viewRef.current, local(e)) : d.from) }
     if (d.type === 'node') {
       if (!d.moved && d.mode === 'convert') applyPts(d.id, d.closed, d.base.map((q, i) => (i === d.idx ? toCorner(q) : q)), true)
+      else if (!d.moved && d.mode === 'lastOut') applyPts(d.id, d.closed, d.base.map((q, i) => (i === d.idx ? { ...q, ox: 0, oy: 0 } : q)), true)
       else if (d.moved && d.id && live) commitItems(live)
     }
     if (d.type === 'shape') {
@@ -1080,6 +1130,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   // Fond : par défaut la couleur de l'application, avec de petits points très discrets, ou uni.
   const isDark = bg === 'theme' ? appTheme === 'dark' : readableOn(bg) === '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
+  // Le tracé de la plume en cours de dessin : un vrai élément dès le deuxième point, dessiné comme le tracé fini.
+  const draftItem: BoardItem | null = penPts.length >= 2
+    ? (() => {
+        const base = penEditId ? items.find((i) => i.id === penEditId) : undefined
+        return base ? rebuildPathItem(base, penPts, false) : { ...penToItem(penPts, false, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color }), id: 'pen-draft' }
+      })()
+    : null
   const bgColor = bg === 'theme' ? 'var(--bg)' : bg
   const step = 28 * view.zoom
   // Les petits points sont discrets : ils se devinent à peine.
@@ -1093,8 +1150,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const hs = 11 / zoom
 
   // ── Rendu d'un élément ──
-  const renderItem = (it: BoardItem) => {
-    const isSel = selection.has(it.id)
+  const renderItem = (it: BoardItem, forceSel = false) => {
+    const isSel = forceSel || selection.has(it.id)
     const base: React.CSSProperties = {
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
@@ -1298,7 +1355,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       onDrop={onDrop}
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
-        {items.filter((i) => i.id !== penEditId).map(renderItem)}
+        {items.filter((i) => i.id !== penEditId).map((it) => renderItem(it))}
+        {draftItem && renderItem(draftItem, true)}
         {tool === 'pencil' && pencilPts.length > 1 && (
           <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
             <polyline points={pencilPts.map((q) => `${q.x},${q.y}`).join(' ')} fill="none" stroke="#4da3ff" strokeWidth={1.5 / zoom} strokeLinejoin="round" strokeLinecap="round" />
@@ -1313,13 +1371,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           const first = editPts[0]
           const draft = penPts.length > 0
           const closeNear = draft && penCursor && editPts.length >= 2 && Math.hypot(penCursor.x - first.x, penCursor.y - first.y) * zoom < 9
-          const rubber = editPts
           const k = 1 / zoom
           const shown = new Set(nodeSel)
           if (draft) shown.add(editPts.length - 1)
           return (
             <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
-              <path d={pathD(rubber, !!editItem?.closed)} fill="none" stroke="#4da3ff" strokeWidth={1.5 * k} />
               {[...shown].map((i) => {
                 const q = editPts[i]
                 if (!q) return null

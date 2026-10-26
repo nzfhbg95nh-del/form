@@ -150,3 +150,90 @@ export function endpointAt(pts: PenPoint[], closed: boolean, at: { x: number; y:
   for (const i of [0, pts.length - 1]) if (Math.hypot(pts[i].x - at.x, pts[i].y - at.y) <= radius) return i
   return -1
 }
+
+// ───────────────────────── Supprimer un point en gardant la forme ─────────────────────────
+
+type V = { x: number; y: number }
+const unit = (v: V): V | null => {
+  const l = Math.hypot(v.x, v.y)
+  return l < 1e-9 ? null : { x: v.x / l, y: v.y / l }
+}
+const bez = (p0: V, p1: V, p2: V, p3: V, t: number): V => {
+  const u = 1 - t
+  return { x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x, y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y }
+}
+const hasHandles = (a: PenPoint, b: PenPoint) => a.ox !== 0 || a.oy !== 0 || b.ix !== 0 || b.iy !== 0
+
+/**
+ * Retire le point `index` sans ouvrir le tracé (outil Supprimer un point d'ancrage) : ses voisins gardent la direction de leurs poignées,
+ * et les poignées qui se font face sont recalculées (moindres carrés) pour qu'une seule courbe suive les deux segments qui se rejoignaient là.
+ * Deux segments droits n'en font plus qu'un. Retirer un bout d'un tracé ouvert enlève son segment.
+ */
+export function removeAnchorFit(pts: PenPoint[], closed: boolean, index: number): PenPoint[] {
+  const n = pts.length
+  if (index < 0 || index >= n) return pts
+  const out = pts.map((p) => ({ ...p }))
+  if ((closed || (index > 0 && index < n - 1)) && n >= 3) {
+    const pi = (index + n - 1) % n
+    const ni = (index + 1) % n
+    const a = pts[pi]
+    const m = pts[index]
+    const b = pts[ni]
+    if (!hasHandles(a, m) && !hasHandles(m, b)) {
+      out[pi] = { ...out[pi], ox: 0, oy: 0 }
+      out[ni] = { ...out[ni], ix: 0, iy: 0 }
+    } else {
+      const N = 16
+      const q: V[] = []
+      for (let i = 0; i <= N; i++) q.push(bez(a, { x: a.x + a.ox, y: a.y + a.oy }, { x: m.x + m.ix, y: m.y + m.iy }, m, i / N))
+      for (let i = 1; i <= N; i++) q.push(bez(m, { x: m.x + m.ox, y: m.y + m.oy }, { x: b.x + b.ix, y: b.y + b.iy }, b, i / N))
+      const len = [0]
+      for (let i = 1; i < q.length; i++) len.push(len[i - 1] + Math.hypot(q[i].x - q[i - 1].x, q[i].y - q[i - 1].y))
+      const total = len[len.length - 1] || 1
+      const t0 = unit({ x: a.ox, y: a.oy }) ?? unit({ x: q[1].x - a.x, y: q[1].y - a.y }) ?? { x: 1, y: 0 }
+      const t1 = unit({ x: b.ix, y: b.iy }) ?? unit({ x: q[q.length - 2].x - b.x, y: q[q.length - 2].y - b.y }) ?? { x: -1, y: 0 }
+      let s11 = 0
+      let s12 = 0
+      let s22 = 0
+      let r1 = 0
+      let r2 = 0
+      for (let j = 0; j < q.length; j++) {
+        const u = len[j] / total
+        const w = 1 - u
+        const a1 = 3 * w * w * u
+        const a2 = 3 * w * u * u
+        const base = { x: (w * w * w + a1) * a.x + (a2 + u * u * u) * b.x, y: (w * w * w + a1) * a.y + (a2 + u * u * u) * b.y }
+        const rx = q[j].x - base.x
+        const ry = q[j].y - base.y
+        s11 += a1 * a1
+        s12 += a1 * a2 * (t0.x * t1.x + t0.y * t1.y)
+        s22 += a2 * a2
+        r1 += a1 * (t0.x * rx + t0.y * ry)
+        r2 += a2 * (t1.x * rx + t1.y * ry)
+      }
+      const det = s11 * s22 - s12 * s12
+      const chord = Math.hypot(b.x - a.x, b.y - a.y) / 3
+      let alpha = chord
+      let beta = chord
+      if (Math.abs(det) > 1e-9) {
+        alpha = (r1 * s22 - r2 * s12) / det
+        beta = (s11 * r2 - s12 * r1) / det
+      }
+      if (!(alpha > 0) || !Number.isFinite(alpha)) alpha = chord
+      if (!(beta > 0) || !Number.isFinite(beta)) beta = chord
+      out[pi] = { ...out[pi], ox: t0.x * alpha, oy: t0.y * alpha }
+      out[ni] = { ...out[ni], ix: t1.x * beta, iy: t1.y * beta }
+    }
+  }
+  out.splice(index, 1)
+  if (!closed && out.length > 0) {
+    out[0] = { ...out[0], ix: 0, iy: 0 }
+    out[out.length - 1] = { ...out[out.length - 1], ox: 0, oy: 0 }
+  }
+  return out
+}
+
+/** Retire plusieurs points, en gardant la forme autour de chacun (du dernier au premier, pour que les numéros restent justes). */
+export function removeAnchorsFit(pts: PenPoint[], closed: boolean, idxs: ReadonlySet<number>): PenPoint[] {
+  return [...idxs].sort((a, b) => b - a).reduce((acc, i) => removeAnchorFit(acc, closed, i), pts)
+}

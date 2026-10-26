@@ -72,6 +72,8 @@ export function fitSmooth(pts: P[], closed = false, cornerDeg = 70): PenPoint[] 
       if (turn > Math.PI) turn = 2 * Math.PI - turn
       if ((turn * 180) / Math.PI > cornerDeg) return base
     }
+    // Les bouts d'un tracé ouvert n'ont pas de poignée (comme le Crayon d'Illustrator).
+    if (!prev || !next) return base
     return { ...base, ...smoothHandles(p, prev, next) }
   })
 }

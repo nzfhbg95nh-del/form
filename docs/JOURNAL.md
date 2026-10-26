@@ -736,3 +736,13 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Logique dans `boardPathTools.ts` (+ tests). Tests : 605.
 - Pas fait : Shaper, texte sur un tracé, mise en forme d'une partie seulement d'un texte, points « symétriques » comme type à part.
 - (suite) Plume calée sur la vidéo : plus de cadre bleu autour d'un tracé sélectionné (il restait après la fermeture : c'était le « saut »), le tracé sélectionné se surligne en bleu fin le long de sa courbe, et le segment « élastique » jusqu'à la souris est retiré (Illustrator ne l'affiche pas par défaut). Vérifié à l'écran : fermeture propre à 100 %.
+
+## 2026-10-26 — Plume : alignée sur le dépôt de référence VectorCraft (MIT/Apache-2.0) (après la v0.47.2, pas encore publié)
+- Lu : `crates/tools/src/pen.rs`, `draw2/anchor.rs`, `pathops/src/edit.rs` (comportements ; rien n'est copié, tout est réécrit en TypeScript).
+- Le tracé en cours est un vrai élément dès le 2e point, dessiné comme le tracé fini : plus aucune différence à la fermeture.
+- Fermeture : un appui sur le premier point ferme tout de suite ; glisser façonne la courbe de fermeture (point lisse ; Alt : seulement la poignée d'entrée).
+- Clic sur le dernier point : retire sa poignée de sortie ; glisser : en sort une nouvelle. Clic sur le bout d'un autre tracé ouvert : les deux se relient. Clic sur le bout d'un tracé ouvert (sans tracé en cours) : on le prolonge. Maj : pas d'ajout/retrait automatique de point.
+- Changer d'outil termine le tracé en cours (il n'est plus perdu).
+- Supprimer un point : les voisins gardent leur direction et leurs poignées sont recalculées (moindres carrés) pour qu'une seule courbe suive les deux segments ; deux segments droits n'en font qu'un.
+- Crayon : les bouts d'un tracé ouvert n'ont plus de poignée.
+- Tests : 609. Pas repris : aimantation aux repères intelligents, étoile du curseur « nouveau tracé », éléments de fusion.
