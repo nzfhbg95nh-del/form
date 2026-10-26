@@ -3,7 +3,7 @@ import { hexToHsv, hsvToHex } from '@/biblio/lib/colors.ts'
 
 /** Début de la barre de teintes : en dessous, c'est la zone des gris (pas de couleur). */
 const GRAY_END = 0.12
-const SAT = 0.85
+const SAT = 0.6
 
 /** Position (0 à 1) → teinte et saturation. */
 const fromX = (x: number): [number, number] => (x < GRAY_END ? [0, 0] : [((x - GRAY_END) / (1 - GRAY_END)) * 360, SAT])
@@ -22,17 +22,20 @@ function Bar({ label, x, background, knob, onX }: { label: string; x: number; ba
   }
   return (
     <div className="flex items-center gap-3">
-      <span className="lib-count w-16 shrink-0">{label}</span>
-      <div
-        className="relative h-7 flex-1 cursor-ew-resize touch-none rounded-full"
-        style={{ background, boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fg) 12%, transparent)' }}
-        onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e) }}
-        onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e) }}
-      >
-        <span
-          className="pointer-events-none absolute top-1/2 h-8 w-8 -translate-x-1/2 -translate-y-1/2 rounded-full"
-          style={{ left: `${x * 100}%`, background: `#${knob}`, border: '3px solid var(--bg)', boxShadow: '0 2px 8px rgba(0,0,0,.35)' }}
-        />
+      <span className="lib-count w-14 shrink-0">{label}</span>
+      {/* La marge de chaque côté laisse la place de la poignée aux deux extrémités. */}
+      <div className="min-w-0 flex-1 px-3">
+        <div
+          className="relative h-[18px] cursor-ew-resize touch-none rounded-full"
+          style={{ background, boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent)' }}
+          onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e) }}
+          onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e) }}
+        >
+          <span
+            className="pointer-events-none absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            style={{ left: `${x * 100}%`, background: knob, border: '1px solid rgba(255,255,255,.55)', boxShadow: '0 1px 6px rgba(0,0,0,.28)', backdropFilter: 'blur(2px)' }}
+          />
+        </div>
       </div>
     </div>
   )
@@ -49,7 +52,6 @@ export function ColorBar({ value, onChange }: { value: string; onChange: (hex: s
     timer.current = setTimeout(() => onChange(hsvToHex(...next)), 80)
   }
   const [h, s, v] = hsv
-  const current = hsvToHex(h, s, v)
   const hueStops = Array.from({ length: 25 }, (_, i) => {
     const [hh, ss] = fromX(i / 24)
     return hsvToHex(hh, ss, v)
@@ -60,14 +62,14 @@ export function ColorBar({ value, onChange }: { value: string; onChange: (hex: s
         label="Teinte"
         x={toX(h, s)}
         background={track(hueStops)}
-        knob={current}
+        knob="rgba(150,150,160,.85)"
         onX={(x) => { const [hh, ss] = fromX(x); commit([hh, ss, v]) }}
       />
       <Bar
         label="Clarté"
         x={v}
         background={track([hsvToHex(h, s, 0), hsvToHex(h, s, 1)])}
-        knob={current}
+        knob="rgba(150,150,160,.85)"
         onX={(x) => commit([h, s, x])}
       />
     </div>
