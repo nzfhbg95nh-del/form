@@ -84,7 +84,7 @@ export function LibraryOverlays() {
     <>
       <Lightbox />
       {text && (
-        <div className="fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-4 rounded-lg px-4 py-2 text-sm shadow-lg" style={{ background: 'var(--fg)', color: 'var(--bg)' }} role="status">
+        <div className="form-toast fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-4 rounded-xl px-4 py-2.5 text-sm shadow-lg" style={{ background: 'var(--fg)', color: 'var(--bg)' }} role="status">
           <span>{text}</span>
           {action && (
             <button className="font-semibold underline" onClick={() => { hide(); action.run() }}>{action.label}</button>
