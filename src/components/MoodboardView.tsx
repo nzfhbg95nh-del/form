@@ -800,6 +800,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const selNotes = selected.some((i) => i.kind === 'note')
   const selShapes = selected.some((i) => i.kind === 'shape')
   const textSel = selected.filter((i) => i.kind === 'text')
+  // Le panneau du texte est posé en bas à droite de la toile (comme les panneaux d'Illustrator), et la palette de couleurs reste en haut à droite.
+  const showTextPanel = !compact && textSel.length > 0 && !marquee && !live
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -932,30 +934,43 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         </div>
       )}
 
-      {!compact && textSel.length > 0 && selBox && !marquee && !live && (() => {
+      {showTextPanel && (() => {
         const first = textSel[0]
         const st = textStyleOf(first)
-        const tl = worldToScreen(view, { x: selBox.x, y: selBox.y })
-        const field = 'rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
-        const toggle = (on: boolean) => bar + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        const field = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
+        const toggle = (on: boolean) => bar + ' flex h-7 w-7 items-center justify-center !px-0' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        const row = 'flex items-center gap-2'
+        const label = 'w-20 shrink-0 text-[var(--fg-muted)]'
         return (
-          <div
-            data-ui
-            className="absolute z-40 flex max-w-[34rem] flex-wrap items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1.5 text-xs text-[var(--fg)] shadow-md"
-            style={{ left: Math.max(8, Math.min(tl.x, size.w - 420)), top: Math.max(48, tl.y - 46) }}
-          >
-            <select className={field + ' w-32'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
+          <div data-ui className="absolute bottom-3 right-3 z-40 flex w-56 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+            <div className="text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Texte{textSel.length > 1 ? ` (${textSel.length})` : ''}</div>
+            <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
-            <input className={field + ' w-14'} type="number" min={6} max={600} value={Math.round(st.size)} onChange={(e) => setTextProps({ size: Math.min(600, Math.max(6, Number(e.target.value) || 6)) })} aria-label="Taille des lettres" title="Taille des lettres" />
-            <button className={toggle(st.bold)} onClick={() => setTextProps({ bold: !st.bold })} title="Gras" aria-pressed={st.bold}><Bold size={13} /></button>
-            <button className={toggle(st.italic)} onClick={() => setTextProps({ italic: !st.italic })} title="Italique" aria-pressed={st.italic}><Italic size={13} /></button>
-            <button className={toggle((first.align ?? 'left') === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
-            <button className={toggle(first.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
-            <button className={toggle(first.align === 'right')} onClick={() => setTextProps({ align: 'right' })} title="Aligné à droite"><AlignRight size={13} /></button>
-            <input type="color" className="h-6 w-7 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} title="Couleur du texte" aria-label="Couleur du texte" />
-            <label className="flex items-center gap-1" title="Interlignage">↕<input className={field + ' w-12'} type="number" step={0.1} min={0.6} max={3} value={st.lh} onChange={(e) => setTextProps({ lh: Math.min(3, Math.max(0.6, Number(e.target.value) || 1.2)) })} aria-label="Interlignage" /></label>
-            <label className="flex items-center gap-1" title="Espacement des lettres">↔<input className={field + ' w-14'} type="number" step={0.01} min={-0.2} max={1} value={st.ls} onChange={(e) => setTextProps({ ls: Math.min(1, Math.max(-0.2, Number(e.target.value) || 0)) })} aria-label="Espacement des lettres" /></label>
+            <div className={row}>
+              <span className={label}>Taille</span>
+              <input className={field + ' w-16'} type="number" min={6} max={600} value={Math.round(st.size)} onChange={(e) => setTextProps({ size: Math.min(600, Math.max(6, Number(e.target.value) || 6)) })} aria-label="Taille des lettres" />
+              <button className={toggle(st.bold)} onClick={() => setTextProps({ bold: !st.bold })} title="Gras" aria-pressed={st.bold}><Bold size={13} /></button>
+              <button className={toggle(st.italic)} onClick={() => setTextProps({ italic: !st.italic })} title="Italique" aria-pressed={st.italic}><Italic size={13} /></button>
+            </div>
+            <div className={row}>
+              <span className={label}>Alignement</span>
+              <button className={toggle((first.align ?? 'left') === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
+              <button className={toggle(first.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
+              <button className={toggle(first.align === 'right')} onClick={() => setTextProps({ align: 'right' })} title="Aligné à droite"><AlignRight size={13} /></button>
+            </div>
+            <div className={row}>
+              <span className={label}>Couleur</span>
+              <input type="color" className="h-7 w-10 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
+            </div>
+            <div className={row}>
+              <span className={label}>Interlignage</span>
+              <input className={field + ' w-16'} type="number" step={0.1} min={0.6} max={3} value={st.lh} onChange={(e) => setTextProps({ lh: Math.min(3, Math.max(0.6, Number(e.target.value) || 1.2)) })} aria-label="Interlignage" />
+            </div>
+            <div className={row}>
+              <span className={label}>Espacement</span>
+              <input className={field + ' w-16'} type="number" step={0.01} min={-0.2} max={1} value={st.ls} onChange={(e) => setTextProps({ ls: Math.min(1, Math.max(-0.2, Number(e.target.value) || 0)) })} aria-label="Espacement des lettres" />
+            </div>
           </div>
         )
       })()}
@@ -999,7 +1014,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && !compact && (
-        <div data-ui data-scroll className="absolute right-3 top-3 max-h-[80%] w-52 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
+        <div data-ui data-scroll style={{ top: 12, maxHeight: showTextPanel ? 'calc(100% - 350px)' : '80%' }} className="absolute right-3 w-52 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
           <div className="mb-2 text-xs font-semibold uppercase text-[var(--fg-muted)]">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
           {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
           <div className="grid grid-cols-2 gap-2">
