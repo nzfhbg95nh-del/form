@@ -1,7 +1,9 @@
 import { SplitSlider } from '@/components/SplitSlider'
+import { addFiles, addPaths, ALLOWED_EXT } from '@/biblio/lib/ajouts.ts'
+import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/States'
-import { ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Search } from 'lucide-react'
+import { ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
 import { formatDuration, layoutMasonry, visibleIndices, type Placed } from '@/biblio/lib/grid.ts'
 import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
@@ -69,6 +71,29 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   const phase = useLibrary((s) => s.phase)
   const root = useLibrary((s) => s.root)
   const scroller = useRef<HTMLDivElement>(null)
+  const [addMenu, setAddMenu] = useState(false)
+  const pickFiles = async () => {
+    const picked = await openDialog({ multiple: true, filters: [{ name: 'Images et vidéos', extensions: [...ALLOWED_EXT] }] }).catch(() => null)
+    if (picked) await addPaths(Array.isArray(picked) ? picked : [picked])
+  }
+  const pickFolder = async () => {
+    const picked = await openDialog({ directory: true }).catch(() => null)
+    if (picked) await addPaths([picked as string])
+  }
+  // Ctrl+V : une image copiée (web, capture d'écran) est ajoutée à la bibliothèque.
+  useEffect(() => {
+    if (!active) return
+    const onPaste = (e: ClipboardEvent) => {
+      const t = e.target as HTMLElement | null
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return
+      const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/') || f.type.startsWith('video/'))
+      if (files.length === 0) return
+      e.preventDefault()
+      void addFiles(files)
+    }
+    window.addEventListener('paste', onPaste)
+    return () => window.removeEventListener('paste', onPaste)
+  }, [active])
   const [box, setBox] = useState({ w: 0, h: 800 })
   const [top, setTop] = useState(0)
   const heroRef = useRef<HTMLDivElement>(null)
@@ -150,6 +175,20 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des vignettes" />
           <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
+          <div className="relative">
+            <button className="btn btn-primary h-9" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">
+              <Plus size={15} /> Ajouter
+            </button>
+            {addMenu && (
+              <>
+                <div className="fixed inset-0 z-40" onPointerDown={() => setAddMenu(false)} />
+                <div role="menu" className="absolute right-0 top-11 z-50 w-56 rounded-xl border p-1.5 shadow-lg" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+                  <button role="menuitem" className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]" onClick={() => { setAddMenu(false); void pickFiles() }}>Choisir des images…</button>
+                  <button role="menuitem" className="block w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-[var(--bg-hover)]" onClick={() => { setAddMenu(false); void pickFolder() }}>Choisir un dossier…</button>
+                </div>
+              </>
+            )}
+          </div>
           <button className="btn h-9" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
         </div>
       </div>
@@ -164,7 +203,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         </div>
       )}
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" onScroll={(e) => setTop(e.currentTarget.scrollTop)}>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault() }} onDrop={(e) => { if (e.dataTransfer.files.length > 0) { e.preventDefault(); void addFiles(Array.from(e.dataTransfer.files)) } }} onScroll={(e) => setTop(e.currentTarget.scrollTop)}>
         {hasHero && (
           <div ref={heroRef}>
             <CollectionHero />

@@ -7,7 +7,7 @@
 // Constat : sur Instagram, le code change à chaque image d'un même carrousel (il n'identifie pas le post).
 // Un carrousel = les fichiers du même auteur et de la même date, dans l'ordre du numéro NN.
 
-export type Source = 'instagram' | 'pinterest'
+export type Source = 'instagram' | 'pinterest' | 'manual'
 export type FileKind = 'image' | 'video'
 export type BlockKind = 'image' | 'video' | 'carousel'
 
@@ -51,6 +51,9 @@ const VIDEO_EXT = new Set(['mp4', 'm4v', 'mov', 'webm'])
 const IG_RE = /^instagram\/([^/]+)\/(\d{8})_([\w-]+)_(\d+)\.(\w+)$/
 const PIN_RE = /^pinterest\/([^/]+)\/(.+)\/([^/]+)\.(\w+)$/
 
+const MANUAL_PREFIX = 'ajouts/'
+export const MANUAL_COLLECTION = 'man:ajouts'
+
 export const fileKindOf = (ext: string): FileKind => (VIDEO_EXT.has(ext.toLowerCase()) ? 'video' : 'image')
 
 interface IgFile {
@@ -85,6 +88,26 @@ export function buildBlocks(files: ScannedFile[]): { blocks: BlockDraft[]; colle
   const usedIds = new Set<string>()
 
   for (const file of sorted) {
+    // Une image ajoutée à la main : un bloc à elle, dans la collection « Mes ajouts ».
+    if (file.rel.startsWith(MANUAL_PREFIX)) {
+      const name = file.rel.slice(MANUAL_PREFIX.length)
+      const stem = name.replace(/\.\w+$/, '')
+      collections.set(MANUAL_COLLECTION, { id: MANUAL_COLLECTION, name: 'Mes ajouts', kind: 'manual', owner: 'Mes ajouts' })
+      const bf = [toBlockFile(file, 0)]
+      blocks.push({
+        id: `man:${stem}`,
+        source: 'manual',
+        owner: 'Mes ajouts',
+        board: null,
+        originId: stem,
+        originUrl: '',
+        kind: blockKind(bf),
+        publishedAt: new Date(file.mtime || Date.now()).toISOString().slice(0, 10),
+        collectionIds: [MANUAL_COLLECTION],
+        files: bf,
+      })
+      continue
+    }
     const ig = IG_RE.exec(file.rel)
     if (ig) {
       const [, author, date, , n] = ig

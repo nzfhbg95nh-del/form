@@ -59,6 +59,15 @@ pub async fn scan_folder(root: String) -> Result<Vec<ScannedFile>, String> {
         }
         let mut out = Vec::new();
         walk(root, root, &mut out);
+        // Mes ajouts : les images ajoutées à la main, rangées sous « ajouts/ ».
+        if let Some(extra) = super::ajouts::dir().filter(|d| d.is_dir()) {
+            let mut mine = Vec::new();
+            walk(extra, extra, &mut mine);
+            for mut f in mine {
+                f.rel = format!("{}{}", super::ajouts::PREFIX, f.rel);
+                out.push(f);
+            }
+        }
         Ok(out)
     })
     .await

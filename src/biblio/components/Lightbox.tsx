@@ -24,7 +24,7 @@ import { useApp } from '@/store/app'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
-const SOURCE_LABEL = { instagram: 'Instagram', pinterest: 'Pinterest' } as const
+const SOURCE_LABEL = { instagram: 'Instagram', pinterest: 'Pinterest', manual: 'Ajoutée à la main' } as const
 
 /** Un nouveau bloc ouvert = un nouvel exemplaire (la clé repart de zéro : première image, rien de cassé). */
 export function Lightbox() {
@@ -152,13 +152,13 @@ function LightboxContent() {
 
       <aside className="w-[22rem] shrink-0 overflow-auto border-l px-6 py-7 [scrollbar-width:thin]" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
         <div className="lib-count mb-2">{SOURCE_LABEL[block.source]}</div>
-        <div className="text-xl font-semibold tracking-tight break-words">{block.source === 'instagram' ? `@${block.owner}` : block.board}</div>
+        <div className="text-xl font-semibold tracking-tight break-words">{block.source === 'instagram' ? `@${block.owner}` : block.source === 'manual' ? 'Image ajoutée' : block.board}</div>
         {block.source === 'pinterest' && <div className="text-sm" style={{ color: 'var(--fg-muted)' }}>par {block.owner}</div>}
         {block.publishedAt && <div className="mt-2 text-sm">{formatDate(block.publishedAt)}</div>}
         {files.length > 1 && <div className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>Image {pos + 1} sur {files.length}</div>}
 
         <div className="mt-4 flex gap-2">
-          <button className="btn h-9 w-9 justify-center !p-0" onClick={() => void openUrl(block.originUrl)} title={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'} aria-label={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'}>
+          <button className="btn h-9 w-9 justify-center !p-0" disabled={!block.originUrl} onClick={() => block.originUrl && void openUrl(block.originUrl)} title={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'} aria-label={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'}>
             <ExternalLink size={15} />
           </button>
           <button className="btn h-9 w-9 justify-center !p-0" disabled={!full} onClick={() => full && void revealItemInDir(full)} title="Ouvrir dans l'Explorateur" aria-label="Ouvrir dans l'Explorateur">

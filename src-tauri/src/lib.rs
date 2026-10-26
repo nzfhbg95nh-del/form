@@ -146,6 +146,10 @@ pub fn run() {
         .setup(|app| {
             // Une restauration de sauvegarde demandée avant la fermeture s'applique ici, avant l'ouverture de la base.
             backup::apply_pending_restore(app.handle());
+            // Le dossier des images ajoutées à la main : Documents\Form\Mes ajouts.
+            if let Ok(docs) = tauri::Manager::path(app).document_dir() {
+                biblio::ajouts::set_dir(docs.join("Form").join("Mes ajouts"));
+            }
             Ok(())
         })
         .plugin(
@@ -173,6 +177,9 @@ pub fn run() {
             gemini::gemini_models,
             gemini::gemini_image,
             biblio::scan::scan_folder,
+            biblio::ajouts::ajouts_dir,
+            biblio::ajouts::add_images,
+            biblio::ajouts::add_image_bytes,
             biblio::saver::saver_start,
             biblio::saver::saver_stop,
             biblio::saver::link_fetch,

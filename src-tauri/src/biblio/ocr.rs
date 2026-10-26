@@ -143,7 +143,7 @@ fn run(app: &AppHandle, root: &Path, jobs: Vec<OcrJob>) -> Result<(), String> {
                 .par_iter()
                 .enumerate()
                 .flat_map_iter(|(v, job)| {
-                    let src = root.join(&job.rel);
+                    let src = super::ajouts::resolve(root, &job.rel);
                     frame_times(job.duration, job.every)
                         .into_iter()
                         .enumerate()

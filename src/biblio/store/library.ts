@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 import { listen } from '@tauri-apps/api/event'
+import { invoke } from '@tauri-apps/api/core'
+import { setAjoutsDir } from '@/biblio/lib/media.ts'
 import { seedAndApplyTypes } from '@/biblio/lib/types.ts'
 import { applyThumbBatch, DEFAULT_ROOT, getSetting, getStats, setSetting, startThumbs, syncLibrary, type LibraryStats, type SyncResult, type ThumbResult } from '@/biblio/lib/library.ts'
 
@@ -38,6 +40,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   async init(auto = false) {
     if (get().ready) return
     const saved = await getSetting('library_root')
+    // Le dossier des images ajoutées à la main (pour retrouver leurs fichiers).
+    await invoke<string>('ajouts_dir').then(setAjoutsDir).catch(() => undefined)
     set({ root: saved ?? DEFAULT_ROOT, stats: await getStats().catch(() => EMPTY_STATS), ready: true })
 
     if (!listening) {

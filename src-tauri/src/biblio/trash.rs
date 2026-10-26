@@ -13,6 +13,11 @@ pub struct TrashOutcome {
 
 /// Le chemin complet d'un fichier de la bibliothèque, ou rien s'il sortirait du dossier (chemin absolu, « .. »…).
 pub fn safe_path(root: &Path, rel: &str) -> Option<PathBuf> {
+    // Les images ajoutées à la main vivent dans Mes ajouts, pas dans le dossier de Social Saver.
+    let (root, rel) = match rel.strip_prefix(super::ajouts::PREFIX) {
+        Some(rest) => (super::ajouts::dir()?.as_path(), rest),
+        None => (root, rel),
+    };
     let rel_path = Path::new(rel);
     if rel.is_empty() || rel_path.is_absolute() {
         return None;

@@ -144,7 +144,7 @@ fn make_video(src: &Path, out: &Path) -> Result<(u32, u32, Option<f64>), String>
 
 fn make_one(root: &Path, dir: &Path, job: &ThumbJob) -> ThumbResult {
     let thumb = thumb_name(&job.rel);
-    let src = root.join(&job.rel);
+    let src = super::ajouts::resolve(root, &job.rel);
     let out = dir.join(&thumb);
     if let Some(parent) = out.parent() {
         let _ = std::fs::create_dir_all(parent);
