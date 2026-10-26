@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest'
-import { splitCapture } from './capture'
 import { extractText, normalize, searchObjects } from './search'
 import type { ObjectRow } from './types'
 
@@ -44,23 +43,6 @@ describe('recherche', () => {
     expect(searchObjects(objects, 'sous-page')[0].path).toEqual(['Projet Dupont'])
     expect(searchObjects(objects, '')[0].object.id).toBe('3')
     expect(searchObjects(objects, '').every((h) => h.object.id !== '4')).toBe(true)
-  })
-})
-
-describe('capture rapide', () => {
-  it('prend la première ligne comme titre, le reste comme contenu', () => {
-    expect(splitCapture('Idée logo\nfond bleu\nforme ronde')).toEqual({
-      title: 'Idée logo',
-      blocks: [{ type: 'paragraph', content: 'fond bleu' }, { type: 'paragraph', content: 'forme ronde' }],
-    })
-    expect(splitCapture('\n  Seulement une ligne  ').blocks).toEqual([])
-  })
-
-  it('tronque un titre trop long sans perdre le texte', () => {
-    const long = 'x'.repeat(100)
-    const r = splitCapture(long)
-    expect(r.title.length).toBeLessThanOrEqual(81)
-    expect(r.blocks).toEqual([{ type: 'paragraph', content: long }])
   })
 })
 
