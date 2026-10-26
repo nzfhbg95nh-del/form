@@ -150,7 +150,7 @@ interface AppState {
   /** Ouvre la base « Recettes » (la crée au premier usage). */
   openRecipes(): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
-  addRecipe(values?: Record<string, unknown>): Promise<void>
+  addRecipe(values?: Record<string, unknown>, cover?: string): Promise<void>
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
   /** Recharge toutes les pages depuis la base (après un import). */
   reloadObjects(): Promise<void>
@@ -229,7 +229,7 @@ async function ensureRecipesDb(get: () => AppState, set: SetFn): Promise<ObjectR
 }
 
 /** Ajoute une recette (modèle vide si rien n'est fourni) dans la base « Recettes » et l'ouvre. */
-async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: string; values?: Record<string, unknown>; content?: unknown[] }) {
+async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: string; values?: Record<string, unknown>; content?: unknown[]; cover?: string }) {
   const repo = get().repo
   const db = await ensureRecipesDb(get, set)
   if (!repo || !db) return
@@ -237,7 +237,7 @@ async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: st
   const people = Math.max(1, parseInt((await repo.getSetting('recipe_people')) ?? '', 10) || 4)
   const values = input.content ? (input.values ?? {}) : { [RECIPE.servings]: people, ...(input.values ?? {}) }
   const row = await repo.createPage(db.id, 'row', JSON.stringify(values))
-  const patch = { title: input.title ?? 'Nouvelle recette', icon: '🍳', content: JSON.stringify(input.content ?? emptyRecipeBlocks(people)) }
+  const patch = { title: input.title ?? 'Nouvelle recette', icon: '🍳', content: JSON.stringify(input.content ?? emptyRecipeBlocks(people)), ...(input.cover ? { cover: input.cover } : {}) }
   await repo.updateObject(row.id, patch)
   set((s) => ({ objects: [...s.objects, { ...row, ...patch }] }))
   get().select(row.id)
@@ -747,8 +747,8 @@ export const useApp = create<AppState>((set, get) => ({
     if (db) get().select(db.id)
   },
 
-  async addRecipe(values) {
-    await addRecipeRow(get, set, { values })
+  async addRecipe(values, cover) {
+    await addRecipeRow(get, set, { values, cover })
   },
 
   async createRecipePage(recipe, categoryId) {

@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Search, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
+import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
+import { coverFromBlob } from '@/lib/images'
 import { PageEditor } from '@/components/PageEditor'
 import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
@@ -180,18 +182,50 @@ function QuickNotes({ db }: { db: ObjectRow }) {
 }
 
 /** Fenêtre « Dans quelle catégorie ? » : on choisit une catégorie, ou on tape un nom pour en créer une (cliquer à côté ferme). */
-function CategoryChooser({ categories, onPick, onCreate, onClose }: { categories: RecipeCategory[]; onPick: (id: string | undefined) => void; onCreate: (name: string) => void; onClose: () => void }) {
+function CategoryChooser({ categories, cover, onCover, onPick, onCreate, onClose }: { categories: RecipeCategory[]; cover: string | null; onCover: (url: string | null) => void; onPick: (id: string | undefined) => void; onCreate: (name: string) => void; onClose: () => void }) {
   const [name, setName] = useState('')
+  const [libOpen, setLibOpen] = useState(false)
+  const [coverError, setCoverError] = useState<string | null>(null)
+  const file = useRef<HTMLInputElement>(null)
   const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-[15vh]" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-label="Dans quelle catégorie ?"
-        className="max-h-[70vh] w-80 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
+        className="max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       >
+        <div className="mb-3 border-b border-[var(--border)] pb-3">
+          <div className="mb-1.5 text-xs font-medium text-[var(--fg-muted)]">Image de la recette (facultatif)</div>
+          {cover ? (
+            <div className="relative">
+              <img src={cover} alt="Image choisie" className="h-32 w-full rounded object-cover" />
+              <button className="absolute right-1.5 top-1.5 rounded bg-black/55 p-1 text-white" aria-label="Retirer l'image" onClick={() => onCover(null)}><X size={12} /></button>
+            </div>
+          ) : (
+            <div className="flex gap-2">
+              <button className={item + ' flex-1 justify-center border border-[var(--border)]'} onClick={() => file.current?.click()}>Depuis mon ordinateur…</button>
+              <button className={item + ' flex-1 justify-center border border-[var(--border)]'} onClick={() => setLibOpen(true)}>Depuis ma bibliothèque…</button>
+            </div>
+          )}
+          {coverError && <p className="mt-1 text-xs text-red-500">{coverError}</p>}
+          <input
+            ref={file}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={async (e) => {
+              const f = e.target.files?.[0]
+              e.target.value = ''
+              if (!f) return
+              setCoverError(null)
+              try { onCover(await coverFromBlob(f)) } catch { setCoverError("Impossible de lire cette image.") }
+            }}
+          />
+        </div>
+        {libOpen && <LibraryImagePicker onClose={() => setLibOpen(false)} onPick={(url) => { onCover(url); setLibOpen(false) }} />}
         <h2 className="mb-2 text-sm font-semibold">Dans quelle catégorie ?</h2>
         {categories.length === 0 && <p className="mb-2 text-xs text-[var(--fg-muted)]">Tu n’as pas encore de catégorie : donne un nom à la première, elle sera créée pour toi.</p>}
         {categories.map((c) => (
@@ -233,6 +267,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [renaming, setRenaming] = useState<string | null>(null)
   const [emojiFor, setEmojiFor] = useState<string | null>(null)
   const [choosing, setChoosing] = useState(false)
+  // L'image choisie dans la fenêtre « Nouvelle recette » : elle devient la couverture de la fiche.
+  const [newCover, setNewCover] = useState<string | null>(null)
   const [sortBy, setSortBy] = useState<RecipeSort>('name')
   const [sortDesc, setSortDesc] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
@@ -262,7 +298,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
 
   const save = (next: Schema) => void saveSchema(db.id, next)
 
-  const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
+  const create = (categoryId?: string, cover?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined, cover)
 
   /** Supprimer une ligne : une catégorie disparaît (ses recettes passent dans « Sans catégorie »), « Sans catégorie » met ses recettes à la corbeille. */
   const confirmRemove = (e: RecipeEntry) => {
@@ -457,15 +493,18 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       {choosing && (
         <CategoryChooser
           categories={categories}
-          onClose={() => setChoosing(false)}
-          onPick={(id) => { setChoosing(false); create(id) }}
+          cover={newCover}
+          onCover={setNewCover}
+          onClose={() => { setChoosing(false); setNewCover(null) }}
+          onPick={(id) => { setChoosing(false); create(id, newCover ?? undefined); setNewCover(null) }}
           onCreate={(name) => {
             // Une catégorie qui n'existe pas encore est créée automatiquement, puis la recette y est rangée.
             const next = addCategory(schema, name)
             const created = recipeCategories(next).at(-1)
             save(next)
             setChoosing(false)
-            create(created?.id)
+            create(created?.id, newCover ?? undefined)
+            setNewCover(null)
           }}
         />
       )}

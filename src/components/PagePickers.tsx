@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker.tsx'
 import { Image as ImageIcon, Smile } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { DEFAULT_MODEL, generateIconImage, iconAiAvailable, suggestEmojis } from '@/lib/ai'
@@ -266,6 +267,7 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
 
 export function CoverPicker({ value, onChange }: { value: string | null; onChange: (v: string | null) => void }) {
   const [open, setOpen] = useState(false)
+  const [libOpen, setLibOpen] = useState(false)
   const file = useRef<HTMLInputElement>(null)
   return (
     <div className="relative inline-block">
@@ -286,6 +288,7 @@ export function CoverPicker({ value, onChange }: { value: string | null; onChang
             ))}
           </div>
           <button className={btn + ' mt-2'} onClick={() => file.current?.click()}>Importer une image…</button>
+          <button className={btn + ' mt-1'} onClick={() => setLibOpen(true)}>Depuis ma bibliothèque…</button>
           {value && (
             <button className={btn + ' text-red-500'} onClick={() => { onChange(null); setOpen(false) }}>
               Retirer la couverture
@@ -303,6 +306,7 @@ export function CoverPicker({ value, onChange }: { value: string | null; onChang
           />
         </div>
       )}
+      {libOpen && <LibraryImagePicker onClose={() => setLibOpen(false)} onPick={(url) => { onChange(url); setLibOpen(false); setOpen(false) }} />}
     </div>
   )
 }

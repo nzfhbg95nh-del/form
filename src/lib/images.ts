@@ -44,6 +44,27 @@ export async function processImage(file: Blob, maxSide = 2400, thumbSide = 512):
   }
 }
 
+/** Image de couverture : réduite pour tenir dans `maxSide` pixels et enregistrée en JPEG sur fond blanc (légère pour la base de Form). */
+export async function coverFromBlob(file: Blob, maxSide = 1600, quality = 0.86): Promise<string> {
+  const bitmap = await createImageBitmap(file)
+  try {
+    const f = Math.min(1, maxSide / Math.max(bitmap.width, bitmap.height))
+    const w = Math.max(1, Math.round(bitmap.width * f))
+    const h = Math.max(1, Math.round(bitmap.height * f))
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    if (!ctx) throw new Error("Impossible de préparer l'image.")
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, w, h)
+    ctx.drawImage(bitmap, 0, 0, w, h)
+    return canvas.toDataURL('image/jpeg', quality)
+  } finally {
+    bitmap.close()
+  }
+}
+
 /** Pixels (RGBA) d'une version 64×64 de l'image, pour en extraire la palette. */
 export function samplePixels(url: string, size = 64): Promise<Uint8ClampedArray> {
   return new Promise((resolve, reject) => {
