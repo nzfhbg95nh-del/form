@@ -8,16 +8,29 @@ const rgba = (c: number[]) => `rgba(${c[0] ?? 0}, ${c[1] ?? 0}, ${c[2] ?? 0}, ${
  * les poignées, les repères (« anchor », « handle »), le rectangle de sélection… Les coordonnées sont celles de la toile ;
  * les tailles (points, traits, textes) sont en pixels d'écran, donc divisées par le zoom.
  */
-export function VectorOverlay({ overlays, zoom }: { overlays: VcOverlay[]; zoom: number }) {
+export function VectorOverlay({ overlays, zoom, tip, tipAt }: { overlays: VcOverlay[]; zoom: number; tip?: { size?: number; angle?: number; roundness?: number } | null; tipAt?: [number, number] | null }) {
   const k = 1 / zoom
   return (
     <svg style={{ position: 'absolute', left: 0, top: 0, width: 1, height: 1, overflow: 'visible', pointerEvents: 'none' }}>
+      {/* Le bout de la gomme ou de la tache : un rond (une ellipse si on l'aplatit) à la taille du bout, autour du curseur */}
+      {tip && tipAt && tip.size ? (
+        <ellipse
+          cx={tipAt[0]}
+          cy={tipAt[1]}
+          rx={tip.size / 2}
+          ry={(tip.size / 2) * Math.min(100, Math.max(1, tip.roundness ?? 100)) / 100}
+          transform={`rotate(${-(tip.angle ?? 0)} ${tipAt[0]} ${tipAt[1]})`}
+          fill="none"
+          stroke="#8a8a8a"
+          strokeWidth={k}
+        />
+      ) : null}
       {overlays.map((o, i) => {
         switch (o.t) {
           case 'marquee':
             return <rect key={i} x={Math.min(o.x0, o.x1)} y={Math.min(o.y0, o.y1)} width={Math.abs(o.x1 - o.x0)} height={Math.abs(o.y1 - o.y0)} fill="rgba(77,163,255,0.12)" stroke="#4da3ff" strokeWidth={k} />
           case 'path':
-            return <path key={i} d={o.d} fill="none" stroke={rgb(o.color)} strokeWidth={Math.max(1, o.width) * k} strokeDasharray={o.dashed ? `${4 * k} ${3 * k}` : undefined} />
+            return <path key={i} d={o.d} fill="none" stroke={rgb(o.color)} strokeWidth={Math.max(1, o.width) * k} strokeLinecap="round" strokeLinejoin="round" strokeDasharray={o.dashed ? `${4 * k} ${3 * k}` : undefined} />
           case 'line':
           case 'gridLine':
             return <line key={i} x1={o.a[0]} y1={o.a[1]} x2={o.b[0]} y2={o.b[1]} stroke={o.t === 'line' ? rgb(o.color) : rgba(o.color)} strokeWidth={k} strokeDasharray={o.t === 'line' && o.dashed ? `${4 * k} ${3 * k}` : undefined} />
@@ -102,7 +115,7 @@ export function vectorCursor(name: string): string {
     const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4.2'>${body}</g><g stroke='black' stroke-width='1.8'>${body}</g>${badge}</svg>`
     css = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") ${spec[2][0]} ${spec[2][1]}, crosshair`
   } else {
-    css = ({ ArrowHollow: 'default', DirectAnchor: 'default', DirectAnchorSelected: 'default', ReshapeSegment: 'default', GroupSelection: 'default', SelectionCopy: 'copy', Move: 'move', Crosshair: 'crosshair', ResizeH: 'ew-resize', ResizeV: 'ns-resize', ResizeNwSe: 'nwse-resize', ResizeNeSw: 'nesw-resize' } as Record<string, string>)[name] ?? 'default'
+    css = ({ ArrowHollow: 'default', Eraser: 'crosshair', BlobBrush: 'crosshair', Paintbrush: 'crosshair', Knife: 'crosshair', Scissors: 'crosshair', MagicWand: 'crosshair', Lasso: 'crosshair', Shaper: 'crosshair', DirectAnchor: 'default', DirectAnchorSelected: 'default', ReshapeSegment: 'default', GroupSelection: 'default', SelectionCopy: 'copy', Move: 'move', Crosshair: 'crosshair', ResizeH: 'ew-resize', ResizeV: 'ns-resize', ResizeNwSe: 'nwse-resize', ResizeNeSw: 'nesw-resize' } as Record<string, string>)[name] ?? 'default'
   }
   cache.set(name, css)
   return css

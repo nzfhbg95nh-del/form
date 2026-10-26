@@ -123,6 +123,8 @@ pub struct VectorOut {
     pub switch_tool: Option<String>,
     pub status: Option<String>,
     pub busy: bool,
+    /// Le bout de la gomme ou de la tache (taille, angle, aplatissement) : un rond autour du curseur.
+    pub tip: Option<Value>,
 }
 
 fn view(zoom: f64) -> ViewInfo {
@@ -283,6 +285,9 @@ impl Vector {
         out.overlays = overlays;
         out.tool = s.tool_id().to_string();
         out.busy = s.tool_busy();
+        if matches!(out.tool.as_str(), "eraser" | "blobBrush") {
+            out.tip = Some(s.tool_options());
+        }
         for r in requests {
             match r {
                 UiRequest::SwitchTool(t) => out.switch_tool = Some(t),

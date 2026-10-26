@@ -79,6 +79,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const vc = useRef<VectorSession>(new VectorSession())
   const [vcOverlays, setVcOverlays] = useState<VcOverlay[]>([])
   const [vcCursor, setVcCursor] = useState('default')
+  // Le bout de la gomme / de la tache, et où est la souris sur la toile : le rond qui suit le curseur.
+  const [vcTip, setVcTip] = useState<VcOut['tip']>(null)
+  const [tipAt, setTipAt] = useState<[number, number] | null>(null)
   const vcItems = useRef<BoardItem[] | null>(null)
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
@@ -296,6 +299,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!out || !engine) return
     setVcOverlays(out.overlays)
     setVcCursor(out.cursor)
+    setVcTip(out.tip)
     const base = presentRef.current
     const next = applyVcPaths(kind === 'move' ? base : itemsRef.current, out.paths)
     const changed = next.length !== base.length || next.some((it, i) => it !== base[i])
@@ -315,6 +319,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   /** Envoie un geste au moteur (en le remettant d'abord à jour avec les tracés du moodboard si ceux-ci ont changé depuis, par exemple après Annuler). */
   const vcSend = (kind: VcKind, world: Pt, e: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }) => {
     if (!engine) return
+    setTipAt([world.x, world.y])
     const s = vc.current
     const zoomNow = viewRef.current.zoom
     if (kind === 'down' && (!s.loaded || vcItems.current !== presentRef.current)) {
@@ -330,12 +335,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (engine) {
       const present = presentRef.current
       if (s.loaded && vcItems.current === present) {
-        void s.setTool(engine, viewRef.current.zoom).then((out) => { setVcOverlays(out.overlays); setVcCursor(out.cursor) })
+        void s.setTool(engine, viewRef.current.zoom).then((out) => { setVcOverlays(out.overlays); setVcCursor(out.cursor); setVcTip(out.tip) })
       } else {
         vcItems.current = present
         void s.load(present.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint).then((out) => {
           setVcOverlays(out.overlays)
           setVcCursor(out.cursor)
+          setVcTip(out.tip)
         })
       }
     } else if (s.loaded) {
@@ -1001,7 +1007,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
         {items.map((it) => renderItem(it))}
-        {engine && <VectorOverlay overlays={vcOverlays} zoom={zoom} />}
+        {engine && <VectorOverlay overlays={vcOverlays} zoom={zoom} tip={vcTip} tipAt={tipAt} />}
         {frame && !marquee && !editing && !engine && (
           <div style={{ position: 'absolute', left: frame.x, top: frame.y, width: frame.w, height: frame.h, transform: frame.rot ? `rotate(${frame.rot}deg)` : undefined, transformOrigin: 'center', outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }}>
             {/* Zones de rotation : juste à l'extérieur des coins */}

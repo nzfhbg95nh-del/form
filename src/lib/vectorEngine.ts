@@ -44,6 +44,8 @@ export interface VcOut {
   switch_tool: string | null
   status: string | null
   busy: boolean
+  /** Le bout de la gomme ou de la tache : `size` (et pour la gomme `angle`, `roundness` en %). */
+  tip: { size?: number; angle?: number; roundness?: number } | null
 }
 
 export interface VcMods { shift: boolean; alt: boolean; ctrl: boolean; space: boolean }
