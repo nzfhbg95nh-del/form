@@ -8,11 +8,11 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
   const ref = useRef<HTMLDivElement>(null)
   const button = useRef<HTMLButtonElement>(null)
   const panel = useRef<HTMLDivElement>(null)
-  const inner = useRef<HTMLDivElement>(null)
   const played = useRef(false)
 
-  // Ouverture « liquide » (comme la pastille de la maquette) : le panneau naît du bouton, comme une goutte qui s'étire vers le bas,
-  // d'abord petit et tout rond, puis il s'ouvre avec un petit ressort pendant que son contenu apparaît.
+  // Ouverture « liquide » (comme la pastille de la maquette) : le panneau se détache du bouton comme une goutte. Une goutte s'étire vers le bas
+  // depuis le bord du bouton (un filtre « goo » fond les deux formes en une seule), le fil qui les relie s'amincit puis casse, et le panneau,
+  // devenu libre, prend sa place. Dessiné par-dessus pendant 0,7 s, puis le vrai panneau (avec son contour) apparaît.
   useLayoutEffect(() => {
     if (!open) { played.current = false; return }
     if (!pos || played.current || !panel.current || !button.current) return
@@ -21,18 +21,28 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
     const b = button.current.getBoundingClientRect()
     const p = panel.current.getBoundingClientRect()
     if (p.width === 0 || p.height === 0) return
-    const rightInset = Math.max(0, p.width - b.width)
-    const bottomInset = Math.max(0, p.height - b.height)
-    const drop = -(b.height + 4)
-    const timing: KeyframeAnimationOptions = { duration: 520, easing: 'cubic-bezier(0.34, 1.25, 0.64, 1)' }
-    panel.current.animate(
+    const D = 700
+    const spring = 'cubic-bezier(0.3, 1.2, 0.5, 1)'
+    const stage = document.createElement('div')
+    stage.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:29;filter:url(#form-goo)'
+    const blob = (css: string) => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;' + css; stage.appendChild(d); return d }
+    const tint = 'color-mix(in srgb, var(--fg) 9%, var(--bg))'
+    // A : l'ancre, sur le bord bas du bouton. B : la goutte qui devient le panneau.
+    const anchor = blob(`left:${b.left + b.width * 0.15}px;top:${b.bottom - 8}px;width:${b.width * 0.7}px;height:14px;border-radius:999px;background:${tint}`)
+    const drop = blob(`left:${p.left}px;top:${b.bottom - 6}px;width:${Math.min(b.width, p.width)}px;height:12px;border-radius:999px;background:${tint}`)
+    document.body.appendChild(stage)
+    anchor.animate([{ transform: 'scale(1)', offset: 0 }, { transform: 'scale(1)', offset: 0.45 }, { transform: 'scale(0.2, 0)', offset: 1 }], { duration: D, easing: 'ease-in', fill: 'forwards' })
+    drop.animate(
       [
-        { clipPath: `inset(0px ${rightInset}px ${bottomInset}px 0px round ${b.height / 2}px)`, transform: `translateY(${drop}px)` },
-        { clipPath: 'inset(0px 0px 0px 0px round 12px)', transform: 'translateY(0)' },
+        { top: `${b.bottom - 6}px`, width: `${Math.min(b.width, p.width)}px`, height: '12px', borderRadius: '999px' },
+        { top: `${p.top}px`, width: `${p.width}px`, height: `${p.height}px`, borderRadius: '14px' },
       ],
-      timing,
+      { duration: D, easing: spring, fill: 'forwards' },
     )
-    inner.current?.animate([{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration: 520, easing: 'ease-out' })
+    // Le vrai panneau n'apparaît qu'à la fin, pendant que le dessin liquide s'efface.
+    panel.current.animate([{ opacity: 0 }, { opacity: 0, offset: 0.78 }, { opacity: 1 }], { duration: D })
+    stage.animate([{ opacity: 1 }, { opacity: 1, offset: 0.78 }, { opacity: 0 }], { duration: D, fill: 'forwards' }).onfinish = () => stage.remove()
+    return () => stage.remove()
   }, [open, pos])
 
   // Le panneau est posé sous le bouton mais reste toujours dans la fenêtre : il ne se coupe plus sur le bord, même dans une petite fenêtre.
@@ -67,6 +77,15 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
 
   return (
     <div ref={ref} className="relative">
+      {/* Le filtre « goo » : il fond les formes proches en une seule (effet liquide). */}
+      <svg width="0" height="0" aria-hidden style={{ position: 'absolute' }}>
+        <defs>
+          <filter id="form-goo" colorInterpolationFilters="sRGB">
+            <feGaussianBlur in="SourceGraphic" stdDeviation="7" result="blur" />
+            <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 20 -9" />
+          </filter>
+        </defs>
+      </svg>
       <button
         ref={button}
         className="btn"
@@ -82,7 +101,7 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
           className="fixed z-30 overflow-auto rounded-xl border p-2 shadow-lg"
           style={{ left: pos.left, top: pos.top, width: Math.min(width, window.innerWidth - 16), maxHeight: pos.maxHeight, background: 'var(--bg)', borderColor: 'var(--border)' }}
         >
-          <div ref={inner}>{children}</div>
+          {children}
         </div>
       )}
     </div>
