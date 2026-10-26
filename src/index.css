@@ -158,3 +158,6 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 .ProseMirror-selectednode > .bn-block-content[data-content-type='moodboard'] > *::after,
 .bn-block-content[data-content-type='database'].ProseMirror-selectednode > *::after,
 .ProseMirror-selectednode > .bn-block-content[data-content-type='database'] > *::after { display: none; }
+
+/* Le cadre de focus clavier ne s'affiche pas autour d'un bloc de l'éditeur (moodboard, base…) quand on clique dedans : seuls les vrais boutons et champs gardent le leur. */
+.bn-block-outer [tabindex]:not(button):not(input):not(textarea):not(select):focus-visible, .bn-block-outer:focus-visible, .bn-block:focus-visible, .bn-block-content:focus-visible { outline: none; }
