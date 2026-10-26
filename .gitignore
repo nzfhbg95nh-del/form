@@ -9,3 +9,6 @@ public/emoji/
 
 # Copie de DirectML.dll faite par build.rs
 src-tauri/DirectML.dll
+
+# gallery-dl (programme de téléchargement) : téléchargé et vérifié par la fabrication de l'installateur (voir .github/workflows/release.yml)
+src-tauri/resources/gallery-dl.exe

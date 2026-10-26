@@ -34,6 +34,15 @@ jobs:
 
       - run: npm test
 
+      # gallery-dl : le programme libre qui télécharge les enregistrements Instagram et Pinterest (version officielle fixée, empreinte vérifiée).
+      - name: Télécharger gallery-dl
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/gdl-org/builds/releases/download/2026.10.26/gallery-dl_windows.exe" -OutFile src-tauri/resources/gallery-dl.exe
+          $hash = (Get-FileHash src-tauri/resources/gallery-dl.exe -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne '73ab3f3d09a9b0e65f73d843fae75cdaf7928d069a219ae360b636e0803119d0') { throw "gallery-dl : empreinte inattendue ($hash)" }
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

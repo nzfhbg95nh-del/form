@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { invoke } from '@tauri-apps/api/core'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
@@ -8,6 +7,7 @@ import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { DuplicatesView } from './DuplicatesView.tsx'
+import { SaverSection } from './SaverSection.tsx'
 import { TrashView } from './TrashView.tsx'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -156,32 +156,6 @@ function TrashSection({ onOpen }: { onOpen: () => void }) {
 }
 
 /** Mise à jour automatique au démarrage de Form (activée au départ). */
-/** Social Saver : l'appli qui télécharge les enregistrements Instagram et Pinterest ; on l'ouvre d'ici (le Bureau de Victor). */
-function SocialSaverSection() {
-  const [error, setError] = useState<string | null>(null)
-  const openIt = async () => {
-    setError(null)
-    try {
-      await invoke('social_saver_open')
-    } catch (e) {
-      setError(String(e))
-    }
-  }
-  return (
-    <div className="py-4">
-      <h2 className="text-base font-semibold">Social Saver</h2>
-      <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Social Saver télécharge tes enregistrements Instagram et Pinterest dans ton dossier d'images. Ouvre-le d'ici, lance un téléchargement, puis reviens et clique sur
-        « Mettre à jour la bibliothèque » : les nouvelles images arrivent dans « Tout ».
-      </p>
-      <div className="mt-4">
-        <button className="btn" onClick={() => void openIt()}>Ouvrir Social Saver</button>
-      </div>
-      {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
-    </div>
-  )
-}
-
 function AutoUpdate() {
   const [on, setOn] = useState<boolean | null>(null)
   useEffect(() => {
@@ -288,7 +262,7 @@ export function LibrarySettings() {
       </section>
       <TrashSection onOpen={() => setTrashOpen(true)} />
       <section className="mt-10 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-        <SocialSaverSection />
+        <SaverSection />
       </section>
     </div>
   )

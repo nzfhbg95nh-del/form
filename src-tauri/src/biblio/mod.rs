@@ -6,7 +6,7 @@ pub mod clip_tokenizer;
 pub mod colors;
 pub mod dupes;
 pub mod ocr;
+pub mod saver;
 pub mod scan;
-pub mod social;
 pub mod thumbs;
 pub mod trash;
