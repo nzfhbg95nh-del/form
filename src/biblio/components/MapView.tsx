@@ -641,7 +641,7 @@ export function MapView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-3 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-3 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         <h1 className="text-base font-semibold">Carte</h1>
         <span className="lib-count">
           {status === 'ready' && pts ? `${pts.ids.length.toLocaleString('fr-FR')} images${missing > 0 ? ` · ${missing.toLocaleString('fr-FR')} pas encore analysées par l'IA` : ''}` : ''}

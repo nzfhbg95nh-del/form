@@ -1,3 +1,4 @@
+import { useScrollbarWidth } from '@/biblio/lib/useScrollbarWidth.ts'
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '@/components/States'
 import { Images, MoreHorizontal, Plus, X } from 'lucide-react'
@@ -131,6 +132,7 @@ function CardMenu({ card }: { card: BoardCard }) {
  * Ce sont les mêmes pages : un moodboard créé ici est aussi dans Form, et inversement. Un clic ouvre le moodboard.
  */
 export function MoodboardsView() {
+  const [scrollRef, sbw] = useScrollbarWidth<HTMLDivElement>()
   const objects = useApp((s) => s.objects)
   const select = useApp((s) => s.select)
   const [naming, setNaming] = useState(false)
@@ -166,7 +168,7 @@ export function MoodboardsView() {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-4 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)', paddingRight: 24 + sbw }}>
         <h1 className="text-base font-semibold">Moodboards</h1>
         <span className="lib-count">{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
         <div className="ml-auto">
@@ -177,7 +179,7 @@ export function MoodboardsView() {
           )}
         </div>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto p-6">
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-6">
         {boards.length === 0 ? (
           <EmptyState icon={<Images size={24} />} title="Aucun moodboard pour le moment" hint="Pour y mettre des images : clic droit sur une image de la bibliothèque, puis « Ajouter à un moodboard ». Tu peux aussi en poser un dans une page avec « /moodboard »." action={{ label: 'Nouveau moodboard', onClick: () => setNaming(true) }} />
         ) : (
