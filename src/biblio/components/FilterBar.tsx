@@ -1,4 +1,4 @@
-import { Search, Shuffle, X } from 'lucide-react'
+import { Search, X } from 'lucide-react'
 import { PALETTE } from '@/biblio/lib/colors.ts'
 import { ColorWheel } from './ColorWheel.tsx'
 import { activeCount, DATE_PRESETS, datePreset, type Filters } from '@/biblio/lib/filters.ts'
@@ -17,9 +17,6 @@ const KINDS: { id: BlockKind; label: string }[] = [
   { id: 'carousel', label: 'Carrousel' },
 ]
 const nf = new Intl.NumberFormat('fr-FR')
-
-/** Une graine différente à chaque appel : chaque mélange donne un autre ordre. */
-const newSeed = () => Math.floor(Math.random() * 2147483646) + 1
 
 const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] : list.filter((v) => v !== value))
 
@@ -123,14 +120,6 @@ export function FilterBar() {
 
 
 
-        <button
-          className="btn"
-          onClick={() => setFilters({ shuffle: newSeed() })}
-          style={filters.shuffle !== 0 ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : undefined}
-          title="Mélanger : un nouvel ordre à chaque clic"
-        >
-          <Shuffle size={15} /> Aléatoire
-        </button>
       </div>
 
       {count > 0 && (

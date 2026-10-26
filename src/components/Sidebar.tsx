@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
-} from 'lucide-react'
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home, RotateCw } from 'lucide-react'
 import { LibraryStatus } from '@/biblio/components/LibraryStatus'
 import { useGrid } from '@/biblio/store/grid'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
@@ -16,17 +15,19 @@ import { useApp, type View } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 
-function Item({ active, onClick, onNewTab, children }: { active?: boolean; onClick: () => void; onNewTab?: (x: number, y: number) => void; children: React.ReactNode }) {
+function Item({ active, onClick, onNewTab, reload, children }: { active?: boolean; onClick: () => void; onNewTab?: (x: number, y: number) => void; reload?: string; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
       onContextMenu={onNewTab ? (e) => { e.preventDefault(); onNewTab(e.clientX, e.clientY) } : undefined}
       className={cn(
-        'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
+        'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
         active && 'bg-[var(--bg-hover)] font-semibold shadow-[var(--shadow-soft)]',
       )}
     >
       {children}
+      {/* Sur la page déjà ouverte, une petite flèche apparaît au survol : un clic recharge la page (ex. nouvel ordre des images). */}
+      {reload && active && <RotateCw size={13} aria-label={reload} className="ml-auto shrink-0 opacity-0 transition-opacity group-hover:opacity-60" />}
     </button>
   )
 }
@@ -360,7 +361,7 @@ export function Sidebar() {
 
         <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
         <Collapse open={!collapsed.library}>
-            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }} onNewTab={newTabMenu('library', 'all')}>
+            <Item reload="Mélanger et recharger" active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }} onNewTab={newTabMenu('library', 'all')}>
               <LayoutGrid size={14} /> Tout
             </Item>
             <Item active={view === 'library' && (libPage === 'collections' || (libPage === 'all' && openedCollection))} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('collections'); show('library') }} onNewTab={newTabMenu('library', 'collections')}>
