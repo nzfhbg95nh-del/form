@@ -158,6 +158,7 @@ pub fn run() {
             backup::stage_restore,
             backup::restart_app,
             backup::prune_backups,
+            backup::default_backup_dir,
             gemini::gemini_generate,
             gemini::gemini_generate_video,
             gemini::gemini_models,

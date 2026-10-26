@@ -16,7 +16,12 @@ export function joinPath(dir: string, file: string): string {
 
 /** Sauvegarde quotidienne : au plus une fois par jour, seulement si un dossier est choisi. */
 export async function runDailyBackup(repo: Repo): Promise<string | null> {
-  const dir = await repo.getSetting('backup_dir')
+  let dir = await repo.getSetting('backup_dir')
+  if (!dir && isTauri()) {
+    // Aucun dossier choisi : on sauvegarde quand même, dans « Documents\Form sauvegardes » (modifiable dans les Réglages).
+    dir = await invoke<string>('default_backup_dir')
+    await repo.setSetting('backup_dir', dir)
+  }
   if (!dir) return null
   const today = todayISO()
   if ((await repo.getSetting('last_backup_date')) === today) return null

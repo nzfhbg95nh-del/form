@@ -689,3 +689,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic droit sur Accueil, Tableau de bord, Clients, Tarifs, Devis, Factures, Paiements, Tout, Collections, Moodboards ou Carte : « Ouvrir dans un nouvel onglet » (vrai onglet en haut, pas une page).
 - Clic droit sur un onglet : menu de la page (favori, épingler, renommer, dupliquer, déplacer, corbeille, fermer l'onglet) ; pour un écran : « Fermer l'onglet ».
 - Notes rapides des Recettes remontées en haut de la page.
+
+## 2026-10-26 — Sauvegarde automatique par défaut ; nettoyage de Klippr (après la v0.47.2, pas encore publié)
+- Constat : aucun dossier de sauvegarde n'était choisi, donc aucune sauvegarde automatique ne tournait. Désormais, sans dossier choisi, Form sauvegarde chaque jour dans « Documents\Form sauvegardes » (30 gardées, modifiable dans les Réglages). Nouvelle commande Rust `default_backup_dir`.
+- Vérifié avant nettoyage : la bibliothèque de Form est identique à celle de Klippr (10 020 blocs, 17 070 fichiers — 1 de moins = l'image supprimée définitivement —, 1 761 collections, 81 recettes dans les pages de Form, miniatures et modèles copiés).
+- Données de Klippr (base, 5 sauvegardes, miniatures, modèles, cache) et installateur .msi envoyés à la Corbeille Windows (récupérables). Dossiers regénérables du dépôt (node_modules, dist, target) effacés.

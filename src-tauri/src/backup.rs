@@ -88,6 +88,18 @@ pub fn restart_app(app: tauri::AppHandle) {
     app.restart();
 }
 
+/// Dossier de sauvegarde par défaut : « Documents\Form sauvegardes » (créé s'il n'existe pas).
+#[tauri::command]
+pub fn default_backup_dir(app: tauri::AppHandle) -> Result<String, String> {
+    let dir = app
+        .path()
+        .document_dir()
+        .map_err(|e| format!("Dossier Documents introuvable : {e}"))?
+        .join("Form sauvegardes");
+    fs::create_dir_all(&dir).map_err(|e| format!("Impossible de créer le dossier de sauvegarde : {e}"))?;
+    Ok(dir.to_string_lossy().into_owned())
+}
+
 /// Ne garde que les `keep` sauvegardes automatiques les plus récentes du dossier (`form-sauvegarde-*.db`).
 /// Seuls ces fichiers sont concernés : rien d'autre n'est jamais supprimé.
 #[tauri::command]
