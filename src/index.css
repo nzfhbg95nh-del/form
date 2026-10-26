@@ -83,3 +83,9 @@ html.floating #root {
 .btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
 .spin { animation: biblio-spin 1s linear infinite; }
 @keyframes biblio-spin { to { transform: rotate(360deg); } }
+
+/* Clavier : un cadre de couleur sur ce qui a le focus (Tab, flèches) ; la souris ne le déclenche pas. Les champs de saisie ont déjà leur propre contour. */
+button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible, [role="menuitem"]:focus-visible, [role="menuitemradio"]:focus-visible, [tabindex="0"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

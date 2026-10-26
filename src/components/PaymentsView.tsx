@@ -170,7 +170,7 @@ function RecipeBook() {
                   {
                     label: 'Supprimer le paiement', danger: true,
                     onClick: async () => {
-                      if (await askConfirm(`Supprimer ce paiement de ${formatEuros(r.payment.amount_cents)} ? L'opération sera inscrite au journal.`)) runRowAction(() => deletePayment(r.payment.id))
+                      if (await askConfirm(`Supprimer ce paiement de ${formatEuros(r.payment.amount_cents)} ? L'opération sera inscrite au journal.`)) runRowAction(() => deletePayment(r.payment.id), 'Paiement supprimé.')
                     },
                   },
                 ]}

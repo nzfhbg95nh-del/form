@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Pencil, Plus, Search } from 'lucide-react'
+import { EmptyState, LoadingState } from '@/components/States'
+import { FolderOpen, Pencil, Plus, Search } from 'lucide-react'
 import { groupCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
@@ -155,8 +156,8 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">
-        {!cardsLoaded ? null : none ? (
-          <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{searching ? 'Aucune collection ne correspond.' : 'Aucune collection : indexe d\'abord la bibliothèque dans « Réglages > Bibliothèque ».'}</p>
+        {!cardsLoaded ? <LoadingState label="Chargement des collections…" /> : none ? (
+          <EmptyState icon={<FolderOpen size={24} />} title={searching ? 'Aucune collection ne correspond' : 'Aucune collection pour le moment'} hint={searching ? undefined : 'Indexe d\'abord la bibliothèque dans Réglages > Bibliothèque.'} />
         ) : (
           <>
             <Section

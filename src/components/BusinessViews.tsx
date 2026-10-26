@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Plus } from 'lucide-react'
+import { EmptyState } from '@/components/States'
+import { Briefcase, Plus, Users } from 'lucide-react'
 import {
   centsToInput, clientAddressLines, clientDisplayName, formatEuros, newClient, newService, parseEuros, UNITS, validateClient,
 } from '@/lib/business'
@@ -175,7 +176,7 @@ export function ClientsView() {
                     label: 'Supprimer', danger: true,
                     onClick: async () => {
                       if (!(await askConfirm(`Supprimer le client « ${clientDisplayName(c)} » ?`))) return
-                      runRowAction(async () => { const problem = await deleteClient(c.id); if (problem) rowToast(problem) })
+                      runRowAction(async () => { const problem = await deleteClient(c.id); rowToast(problem ?? 'Client supprimé.') })
                     },
                   },
                 ]}
@@ -184,7 +185,9 @@ export function ClientsView() {
           ))}
         </tbody>
       </table>
-      {shown.length === 0 && <p className="py-4 text-sm text-[var(--fg-muted)]">{clients.length === 0 ? 'Aucun client pour le moment.' : 'Aucun client ne correspond.'}</p>}
+      {shown.length === 0 && (clients.length === 0
+        ? <EmptyState icon={<Users size={24} />} title="Aucun client pour le moment" hint="Ajoute tes clients pour les retrouver dans tes devis et tes factures." action={{ label: 'Nouveau client', onClick: () => setEditing({ kind: 'client', id: null }) }} />
+        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucun client ne correspond.</p>)}
       {edited && <ClientForm key={edited.id} initial={edited} isNew={!editing?.id} onClose={() => setEditing(null)} />}
     </div>
   )
@@ -279,7 +282,7 @@ export function ServicesView() {
                   {
                     label: 'Supprimer', danger: true,
                     onClick: async () => {
-                      if (await askConfirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) runRowAction(() => deleteService(s.id))
+                      if (await askConfirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) runRowAction(() => deleteService(s.id), 'Tarif supprimé.')
                     },
                   },
                 ]}
@@ -288,7 +291,9 @@ export function ServicesView() {
           ))}
         </tbody>
       </table>
-      {shown.length === 0 && <p className="py-4 text-sm text-[var(--fg-muted)]">{services.length === 0 ? 'Aucune prestation pour le moment.' : 'Aucune prestation ne correspond.'}</p>}
+      {shown.length === 0 && (services.length === 0
+        ? <EmptyState icon={<Briefcase size={24} />} title="Aucun tarif pour le moment" hint="Tes prestations et leurs prix, à reprendre en un clic dans tes devis." action={{ label: 'Nouveau tarif', onClick: () => setEditing({ kind: 'service', id: null }) }} />
+        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucun tarif ne correspond.</p>)}
       {edited && <ServiceForm key={edited.id} initial={edited} isNew={!editing?.id} onClose={() => setEditing(null)} />}
     </div>
   )

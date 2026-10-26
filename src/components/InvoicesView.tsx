@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { EmptyState } from '@/components/States'
 import { AssistantModal } from '@/components/AssistantModal'
-import { ArrowLeft, Plus } from 'lucide-react'
+import { ArrowLeft, Plus, Receipt } from 'lucide-react'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { vatMention } from '@/lib/company'
 import {
@@ -92,11 +93,11 @@ export function InvoicesView() {
     return [
       { label: 'Ouvrir', onClick: () => openInvoice(i.id) },
       ...(!draft && i.kind !== 'credit'
-        ? [{ label: 'Créer un avoir', onClick: async () => { if (await askConfirm('Créer un avoir qui annule cette facture ?')) runRowAction(() => createCredit(i.id)) } }]
+        ? [{ label: 'Créer un avoir', onClick: async () => { if (await askConfirm('Créer un avoir qui annule cette facture ?')) runRowAction(() => createCredit(i.id), 'Avoir créé : il annule cette facture.') } }]
         : []),
       {
         label: 'Supprimer', danger: true, disabled: !draft, hint: 'Une facture émise ne peut pas être supprimée : corrige-la par un avoir.',
-        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftInvoice(i.id)) },
+        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftInvoice(i.id), 'Brouillon supprimé.') },
       },
     ]
   }
@@ -150,7 +151,9 @@ export function InvoicesView() {
           })}
         </tbody>
       </table>
-      {shown.length === 0 && <p className="py-4 text-sm text-[var(--fg-muted)]">{invoices.length === 0 ? 'Aucune facture pour le moment.' : 'Aucune facture ne correspond.'}</p>}
+      {shown.length === 0 && (invoices.length === 0
+        ? <EmptyState icon={<Receipt size={24} />} title="Aucune facture pour le moment" hint="Une facture émise reçoit son numéro définitif : en cas d'erreur, on la corrige par un avoir." action={{ label: 'Nouvelle facture', onClick: () => void createStandardInvoice() }} />
+        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucune facture ne correspond.</p>)}
     </div>
   )
 }

@@ -18,8 +18,9 @@ export function rowToast(text: string) {
   window.setTimeout(() => useApp.setState({ toast: null }), 4000)
 }
 
-/** Lance une action de liste : si elle échoue, le message d'erreur s'affiche au lieu de ne rien dire. */
-export const runRowAction = (fn: () => Promise<unknown>) => void fn().catch((e) => rowToast(e instanceof Error ? e.message : String(e)))
+/** Lance une action de liste : si elle échoue, le message d'erreur s'affiche au lieu de ne rien dire ; si elle réussit, `done` (s'il est donné) le confirme. */
+export const runRowAction = (fn: () => Promise<unknown>, done?: string) =>
+  void fn().then(() => { if (done) rowToast(done) }).catch((e) => rowToast(e instanceof Error ? e.message : String(e)))
 
 /**
  * La colonne « ⋯ » à droite d'une ligne de tableau (devis, factures, clients…). Elle apparaît quand on survole la ligne (le `<tr>` porte la classe `group`)

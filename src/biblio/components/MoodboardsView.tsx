@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { EmptyState } from '@/components/States'
 import { Images, MoreHorizontal, Plus, X } from 'lucide-react'
 import { getDb } from '@/biblio/lib/db.ts'
 import { createBoard } from '@/biblio/lib/formBoards.ts'
@@ -178,7 +179,7 @@ export function MoodboardsView() {
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">
         {boards.length === 0 ? (
-          <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>Tu n'as pas encore de moodboard. Crée-en un ici, ou dans une page avec « /moodboard ». Pour y mettre des images, fais un clic droit sur une image de la bibliothèque puis « Ajouter à un moodboard ».</p>
+          <EmptyState icon={<Images size={24} />} title="Aucun moodboard pour le moment" hint="Pour y mettre des images : clic droit sur une image de la bibliothèque, puis « Ajouter à un moodboard ». Tu peux aussi en poser un dans une page avec « /moodboard »." action={{ label: 'Nouveau moodboard', onClick: () => setNaming(true) }} />
         ) : (
           <div className="grid gap-x-5 gap-y-7" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
             {boards.map((b) => (

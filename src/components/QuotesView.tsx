@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { EmptyState } from '@/components/States'
 import { AssistantModal } from '@/components/AssistantModal'
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react'
+import { ArrowLeft, ChevronDown, ChevronUp, FileSignature, Plus, Trash2 } from 'lucide-react'
 import { centsToInput, clientDisplayName, formatEuros, parseEuros, parseSignedEuros, UNITS } from '@/lib/business'
 import { vatMention } from '@/lib/company'
 import { DISPLAY_COLORS, DISPLAY_LABELS, displayStatus, invoiceTotalCents, KIND_LABELS } from '@/lib/invoices'
@@ -51,11 +52,11 @@ export function QuotesView() {
       { label: 'Dupliquer', onClick: () => runRowAction(() => duplicateQuote(q.id)) },
       ...statuses.map((s) => ({
         label: s === 'accepted' ? 'Marquer accepté' : s === 'refused' ? 'Marquer refusé' : 'Remettre « envoyé »',
-        onClick: () => runRowAction(() => setQuoteStatus(q.id, s)),
+        onClick: () => runRowAction(() => setQuoteStatus(q.id, s), s === 'accepted' ? 'Devis marqué accepté.' : s === 'refused' ? 'Devis marqué refusé.' : 'Devis remis en « envoyé ».'),
       })),
       {
         label: 'Supprimer', danger: true, disabled: !draft, hint: 'Un devis envoyé ne peut pas être supprimé.',
-        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftQuote(q.id)) },
+        onClick: async () => { if (await askConfirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftQuote(q.id), 'Brouillon supprimé.') },
       },
     ]
   }
@@ -100,7 +101,9 @@ export function QuotesView() {
           })}
         </tbody>
       </table>
-      {shown.length === 0 && <p className="py-4 text-sm text-[var(--fg-muted)]">{quotes.length === 0 ? 'Aucun devis pour le moment.' : 'Aucun devis avec ce statut.'}</p>}
+      {shown.length === 0 && (quotes.length === 0
+        ? <EmptyState icon={<FileSignature size={24} />} title="Aucun devis pour le moment" hint="Un devis envoyé reçoit son numéro définitif. Tu peux le dupliquer ou le transformer en facture ensuite." action={{ label: 'Nouveau devis', onClick: () => void createQuote() }} />
+        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucun devis avec ce statut.</p>)}
     </div>
   )
 }

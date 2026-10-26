@@ -1,5 +1,6 @@
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, Images, ListChecks, Maximize, Play } from 'lucide-react'
+import { EmptyState, LoadingState } from '@/components/States'
+import { ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Search } from 'lucide-react'
 import { formatDuration, layoutMasonry, visibleIndices, type Placed } from '@/biblio/lib/grid.ts'
 import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
@@ -171,14 +172,14 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
             <CollectionHero />
           </div>
         )}
-        {loaded && blocks.length === 0 ? (
-          <p className="p-8 text-sm" style={{ color: 'var(--fg-muted)' }}>La bibliothèque est vide. Va dans « Réglages &gt; Bibliothèque » pour l'indexer.</p>
+        {!loaded ? (
+          <LoadingState label="Ouverture de la bibliothèque…" />
+        ) : blocks.length === 0 ? (
+          <EmptyState icon={<LayoutGrid size={24} />} title="La bibliothèque est vide" hint="Va dans Réglages &gt; Bibliothèque pour l'indexer, ou télécharge tes enregistrements." />
         ) : loaded && shown.length === 0 && hasHero ? (
           <p className="px-8 py-4 text-sm" style={{ color: 'var(--fg-muted)' }}>Aucune image ici pour l'instant. Fais un clic droit sur une image : « Ajouter à… ».</p>
         ) : loaded && shown.length === 0 ? (
-          <div className="p-8 text-sm" style={{ color: 'var(--fg-muted)' }}>
-            Aucun bloc ne correspond. <button className="underline" onClick={clearFilters}>Tout effacer</button>
-          </div>
+          <EmptyState icon={<Search size={24} />} title="Aucune image ne correspond" hint="Essaie moins de filtres." action={{ label: 'Tout effacer', onClick: clearFilters }} />
         ) : (
           <div className="relative mx-4 my-4" style={{ height: layout.height }}>
             {visible.map((i) => {
