@@ -4,8 +4,6 @@ mod gemini;
 mod mail;
 mod secrets;
 
-use tauri::{Emitter, Manager};
-use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
 
 pub fn run() {
@@ -144,27 +142,9 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(
-            // Capture rapide : Ctrl + Alt + N, même quand Form n'est pas au premier plan.
-            tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|app, _shortcut, event| {
-                    if event.state() == ShortcutState::Pressed {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.unminimize();
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                        let _ = app.emit("quick-capture", ());
-                    }
-                })
-                .build(),
-        )
         .setup(|app| {
             // Une restauration de sauvegarde demandée avant la fermeture s'applique ici, avant l'ouverture de la base.
             backup::apply_pending_restore(app.handle());
-            // Si un autre programme utilise déjà ce raccourci, Form démarre quand même.
-            let shortcut = Shortcut::new(Some(Modifiers::CONTROL | Modifiers::ALT), Code::KeyN);
-            let _ = app.global_shortcut().register(shortcut);
             Ok(())
         })
         .plugin(

@@ -561,3 +561,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - La fabrication de la v0.47.0 a échoué : les modules Tauri côté interface (npm) et côté Rust n'étaient plus aux mêmes versions (`tauri build` refuse). Les modules npm `plugin-fs`, `plugin-sql`, `plugin-notification` et `plugin-updater` sont alignés sur les versions Rust (2.7.1, 2.6.0, 2.7.0, 2.14.0).
 - Trouvé avant la nouvelle fabrication, en lançant un vrai programme de production en local : « migration 7 was previously applied but has been modified ». Les migrations 7 à 21 avaient été enregistrées dans la base avec des fins de ligne LF, alors que Git sous Windows réécrit les fichiers en CRLF (l'empreinte change). Ajout de `.gitattributes` : `src-tauri/migrations/*_biblio_*.sql text eol=lf` (poste de Victor et GitHub). Les migrations 1 à 6 restent comme avant (CRLF).
 - La v0.47.1 contient exactement les nouveautés de la v0.47.0.
+
+## 2026-10-26 — Note rapide retirée (branche correctif/sans-note-rapide, pas encore publié)
+- À la demande de Victor, la fonction « Note rapide » disparaît : plus de ligne « Note rapide » dans la barre latérale, plus de fenêtre de saisie, plus de raccourci Ctrl+Alt+N (ni dans l'appli, ni global sous Windows), plus de page « Boîte de réception » créée automatiquement. Le plugin de raccourci global est retiré de la partie Windows.
+- Gardé : le modèle de page « Note rapide » (menu « Nouvelle page > modèles »), qui est un simple modèle. Les pages déjà créées (par exemple « Boîte de réception ») restent dans la base ; elles se retirent par la corbeille de Form.
+- Compilation, 471 tests (2 tests de l'ancienne capture retirés), vérification Rust.

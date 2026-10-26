@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
-  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, PenLine, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
+  Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, Mail, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home,
 } from 'lucide-react'
 import { LibraryStatus } from '@/biblio/components/LibraryStatus'
 import { useGrid } from '@/biblio/store/grid'
@@ -215,7 +215,7 @@ function ShortcutItem({ page }: { page: ObjectRow }) {
 
 export function Sidebar() {
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, setCapture, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, openMail, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
   // Bibliothèque : la page ouverte, et si un tableau est ouvert (il compte alors comme « Collections »).
   const libPage = useLibraryNav((s) => s.page)
@@ -250,9 +250,6 @@ export function Sidebar() {
       <Item onClick={() => setSearch(true)}>
         <Search size={14} /> Rechercher
         <span className="ml-auto text-xs text-[var(--fg-muted)]">Ctrl+K</span>
-      </Item>
-      <Item onClick={() => setCapture(true)}>
-        <PenLine size={14} /> Note rapide
       </Item>
       <Item active={view === 'page' && !!recipesDb && selectedId === recipesDb.id} onClick={() => void openRecipes()}>
         <ChefHat size={14} /> Recettes

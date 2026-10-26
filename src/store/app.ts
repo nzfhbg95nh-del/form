@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
-import { splitCapture } from '@/lib/capture'
 import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
@@ -111,11 +110,8 @@ interface AppState {
   expanded: Record<string, boolean>
   searchOpen: boolean
   searchNewTab: boolean
-  captureOpen: boolean
   toast: string | null
   setSearch(open: boolean, newTab?: boolean): void
-  setCapture(open: boolean): void
-  saveCapture(text: string): Promise<void>
   init(): Promise<void>
   select(id: string, opts?: { newTab?: boolean }): void
   activate(index: number): void
@@ -292,7 +288,6 @@ export const useApp = create<AppState>((set, get) => ({
   searchOpen: false,
   searchNewTab: false,
   assistantMode: null,
-  captureOpen: false,
   toast: null,
   floatingBoards: [],
   pinned: [],
@@ -484,32 +479,7 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   setSearch(open, newTab = false) {
-    set({ searchOpen: open, searchNewTab: open ? newTab : false, captureOpen: open ? false : get().captureOpen })
-  },
-  setCapture(open) {
-    set({ captureOpen: open, searchOpen: open ? false : get().searchOpen })
-  },
-
-  async saveCapture(text) {
-    const repo = get().repo
-    if (!repo || !text.trim()) return
-    // Les captures arrivent dans une page « Boîte de réception », créée au besoin.
-    const inboxId = await repo.getSetting('inbox_id')
-    let inbox = get().objects.find((o) => o.id === inboxId && !o.deleted_at)
-    if (!inbox) {
-      const page = await repo.createPage(null)
-      const patch = { title: 'Boîte de réception', icon: '📥' }
-      await repo.updateObject(page.id, patch)
-      await repo.setSetting('inbox_id', page.id)
-      inbox = { ...page, ...patch }
-      set((s) => ({ objects: [...s.objects, inbox!] }))
-    }
-    const { title, blocks } = splitCapture(text)
-    const note = await repo.createPage(inbox.id)
-    const patch = { title, content: blocks.length > 0 ? JSON.stringify(blocks) : null }
-    await repo.updateObject(note.id, patch)
-    set((s) => ({ objects: [...s.objects, { ...note, ...patch }], captureOpen: false, toast: 'Capture enregistrée dans « Boîte de réception ».' }))
-    window.setTimeout(() => set({ toast: null }), 3000)
+    set({ searchOpen: open, searchNewTab: open ? newTab : false })
   },
 
   show(view) {

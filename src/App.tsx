@@ -14,7 +14,6 @@ import { MailView } from '@/components/MailView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
 import { PeekPanel } from '@/components/PeekPanel'
-import { QuickCapture } from '@/components/QuickCapture'
 import { SearchPalette } from '@/components/SearchPalette'
 import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
@@ -28,7 +27,7 @@ import { useReminders } from '@/lib/useReminders'
 import { useApp } from '@/store/app'
 
 export default function App() {
-  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, captureOpen, toast, setSearch, setCapture, peekId, movingId, assistantMode, setAssistant, sidebarHidden } = useApp()
+  const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, toast, setSearch, peekId, movingId, assistantMode, setAssistant, sidebarHidden } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
 
   useReminders()
@@ -50,15 +49,12 @@ export default function App() {
     return () => window.clearTimeout(timer)
   }, [repo])
 
-  // Raccourcis dans l'app : Ctrl+K (recherche) et Ctrl+Alt+N (capture rapide).
+  // Raccourcis dans l'app : Ctrl+K (recherche), Ctrl+T (recherche dans un nouvel onglet), Ctrl+D (dupliquer).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && !e.altKey && e.key.toLowerCase() === 'k') {
         e.preventDefault()
         setSearch(!useApp.getState().searchOpen)
-      } else if (e.ctrlKey && e.altKey && e.key.toLowerCase() === 'n') {
-        e.preventDefault()
-        setCapture(true)
       } else if (e.ctrlKey && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 't') {
         e.preventDefault()
         setSearch(true, true)
@@ -121,7 +117,7 @@ export default function App() {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [setSearch, setCapture])
+  }, [setSearch])
 
   // Mises à jour : une vérification peu après le démarrage, puis toutes les 6 heures (Form ne télécharge rien sans ton clic).
   useEffect(() => {
@@ -161,23 +157,6 @@ export default function App() {
     }
   }, [])
 
-  // Raccourci global (même quand Form n'est pas au premier plan) : envoyé par la partie Windows.
-  useEffect(() => {
-    if (!isTauri()) return
-    let unlisten: (() => void) | undefined
-    let cancelled = false
-    void import('@tauri-apps/api/event').then(({ listen }) =>
-      listen('quick-capture', () => setCapture(true)).then((fn) => {
-        if (cancelled) fn()
-        else unlisten = fn
-      }),
-    )
-    return () => {
-      cancelled = true
-      unlisten?.()
-    }
-  }, [setCapture])
-
   if (error) return <div className="p-8 text-red-500">{error}</div>
   if (!repo) return <div className="p-8 text-[var(--fg-muted)]">Chargement…</div>
 
@@ -212,7 +191,6 @@ export default function App() {
       {movingId && <MovePicker key={movingId} id={movingId} />}
       {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}
-      {captureOpen && <QuickCapture />}
       {toast && (
         <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-md bg-[var(--fg)] px-4 py-2 text-sm text-[var(--bg)] shadow-lg">{toast}</div>
       )}
