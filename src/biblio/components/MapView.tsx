@@ -708,7 +708,7 @@ export function MapView() {
         )}
 
         {status === 'ready' && !focus && (
-          <div className="lib-hint pointer-events-none absolute left-3 top-3 max-w-sm rounded-xl px-3 py-2" style={{ background: 'var(--bg)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
+          <div className="pointer-events-none absolute left-3 top-3 max-w-sm rounded-lg px-3 py-2 text-xs" style={{ background: 'var(--bg)', color: 'var(--fg-muted)', border: '1px solid var(--border)' }}>
             Les images proches se ressemblent. Molette : zoomer · glisser : se déplacer · clic sur une image : voir ce qu'il y a autour.
           </div>
         )}
