@@ -3,7 +3,7 @@ import { invoke } from '@tauri-apps/api/core'
 import { loadBlocks, type GridBlock } from '@/biblio/lib/blocks.ts'
 import { loadCollectionBlocks, loadSubBlocks } from '@/biblio/lib/collections.ts'
 import { loadColorIndex, type ColorIndex } from '@/biblio/lib/colors.ts'
-import { EMPTY_FILTERS, filterBlocks, type Filters } from '@/biblio/lib/filters.ts'
+import { EMPTY_FILTERS, filterBlocks, withOpeningShuffle, type Filters } from '@/biblio/lib/filters.ts'
 import { getTextStatus, textVectors } from '@/biblio/lib/aiText.ts'
 import { getSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { isSearchable, searchPrompts } from '@/biblio/lib/searchText.ts'
@@ -24,12 +24,18 @@ function savedSize(): number {
   return 220
 }
 
+const newSeed = () => Math.floor(Math.random() * 2147483646) + 1
+
 interface GridState {
   /** Tous les blocs. */
   blocks: GridBlock[]
   /** Les blocs qui passent la recherche et les filtres : c'est ce que montrent la grille et la vue détail. */
   shown: GridBlock[]
   filters: Filters
+  /** Le tirage au sort de l'ouverture de la page « Tout » (refait à chaque ouverture). */
+  seed: number
+  /** Remet les images de la page « Tout » dans un nouvel ordre au hasard. */
+  reshuffle: () => void
   typeIndex: TypeIndex
   /** Couleurs dominantes de chaque bloc (vide tant qu'elles ne sont pas calculées). */
   colors: ColorIndex
@@ -84,13 +90,15 @@ export const useGrid = create<GridState>((set, get) => {
   /** Recalcule la liste affichée avec l'état actuel (blocs, filtres, tags, types, recherche par contenu). */
   const recompute = (patch: Partial<GridState> = {}) => {
     const s = { ...get(), ...patch }
-    set({ ...patch, shown: filterBlocks(s.blocks, s.filters, s.typeIndex, s.semantic, s.colors, s.collectionBlocks, s.subBlocks) })
+    set({ ...patch, shown: filterBlocks(s.blocks, withOpeningShuffle(s.filters, s.seed), s.typeIndex, s.semantic, s.colors, s.collectionBlocks, s.subBlocks) })
   }
 
   return {
     blocks: [],
     shown: [],
     filters: EMPTY_FILTERS,
+    seed: newSeed(),
+    reshuffle: () => recompute({ seed: newSeed() }),
     typeIndex: EMPTY_TYPE_INDEX,
     colors: new Map(),
     collectionBlocks: null,

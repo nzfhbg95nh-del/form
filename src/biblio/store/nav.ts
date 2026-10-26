@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 
 /** Les pages de la bibliothèque dans Form. */
-export type LibraryPageId = 'all' | 'collections' | 'map'
+export type LibraryPageId = 'all' | 'collections' | 'moodboards' | 'map'
 
 interface NavState {
   page: LibraryPageId

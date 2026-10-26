@@ -222,6 +222,7 @@ export function Sidebar() {
   const goLibrary = useLibraryNav((s) => s.go)
   const openedCollection = useGrid((s) => !!s.filters.collection)
   const setLibFilters = useGrid((s) => s.setFilters)
+  const reshuffleLibrary = useGrid((s) => s.reshuffle)
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
@@ -283,11 +284,14 @@ export function Sidebar() {
         <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
         {!collapsed.library && (
           <>
-            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('all'); show('library') }}>
+            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }}>
               <LayoutGrid size={14} /> Tout
             </Item>
             <Item active={view === 'library' && (libPage === 'collections' || (libPage === 'all' && openedCollection))} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('collections'); show('library') }}>
               <FolderOpen size={14} /> Collections
+            </Item>
+            <Item active={view === 'library' && libPage === 'moodboards'} onClick={() => { goLibrary('moodboards'); show('library') }}>
+              <Images size={14} /> Moodboards
             </Item>
             <Item active={view === 'library' && libPage === 'map'} onClick={() => { goLibrary('map'); show('library') }}>
               <MapIcon size={14} /> Carte

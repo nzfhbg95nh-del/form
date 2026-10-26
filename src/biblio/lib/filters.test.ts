@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GridBlock } from './blocks.ts'
-import { activeCount, datePreset, EMPTY_FILTERS, filterBlocks, shuffled, type Filters, type TypeLookup } from './filters.ts'
+import { activeCount, datePreset, EMPTY_FILTERS, filterBlocks, shuffled, withOpeningShuffle, type Filters, type TypeLookup } from './filters.ts'
 import { normalize, tagKey } from './text.ts'
 
 function block(over: Partial<GridBlock> & { id: string }): GridBlock {
@@ -176,5 +176,22 @@ describe('collection', () => {
   })
   it('sans collection ouverte, tout passe', () => {
     expect(run({}, null)).toHaveLength(blocks.length)
+  })
+})
+
+describe('withOpeningShuffle', () => {
+  it('applique le tirage de l\'ouverture sur la page « Tout »', () => {
+    expect(withOpeningShuffle(EMPTY_FILTERS, 7).shuffle).toBe(7)
+  })
+  it('ne touche pas à un « Aléatoire » choisi à la main', () => {
+    expect(withOpeningShuffle({ ...EMPTY_FILTERS, shuffle: 3 }, 7).shuffle).toBe(3)
+  })
+  it('garde l\'ordre d\'une recherche et celui d\'un tableau ouvert', () => {
+    expect(withOpeningShuffle({ ...EMPTY_FILTERS, query: 'chaise' }, 7).shuffle).toBe(0)
+    expect(withOpeningShuffle({ ...EMPTY_FILTERS, collection: { id: 'c1', parentId: null } as Filters['collection'] }, 7).shuffle).toBe(0)
+  })
+  it('les filtres affichés ne changent pas : le tirage de l\'ouverture n\'est pas un critère actif', () => {
+    withOpeningShuffle(EMPTY_FILTERS, 7)
+    expect(activeCount(EMPTY_FILTERS)).toBe(0)
   })
 })

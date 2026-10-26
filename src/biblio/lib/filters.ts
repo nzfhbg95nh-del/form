@@ -100,6 +100,14 @@ export function filterBlocks(
   return f.shuffle !== 0 ? shuffled(kept, f.shuffle) : kept
 }
 
+/**
+ * La page « Tout » est montrée dans un ordre différent à chaque ouverture : sans recherche, sans tableau ouvert et sans « Aléatoire » choisi à la main,
+ * on applique le tirage au sort de l'ouverture. Une recherche garde son ordre de pertinence, un tableau son ordre.
+ */
+export function withOpeningShuffle(f: Filters, seed: number): Filters {
+  return f.shuffle === 0 && !f.query.trim() && !f.collection ? { ...f, shuffle: seed } : f
+}
+
 /** Nombre de critères actifs (la recherche compte pour un). */
 export function activeCount(f: Filters): number {
   return (

@@ -85,24 +85,26 @@ export function normalizeRecipesSchema(schema: Schema): Schema {
   return { ...schema, columns }
 }
 
-export type RecipeSort = 'name' | 'rating' | 'prep' | 'difficulty'
+export type RecipeSort = 'name' | 'rating' | 'prep' | 'difficulty' | 'added'
 export const RECIPE_SORTS: { id: RecipeSort; label: string }[] = [
   { id: 'name', label: 'Nom' },
   { id: 'rating', label: 'Note' },
   { id: 'prep', label: 'Temps de préparation' },
   { id: 'difficulty', label: 'Difficulté' },
+  { id: 'added', label: "Date d'ajout" },
 ]
 
-/** Sens de départ quand on choisit un tri : la note se lit du meilleur au moins bon, le reste du plus petit au plus grand. */
-export const defaultSortDescending = (sort: RecipeSort) => sort === 'rating'
+/** Sens de départ quand on choisit un tri : la note et la date d'ajout se lisent du meilleur / du plus récent, le reste du plus petit au plus grand. */
+export const defaultSortDescending = (sort: RecipeSort) => sort === 'rating' || sort === 'added'
 
 /** Trie des recettes ; celles qui n'ont pas la valeur demandée passent à la fin. Le nom départage les égalités. */
-export function sortRecipes<T extends { title: string | null; properties: string | null }>(rows: T[], sort: RecipeSort, nameOf: (r: T) => string, descending = false): T[] {
+export function sortRecipes<T extends { title: string | null; properties: string | null; created_at?: string }>(rows: T[], sort: RecipeSort, nameOf: (r: T) => string, descending = false): T[] {
   const num = (r: T): number | null => {
     const v = parseValues(r.properties as string)
     if (sort === 'rating') { const m = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? '')); return m ? Number(m[1]) : null }
     if (sort === 'difficulty') { const m = /^d([1-3])$/.exec(String(v[RECIPE.difficulty] ?? '')); return m ? Number(m[1]) : null }
     if (sort === 'prep') { const n = Number(v[RECIPE.prep]); return v[RECIPE.prep] === undefined || v[RECIPE.prep] === '' || !Number.isFinite(n) ? null : n }
+    if (sort === 'added') { const t = Date.parse(r.created_at ?? ''); return Number.isFinite(t) ? t : null }
     return 0
   }
   return [...rows].sort((x, y) => {
@@ -185,6 +187,26 @@ export function groupByCategory<T extends { properties: string }>(rows: T[], cat
 
 const h = (text: string) => ({ type: 'heading', props: { level: 2 }, content: text })
 const p = (text = '') => ({ type: 'paragraph', content: text })
+
+const plain = (text: string) => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim()
+
+/**
+ * Les recettes à montrer dans la galerie de toutes les recettes : celles des catégories cochées (toutes si aucune n'est cochée,
+ * « Sans catégorie » pour celles dont la catégorie n'existe plus) dont le titre contient le texte cherché (sans tenir compte des accents ni des majuscules).
+ */
+export function filterRecipes<T extends { title: string | null; properties: string }>(
+  rows: T[], selected: string[], query: string, categories: RecipeCategory[], nameOf: (r: T) => string,
+): T[] {
+  const known = new Set(categories.map((c) => c.id))
+  const q = plain(query)
+  return rows.filter((r) => {
+    if (selected.length > 0) {
+      const v = String(parseValues(r.properties)[RECIPE.type] ?? '')
+      if (!selected.includes(known.has(v) ? v : NONE_ID)) return false
+    }
+    return q === '' || plain(nameOf(r)).includes(q)
+  })
+}
 
 /** Contenu d'une nouvelle recette vide : photo (à ajouter toi-même), nombre de personnes, ingrédients à cocher, étapes numérotées, notes. */
 export function emptyRecipeBlocks(people = 4): unknown[] {

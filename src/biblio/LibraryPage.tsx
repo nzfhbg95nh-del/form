@@ -3,6 +3,7 @@ import { AllGrid } from '@/biblio/components/AllGrid.tsx'
 import { CollectionsView } from '@/biblio/components/CollectionsView.tsx'
 import { Lightbox } from '@/biblio/components/Lightbox.tsx'
 import { MapView } from '@/biblio/components/MapView.tsx'
+import { MoodboardsView } from '@/biblio/components/MoodboardsView.tsx'
 import { openTarget } from '@/biblio/lib/collections.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
@@ -13,7 +14,7 @@ import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 
 /**
- * Les pages de la bibliothèque (Tout, Collections, Carte). Chacune se monte à sa première ouverture, puis reste en place :
+ * Les pages de la bibliothèque (Tout, Collections, Moodboards, Carte). Chacune se monte à sa première ouverture, puis reste en place :
  * on retrouve la position de défilement et l'endroit où on était sur la Carte.
  */
 export function LibraryPage({ active }: { active: boolean }) {
@@ -62,6 +63,7 @@ export function LibraryPage({ active }: { active: boolean }) {
           }}
         />
       ))}
+      {show('moodboards', <MoodboardsView />)}
       {show('map', <MapView />)}
     </div>
   )

@@ -1,15 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Search, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { PageEditor } from '@/components/PageEditor'
 import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
+  addCategory, filterRecipes, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
   setEntryEmoji, sortRecipes, defaultSortDescending, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
-import { parseKlipprFile } from '@/lib/klippr'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
@@ -17,7 +16,7 @@ import { useApp } from '@/store/app'
 const button = 'rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
-function RecipeCard({ row }: { row: ObjectRow }) {
+function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
   const select = useApp((s) => s.select)
   const v = parseValues(row.properties)
   const stars = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? ''))
@@ -34,7 +33,7 @@ function RecipeCard({ row }: { row: ObjectRow }) {
       : undefined
   return (
     <button onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
-      <div className="flex h-32 items-center justify-center bg-[var(--bg-side)]" style={style}>
+      <div className={'flex items-center justify-center bg-[var(--bg-side)] ' + (tall ? 'h-44' : 'h-32')} style={style}>
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
       <div className="p-2">
@@ -42,6 +41,104 @@ function RecipeCard({ row }: { row: ObjectRow }) {
         {info && <div className="mt-0.5 truncate text-xs text-[var(--fg-muted)]">{info}</div>}
       </div>
     </button>
+  )
+}
+
+/** Bouton « Trier » et son menu (le même dans la galerie d'une catégorie et dans la galerie de toutes les recettes). */
+function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortDesc: boolean; onChange: (by: RecipeSort, desc: boolean) => void }) {
+  const [open, setOpen] = useState(false)
+  const plainSort = sortBy === 'name' && !sortDesc
+  return (
+    <div className="relative flex items-center gap-2">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        title="Trier les recettes"
+        aria-label="Trier les recettes"
+        className={'flex items-center gap-1.5 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (plainSort ? 'text-[var(--fg-muted)] hover:text-[var(--fg)]' : 'text-[var(--accent)]')}
+      >
+        <ArrowUpDown size={14} />
+        {plainSort ? 'Trier' : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
+      </button>
+      {!plainSort && (
+        <button className="rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" title="Retirer le tri" aria-label="Retirer le tri" onClick={() => onChange('name', false)}>
+          <X size={14} />
+        </button>
+      )}
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
+            <div className="px-2 py-1 text-xs text-[var(--fg-muted)]">Trier par</div>
+            {RECIPE_SORTS.map((o) => (
+              <button
+                key={o.id}
+                role="menuitemradio"
+                aria-checked={sortBy === o.id}
+                onClick={() => onChange(o.id, defaultSortDescending(o.id))}
+                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]"
+              >
+                <span className="flex-1">{o.label}</span>
+                {sortBy === o.id && <Check size={14} />}
+              </button>
+            ))}
+            <div className="my-1 border-t border-[var(--border)]" />
+            <div className="flex gap-1 p-1">
+              {([false, true] as const).map((desc) => (
+                <button
+                  key={String(desc)}
+                  onClick={() => onChange(sortBy, desc)}
+                  className={'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortDesc === desc ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)]')}
+                >
+                  {desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {desc ? 'Descendant' : 'Ascendant'}
+                </button>
+              ))}
+            </div>
+            <div className="p-1">
+              <button className="w-full rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setOpen(false)}>Valider</button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Bouton « Catégorie » : une liste à cocher (avec le nombre de recettes) pour ne garder que certaines catégories. */
+function CategoryFilter({ entries, countOf, selected, onChange, onManage }: { entries: RecipeEntry[]; countOf: (e: RecipeEntry) => number; selected: string[]; onChange: (ids: string[]) => void; onManage: () => void }) {
+  const [open, setOpen] = useState(false)
+  const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((o) => !o)}
+        aria-label="Filtrer par catégorie"
+        className={'flex items-center gap-1.5 rounded border border-[var(--border)] px-3 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (selected.length > 0 ? 'text-[var(--accent)]' : '')}
+      >
+        Catégorie{selected.length > 0 ? ` (${selected.length})` : ''} <ChevronDown size={14} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div role="menu" className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
+            {entries.map((e) => (
+              <label key={e.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[var(--bg-hover)]">
+                <input type="checkbox" checked={selected.includes(e.id)} onChange={() => toggle(e.id)} />
+                <Icon value={e.emoji} size={16} />
+                <span className="min-w-0 flex-1 truncate">{e.label}</span>
+                <span className="text-xs text-[var(--fg-muted)]">{countOf(e)}</span>
+              </label>
+            ))}
+            {selected.length > 0 && (
+              <button className="mt-1 w-full rounded px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" onClick={() => onChange([])}>Tout afficher</button>
+            )}
+            <div className="my-1 border-t border-[var(--border)]" />
+            <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" onClick={() => { setOpen(false); onManage() }}>
+              <PenLine size={14} /> Gérer les catégories…
+            </button>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -129,7 +226,7 @@ function CategoryChooser({ categories, onPick, onCreate, onClose }: { categories
  * (photo + titre). Un clic sur une carte ouvre la recette. « Sans catégorie » se règle comme les autres lignes.
  */
 export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
-  const { objects, saveSchema, addRecipe, setAssistant, setCell, trash } = useApp()
+  const { objects, saveSchema, addRecipe, setCell, trash } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -138,7 +235,9 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [choosing, setChoosing] = useState(false)
   const [sortBy, setSortBy] = useState<RecipeSort>('name')
   const [sortDesc, setSortDesc] = useState(false)
-  const [sortOpen, setSortOpen] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [query, setQuery] = useState('')
+  const [managing, setManaging] = useState(false)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -155,24 +254,14 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const entries = useMemo(() => recipeEntries(schema).filter((e) => !e.isNone || none.length > 0), [schema, none.length])
   const entry = entries.find((e) => e.id === current)
   const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title), sortDesc)
+  const changeSort = (by: RecipeSort, desc: boolean) => { setSortBy(by); setSortDesc(desc) }
+  const gallery = useMemo(
+    () => sorted(filterRecipes(rows, selected, query, categories, (r) => displayTitle(r.title))),
+    [rows, selected, query, categories, sortBy, sortDesc], // eslint-disable-line react-hooks/exhaustive-deps
+  )
 
   const save = (next: Schema) => void saveSchema(db.id, next)
 
-  // ── Recettes exportées par Klippr ──
-  const klipprFile = useRef<HTMLInputElement>(null)
-  const importKlipprRecipes = useApp((s) => s.importKlipprRecipes)
-  const importFromKlippr = async (file: File | undefined, input: HTMLInputElement) => {
-    if (!file) return
-    input.value = ''
-    const say = (text: string) => {
-      useApp.setState({ toast: text })
-      window.setTimeout(() => useApp.setState({ toast: null }), 5000)
-    }
-    const parsed = parseKlipprFile(await file.text())
-    if ('error' in parsed) return say(parsed.error)
-    const { created, skipped } = await importKlipprRecipes(parsed.recipes)
-    say(created === 0 ? 'Ces recettes sont déjà dans Form.' : `${created} recette${created > 1 ? 's' : ''} ajoutée${created > 1 ? 's' : ''} depuis Klippr${skipped > 0 ? ` (${skipped} déjà présente${skipped > 1 ? 's' : ''})` : ''}.`)
-  }
   const create = (categoryId?: string) => void addRecipe(categoryId ? { [RECIPE.type]: categoryId } : undefined)
 
   /** Supprimer une ligne : une catégorie disparaît (ses recettes passent dans « Sans catégorie »), « Sans catégorie » met ses recettes à la corbeille. */
@@ -219,57 +308,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
             <Trash2 size={16} />
           </button>
         </div>
-        <div className="relative mb-3 flex items-center gap-2">
-          <button
-            onClick={() => setSortOpen((o) => !o)}
-            title="Trier les recettes"
-            aria-label="Trier les recettes"
-            className={'flex items-center gap-1.5 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortBy === 'name' && !sortDesc ? 'text-[var(--fg-muted)] hover:text-[var(--fg)]' : 'text-[var(--accent)]')}
-          >
-            <ArrowUpDown size={14} />
-            {sortBy === 'name' && !sortDesc ? 'Trier' : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
-          </button>
-          {sortBy !== 'name' || sortDesc ? (
-            <button className="rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" title="Retirer le tri" aria-label="Retirer le tri" onClick={() => { setSortBy('name'); setSortDesc(false) }}>
-              <X size={14} />
-            </button>
-          ) : null}
-          {sortOpen && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setSortOpen(false)} />
-              <div role="menu" className="absolute left-0 top-full z-50 mt-1 w-64 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
-                <div className="px-2 py-1 text-xs text-[var(--fg-muted)]">Trier par</div>
-                {RECIPE_SORTS.map((o) => (
-                  <button
-                    key={o.id}
-                    role="menuitemradio"
-                    aria-checked={sortBy === o.id}
-                    onClick={() => { setSortBy(o.id); setSortDesc(defaultSortDescending(o.id)) }}
-                    className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]"
-                  >
-                    <span className="flex-1">{o.label}</span>
-                    {sortBy === o.id && <Check size={14} />}
-                  </button>
-                ))}
-                <div className="my-1 border-t border-[var(--border)]" />
-                <div className="flex gap-1 p-1">
-                  {([false, true] as const).map((desc) => (
-                    <button
-                      key={String(desc)}
-                      onClick={() => setSortDesc(desc)}
-                      className={'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortDesc === desc ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)]')}
-                    >
-                      {desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {desc ? 'Descendant' : 'Ascendant'}
-                    </button>
-                  ))}
-                </div>
-                <div className="p-1">
-                  <button className="w-full rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setSortOpen(false)}>Valider</button>
-                </div>
-              </div>
-            </>
-          )}
-        </div>
+        <div className="mb-3"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
         <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
@@ -286,15 +325,25 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
 
   // ── Accueil des recettes : la liste des catégories ──
   return (
-    <div className="mx-auto max-w-3xl px-12 py-10">
+    <div className="mx-auto max-w-5xl px-12 py-10">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-4xl font-bold leading-[1.3]">Recettes</h1>
-        <input ref={klipprFile} type="file" accept=".json,application/json" className="hidden" aria-label="Fichier de recettes exporté par Klippr" onChange={(e) => void importFromKlippr(e.target.files?.[0], e.target)} />
-        <button className={button} onClick={() => klipprFile.current?.click()} title="Ajouter les recettes exportées par Klippr (celles déjà là ne sont pas touchées)">📥 Depuis Klippr</button>
-        <button className={button} onClick={() => setAssistant('recipe')} title="Écrire la recette à partir d'une vidéo YouTube ou d'un texte collé">✨ Depuis une vidéo ou un texte</button>
         <button className="rounded bg-[var(--accent)] px-3 py-1 text-sm text-white" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
+      {managing && (
+        <div className="fixed inset-0 z-[45] flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={() => setManaging(false)}>
+          <div
+            role="dialog"
+            aria-label="Gérer les catégories"
+            className="max-h-[75vh] w-96 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
+            onMouseDown={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.key === 'Escape' && setManaging(false)}
+          >
+            <div className="mb-2 flex items-center">
+              <h2 className="flex-1 text-sm font-semibold">Catégories</h2>
+              <button className={button} aria-label="Fermer" onClick={() => setManaging(false)}><X size={14} /></button>
+            </div>
       <nav aria-label="Catégories de recettes">
         {entries.map((e) => {
           const menuOpen = menu?.id === e.id
@@ -326,7 +375,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
                   />
                 </div>
               ) : (
-                <button className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => setCurrent(e.id)}>
+                <button className="flex min-w-0 flex-1 items-center gap-2.5 text-left" onClick={() => { setManaging(false); setCurrent(e.id) }}>
                   {emojiFor === e.id ? (
                     <span onClick={(ev) => ev.stopPropagation()}>
                       <IconPicker
@@ -376,6 +425,32 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-[var(--fg-muted)]"
         />
       </form>
+          </div>
+        </div>
+      )}
+
+      <section aria-label="Toutes les recettes">
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <h2 className="mr-2 text-lg font-semibold">Toutes les recettes</h2>
+          <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
+          <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
+          <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
+          <label className="ml-auto flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-1 text-sm">
+            <Search size={14} className="text-[var(--fg-muted)]" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Chercher une recette…"
+              aria-label="Chercher une recette"
+              className="w-44 bg-transparent outline-none placeholder:text-[var(--fg-muted)]"
+            />
+          </label>
+        </div>
+        <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+          {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
+        </div>
+        {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
+      </section>
 
       <QuickNotes db={db} />
 
