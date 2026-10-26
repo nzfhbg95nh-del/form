@@ -157,12 +157,12 @@ function LightboxContent() {
         {block.publishedAt && <div className="mt-2 text-sm">{formatDate(block.publishedAt)}</div>}
         {files.length > 1 && <div className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>Image {pos + 1} sur {files.length}</div>}
 
-        <div className="mt-5 flex flex-col gap-2">
-          <button className="btn" onClick={() => void openUrl(block.originUrl)}>
-            <ExternalLink size={15} /> {block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'}
+        <div className="mt-4 flex gap-2">
+          <button className="btn h-9 w-9 justify-center !p-0" onClick={() => void openUrl(block.originUrl)} title={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'} aria-label={block.source === 'instagram' ? 'Ouvrir le profil Instagram' : 'Ouvrir sur Pinterest'}>
+            <ExternalLink size={15} />
           </button>
-          <button className="btn" disabled={!full} onClick={() => full && void revealItemInDir(full)}>
-            <FolderOpen size={15} /> Ouvrir dans l'Explorateur
+          <button className="btn h-9 w-9 justify-center !p-0" disabled={!full} onClick={() => full && void revealItemInDir(full)} title="Ouvrir dans l'Explorateur" aria-label="Ouvrir dans l'Explorateur">
+            <FolderOpen size={15} />
           </button>
         </div>
 
