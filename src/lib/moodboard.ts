@@ -3,12 +3,11 @@
 
 export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape'
 
-/** Les formes qu'on peut ajouter : rectangle, rond, ligne et flèche (la ligne et la flèche vont d'un coin à l'autre du cadre ; « retourner » change la diagonale). */
+/** Les formes proposées dans le menu « Ajouter » : rectangle, rond et flèche (la flèche va d'un coin à l'autre du cadre ; « retourner » change la diagonale). Le type « line » n'est plus proposé mais reste lisible. */
 export type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
 export const SHAPES: { id: ShapeKind; label: string }[] = [
   { id: 'rect', label: 'Rectangle' },
   { id: 'ellipse', label: 'Rond' },
-  { id: 'line', label: 'Ligne' },
   { id: 'arrow', label: 'Flèche' },
 ]
 
