@@ -100,6 +100,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [tool, setTool] = useState<'select' | 'direct' | 'text' | 'hand' | 'shape' | 'pen'>('select')
   // Les réglages des prochaines formes (comme dans Illustrator, ils suivent le dernier réglage fait).
   const [shapeStyle, setShapeStyle] = useState<ShapeStyle>(DEFAULT_SHAPE_STYLE)
+  // La plume dessine comme Illustrator : un trait fin, sans remplissage (la couleur « auto » suit le fond : noir sur clair, blanc sur sombre).
+  const [penStyle, setPenStyle] = useState<ShapeStyle>({ ...DEFAULT_SHAPE_STYLE, shape: 'path', color: 'auto', fill: 'none', sw: 2 })
   const [draft, setDraft] = useState('')
   // Les traits d'alignement montrés pendant un déplacement (guides intelligents).
   const [guides, setGuides] = useState<Guide[]>([])
@@ -309,10 +311,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     setPenEdit(null)
     if (pts.length < 2) return
     const base = editId ? itemsRef.current.find((i) => i.id === editId) : undefined
-    const sh = base ? rebuildPathItem(base, pts, closed) : penToItem(pts, closed, shapeStyle)
+    const sh = base ? rebuildPathItem(base, pts, closed) : penToItem(pts, closed, { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color })
     commitItems(base ? itemsRef.current.map((i) => (i.id === sh.id ? sh : i)) : [...itemsRef.current, sh])
     setSelection(new Set([sh.id]))
-    if (!base) setTool('select')
   }
 
   /** Abandonne le tracé en cours (le tracé qu'on prolongeait reste tel qu'il était). */
@@ -412,7 +413,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
   /** Change le style des formes sélectionnées, et celui des prochaines formes. */
   const setShapeProps = (patch: Partial<ShapeStyle>) => {
-    setShapeStyle((prev) => ({ ...prev, ...patch }))
+    if (tool === 'pen') setPenStyle((prev) => ({ ...prev, ...patch }))
+    else setShapeStyle((prev) => ({ ...prev, ...patch }))
     if (selRef.current.size === 0) return
     commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'shape' ? restyleShape(it, patch) : it)))
   }
@@ -1329,7 +1331,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       })()}
 
       {showShapePanel && (() => {
-        const st = shapeSel.length > 0 ? shapeStyleOf(shapeSel[0]) : shapeStyle
+        const st = shapeSel.length > 0 ? shapeStyleOf(shapeSel[0]) : tool === 'pen' ? { ...penStyle, color: penStyle.color === 'auto' ? textColor : penStyle.color } : shapeStyle
         const field = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
         const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
         const row = 'flex items-center gap-2'
