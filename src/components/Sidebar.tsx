@@ -22,12 +22,21 @@ function Item({ active, onClick, onNewTab, children }: { active?: boolean; onCli
       onClick={onClick}
       onContextMenu={onNewTab ? (e) => { e.preventDefault(); onNewTab(e.clientX, e.clientY) } : undefined}
       className={cn(
-        'flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]',
-        active && 'bg-[var(--bg-hover)] font-medium',
+        'flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
+        active && 'bg-[var(--bg-hover)] font-semibold shadow-[var(--shadow-soft)]',
       )}
     >
       {children}
     </button>
+  )
+}
+
+/** Contenu qui se replie en glissant (la hauteur s'anime de pleine à zéro) au lieu de disparaître d'un coup. */
+function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
+  return (
+    <div className="grid transition-[grid-template-rows,opacity] duration-200 ease-[var(--ease-out-soft)]" style={{ gridTemplateRows: open ? '1fr' : '0fr', opacity: open ? 1 : 0 }} inert={!open}>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   )
 }
 
@@ -328,8 +337,7 @@ export function Sidebar() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         <CollapsibleLabel id="company" collapsed={!!collapsed.company} toggle={toggleSection}>Mon entreprise</CollapsibleLabel>
-        {!collapsed.company && (
-          <>
+        <Collapse open={!collapsed.company}>
         <Item active={view === 'dashboard'} onClick={() => show('dashboard')} onNewTab={newTabMenu('dashboard')}>
           <LayoutDashboard size={14} /> Tableau de bord
         </Item>
@@ -348,12 +356,10 @@ export function Sidebar() {
         <Item active={view === 'payments'} onClick={() => show('payments')} onNewTab={newTabMenu('payments')}>
           <Banknote size={14} /> Paiements
         </Item>
-          </>
-        )}
+          </Collapse>
 
         <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
-        {!collapsed.library && (
-          <>
+        <Collapse open={!collapsed.library}>
             <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }} onNewTab={newTabMenu('library', 'all')}>
               <LayoutGrid size={14} /> Tout
             </Item>
@@ -367,8 +373,7 @@ export function Sidebar() {
               <MapIcon size={14} /> Carte
             </Item>
             <LibraryStatus />
-          </>
-        )}
+          </Collapse>
 
         {favorites.length > 0 && (
           <>

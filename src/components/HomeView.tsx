@@ -36,7 +36,7 @@ function PageCard({ page }: { page: ObjectRow }) {
   return (
     <button
       onClick={() => select(page.id)}
-      className="flex h-28 w-40 shrink-0 flex-col justify-between rounded-lg border border-[var(--border)] p-3 text-left transition-colors hover:bg-[var(--bg-hover)]"
+      className="flex h-28 w-40 shrink-0 flex-col justify-between rounded-xl border border-[var(--border)] p-3 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]"
     >
       <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={28} />
       <div className="min-w-0">
@@ -266,9 +266,9 @@ function WidgetBody({ widget }: { widget: Widget }) {
     return (
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {cells.map((c) => (
-          <button key={c.label} onClick={() => show(c.view)} className="rounded-lg border border-[var(--border)] p-3 text-left hover:bg-[var(--bg-hover)]">
+          <button key={c.label} onClick={() => show(c.view)} className="rounded-xl border border-[var(--border)] p-4 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]">
             <div className="text-xs text-[var(--fg-muted)]">{c.label}</div>
-            <div className="text-xl font-semibold tabular-nums">{c.value}</div>
+            <div className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{c.value}</div>
             {c.hint && <div className="text-xs text-[var(--fg-muted)]">{c.hint}</div>}
           </button>
         ))}

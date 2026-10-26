@@ -1,6 +1,14 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* Style « Actuel amélioré » : mêmes couleurs, formes un peu plus douces, hiérarchie plus nette, mouvements courts. */
+@theme {
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --ease-out-soft: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
 :root {
   --bg: #ffffff;
   --bg-side: #f7f7f5;
@@ -89,4 +97,34 @@ html.floating #root {
 button:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible, [role="menuitem"]:focus-visible, [role="menuitemradio"]:focus-visible, [tabindex="0"]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
+}
+
+/* ── Style amélioré : mouvements et relief (inspirés des références du dossier UI) ── */
+:root {
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.05), 0 6px 16px -10px rgba(0, 0, 0, 0.18);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.06), 0 14px 28px -14px rgba(0, 0, 0, 0.28);
+}
+.dark {
+  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 16px -10px rgba(0, 0, 0, 0.6);
+  --shadow-lift: 0 2px 4px rgba(0, 0, 0, 0.5), 0 14px 28px -14px rgba(0, 0, 0, 0.7);
+}
+h1, h2 { letter-spacing: -0.02em; }
+button, a, [role="menuitem"], input, select, textarea {
+  transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.2s var(--ease-out-soft), transform 0.2s var(--ease-out-soft), opacity 0.15s;
+}
+/* Un appui se sent : le bouton s'enfonce très légèrement. */
+button:active:not(:disabled), .btn:active:not(:disabled) { transform: scale(0.97); }
+.btn { border-radius: 8px; }
+.btn-primary { box-shadow: 0 1px 2px rgba(35, 131, 226, 0.35); }
+/* Les cartes cliquables se soulèvent au survol (pages récentes, chiffres de l'accueil…). */
+button.rounded-lg.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+button.rounded-lg.border:not(:disabled):active { transform: translateY(0) scale(0.99); }
+/* Menus et fenêtres : ils s'ouvrent en douceur au lieu d'apparaître d'un coup. */
+[role="menu"], [role="dialog"], [data-popup] { animation: form-pop 0.16s var(--ease-out-soft) both; transform-origin: top left; box-shadow: var(--shadow-lift); }
+@keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
+/* Changement de page : un léger fondu. */
+main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) both; }
+@keyframes form-fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
