@@ -4,7 +4,6 @@ import { notify } from './notify'
 import { collectedForYear, thresholdState, vatState, yearMonthOf } from './dashboard'
 import { formatEuros } from './business'
 import { contributionPlan, upcomingDeadlines } from './contributions'
-import { configProblems, loadMailConfig, mailAvailable } from './mail'
 import { receivables, toChase } from './payments'
 import { findDueTasks, pickUnsent, reminderText, type Reminder, type SentToday } from './reminders'
 import type { Repo } from './types'
@@ -88,15 +87,6 @@ async function checkDeclaration(repo: Repo, today: string) {
   }
 }
 
-/** Relève automatique du courrier (si activée dans Réglages > Courrier). Lecture seule. */
-async function checkMail(repo: Repo) {
-  if (!mailAvailable()) return
-  const config = await loadMailConfig(repo)
-  if (!config.auto || configProblems(config).length > 0) return
-  const added = await useApp.getState().syncMail()
-  if (added > 0) await notify(added === 1 ? 'Nouveau courrier' : `${added} nouveaux courriers`, 'Ouvre « Courrier » pour le consulter.')
-}
-
 /** Vérifie les échéances au démarrage, toutes les 30 minutes et quand la fenêtre revient au premier plan. */
 export function useReminders() {
   const repo = useApp((s) => s.repo)
@@ -111,7 +101,7 @@ export function useReminders() {
       try {
         if ((await repo.getSetting('reminders_enabled')) === '0') return
         const today = todayISO()
-        for (const job of [checkTasks, checkInvoices, checkThresholds, checkDeclaration, (r: Repo) => checkMail(r)]) {
+        for (const job of [checkTasks, checkInvoices, checkThresholds, checkDeclaration]) {
           try {
             await job(repo, today)
           } catch {

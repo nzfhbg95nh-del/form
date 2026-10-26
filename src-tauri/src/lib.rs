@@ -1,7 +1,6 @@
 mod backup;
 mod biblio;
 mod gemini;
-mod mail;
 mod secrets;
 
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
@@ -163,8 +162,6 @@ pub fn run() {
             gemini::gemini_generate_video,
             gemini::gemini_models,
             gemini::gemini_image,
-            mail::mail_fetch,
-            mail::mail_test,
             biblio::scan::scan_folder,
             biblio::thumbs::start_thumbs,
             biblio::thumbs::thumbs_dir,

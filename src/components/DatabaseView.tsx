@@ -325,25 +325,6 @@ function AddView({ schema, onChange, onCreated }: { schema: Schema; onChange: (s
   )
 }
 
-function SyncMailButton() {
-  const syncMail = useApp((s) => s.syncMail)
-  const [busy, setBusy] = useState(false)
-  const run = async () => {
-    setBusy(true)
-    let text: string
-    try {
-      const n = await syncMail()
-      text = n === 0 ? 'Aucun nouveau courrier.' : `${n} nouveau${n > 1 ? 'x' : ''} courrier${n > 1 ? 's' : ''} !`
-    } catch (e) {
-      text = e instanceof Error ? e.message : String(e)
-    }
-    setBusy(false)
-    useApp.setState({ toast: text })
-    window.setTimeout(() => useApp.setState({ toast: null }), 4000)
-  }
-  return <button className={btn} disabled={busy} onClick={() => void run()}>📬 {busy ? 'Relève en cours…' : 'Relever le courrier'}</button>
-}
-
 /** La base « Recettes » a sa propre page (catégories puis galerie) ; les autres bases ont leurs vues habituelles. */
 export function DatabaseView({ db, embedded = false }: { db: ObjectRow; embedded?: boolean }) {
   const schema = parseSchema(db.properties)
@@ -446,7 +427,6 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
           {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="flex-1" />
-        {schema.kind === 'mail' && <SyncMailButton />}
         <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
 

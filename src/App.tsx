@@ -10,7 +10,6 @@ import { DashboardView } from '@/components/DashboardView'
 import { HomeView } from '@/components/HomeView'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
-import { MailView } from '@/components/MailView'
 import { MovePicker } from '@/components/MovePicker'
 import { PageView } from '@/components/PageView'
 import { PeekPanel } from '@/components/PeekPanel'
@@ -181,7 +180,6 @@ export default function App() {
             {view === 'invoices' && <InvoicesView />}
             {view === 'payments' && <PaymentsView />}
             {view === 'dashboard' && <DashboardView />}
-            {view === 'mail' && <MailView />}
             {libraryOpened && <div className="h-full" hidden={view !== 'library'}><LibraryPage active={view === 'library'} /></div>}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}

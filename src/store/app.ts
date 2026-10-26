@@ -16,14 +16,13 @@ import {
   blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
   type Draft,
 } from '@/lib/invoices'
-import { configProblems, fetchMail, loadMailConfig, mailSchema, newMailItems, rowFromMail } from '@/lib/mail'
 import { klipprBlocks, klipprValues, newKlipprRecipes, type KlipprRecipe } from '@/lib/klippr'
 import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipeBodyBlocks, recipeCategories, recipesSchema, recipeValues } from '@/lib/recipes'
 import type { AiMode, AiTask, Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'mail' | 'library'
+export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -153,8 +152,6 @@ interface AppState {
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
   addRecipe(values?: Record<string, unknown>): Promise<void>
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
-  syncMail(): Promise<number>
-  openMail(): Promise<void>
   /** Recharge toutes les pages depuis la base (après un import). */
   reloadObjects(): Promise<void>
   /** Ajoute des tâches à une base de tâches (en crée une si dbId est null). */
@@ -203,16 +200,6 @@ async function createDraft(set: SetFn, get: () => AppState, draft: Draft) {
     openInvoiceId: draft.invoice.id,
     view: 'invoices',
   }))
-}
-
-/** Crée la base « Courrier » si elle n'existe pas encore. */
-async function ensureMailDb(repo: Repo, set: SetFn): Promise<ObjectRow> {
-  const db = await repo.createPage(null, 'database', JSON.stringify(mailSchema()))
-  const patch = { title: 'Courrier', icon: '📬' }
-  await repo.updateObject(db.id, patch)
-  const full = { ...db, ...patch }
-  set((s) => ({ objects: [...s.objects, full] }))
-  return full
 }
 
 /** La base « Recettes » (créée au premier usage). */
@@ -750,37 +737,9 @@ export const useApp = create<AppState>((set, get) => ({
     set({ assistantMode: mode })
   },
 
-  async syncMail() {
-    const repo = get().repo
-    if (!repo) return 0
-    const config = await loadMailConfig(repo)
-    const problems = configProblems(config)
-    if (problems.length > 0) throw new Error(problems.join(' '))
-    const items = await fetchMail(config, true, 100)
-    const { objects } = get()
-    const db = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'mail')
-    // Un message déjà classé (même mis à la corbeille) ne revient jamais.
-    const known = new Set(objects.filter((o) => o.type === 'row' && o.parent_id === db?.id).map((o) => String(parseValues(o.properties).mid ?? '')))
-    const fresh = newMailItems(items, known)
-    if (fresh.length === 0) return 0
-    const target = db ?? (await ensureMailDb(repo, set))
-    for (const m of fresh) {
-      const row = rowFromMail(m)
-      const created = await repo.createPage(target.id, 'row', JSON.stringify(row.values))
-      await repo.updateObject(created.id, { title: row.title })
-      set((s) => ({ objects: [...s.objects, { ...created, title: row.title }] }))
-    }
-    return fresh.length
-  },
-
   async reloadObjects() {
     const repo = get().repo
     if (repo) set({ objects: await repo.listObjects() })
-  },
-
-  async openMail() {
-    // Le courrier a sa propre vue, comme Clients ou Prestations : ce n'est pas une page.
-    set({ view: 'mail' })
   },
 
   async openRecipes() {

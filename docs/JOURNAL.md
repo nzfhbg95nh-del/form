@@ -566,3 +566,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - À la demande de Victor, la fonction « Note rapide » disparaît : plus de ligne « Note rapide » dans la barre latérale, plus de fenêtre de saisie, plus de raccourci Ctrl+Alt+N (ni dans l'appli, ni global sous Windows), plus de page « Boîte de réception » créée automatiquement. Le plugin de raccourci global est retiré de la partie Windows.
 - Gardé : le modèle de page « Note rapide » (menu « Nouvelle page > modèles »), qui est un simple modèle. Les pages déjà créées (par exemple « Boîte de réception ») restent dans la base ; elles se retirent par la corbeille de Form.
 - Compilation, 471 tests (2 tests de l'ancienne capture retirés), vérification Rust.
+
+## 2026-10-26 — Courrier retiré (pas encore publié)
+- À la demande de Victor, la fonction « Courrier » disparaît : plus de ligne « Courrier » dans la barre latérale, plus d'onglet « Courrier » dans les Réglages, plus de bouton « Relever le courrier », plus de relève automatique ni de notification de nouveau courrier. Côté Windows, la lecture de la messagerie (IMAP) et ses trois modules sont retirés.
+- Gardé : les bases « Courrier » déjà créées restent dans les données (cachées de l'accueil comme avant) ; les anciens réglages de messagerie restent inertes dans la base. Le bouton « Ouvrir dans ma messagerie » des relances de paiement n'a rien à voir et reste.
+- Compilation, 463 tests, vérification Rust : OK.
