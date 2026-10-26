@@ -122,9 +122,9 @@ export function SearchPalette() {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[6vh]" onMouseDown={() => setSearch(false)}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={() => setSearch(false)}>
       <div
-        className="flex h-[78vh] w-[1000px] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
+        className="flex h-[78vh] max-h-full w-[1000px] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
         <div className="flex items-center gap-3 border-b border-[var(--border)] px-5 py-4">
