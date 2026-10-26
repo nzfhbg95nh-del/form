@@ -191,8 +191,6 @@ function LightboxContent() {
 
         <BlockMeta blockId={block.id} />
 
-        {file && <div className="mt-5 text-xs break-all" style={{ color: 'var(--fg-muted)' }}>{file.rel}</div>}
-        <div className="mt-6 text-xs" style={{ color: 'var(--fg-muted)' }}>← → ou glisser : images du carrousel · ↑ ↓ : bloc précédent ou suivant · Échap : fermer</div>
       </aside>
       </div>
 
@@ -384,7 +382,7 @@ function BlockMoodboards({ block }: { block: GridBlock }) {
       {naming ? (
         <NameInput className="mt-2" placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void createBoard(name).then((id) => add(id, name.trim() || 'Moodboard')).then(() => setNaming(false))} />
       ) : (
-        <button className="btn mt-2 w-full" disabled={busy} onClick={() => setNaming(true)}>+ Nouveau moodboard avec cette image</button>
+        null
       )}
     </div>
   )
