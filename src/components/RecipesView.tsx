@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Search, Smile, Trash2, X } from 'lucide-react'
+import { SearchInput } from '@/components/SearchInput'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
@@ -472,16 +473,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
           <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
-          <label className="ml-auto flex items-center gap-1.5 rounded border border-[var(--border)] px-2 py-1 text-sm">
-            <Search size={14} className="text-[var(--fg-muted)]" />
-            <input
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Chercher une recette…"
-              aria-label="Chercher une recette"
-              className="w-44 bg-transparent outline-none placeholder:text-[var(--fg-muted)]"
-            />
-          </label>
+          <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
         <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}

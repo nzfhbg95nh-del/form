@@ -20,8 +20,8 @@ import type { Quote, QuoteLine, QuoteStatus } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 function StatusChip({ status }: { status: QuoteStatus }) {
   return <span className="rounded px-2 py-0.5 text-xs" style={{ background: STATUS_COLORS[status], color: '#37352f' }}>{STATUS_LABELS[status]}</span>
@@ -63,8 +63,8 @@ export function QuotesView() {
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Devis</h1>
-      <div className="mb-3 flex items-center gap-3">
-        <select className={field + ' max-w-[200px]'} value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <select className={field + ' w-48 shrink-0'} value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
           <option value="all">Tous les statuts</option>
           {(Object.keys(STATUS_LABELS) as QuoteStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
         </select>

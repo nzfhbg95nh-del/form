@@ -92,7 +92,7 @@ export function GeneralSettings() {
       await restoreBackup(chosen)
     })
 
-  const btn = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+  const btn = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">

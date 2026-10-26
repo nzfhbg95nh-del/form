@@ -40,8 +40,8 @@ function CollapsibleLabel({ id, collapsed, toggle, children }: { id: string; col
       className="group flex w-full items-center gap-1 px-2 pb-1 pt-4 text-left text-xs font-semibold text-[var(--fg-muted)] hover:text-[var(--fg)]"
     >
       {children}
-      {/* La flèche suit le texte et n'apparaît qu'au survol. */}
-      <ChevronRight size={11} className={'shrink-0 opacity-0 transition-all group-hover:opacity-100 ' + (collapsed ? '' : 'rotate-90')} />
+      {/* La flèche suit le texte : toujours visible quand la section est repliée (on voit qu'il y a quelque chose à ouvrir), au survol sinon. */}
+      <ChevronRight size={11} className={'shrink-0 transition-all ' + (collapsed ? 'opacity-100' : 'rotate-90 opacity-0 group-hover:opacity-100')} />
     </button>
   )
 }

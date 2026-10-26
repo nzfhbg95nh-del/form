@@ -14,8 +14,8 @@ import { extractText } from '@/lib/search'
 import { useApp } from '@/store/app'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 const HINTS: Record<AiMode, string> = {
   recipe: 'Colle une recette (page web, message, notes…). Gemini en fait une page propre : portions, ingrédients, étapes.',

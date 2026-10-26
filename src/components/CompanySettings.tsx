@@ -11,8 +11,8 @@ import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
 
 /** Champ de montant en euros, enregistré en centimes. */
 function MoneyInput({ value, onChange }: { value: number; onChange: (cents: number) => void }) {

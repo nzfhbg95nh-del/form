@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { SearchInput } from '@/components/SearchInput'
 import { EmptyState } from '@/components/States'
 import { Briefcase, Plus, Users } from 'lucide-react'
 import {
@@ -12,8 +13,8 @@ import type { Client, Service } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)]'
 
 function Row({ label, hint, children, className }: { label: string; hint?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -53,7 +54,7 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
     <>
       <h1 className="mb-4 text-3xl font-bold">{title}</h1>
       <div className="mb-3 flex items-center gap-3">
-        <input className={field + ' max-w-xs'} placeholder="Rechercher…" value={query} onChange={(e) => setQuery(e.target.value)} />
+        <SearchInput className="w-full max-w-xs" placeholder="Rechercher…" value={query} onChange={setQuery} />
         {setShowArchived && (
           <label className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)]">
             <input type="checkbox" checked={!!showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Afficher les archivés

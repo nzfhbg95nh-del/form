@@ -22,8 +22,8 @@ import type { AuditEntry, Invoice, InvoiceKind, InvoiceLine } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'w-full rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)] disabled:opacity-70'
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 function Chip({ label, color }: { label: string; color: string }) {
   return <span className="rounded px-2 py-0.5 text-xs" style={{ background: color, color: '#37352f' }}>{label}</span>
@@ -104,12 +104,12 @@ export function InvoicesView() {
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Factures</h1>
-      <div className="mb-3 flex items-center gap-3">
-        <select className={field + ' max-w-[190px]'} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
+      <div className="mb-3 flex flex-wrap items-center gap-3">
+        <select className={field + ' w-44 shrink-0'} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
           <option value="all">Tous les types</option>
           {(Object.keys(KIND_LABELS) as InvoiceKind[]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
         </select>
-        <select className={field + ' max-w-[190px]'} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
+        <select className={field + ' w-44 shrink-0'} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
           <option value="all">Tous les statuts</option>
           {(Object.keys(DISPLAY_LABELS) as DisplayStatus[]).map((s) => <option key={s} value={s}>{DISPLAY_LABELS[s]}</option>)}
         </select>

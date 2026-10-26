@@ -68,6 +68,7 @@ html.floating #root {
 .btn {
   display: inline-flex;
   align-items: center;
+  white-space: nowrap;
   gap: 6px;
   padding: 7px 12px;
   border: 1px solid var(--border);

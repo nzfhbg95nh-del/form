@@ -42,6 +42,26 @@ export default function App() {
     void init()
   }, [init])
 
+  // Dans une fenêtre étroite, la barre latérale se replie toute seule (elle reprend sa place quand la fenêtre s'élargit) ;
+  // ce repli automatique n'est pas retenu pour le prochain lancement.
+  useEffect(() => {
+    let auto = false
+    const onResize = () => {
+      const narrow = window.innerWidth < 760
+      const hidden = useApp.getState().sidebarHidden
+      if (narrow && !hidden) {
+        auto = true
+        useApp.setState({ sidebarHidden: true })
+      } else if (!narrow && hidden && auto) {
+        auto = false
+        useApp.setState({ sidebarHidden: false })
+      }
+    }
+    onResize()
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+
   // Mise à jour automatique de la bibliothèque, quelques secondes après le lancement.
   useEffect(() => {
     if (!repo || !isTauri()) return

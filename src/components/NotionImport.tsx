@@ -3,8 +3,8 @@ import { analyze, readZip, runImport, type ImportResult } from '@/lib/notionImpo
 import type { NotionFile, Plan } from '@/lib/notion'
 import { useApp } from '@/store/app'
 
-const primary = 'rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const primary = 'whitespace-nowrap rounded bg-[var(--accent)] px-4 py-1.5 text-sm text-white disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 export function NotionImport() {
   const { repo, objects, reloadObjects } = useApp()

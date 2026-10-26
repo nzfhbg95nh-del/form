@@ -13,19 +13,19 @@ import { RowMenu, RowMenuHead, runRowAction } from '@/components/RowMenu'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
-const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const secondary = 'whitespace-nowrap rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 const MONTHS = ['Janv.', 'Févr.', 'Mars', 'Avr.', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.']
 
 export function PaymentsView() {
   const [tab, setTab] = useState<'due' | 'book'>('due')
   return (
     <div>
-      <div className="flex gap-1 border-b border-[var(--border)] px-12 pt-6">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] px-12 pt-6">
         {([['due', 'À encaisser'], ['book', 'Livre des recettes']] as const).map(([id, label]) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={cn('border-b-2 px-3 py-1.5 text-sm', tab === id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
+            className={cn('whitespace-nowrap border-b-2 px-3 py-1.5 text-sm', tab === id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
           >
             {label}
           </button>
@@ -47,7 +47,7 @@ function ToCollect() {
   const toRemind = toChase(list, company.reminderAfterDays).length
 
   return (
-    <div className="mx-auto max-w-5xl px-12 py-8">
+    <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">À encaisser</h1>
       <div className="mb-4 flex gap-6 text-sm">
         <div><div className="text-xs text-[var(--fg-muted)]">Total à encaisser</div><div className="text-xl font-semibold tabular-nums">{formatEuros(total)}</div></div>
@@ -122,7 +122,7 @@ function RecipeBook() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-12 py-8">
+    <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Livre des recettes</h1>
       <div className="mb-4 flex items-center gap-3">
         <select className={field} value={year} onChange={(e) => setYear(Number(e.target.value))}>

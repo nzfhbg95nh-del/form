@@ -18,12 +18,12 @@ export function SettingsPage() {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('general')
   return (
     <div>
-      <div className="flex gap-1 border-b border-[var(--border)] px-12 pt-6">
+      <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] px-12 pt-6">
         {TABS.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={'border-b-2 px-3 py-1.5 text-sm ' + (tab === t.id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
+            className={'whitespace-nowrap border-b-2 px-3 py-1.5 text-sm ' + (tab === t.id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
           >
             {t.label}
           </button>

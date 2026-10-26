@@ -99,7 +99,7 @@ export function DashboardView() {
         </div>
       )}
 
-      <div className="mb-4 grid grid-cols-4 gap-4">
+      <div className="mb-4 grid grid-cols-2 gap-4 md:grid-cols-4">
         <Card title="Encaissé ce mois-ci"><Kpi label={MONTHS[month - 1]} value={formatEuros(data.collectedMonth)} /></Card>
         <Card title={`Encaissé en ${year}`}><Kpi label="Chiffre d'affaires" value={formatEuros(data.collectedYear)} hint={`Facturé : ${formatEuros(data.invoicedYear)}`} /></Card>
         <Card title="À encaisser"><Kpi label="Factures émises impayées" value={formatEuros(totalDue)} hint={lateRows.length > 0 ? `${formatEuros(lateTotal)} en retard` : 'Aucun retard'} /></Card>
@@ -142,7 +142,7 @@ export function DashboardView() {
             Le taux de cotisations n'a pas encore été vérifié : les montants sont indicatifs. <Link onClick={() => show('settings')}>Le vérifier dans Réglages &gt; Entreprise</Link>
           </div>
         )}
-        <div className="mb-3 grid grid-cols-3 gap-4">
+        <div className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
           <Kpi
             label={`À mettre de côté sur ${data.plan.current.label}`}
             value={formatEuros(data.plan.current.contributionCents + data.plan.current.incomeTaxCents)}
@@ -168,7 +168,7 @@ export function DashboardView() {
         </p>
       </Card>
 
-      <div className="mb-4 grid grid-cols-2 gap-4">
+      <div className="mb-4 grid grid-cols-1 gap-4 md:grid-cols-2">
         <Card title="Tâches du jour">
           {data.tasks.length === 0 && <p className="text-sm text-[var(--fg-muted)]">Aucune tâche pour aujourd'hui.</p>}
           {data.tasks.slice(0, 8).map((t) => (

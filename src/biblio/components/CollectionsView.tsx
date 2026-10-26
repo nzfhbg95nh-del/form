@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
+import { SearchInput } from '@/components/SearchInput'
 import { EmptyState, LoadingState } from '@/components/States'
-import { FolderOpen, Pencil, Plus, Search } from 'lucide-react'
+import { FolderOpen, Pencil, Plus } from 'lucide-react'
 import { groupCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
@@ -131,17 +132,7 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4 border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
         <h1 className="text-base font-semibold">Collections</h1>
-        <div className="relative w-[26rem] max-w-full">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--fg-muted)' }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Chercher une collection ou un tableau"
-            className="w-full rounded-md border py-1.5 pl-8 pr-2 text-sm outline-none focus:border-[var(--accent)]"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
-            aria-label="Chercher une collection"
-          />
-        </div>
+        <SearchInput className="w-[26rem] max-w-full" placeholder="Chercher une collection ou un tableau" label="Chercher une collection" value={query} onChange={setQuery} />
         <div className="ml-auto">
           {naming ? (
             <NameInput
