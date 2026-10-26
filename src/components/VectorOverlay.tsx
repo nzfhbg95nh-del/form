@@ -97,6 +97,8 @@ const CURSORS: Record<string, [string, string, [number, number]]> = {
   AnchorPoint: ['dc-anchor', '', [16, 5]],
   Curvature: ['spline', '', [3, 3]],
   Pencil: ['pencil', '', [4, 28]],
+  Hand: ['hand', '', [16, 16]],
+  HandGrab: ['hand-grab', '', [16, 16]],
   PathEraser: ['dc-path-eraser', '', [16, 16]],
   Smooth: ['dc-smooth', '', [16, 16]],
   Join: ['dc-join', '', [16, 16]],

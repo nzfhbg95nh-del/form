@@ -1010,7 +1010,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : engine ? vectorCursor(vcCursor) : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? vectorCursor('HandGrab') : spaceDown || tool === 'hand' ? vectorCursor('Hand') : tool === 'text' ? 'text' : engine ? vectorCursor(vcCursor) : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
