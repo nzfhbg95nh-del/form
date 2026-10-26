@@ -727,6 +727,7 @@ mod tests {
         assert!(fingerprint(&o) != fingerprint(&demarre("scissors", &[]).snapshot(1.0, vec![]).unwrap()), "les ciseaux coupent le tracé au clic");
     }
 
+
     fn pio(id: &str, closed: bool, pts: &[(f64, f64)]) -> PathIo {
         PathIo { id: id.into(), closed, points: pts.iter().map(|&(x, y)| PointIo { x, y, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }).collect(), fill: Some("#ff0000".into()), stroke: Some("#000000".into()), sw: 2.0, subs: vec![] }
     }

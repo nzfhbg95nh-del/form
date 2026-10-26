@@ -332,6 +332,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   // Un outil du moteur choisi : le moteur démarre avec les tracés du moodboard (ou change seulement d'outil s'il les connaît déjà) ; un autre outil : il s'arrête.
   useEffect(() => {
     const s = vc.current
+    // Le rond de la gomme / de la tache d'un ancien outil ne doit pas rester le temps que le nouvel outil réponde.
+    setVcTip(null)
     if (engine) {
       const present = presentRef.current
       if (s.loaded && vcItems.current === present) {
@@ -998,6 +1000,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}
+      onPointerLeave={() => setTipAt(null)}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
       onKeyDown={onKeyDown}
