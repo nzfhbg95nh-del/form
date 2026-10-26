@@ -370,7 +370,7 @@ export function HomeView() {
   const btn = 'flex items-center gap-1.5 rounded px-2 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
   return (
-    <div className="mx-auto max-w-4xl px-12 py-10">
+    <div className="mx-auto max-w-5xl px-12 py-10">
       <div className="mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-4xl font-bold">{greeting(now.getHours())}</h1>
