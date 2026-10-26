@@ -13,6 +13,7 @@ import {
 import type { QuotePdfData } from '@/lib/pdf/quotePdf'
 import { savePdf } from '@/lib/pdf/savePdf'
 import { cn } from '@/lib/utils'
+import { RowMenu, RowMenuHead, runRowAction, type RowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import type { Quote, QuoteLine, QuoteStatus } from '@/lib/types'
 
@@ -36,11 +37,27 @@ function Row({ label, children, className }: { label: string; children: React.Re
 // ───────────────────────── Liste ─────────────────────────
 
 export function QuotesView() {
-  const { quotes, quoteLines, clients, openQuoteId, openQuote, createQuote } = useApp()
+  const { quotes, quoteLines, clients, openQuoteId, openQuote, createQuote, duplicateQuote, deleteDraftQuote, setQuoteStatus } = useApp()
   const [filter, setFilter] = useState<'all' | QuoteStatus>('all')
   if (openQuoteId) return <QuoteEditor key={openQuoteId} id={openQuoteId} onBack={() => openQuote(null)} />
 
   const shown = quotes.filter((q) => filter === 'all' || q.status === filter)
+  const actionsOf = (q: Quote): RowAction[] => {
+    const draft = isDraft(q)
+    const statuses = draft ? [] : (['accepted', 'refused', 'sent'] as const).filter((s) => s !== q.status)
+    return [
+      { label: 'Ouvrir', onClick: () => openQuote(q.id) },
+      { label: 'Dupliquer', onClick: () => runRowAction(() => duplicateQuote(q.id)) },
+      ...statuses.map((s) => ({
+        label: s === 'accepted' ? 'Marquer accepté' : s === 'refused' ? 'Marquer refusé' : 'Remettre « envoyé »',
+        onClick: () => runRowAction(() => setQuoteStatus(q.id, s)),
+      })),
+      {
+        label: 'Supprimer', danger: true, disabled: !draft, hint: 'Un devis envoyé ne peut pas être supprimé.',
+        onClick: () => { if (window.confirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftQuote(q.id)) },
+      },
+    ]
+  }
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Devis</h1>
@@ -61,6 +78,7 @@ export function QuotesView() {
             <th className="pr-3 font-semibold">Date</th>
             <th className="pr-3 text-right font-semibold">Total</th>
             <th className="pl-3 font-semibold">Statut</th>
+            <RowMenuHead />
           </tr>
         </thead>
         <tbody>
@@ -68,13 +86,14 @@ export function QuotesView() {
             const client = clients.find((c) => c.id === q.client_id)
             const total = quoteTotalCents(quoteLines.filter((l) => l.quote_id === q.id))
             return (
-              <tr key={q.id} onClick={() => openQuote(q.id)} className="cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
+              <tr key={q.id} onClick={() => openQuote(q.id)} className="group cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
                 <td className="py-2 pr-3 font-medium">{q.number ?? <span className="text-[var(--fg-muted)]">Brouillon</span>}</td>
                 <td className="pr-3">{client ? clientDisplayName(client) : <span className="text-[var(--fg-muted)]">—</span>}</td>
                 <td className="max-w-xs truncate pr-3">{q.title}</td>
                 <td className="pr-3">{formatDateFr(q.issue_date)}</td>
                 <td className="pr-3 text-right tabular-nums">{formatEuros(total)}</td>
                 <td className="pl-3"><StatusChip status={q.status} /></td>
+                <RowMenu label={q.number ?? 'ce brouillon'} actions={actionsOf(q)} />
               </tr>
             )
           })}

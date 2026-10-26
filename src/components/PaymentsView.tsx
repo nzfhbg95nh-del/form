@@ -9,6 +9,7 @@ import { formatDateFr } from '@/lib/quotes'
 import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import { PaymentForm, ReminderModal } from '@/components/PaymentParts'
+import { RowMenu, RowMenuHead, runRowAction } from '@/components/RowMenu'
 
 const field = 'rounded border border-[var(--border)] bg-transparent px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
 const secondary = 'rounded border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
@@ -93,7 +94,7 @@ function ToCollect() {
 }
 
 function RecipeBook() {
-  const { payments, invoices, clients, company } = useApp()
+  const { payments, invoices, clients, company, deletePayment, openInvoice } = useApp()
   const today = todayISO()
   const years = paymentYears(payments, today)
   const [year, setYear] = useState(years[0])
@@ -150,16 +151,29 @@ function RecipeBook() {
             <th className="pr-3 font-semibold">N° de facture</th>
             <th className="pr-3 font-semibold">Moyen</th>
             <th className="text-right font-semibold">Montant</th>
+            <RowMenuHead />
           </tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={r.payment.id} className="border-b border-[var(--border)]">
+            <tr key={r.payment.id} className="group border-b border-[var(--border)]">
               <td className="py-2 pr-3">{formatDateFr(r.payment.paid_on)}</td>
               <td className="pr-3">{r.clientName}</td>
               <td className="pr-3">{r.invoiceNumber}</td>
               <td className="pr-3">{METHOD_LABELS[r.payment.method]}</td>
               <td className="text-right tabular-nums">{formatEuros(r.payment.amount_cents)}</td>
+              <RowMenu
+                label={`le paiement de ${formatEuros(r.payment.amount_cents)}`}
+                actions={[
+                  { label: 'Ouvrir la facture', onClick: () => openInvoice(r.payment.invoice_id) },
+                  {
+                    label: 'Supprimer le paiement', danger: true,
+                    onClick: () => {
+                      if (window.confirm(`Supprimer ce paiement de ${formatEuros(r.payment.amount_cents)} ? L'opération sera inscrite au journal.`)) runRowAction(() => deletePayment(r.payment.id))
+                    },
+                  },
+                ]}
+              />
             </tr>
           ))}
         </tbody>

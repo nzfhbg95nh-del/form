@@ -14,6 +14,7 @@ import { todayISO } from '@/lib/backup'
 import { isFullyCredited, remainingCents } from '@/lib/payments'
 import { InvoicePayments } from '@/components/PaymentParts'
 import { cn } from '@/lib/utils'
+import { RowMenu, RowMenuHead, runRowAction, type RowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import { LineRow } from '@/components/QuotesView'
 import type { AuditEntry, Invoice, InvoiceKind, InvoiceLine } from '@/lib/types'
@@ -77,7 +78,7 @@ function NewDepositButton() {
 // ───────────────────────── Liste ─────────────────────────
 
 export function InvoicesView() {
-  const { invoices, invoiceLines, clients, openInvoiceId, openInvoice, createStandardInvoice } = useApp()
+  const { invoices, invoiceLines, clients, openInvoiceId, openInvoice, createStandardInvoice, deleteDraftInvoice, createCredit } = useApp()
   const [status, setStatus] = useState<'all' | DisplayStatus>('all')
   const [kind, setKind] = useState<'all' | InvoiceKind>('all')
   if (openInvoiceId) return <InvoiceEditor key={openInvoiceId} id={openInvoiceId} onBack={() => openInvoice(null)} />
@@ -85,6 +86,19 @@ export function InvoicesView() {
   const today = todayISO()
   const st = (i: Invoice) => displayStatus(i, today, isFullyCredited(i, invoices, invoiceLines))
   const shown = invoices.filter((i) => (status === 'all' || st(i) === status) && (kind === 'all' || i.kind === kind))
+  const actionsOf = (i: Invoice): RowAction[] => {
+    const draft = isInvoiceDraft(i)
+    return [
+      { label: 'Ouvrir', onClick: () => openInvoice(i.id) },
+      ...(!draft && i.kind !== 'credit'
+        ? [{ label: 'Créer un avoir', onClick: () => { if (window.confirm('Créer un avoir qui annule cette facture ?')) runRowAction(() => createCredit(i.id)) } }]
+        : []),
+      {
+        label: 'Supprimer', danger: true, disabled: !draft, hint: 'Une facture émise ne peut pas être supprimée : corrige-la par un avoir.',
+        onClick: () => { if (window.confirm('Supprimer ce brouillon ? Il sera effacé pour de bon.')) runRowAction(() => deleteDraftInvoice(i.id)) },
+      },
+    ]
+  }
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
       <h1 className="mb-4 text-3xl font-bold">Factures</h1>
@@ -112,6 +126,7 @@ export function InvoicesView() {
             <th className="pr-3 font-semibold">Échéance</th>
             <th className="pr-3 text-right font-semibold">Total</th>
             <th className="pl-3 font-semibold">Statut</th>
+            <RowMenuHead />
           </tr>
         </thead>
         <tbody>
@@ -120,7 +135,7 @@ export function InvoicesView() {
             const total = invoiceTotalCents(invoiceLines.filter((l) => l.invoice_id === i.id))
             const status = st(i)
             return (
-              <tr key={i.id} onClick={() => openInvoice(i.id)} className="cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
+              <tr key={i.id} onClick={() => openInvoice(i.id)} className="group cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]">
                 <td className="py-2 pr-3 font-medium">{i.number ?? <span className="text-[var(--fg-muted)]">Brouillon</span>}</td>
                 <td className="pr-3">{KIND_LABELS[i.kind]}</td>
                 <td className="pr-3">{client ? clientDisplayName(client) : <span className="text-[var(--fg-muted)]">—</span>}</td>
@@ -128,6 +143,7 @@ export function InvoicesView() {
                 <td className="pr-3">{i.kind === 'credit' ? '—' : formatDateFr(i.due_date)}</td>
                 <td className="pr-3 text-right tabular-nums">{formatEuros(total)}</td>
                 <td className="pl-3"><Chip label={DISPLAY_LABELS[status]} color={DISPLAY_COLORS[status]} /></td>
+                <RowMenu label={i.number ?? 'ce brouillon'} actions={actionsOf(i)} />
               </tr>
             )
           })}

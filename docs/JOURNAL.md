@@ -578,3 +578,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Bibliothèque > Tout : les images sont dans un nouvel ordre au hasard à chaque ouverture de la page (clic sur « Tout » dans la barre latérale, ou lancement de l'appli). Une recherche garde son ordre de pertinence, un tableau ouvert son ordre ; le bouton « Aléatoire » à la main reste prioritaire. Tests : `withOpeningShuffle`.
 - Données : la base « Courrier » et les pages « Boîte de réception » ont été mises à la corbeille de Form (sauvegardes sur le Bureau : avant-boite-reception, avant-courrier, avant-atelier).
 - Compilation, 473 tests : OK.
+
+## 2026-10-26 — Menu « ⋯ » sur les listes (pas encore publié)
+- Nouveau composant `RowMenu` (colonne « ⋯ » à droite d'une ligne de tableau, visible au survol, sans ouvrir la ligne). Branché sur : Devis (Ouvrir, Dupliquer, statuts pour un devis envoyé, Supprimer), Factures (Ouvrir, Créer un avoir, Supprimer), Clients (Ouvrir, Supprimer), Tarifs (Ouvrir, Supprimer) et le Livre des recettes (Ouvrir la facture, Supprimer le paiement).
+- Règles gardées : « Supprimer » est grisé pour un devis numéroté et pour une facture émise (la facture se corrige par un avoir) ; un brouillon supprimé est effacé pour de bon (confirmation) ; un client avec des documents ne se supprime pas (message d'explication). Les erreurs s'affichent dans un message en bas de l'écran.
+- Compilation, 473 tests : OK.

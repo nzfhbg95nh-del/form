@@ -5,6 +5,7 @@ import {
 } from '@/lib/business'
 import { normalize } from '@/lib/search'
 import { cn } from '@/lib/utils'
+import { RowMenu, RowMenuHead, rowToast, runRowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import type { Client, Service } from '@/lib/types'
 
@@ -135,7 +136,7 @@ function ClientForm({ initial, isNew, onClose }: { initial: Client; isNew: boole
 }
 
 export function ClientsView() {
-  const { clients, editing, setEditing } = useApp()
+  const { clients, editing, setEditing, deleteClient } = useApp()
   const [query, setQuery] = useState('')
   const q = normalize(query).trim()
   const shown = clients
@@ -154,16 +155,30 @@ export function ClientsView() {
             <th className="pr-3 font-semibold">Adresse</th>
             <th className="pr-3 font-semibold">E-mail</th>
             <th className="font-semibold">SIREN</th>
+            <RowMenuHead />
           </tr>
         </thead>
         <tbody>
           {shown.map((c) => (
-            <tr key={c.id} onClick={() => setEditing({ kind: 'client', id: c.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
+            <tr key={c.id} onClick={() => setEditing({ kind: 'client', id: c.id })} className={cn('group cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
               <td className="py-2 pr-3 font-medium">{clientDisplayName(c)}</td>
               <td className="pr-3">{c.kind === 'pro' ? 'Pro' : 'Particulier'}</td>
               <td className="pr-3">{clientAddressLines(c).slice(1).join(', ')}</td>
               <td className="pr-3">{c.email}</td>
               <td>{c.siren}</td>
+              <RowMenu
+                label={clientDisplayName(c)}
+                actions={[
+                  { label: 'Ouvrir', onClick: () => setEditing({ kind: 'client', id: c.id }) },
+                  {
+                    label: 'Supprimer', danger: true,
+                    onClick: () => {
+                      if (!window.confirm(`Supprimer le client « ${clientDisplayName(c)} » ?`)) return
+                      runRowAction(async () => { const problem = await deleteClient(c.id); if (problem) rowToast(problem) })
+                    },
+                  },
+                ]}
+              />
             </tr>
           ))}
         </tbody>
@@ -228,7 +243,7 @@ function ServiceForm({ initial, isNew, onClose }: { initial: Service; isNew: boo
 }
 
 export function ServicesView() {
-  const { services, editing, setEditing } = useApp()
+  const { services, editing, setEditing, deleteService } = useApp()
   const [query, setQuery] = useState('')
   const q = normalize(query).trim()
   const shown = services
@@ -246,15 +261,28 @@ export function ServicesView() {
             <th className="pr-3 font-semibold">Description</th>
             <th className="pr-3 text-right font-semibold">Prix HT</th>
             <th className="font-semibold">Unité</th>
+            <RowMenuHead />
           </tr>
         </thead>
         <tbody>
           {shown.map((s) => (
-            <tr key={s.id} onClick={() => setEditing({ kind: 'service', id: s.id })} className={cn('cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
+            <tr key={s.id} onClick={() => setEditing({ kind: 'service', id: s.id })} className={cn('group cursor-pointer border-b border-[var(--border)] hover:bg-[var(--bg-hover)]', '')}>
               <td className="py-2 pr-3 font-medium">{s.label || 'Sans libellé'}</td>
               <td className="max-w-xs truncate pr-3 text-[var(--fg-muted)]">{s.description}</td>
               <td className="pr-3 text-right tabular-nums">{formatEuros(s.unit_price_cents)}</td>
               <td>{s.unit}</td>
+              <RowMenu
+                label={s.label || 'ce tarif'}
+                actions={[
+                  { label: 'Ouvrir', onClick: () => setEditing({ kind: 'service', id: s.id }) },
+                  {
+                    label: 'Supprimer', danger: true,
+                    onClick: () => {
+                      if (window.confirm(`Supprimer le tarif « ${s.label || 'sans libellé'} » ? Les devis et factures déjà faits ne changent pas.`)) runRowAction(() => deleteService(s.id))
+                    },
+                  },
+                ]}
+              />
             </tr>
           ))}
         </tbody>
