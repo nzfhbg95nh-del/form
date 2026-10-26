@@ -54,7 +54,9 @@ const labelOf = (t: BarTool) => t.label.replace(/^Outil /, 'Outil ')
  */
 export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; onTool: (t: string) => void; paint: PaintStyle; onPaint: (p: PaintStyle) => void }) {
   const [chosen, setChosen] = useState<Record<number, string>>({})
-  const [open, setOpen] = useState<number | null>(null)
+  // La liste d'un groupe : sa position à l'écran (la barre défile, la liste ne doit pas être coupée par elle).
+  const [open, setOpen] = useState<{ i: number; x: number; y: number } | null>(null)
+  const openAt = (i: number, el: HTMLElement) => { const r = el.getBoundingClientRect(); setOpen({ i, x: r.right + 8, y: r.top }) }
   const timer = useRef<number | undefined>(undefined)
   const fired = useRef(false)
   const [active, setActive] = useState<'fill' | 'stroke'>('fill')
@@ -82,24 +84,25 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
               title={`${labelOf(t)}${t.shortcut ? ` (${t.shortcut})` : ''}`}
               aria-label={labelOf(t)}
               aria-pressed={isActive(g)}
-              onPointerDown={g.length > 1 ? () => {
+              onPointerDown={g.length > 1 ? (e) => {
                 fired.current = false
                 window.clearTimeout(timer.current)
-                timer.current = window.setTimeout(() => { fired.current = true; setOpen(i) }, 400)
+                const el = e.currentTarget
+                timer.current = window.setTimeout(() => { fired.current = true; openAt(i, el) }, 400)
               } : undefined}
               onPointerUp={() => window.clearTimeout(timer.current)}
               onPointerLeave={() => window.clearTimeout(timer.current)}
-              onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); setOpen(i) } : undefined}
+              onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); openAt(i, e.currentTarget) } : undefined}
               onClick={() => { if (fired.current) { fired.current = false; return } onTool(t.tool) }}
               className={'flex h-8 w-8 items-center justify-center rounded ' + (isActive(g) ? 'bg-[var(--accent)] text-white' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')}
             >
               <ToolIcon svg={t.svg} />
             </button>
             {g.length > 1 && <span aria-hidden className="pointer-events-none absolute bottom-0.5 right-0.5 h-0 w-0 border-b-[5px] border-l-[5px] border-b-current border-l-transparent opacity-60" />}
-            {open === i && (
+            {open?.i === i && (
               <>
-                <div className="fixed inset-0 z-40" onPointerDown={() => setOpen(null)} />
-                <div role="menu" className="absolute left-full top-0 z-50 ml-2 flex min-w-64 flex-col rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
+                <div className="fixed inset-0 z-[60]" onPointerDown={() => setOpen(null)} />
+                <div role="menu" style={{ left: open.x, top: open.y }} className="fixed z-[70] flex min-w-64 flex-col rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
                   {g.map((x) => (
                     <button
                       key={x.id}
