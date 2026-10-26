@@ -301,10 +301,13 @@ export function Sidebar() {
         aria-orientation="vertical"
         aria-label="Largeur de la barre latérale"
         title="Tire pour agrandir ou rétrécir (double-clic : taille de départ)"
-        className="absolute -right-1 top-0 z-30 h-full w-2 cursor-col-resize hover:bg-[var(--accent)] hover:opacity-40"
+        className="group absolute -right-1 top-0 z-30 flex h-full w-2 cursor-col-resize justify-center"
         onPointerDown={startDrag}
         onDoubleClick={reset}
-      />
+      >
+        {/* Zone de saisie de 8 px, mais seul un trait très fin et pâle apparaît au survol. */}
+        <span className="h-full w-px bg-transparent transition-colors group-hover:bg-[var(--accent)]/45 group-active:bg-[var(--accent)]/70" />
+      </div>
       <AppMenu />
       {tabMenu && (
         <div className="fixed inset-0 z-50" onMouseDown={() => setTabMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTabMenu(null) }}>
