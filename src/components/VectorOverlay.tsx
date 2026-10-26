@@ -103,6 +103,8 @@ const CURSORS: Record<string, [string, string, [number, number]]> = {
   Smooth: ['dc-smooth', '', [16, 16]],
   Join: ['dc-join', '', [16, 16]],
 }
+// Les curseurs sont dessinés en 32 px pour les pointes ci-dessus, mais affichés plus petits (22 px) pour ne pas cacher le travail.
+const CURSOR_SCALE = 22 / 32
 const cache = new Map<string, string>()
 
 /** La forme du curseur d'un outil du moteur : un curseur de l'écran, ou l'icône de l'outil avec la marque de l'action. */
@@ -114,8 +116,8 @@ export function vectorCursor(name: string): string {
   if (spec && inner(spec[0])) {
     const body = inner(spec[0])
     const badge = spec[1] ? `<text x='15' y='23' font-size='11' font-family='sans-serif' font-weight='bold' fill='black' stroke='white' stroke-width='2.5' paint-order='stroke'>${spec[1]}</text>` : ''
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4.2'>${body}</g><g stroke='black' stroke-width='1.8'>${body}</g>${badge}</svg>`
-    css = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") ${spec[2][0]} ${spec[2][1]}, crosshair`
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4.2'>${body}</g><g stroke='black' stroke-width='1.8'>${body}</g>${badge}</svg>`
+    css = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") ${Math.round(spec[2][0] * CURSOR_SCALE)} ${Math.round(spec[2][1] * CURSOR_SCALE)}, crosshair`
   } else {
     css = ({ ArrowHollow: 'default', Eraser: 'crosshair', BlobBrush: 'crosshair', Paintbrush: 'crosshair', Knife: 'crosshair', Scissors: 'crosshair', MagicWand: 'crosshair', Lasso: 'crosshair', Shaper: 'crosshair', DirectAnchor: 'default', DirectAnchorSelected: 'default', ReshapeSegment: 'default', GroupSelection: 'default', SelectionCopy: 'copy', Move: 'move', Crosshair: 'crosshair', ResizeH: 'ew-resize', ResizeV: 'ns-resize', ResizeNwSe: 'nwse-resize', ResizeNeSw: 'nesw-resize' } as Record<string, string>)[name] ?? 'default'
   }
