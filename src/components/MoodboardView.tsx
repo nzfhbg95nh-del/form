@@ -744,7 +744,12 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     let handled = true
     if (engine && ['Enter', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
       // Ces touches sont celles du moteur (Entrée et Échap terminent un tracé, Suppr retire les points choisis, les flèches les déplacent).
-      void vc.current.key(e.key, modsOf(e), viewRef.current.zoom).then((out) => vcApply(out, 'key'))
+      // Les images, textes… choisis en même temps ne sont pas connus du moteur : Suppr les retire aussi.
+      const others = e.key === 'Delete' || e.key === 'Backspace' ? itemsRef.current.filter((i) => selRef.current.has(i.id) && !isPathItem(i)).map((i) => i.id) : []
+      void vc.current.key(e.key, modsOf(e), viewRef.current.zoom).then((out) => {
+        vcApply(out, 'key')
+        if (others.length > 0) { const gone = new Set(others); commitItems(itemsRef.current.filter((i) => !gone.has(i.id))); setSelection(new Set()) }
+      })
     } else if (e.key === ' ') setSpaceDown(true)
     else if (e.key === 'Delete' || e.key === 'Backspace') act.remove()
     else if (!mod && e.shiftKey && key === 'a') setMenu({ x: lastPt.current.x, y: lastPt.current.y, world: screenToWorld(viewRef.current, lastPt.current), mode: 'full', add: true })

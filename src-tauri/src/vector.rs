@@ -324,6 +324,11 @@ impl Vector {
 
     fn key(&mut self, key: &str, mods: ModsIn, zoom: f64) -> Result<VectorOut, String> {
         let Some(k) = key_of(key) else { return self.snapshot(zoom, vec![]) };
+        // Suppr / Retour arrière hors d'un tracé en cours : c'est la commande « Effacer » du document (points choisis, sinon objets choisis).
+        if matches!(k, ToolKey::Delete | ToolKey::Backspace) && !self.session()?.tool_busy() {
+            let _ = self.session()?.execute("edit.clear", &json!({}));
+            return self.snapshot(zoom, vec![]);
+        }
         let reqs = self.session()?.tool_key(k, mods.mods(), view(zoom)).map_err(|e| e.to_string())?;
         self.snapshot(zoom, reqs)
     }
@@ -753,6 +758,27 @@ mod tests {
         let b = o.paths.iter().find(|p| p.id == "b").expect("b");
         assert_eq!(b.points.len(), 3);
         assert!((b.points[1].x - 520.0).abs() < 1.0 && (b.points[1].y - 260.0).abs() < 1.0, "ctrl + glisser déplace le point : {:?}", b.points[1]);
+    }
+
+
+    #[test]
+    fn la_fleche_blanche_supprime_avec_suppr() {
+        for touche in ["Delete", "Backspace"] {
+            // un point choisi puis supprimé
+            let mut v = demarre("directSelection", &[]);
+            let c = click(&mut v, 600.0, 120.0);
+            eprintln!("après clic : choisis {:?}, ancres {:?}", c.selected, c.overlays.iter().filter(|q| q["t"] == "anchor").map(|q| format!("{}{}", q["p"], q["filled"])).collect::<Vec<_>>());
+            let o = v.key(touche, ModsIn::default(), 1.0).expect("touche");
+            eprintln!("après {touche} : {:?}", o.paths.iter().map(|p| (p.id.clone(), p.points.len())).collect::<Vec<_>>());
+            let b = o.paths.iter().find(|p| p.id == "b");
+            eprintln!("{touche}: point choisi -> b = {:?}", b.map(|p| p.points.len()));
+            assert!(b.map(|p| p.points.len()).unwrap_or(0) == 2, "{touche} retire le point choisi");
+            // un tracé choisi (clic sur le contour, sans point) puis supprimé
+            let mut v = demarre("directSelection", &[]);
+            click(&mut v, 200.0, 100.0);
+            let o = v.key(touche, ModsIn::default(), 1.0).expect("touche");
+            eprintln!("{touche}: segment choisi -> {} tracés, a = {:?}", o.paths.len(), o.paths.iter().find(|p| p.id == "a").map(|p| p.points.len()));
+        }
     }
 
     fn pio(id: &str, closed: bool, pts: &[(f64, f64)]) -> PathIo {
