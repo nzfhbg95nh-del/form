@@ -57,6 +57,16 @@ pub struct PathIo {
     /// Épaisseur du contour.
     #[serde(default)]
     pub sw: f64,
+    /// Les autres morceaux du tracé (les trous d'une tache qui fait une boucle, par exemple).
+    #[serde(default)]
+    pub subs: Vec<SubIo>,
+}
+
+/// Un morceau d'un tracé.
+#[derive(Deserialize, Serialize, Clone, Debug)]
+pub struct SubIo {
+    pub closed: bool,
+    pub points: Vec<PointIo>,
 }
 
 /// Le remplissage et le contour des prochains objets dessinés (et de la sélection quand on les change).
@@ -131,6 +141,36 @@ fn anchor_json(p: &PointIo) -> Value {
     a
 }
 
+/// Les données SVG d'un tracé à plusieurs morceaux (sur le plan décalé du moteur).
+fn svg_of(p: &PathIo) -> String {
+    let mut d = String::new();
+    let mut one = |points: &[PointIo], closed: bool| {
+        if points.is_empty() {
+            return;
+        }
+        let at = |q: &PointIo| (q.x + OFFSET, q.y + OFFSET);
+        let (x0, y0) = at(&points[0]);
+        d.push_str(&format!("M {x0} {y0} "));
+        let seg = |a: &PointIo, b: &PointIo| {
+            let (ax, ay) = at(a);
+            let (bx, by) = at(b);
+            format!("C {} {} {} {} {bx} {by} ", ax + a.ox, ay + a.oy, bx + b.ix, by + b.iy)
+        };
+        for w in points.windows(2) {
+            d.push_str(&seg(&w[0], &w[1]));
+        }
+        if closed && points.len() > 1 {
+            d.push_str(&seg(&points[points.len() - 1], &points[0]));
+            d.push_str("Z ");
+        }
+    };
+    one(&p.points, p.closed);
+    for e in &p.subs {
+        one(&e.points, e.closed);
+    }
+    d
+}
+
 /// Remplissage, contour et épaisseur d'un objet (ou, sans objet, des prochains objets).
 fn set_style(s: &mut Session, id: Option<u64>, st: &StyleIo) -> Result<(), String> {
     let target = |mut v: Value| {
@@ -175,8 +215,13 @@ impl Vector {
             if p.points.len() < 2 {
                 continue;
             }
-            let anchors: Vec<Value> = p.points.iter().map(anchor_json).collect();
-            let made = s.execute("path.create", &json!({ "anchors": anchors, "closed": p.closed })).map_err(|e| e.to_string())?;
+            let made = if p.subs.is_empty() {
+                let anchors: Vec<Value> = p.points.iter().map(anchor_json).collect();
+                s.execute("path.create", &json!({ "anchors": anchors, "closed": p.closed }))
+            } else {
+                s.execute("path.create", &json!({ "d": svg_of(p) }))
+            }
+            .map_err(|e| e.to_string())?;
             if let Some(id) = made.get("id").and_then(Value::as_u64) {
                 self.to_node.insert(p.id.clone(), id);
                 self.to_board.insert(id, p.id.clone());
@@ -199,7 +244,7 @@ impl Vector {
     fn snapshot(&mut self, zoom: f64, requests: Vec<UiRequest>) -> Result<VectorOut, String> {
         let v = view(zoom);
         let mut out = VectorOut::default();
-        let (mut found, selected_nodes): (Vec<(u64, Vec<PathIo>)>, Vec<u64>) = {
+        let (mut found, selected_nodes): (Vec<(u64, PathIo)>, Vec<u64>) = {
             let s = self.session.as_ref().ok_or("Le moteur de dessin n'est pas démarré.")?;
             let st = s.doc().map_err(|e| e.to_string())?;
             let mut found = Vec::new();
@@ -208,36 +253,29 @@ impl Vector {
                     let fill = n.appearance.fill_paint().color().map(|c| c.to_hex());
                     let stroke = n.appearance.stroke_paint().color().map(|c| c.to_hex());
                     let sw = n.appearance.stroke_width();
-                    let subs = pd
-                        .subpaths
-                        .iter()
-                        .map(|sp| PathIo {
-                            id: String::new(),
-                            fill: fill.clone(),
-                            stroke: stroke.clone(),
-                            sw,
-                            closed: sp.closed,
-                            points: sp
-                                .anchors
-                                .iter()
-                                .map(|a| PointIo { x: a.p.x - OFFSET, y: a.p.y - OFFSET, ix: a.h_in.x - a.p.x, iy: a.h_in.y - a.p.y, ox: a.h_out.x - a.p.x, oy: a.h_out.y - a.p.y })
-                                .collect(),
-                        })
-                        .collect();
-                    found.push((pt(n.id), subs));
+                    let points = |sp: &vectorcraft_geom::SubPath| -> Vec<PointIo> {
+                        sp.anchors
+                            .iter()
+                            .map(|a| PointIo { x: a.p.x - OFFSET, y: a.p.y - OFFSET, ix: a.h_in.x - a.p.x, iy: a.h_in.y - a.p.y, ox: a.h_out.x - a.p.x, oy: a.h_out.y - a.p.y })
+                            .collect()
+                    };
+                    // Le premier morceau est le tracé ; les autres (les trous d'une tache, par exemple) restent avec lui.
+                    let mut parts = pd.subpaths.iter();
+                    if let Some(first) = parts.next() {
+                        let subs = parts.map(|sp| SubIo { closed: sp.closed, points: points(sp) }).filter(|e| e.points.len() >= 2).collect();
+                        found.push((pt(n.id), PathIo { id: String::new(), fill, stroke, sw, closed: first.closed, points: points(first), subs }));
+                    }
                 }
             });
             (found, st.selection.objects.iter().map(|id| pt(*id)).collect())
         };
         // Les tracés nouveaux (faits par un outil) prennent un identifiant « vc… ».
-        for (node, subs) in found.iter_mut() {
+        for (node, path) in found.iter_mut() {
             let board = self.to_board.entry(*node).or_insert_with(|| format!("vc{node}")).clone();
             self.to_node.entry(board.clone()).or_insert(*node);
-            for (i, sp) in subs.iter_mut().enumerate() {
-                sp.id = if i == 0 { board.clone() } else { format!("{board}#{i}") };
-            }
+            path.id = board;
         }
-        out.paths = found.into_iter().flat_map(|(_, subs)| subs).filter(|p| p.points.len() >= 2).collect();
+        out.paths = found.into_iter().map(|(_, p)| p).filter(|p| p.points.len() >= 2).collect();
         out.selected = selected_nodes.iter().filter_map(|n| self.to_board.get(n).cloned()).collect();
         let s = self.session.as_mut().ok_or("Le moteur de dessin n'est pas démarré.")?;
         let mut overlays = selection_overlays(s);
@@ -552,7 +590,7 @@ mod tests {
     #[test]
     fn les_tracés_du_moodboard_sont_repris_et_modifiés_par_la_fleche_blanche() {
         let mut v = Vector::default();
-        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0 };
+        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0, subs: vec![] };
         v.start(&[path], &[], "directSelection", 1.0, &StyleIo::default()).expect("démarrage");
         // on attrape le deuxième point et on le descend
         ptr(&mut v, "down", 200.0, 10.0);
@@ -581,7 +619,7 @@ mod tests {
     #[test]
     fn le_style_fait_l_aller_retour_et_les_formes_sont_des_tracés() {
         let mut v = Vector::default();
-        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0 };
+        let path = PathIo { id: "a".into(), closed: false, points: vec![PointIo { x: 10.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }, PointIo { x: 200.0, y: 10.0, ix: 0.0, iy: 0.0, ox: 0.0, oy: 0.0 }], fill: None, stroke: Some("#ff0000".into()), sw: 3.0, subs: vec![] };
         let out = v.start(&[path], &[], "rectangle", 1.0, &StyleIo { fill: Some("#00ff00".into()), stroke: Some("#0000ff".into()), sw: 2.0 }).expect("démarrage");
         assert_eq!(out.paths[0].stroke.as_deref(), Some("#ff0000"));
         assert!((out.paths[0].sw - 3.0).abs() < 1e-6);
@@ -594,5 +632,19 @@ mod tests {
         assert_eq!(made.points.len(), 4);
         assert_eq!(made.fill.as_deref(), Some("#00ff00"));
         assert_eq!(made.stroke.as_deref(), Some("#0000ff"));
+    }
+
+    #[test]
+    fn une_tache_qui_fait_une_boucle_garde_un_trou() {
+        let mut v = started("blobBrush");
+        let n = 60;
+        ptr(&mut v, "down", 300.0 + 100.0, 300.0);
+        for i in 1..=n {
+            let a = std::f64::consts::TAU * i as f64 / n as f64;
+            ptr(&mut v, "drag", 300.0 + 100.0 * a.cos(), 300.0 + 100.0 * a.sin());
+        }
+        let out = ptr(&mut v, "up", 400.0, 300.0);
+        assert_eq!(out.paths.len(), 1, "{:?}", out.paths.iter().map(|p| p.points.len()).collect::<Vec<_>>());
+        assert!(!out.paths[0].subs.is_empty(), "le trou de la boucle doit rester un morceau du même tracé");
     }
 }

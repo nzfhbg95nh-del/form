@@ -5,8 +5,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import { isTauri } from './repo'
 import type { BoardItem } from './moodboard'
-import { worldPoints, rebuildPathItem } from './boardPathEdit'
-import { penToItem, type PenPoint } from './boardPath'
+import { worldPoints, worldSubs, rebuildPathItem } from './boardPathEdit'
+import { penToItem, type PenPoint, type SubPath } from './boardPath'
 
 /** Les outils qui restent ceux de Form (les autres sont ceux du moteur, qui les connaît par le même nom). */
 export const OUR_TOOLS = ['select', 'hand', 'text'] as const
@@ -15,7 +15,9 @@ export const isEngineTool = (tool: string) => !(OUR_TOOLS as readonly string[]).
 export interface VcPoint { x: number; y: number; ix: number; iy: number; ox: number; oy: number }
 /** Remplissage, contour (couleurs #rrggbb, ou rien) et épaisseur du contour. */
 export interface PaintStyle { fill: string | null; stroke: string | null; sw: number }
-export interface VcPath { id: string; closed: boolean; points: VcPoint[]; fill: string | null; stroke: string | null; sw: number }
+export interface VcSub { closed: boolean; points: VcPoint[] }
+/** `subs` : les autres morceaux du tracé (les trous d'une tache qui fait une boucle, par exemple). */
+export interface VcPath { id: string; closed: boolean; points: VcPoint[]; subs: VcSub[]; fill: string | null; stroke: string | null; sw: number }
 type Pt = [number, number]
 export type VcOverlay =
   | { t: 'marquee'; x0: number; y0: number; x1: number; y1: number }
@@ -63,9 +65,10 @@ export const strokeOf = (it: BoardItem): { color: string | null; sw: number } =>
 
 export function itemToVcPath(it: BoardItem): VcPath {
   const { color, sw } = strokeOf(it)
-  return { id: it.id, closed: !!it.closed, fill: fillOf(it), stroke: color, sw, points: worldPoints(it).map((p) => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })) }
+  return { id: it.id, closed: !!it.closed, fill: fillOf(it), stroke: color, sw, points: worldPoints(it).map((p) => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })), subs: worldSubs(it).map((e) => ({ closed: e.closed, points: e.points.map((p) => ({ ...p })) })) }
 }
 
+const toSubs = (p: VcPath): SubPath[] => p.subs.map((e) => ({ closed: e.closed, points: e.points.map(toPen) }))
 const toPen = (p: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }): PenPoint => ({ x: p.x, y: p.y, ix: p.ix, iy: p.iy, ox: p.ox, oy: p.oy })
 
 /** Le style du moteur reporté sur l'élément (sans contour : épaisseur 0, la couleur du contour est gardée pour le retrouver). */
@@ -88,11 +91,11 @@ export function applyVcPaths(items: BoardItem[], paths: VcPath[]): BoardItem[] {
     if (!p) continue
     seen.add(it.id)
     const same = samePath(it, p)
-    out.push(same && sameStyle(it, p) ? it : withStyle(same ? it : rebuildPathItem(it, p.points.map(toPen), p.closed), p))
+    out.push(same && sameStyle(it, p) ? it : withStyle(same ? it : rebuildPathItem(it, p.points.map(toPen), p.closed, toSubs(p)), p))
   }
   for (const p of paths) {
     if (seen.has(p.id)) continue
-    const base = { ...penToItem(p.points.map(toPen), p.closed, { shape: 'path', color: '#111111', fill: 'none', sw: 2, dash: 'solid', opacity: 1, radius: 0, sides: 0, points: 0, inner: 0 }), id: p.id }
+    const base = { ...penToItem(p.points.map(toPen), p.closed, { shape: 'path', color: '#111111', fill: 'none', sw: 2, dash: 'solid', opacity: 1, radius: 0, sides: 0, points: 0, inner: 0 }, toSubs(p)), id: p.id }
     out.push(withStyle(base, p))
   }
   return out
@@ -100,13 +103,12 @@ export function applyVcPaths(items: BoardItem[], paths: VcPath[]): BoardItem[] {
 
 /** Le tracé du moteur est-il déjà celui de l'élément (à une fraction de point près) ? */
 function samePath(it: BoardItem, p: VcPath): boolean {
-  const now = worldPoints(it)
-  if (now.length !== p.points.length || !!it.closed !== p.closed) return false
   const near = (a: number, b: number) => Math.abs(a - b) < 0.005
-  return now.every((q, i) => {
-    const r = p.points[i]
-    return near(q.x, r.x) && near(q.y, r.y) && near(q.ix, r.ix) && near(q.iy, r.iy) && near(q.ox, r.ox) && near(q.oy, r.oy)
-  })
+  const same = (now: PenPoint[], closed: boolean, pts: VcPoint[], other: boolean) =>
+    now.length === pts.length && closed === other && now.every((q, i) => near(q.x, pts[i].x) && near(q.y, pts[i].y) && near(q.ix, pts[i].ix) && near(q.iy, pts[i].iy) && near(q.ox, pts[i].ox) && near(q.oy, pts[i].oy))
+  if (!same(worldPoints(it), !!it.closed, p.points, p.closed)) return false
+  const subs = worldSubs(it)
+  return subs.length === p.subs.length && subs.every((e, i) => same(e.points, e.closed, p.subs[i].points, p.subs[i].closed))
 }
 
 function sameStyle(it: BoardItem, p: VcPath): boolean {

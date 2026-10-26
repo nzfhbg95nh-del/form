@@ -310,14 +310,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }
     if (out.status) say(out.status)
     if (out.switch_tool) setTool(toolOfEngine(out.switch_tool))
-    // La forme de tache ne se remplit pas : une nouvelle tache est un contour (le moteur la remplit avec la couleur du contour).
-    if (final && engine === 'blobBrush') {
-      const known = new Set(base.map((i) => i.id))
-      const fresh = out.paths.filter((p) => !known.has(p.id) && p.fill !== null).map((p) => p.id)
-      if (fresh.length > 0) {
-        void vc.current.restyle(fresh, { fill: null, stroke: paint.stroke ?? '#000000', sw: paint.sw > 0 ? paint.sw : 1 }, paint, viewRef.current.zoom).then((o) => vcApply(o, 'key'))
-      }
-    }
   }
 
   /** Envoie un geste au moteur (en le remettant d'abord à jour avec les tracés du moodboard si ceux-ci ont changé depuis, par exemple après Annuler). */
@@ -941,7 +933,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <polygon points={pointsAttr(starPoints(w, h, ss.points, ss.inner, sw / 2))} {...paint} />
             ) : it.shape === 'path' ? (
               <>
-                <path d={itemPathD(it, w, h)} {...paint} />
+                <path d={itemPathD(it, w, h)} fillRule="evenodd" {...paint} />
                 {isSel && <path d={itemPathD(it, w, h)} fill="none" stroke="#4da3ff" strokeWidth={1.5 / zoom} strokeLinejoin="round" />}
               </>
             ) : it.shape === 'line' || it.shape === 'arrow' ? (

@@ -5,7 +5,7 @@ import { DEFAULT_SHAPE_STYLE } from './boardShapes'
 import type { BoardItem } from './moodboard'
 
 const line = (id: string, y = 0, extra: Partial<VcPath> = {}): VcPath => ({
-  id, closed: false, fill: null, stroke: '#111111', sw: 2,
+  id, closed: false, fill: null, stroke: '#111111', sw: 2, subs: [],
   points: [{ x: 0, y, ix: 0, iy: 0, ox: 0, oy: 0 }, { x: 100, y, ix: 0, iy: 0, ox: 0, oy: 0 }], ...extra,
 })
 const image: BoardItem = { id: 'img', kind: 'image', x: 0, y: 0, w: 10, h: 10 }
@@ -53,10 +53,14 @@ describe('pont avec le moteur de dessin', () => {
     const old = { ...penToItem(line('a').points, true, DEFAULT_SHAPE_STYLE), id: 'a', color: '#ff0000', filled: true, fill: undefined }
     expect(itemToVcPath(old).fill).toBe('#ff0000')
   })
-  it('le deuxième morceau d’un tracé coupé existe comme nouvel élément', () => {
-    const a = made(line('a'))
-    const out = applyVcPaths([a], [line('a'), line('a#1', 5)])
-    expect(out).toHaveLength(2)
-    expect(out[1].id).toBe('a#1')
+  it('un tracé avec un trou (une tache qui fait une boucle) reste un seul élément, le trou est un autre morceau', () => {
+    const hole = { closed: true, points: [{ x: 20, y: 20, ix: 0, iy: 0, ox: 0, oy: 0 }, { x: 60, y: 20, ix: 0, iy: 0, ox: 0, oy: 0 }, { x: 40, y: 60, ix: 0, iy: 0, ox: 0, oy: 0 }] }
+    const it = made(line('a', 0, { closed: true, subs: [hole] }))
+    expect(it.sub).toHaveLength(1)
+    expect(itemToVcPath(it).subs).toHaveLength(1)
+    // inchangé : même élément
+    expect(applyVcPaths([it], [itemToVcPath(it)])[0]).toBe(it)
+    const out = applyVcPaths([it], [line('a', 0, { closed: true, subs: [] })])
+    expect(out[0].sub).toBeUndefined()
   })
 })

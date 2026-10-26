@@ -58,20 +58,42 @@ export function pathBounds(points: PenPoint[], closed: boolean): Rect {
   return { x, y, w: n(Math.max(...xs) - x), h: n(Math.max(...ys) - y) }
 }
 
-/**
- * Le tracé terminé, sous forme d'élément du moodboard : un cadre (qui peut être déplacé, agrandi, tourné comme n'importe quelle forme)
- * et des points rangés en proportion du cadre (0 à 1), pour que l'agrandissement déforme le tracé avec lui.
- */
-export function penToItem(points: PenPoint[], closed: boolean, style: ShapeStyle): BoardItem {
-  const box = pathBounds(points, closed)
-  const w = Math.max(1, box.w)
-  const h = Math.max(1, box.h)
-  const path = points.map((p) => ({ x: (p.x - box.x) / w, y: (p.y - box.y) / h, ix: p.ix / w, iy: p.iy / h, ox: p.ox / w, oy: p.oy / h }))
-  return { id: newId(), kind: 'shape', x: box.x, y: box.y, w, h, ...styleToItem({ ...style, shape: 'path' }), path, closed }
+/** Un morceau d'un tracé : ses points et s'il se referme. */
+export interface SubPath {
+  points: PenPoint[]
+  closed: boolean
 }
 
-/** Le tracé SVG d'un élément « plume », adapté à sa taille actuelle. */
+/** Le plus petit rectangle qui contient tous les morceaux. */
+export function boundsOfSubs(subs: SubPath[]): Rect {
+  const boxes = subs.filter((p) => p.points.length > 0).map((p) => pathBounds(p.points, p.closed))
+  if (boxes.length === 0) return { x: 0, y: 0, w: 0, h: 0 }
+  const x = Math.min(...boxes.map((b) => b.x))
+  const y = Math.min(...boxes.map((b) => b.y))
+  return { x, y, w: n(Math.max(...boxes.map((b) => b.x + b.w)) - x), h: n(Math.max(...boxes.map((b) => b.y + b.h)) - y) }
+}
+
+/** Les points rangés en proportion d'un cadre (0 à 1). */
+export const normalizePoints = (points: PenPoint[], box: Rect): { x: number; y: number; ix: number; iy: number; ox: number; oy: number }[] =>
+  points.map((p) => ({ x: (p.x - box.x) / box.w, y: (p.y - box.y) / box.h, ix: p.ix / box.w, iy: p.iy / box.h, ox: p.ox / box.w, oy: p.oy / box.h }))
+
+/**
+ * Le tracé terminé, sous forme d'élément du moodboard : un cadre (qui peut être déplacé, agrandi, tourné comme n'importe quelle forme)
+ * et des points rangés en proportion du cadre (0 à 1), pour que l'agrandissement déforme le tracé avec lui. `extra` : les autres morceaux (trous).
+ */
+export function penToItem(points: PenPoint[], closed: boolean, style: ShapeStyle, extra: SubPath[] = []): BoardItem {
+  const raw = boundsOfSubs([{ points, closed }, ...extra])
+  const box = { x: raw.x, y: raw.y, w: Math.max(1, raw.w), h: Math.max(1, raw.h) }
+  const item: BoardItem = { id: newId(), kind: 'shape', x: box.x, y: box.y, w: box.w, h: box.h, ...styleToItem({ ...style, shape: 'path' }), path: normalizePoints(points, box), closed }
+  if (extra.length > 0) item.sub = extra.map((e) => ({ path: normalizePoints(e.points, box), closed: e.closed }))
+  return item
+}
+
+/** Le tracé SVG d'un élément « plume » (tous ses morceaux), adapté à sa taille actuelle. */
 export function itemPathD(it: BoardItem, w: number, h: number): string {
-  const pts: PenPoint[] = (it.path ?? []).map((p) => ({ x: p.x * w, y: p.y * h, ix: p.ix * w, iy: p.iy * h, ox: p.ox * w, oy: p.oy * h }))
-  return pathD(pts, !!it.closed)
+  const scale = (path: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }[]): PenPoint[] =>
+    path.map((p) => ({ x: p.x * w, y: p.y * h, ix: p.ix * w, iy: p.iy * h, ox: p.ox * w, oy: p.oy * h }))
+  const parts = [pathD(scale(it.path ?? []), !!it.closed)]
+  for (const e of it.sub ?? []) parts.push(pathD(scale(e.path), e.closed))
+  return parts.filter(Boolean).join(' ')
 }

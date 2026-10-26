@@ -77,6 +77,8 @@ export interface BoardItem {
   /** forme « plume » : les points d'ancrage et leurs poignées (en proportion du cadre, 0 à 1), et si le tracé est fermé. */
   path?: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }[]
   closed?: boolean
+  /** forme « plume » : les autres morceaux du tracé (un trou dans une tache, par exemple), rangés comme `path` dans le même cadre. */
+  sub?: { path: { x: number; y: number; ix: number; iy: number; ox: number; oy: number }[]; closed: boolean }[]
 }
 
 export interface View {

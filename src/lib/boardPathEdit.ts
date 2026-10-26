@@ -1,7 +1,7 @@
 // Passage entre un élément « tracé » du moodboard (points rangés en proportion de son cadre) et des points posés sur la toile,
 // qui est la forme que le moteur de dessin (VectorCraft) comprend.
 
-import { pathBounds, type PenPoint } from './boardPath'
+import { boundsOfSubs, normalizePoints, type PenPoint, type SubPath } from './boardPath'
 import type { BoardItem } from './moodboard'
 
 const rotateVec = (x: number, y: number, deg: number) => {
@@ -9,8 +9,10 @@ const rotateVec = (x: number, y: number, deg: number) => {
   return { x: x * Math.cos(a) - y * Math.sin(a), y: x * Math.sin(a) + y * Math.cos(a) }
 }
 
-/** Les points d'un élément « plume » tels qu'ils sont posés sur la toile (taille du cadre, retournement et rotation compris). */
-export function worldPoints(it: BoardItem): PenPoint[] {
+type Norm = { x: number; y: number; ix: number; iy: number; ox: number; oy: number }
+
+/** Des points rangés en proportion du cadre de l'élément, posés sur la toile (taille du cadre, retournement et rotation compris). */
+function toWorld(it: BoardItem, path: Norm[]): PenPoint[] {
   const w = it.w
   const h = it.h
   const cx = it.x + w / 2
@@ -18,7 +20,7 @@ export function worldPoints(it: BoardItem): PenPoint[] {
   const fx = it.flipX ? -1 : 1
   const fy = it.flipY ? -1 : 1
   const rot = it.rot ?? 0
-  return (it.path ?? []).map((p) => {
+  return path.map((p) => {
     const pos = rotateVec((p.x * w - w / 2) * fx, (p.y * h - h / 2) * fy, rot)
     const i = rotateVec(p.ix * w * fx, p.iy * h * fy, rot)
     const o = rotateVec(p.ox * w * fx, p.oy * h * fy, rot)
@@ -26,11 +28,17 @@ export function worldPoints(it: BoardItem): PenPoint[] {
   })
 }
 
+/** Les points d'un élément « plume » tels qu'ils sont posés sur la toile. */
+export const worldPoints = (it: BoardItem): PenPoint[] => toWorld(it, it.path ?? [])
+
+/** Les autres morceaux de l'élément (trous), posés sur la toile. */
+export const worldSubs = (it: BoardItem): SubPath[] => (it.sub ?? []).map((e) => ({ points: toWorld(it, e.path), closed: e.closed }))
+
 /** L'élément refait à partir de points posés sur la toile : même style, nouveau cadre (la rotation et le retournement sont « cuits » dans les points). */
-export function rebuildPathItem(it: BoardItem, pts: PenPoint[], closed = !!it.closed): BoardItem {
-  const box = pathBounds(pts, closed)
-  const w = Math.max(1, box.w)
-  const h = Math.max(1, box.h)
-  const path = pts.map((p) => ({ x: (p.x - box.x) / w, y: (p.y - box.y) / h, ix: p.ix / w, iy: p.iy / h, ox: p.ox / w, oy: p.oy / h }))
-  return { ...it, x: box.x, y: box.y, w, h, path, closed, rot: undefined, flipX: undefined, flipY: undefined }
+export function rebuildPathItem(it: BoardItem, pts: PenPoint[], closed = !!it.closed, extra: SubPath[] = []): BoardItem {
+  const raw = boundsOfSubs([{ points: pts, closed }, ...extra])
+  const box = { x: raw.x, y: raw.y, w: Math.max(1, raw.w), h: Math.max(1, raw.h) }
+  const next: BoardItem = { ...it, x: box.x, y: box.y, w: box.w, h: box.h, path: normalizePoints(pts, box), closed, rot: undefined, flipX: undefined, flipY: undefined, sub: undefined }
+  if (extra.length > 0) next.sub = extra.map((e) => ({ path: normalizePoints(e.points, box), closed: e.closed }))
+  return next
 }
