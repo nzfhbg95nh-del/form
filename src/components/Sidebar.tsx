@@ -113,7 +113,8 @@ function TreeItem({
 }) {
   const { objects, selectedId, view, expanded, toggleExpanded, createPage, move, renamingId, pinned } = useApp()
   const handlers = useOpenHandlers(page.id)
-  const kids = childrenOf(objects, page.id)
+  // Les moodboards ne se rangent pas dans « Pages » : ils vivent dans Bibliothèque > Moodboards.
+  const kids = childrenOf(objects, page.id).filter((o) => o.type !== 'moodboard')
   const open = !!expanded[page.id]
   const active = view === 'page' && selectedId === page.id
   const over = drag.over?.id === page.id ? drag.over.zone : null
@@ -264,7 +265,7 @@ export function Sidebar() {
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !isSystemDatabase(o))
-  const roots = childrenOf(objects, null)
+  const roots = childrenOf(objects, null).filter((o) => o.type !== 'moodboard')
   const recipesDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
   const favorites = live.filter((o) => o.is_favorite)
   const pinnedList = pinnedPages(pinned, live)
