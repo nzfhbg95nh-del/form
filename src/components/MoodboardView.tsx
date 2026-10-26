@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ImagePlus, LayoutGrid, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Hand, MousePointer2 } from 'lucide-react'
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Expand, Hand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -13,7 +13,7 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
-import { cssFont, FONTS, fitText, isPointText, measureTextBox, scaleTexts, textStyleOf, TEXT_PAD, type Measure } from '@/lib/boardText'
+import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
 import { loadSaverSettings } from '@/biblio/lib/saver.ts'
@@ -233,7 +233,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     return (text) => {
       if (!ctx) return text.length * st.size * 0.55
       ctx.font = cssFont(st)
-      return ctx.measureText(text).width + st.ls * st.size * text.length
+      return ctx.measureText(text).width + st.ls * glyphSize(st) * text.length
     }
   }, [])
   const fit = useCallback((it: BoardItem) => fitText(it, measureFor(it)), [measureFor])
@@ -725,32 +725,74 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }
     if (it.kind === 'text') {
       const st = textStyleOf(it)
+      const ps = paraStyleOf(it)
       const point = isPointText(it)
-      const common: React.CSSProperties = {
-        fontFamily: `"${st.font}", sans-serif`, fontSize: st.size, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
-        lineHeight: st.lh, letterSpacing: `${st.ls}em`, textAlign: it.align ?? 'left', color: it.color ?? textColor, padding: TEXT_PAD, margin: 0,
-        whiteSpace: point ? 'pre' : 'pre-wrap', overflowWrap: point ? 'normal' : 'anywhere', boxSizing: 'border-box', width: '100%', height: '100%',
+      const gs = glyphSize(st)
+      const inkColor = it.color ?? textColor
+      const decoration = [st.under ? 'underline' : '', st.strike ? 'line-through' : ''].filter(Boolean).join(' ') || 'none'
+      const glyphs: React.CSSProperties = {
+        fontFamily: `"${st.font}", sans-serif`, fontSize: gs, fontWeight: st.weight, fontStyle: st.italic ? 'italic' : 'normal', fontVariantCaps: st.caps === 'small' ? 'small-caps' : 'normal',
+        letterSpacing: `${st.ls}em`, color: inkColor, textDecoration: decoration, margin: 0,
       }
+      // Les lettres sont dessinées dans un cadre à l'échelle (horizontale / verticale), décalé vers le haut pour la ligne de base.
+      const scaled = (w: number): React.CSSProperties => ({ position: 'absolute', left: TEXT_PAD, top: TEXT_PAD, width: w, transformOrigin: '0 0', transform: `translateY(${-lift(st) * st.sy}px) scale(${st.sx}, ${st.sy})` })
       if (editing === it.id) {
-        // En tapant, la boîte suit le texte : un texte de point s'allonge, une zone de texte grandit vers le bas.
-        const box = measureTextBox({ ...it, text: draft }, measureFor(it))
+        // En tapant, la boîte suit le texte : un texte de point s'allonge, une zone de texte grandit vers le bas. (Pendant la frappe, les retraits et les espaces entre paragraphes sont mis de côté.)
+        const plain: BoardItem = { ...it, text: draft, indL: 0, indR: 0, indF: 0, spB: 0, spA: 0, hyph: false, list: 'none' }
+        const box = measureTextBox(plain, measureFor(it))
         return (
           <div key={it.id} data-item={it.id} style={{ ...base, width: box.w, height: box.h, outline: `${1.5 / zoom}px dashed #4da3ff` }}>
-            <textarea
-              autoFocus
-              value={draft}
-              wrap={point ? 'off' : 'soft'}
-              onChange={(e) => setDraft(e.target.value)}
-              onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
-              onBlur={() => finishText(it.id, draft)}
-              style={{ ...common, resize: 'none', border: 0, outline: 0, background: 'transparent', overflow: 'hidden', display: 'block' }}
-            />
+            <div style={scaled((box.w - TEXT_PAD * 2) / st.sx)}>
+              <textarea
+                autoFocus
+                value={draft}
+                wrap={point ? 'off' : 'soft'}
+                onChange={(e) => setDraft(e.target.value)}
+                onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
+                onBlur={() => finishText(it.id, draft)}
+                style={{
+                  ...glyphs, lineHeight: `${st.size * st.lh}px`, textAlign: ps.align === 'justify' ? 'left' : ps.align, textTransform: st.caps === 'all' ? 'uppercase' : 'none', padding: 0,
+                  whiteSpace: point ? 'pre' : 'pre-wrap', overflowWrap: point ? 'normal' : 'anywhere', boxSizing: 'border-box', width: '100%', height: (box.h - TEXT_PAD * 2) / st.sy,
+                  resize: 'none', border: 0, outline: 0, background: 'transparent', overflow: 'hidden', display: 'block',
+                }}
+              />
+            </div>
           </div>
         )
       }
+      if (!it.text) {
+        return (
+          <div key={it.id} data-item={it.id} style={base}>
+            <div style={{ ...glyphs, padding: TEXT_PAD, lineHeight: st.lh, pointerEvents: 'none', opacity: 0.4 }}>Texte…</div>
+          </div>
+        )
+      }
+      // Chaque ligne est posée par nos soins (même découpage que le calcul de la boîte) : retraits, puces, justification et coupure des mots sont exacts.
+      const paras = layoutParas(it, measureFor(it))
+      const lineH = st.size * st.lh
       return (
         <div key={it.id} data-item={it.id} style={base}>
-          <div style={{ ...common, pointerEvents: 'none', overflow: 'visible' }}>{it.text || <span style={{ opacity: 0.4 }}>Texte…</span>}</div>
+          <div style={{ ...scaled(Math.max(1, (it.w - TEXT_PAD * 2) / st.sx)), pointerEvents: 'none' }}>
+            {paras.map((p, pi) => (
+              <div key={pi} style={{ position: 'relative', marginTop: p.before, marginBottom: p.after }}>
+                {p.marker && <span style={{ ...glyphs, position: 'absolute', left: p.markerLeft, top: 0, lineHeight: `${lineH}px`, whiteSpace: 'pre' }}>{p.marker}</span>}
+                {p.lines.map((l, li) => {
+                  const justify = ps.align === 'justify' && !l.last && !point
+                  return (
+                    <div
+                      key={li}
+                      style={{
+                        ...glyphs, height: lineH, lineHeight: `${lineH}px`, paddingLeft: l.left, paddingRight: l.right, boxSizing: 'border-box',
+                        textAlign: ps.align === 'justify' ? 'left' : ps.align, whiteSpace: justify ? 'normal' : 'pre', ...(justify ? { textAlign: 'justify', textAlignLast: 'justify' } : {}),
+                      }}
+                    >
+                      {l.text === '' ? ' ' : l.text}
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+          </div>
         </div>
       )
     }
@@ -935,40 +977,76 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {showTextPanel && (() => {
         const first = textSel[0]
         const st = textStyleOf(first)
+        const ps = paraStyleOf(first)
         const field = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
-        const toggle = (on: boolean) => bar + ' flex h-7 w-7 items-center justify-center !px-0' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5 text-[11px] font-semibold' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
         const row = 'flex items-center gap-2'
-        const label = 'w-20 shrink-0 text-[var(--fg-muted)]'
+        const label = 'w-24 shrink-0 text-[var(--fg-muted)]'
+        const head = 'text-[11px] font-semibold uppercase text-[var(--fg-muted)]'
+        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+        const round1 = (v: number) => Math.round(v * 10) / 10
+        // Un champ chiffré (valeur en points, en % ou en ‰) : on tape, la valeur est bornée puis appliquée.
+        const num = (name: string, value: number, unit: string, set: (v: number) => void, step = 1) => (
+          <div className={row}>
+            <span className={label}>{name}</span>
+            <input className={field + ' w-16'} type="number" step={step} value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) set(v) }} aria-label={`${name} (${unit})`} />
+            <span className="text-[var(--fg-muted)]">{unit}</span>
+          </div>
+        )
+        const leadingPt = round1(st.size * st.lh)
+        const boxes = (list: [boolean, React.ReactNode, string, () => void][]) => list.map(([on, text, title, fn]) => <button key={title} className={toggle(on)} onClick={fn} title={title} aria-label={title} aria-pressed={on}>{text}</button>)
         return (
-          <div data-ui className="absolute bottom-3 right-3 z-40 flex w-56 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
-            <div className="text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Texte{textSel.length > 1 ? ` (${textSel.length})` : ''}</div>
+          <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+            <div className={head}>Caractère{textSel.length > 1 ? ` (${textSel.length} textes)` : ''}</div>
             <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
             <div className={row}>
-              <span className={label}>Taille</span>
-              <input className={field + ' w-16'} type="number" min={6} max={600} value={Math.round(st.size)} onChange={(e) => setTextProps({ size: Math.min(600, Math.max(6, Number(e.target.value) || 6)) })} aria-label="Taille des lettres" />
-              <button className={toggle(st.bold)} onClick={() => setTextProps({ bold: !st.bold })} title="Gras" aria-pressed={st.bold}><Bold size={13} /></button>
-              <button className={toggle(st.italic)} onClick={() => setTextProps({ italic: !st.italic })} title="Italique" aria-pressed={st.italic}><Italic size={13} /></button>
+              <select className={field + ' min-w-0 flex-1'} value={st.weight} onChange={(e) => { const w = Number(e.target.value); setTextProps({ weight: w, bold: w >= 600 }) }} aria-label="Style de la police">
+                {WEIGHTS.map((w) => <option key={w.value} value={w.value}>{w.label}</option>)}
+              </select>
+              <button className={toggle(st.italic)} onClick={() => setTextProps({ italic: !st.italic })} title="Italique" aria-label="Italique" aria-pressed={st.italic}><Italic size={13} /></button>
             </div>
-            <div className={row}>
-              <span className={label}>Alignement</span>
-              <button className={toggle((first.align ?? 'left') === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
-              <button className={toggle(first.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
-              <button className={toggle(first.align === 'right')} onClick={() => setTextProps({ align: 'right' })} title="Aligné à droite"><AlignRight size={13} /></button>
+            {num('Taille', Math.round(st.size * 10) / 10, 'pt', (v) => setTextProps({ size: clamp(v, 6, 600) }), 1)}
+            {num('Interlignage', leadingPt, 'pt', (v) => setTextProps({ lh: clamp(v / st.size, 0.6, 3) }), 1)}
+            {num('Approche', Math.round(st.ls * 1000), '‰', (v) => setTextProps({ ls: clamp(v / 1000, -0.2, 1) }), 10)}
+            {num('Échelle horiz.', Math.round(st.sx * 100), '%', (v) => setTextProps({ sx: clamp(v / 100, 0.1, 4) }), 5)}
+            {num('Échelle vert.', Math.round(st.sy * 100), '%', (v) => setTextProps({ sy: clamp(v / 100, 0.1, 4) }), 5)}
+            {num('Ligne de base', round1(st.base), 'pt', (v) => setTextProps({ base: clamp(v, -300, 300) }), 1)}
+            {num('Rotation', Math.round(first.rot ?? 0), '°', (v) => setTextProps({ rot: clamp(v, -360, 360) }), 5)}
+            <div className="flex flex-wrap gap-1">
+              {boxes([
+                [st.caps === 'all', 'TT', 'Tout en majuscules', () => setTextProps({ caps: st.caps === 'all' ? 'none' : 'all' })],
+                [st.caps === 'small', 'Tt', 'Petites capitales', () => setTextProps({ caps: st.caps === 'small' ? 'none' : 'small' })],
+                [st.script === 'sup', 'T¹', 'Exposant', () => setTextProps({ script: st.script === 'sup' ? 'none' : 'sup' })],
+                [st.script === 'sub', 'T₁', 'Indice', () => setTextProps({ script: st.script === 'sub' ? 'none' : 'sub' })],
+                [st.under, <Underline size={13} />, 'Souligné', () => setTextProps({ under: !st.under })],
+                [st.strike, <Strikethrough size={13} />, 'Barré', () => setTextProps({ strike: !st.strike })],
+              ])}
             </div>
             <div className={row}>
               <span className={label}>Couleur</span>
               <input type="color" className="h-7 w-10 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
             </div>
-            <div className={row}>
-              <span className={label}>Interlignage</span>
-              <input className={field + ' w-16'} type="number" step={0.1} min={0.6} max={3} value={st.lh} onChange={(e) => setTextProps({ lh: Math.min(3, Math.max(0.6, Number(e.target.value) || 1.2)) })} aria-label="Interlignage" />
+
+            <div className={head + ' mt-1 border-t border-[var(--border)] pt-2'}>Paragraphe</div>
+            <div className="flex flex-wrap gap-1">
+              <button className={toggle(ps.align === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
+              <button className={toggle(ps.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
+              <button className={toggle(ps.align === 'right')} onClick={() => setTextProps({ align: 'right' })} title="Aligné à droite"><AlignRight size={13} /></button>
+              <button className={toggle(ps.align === 'justify')} onClick={() => setTextProps({ align: 'justify' })} title="Justifié (visible dans une zone de texte)"><AlignJustify size={13} /></button>
+              <button className={toggle(ps.list === 'bullet')} onClick={() => setTextProps({ list: ps.list === 'bullet' ? 'none' : 'bullet' })} title="Liste à puces"><List size={13} /></button>
+              <button className={toggle(ps.list === 'number')} onClick={() => setTextProps({ list: ps.list === 'number' ? 'none' : 'number' })} title="Liste numérotée"><ListOrdered size={13} /></button>
             </div>
-            <div className={row}>
-              <span className={label}>Espacement</span>
-              <input className={field + ' w-16'} type="number" step={0.01} min={-0.2} max={1} value={st.ls} onChange={(e) => setTextProps({ ls: Math.min(1, Math.max(-0.2, Number(e.target.value) || 0)) })} aria-label="Espacement des lettres" />
-            </div>
+            {num('Retrait gauche', round1(ps.indL), 'pt', (v) => setTextProps({ indL: clamp(v, 0, 600) }), 1)}
+            {num('Retrait droit', round1(ps.indR), 'pt', (v) => setTextProps({ indR: clamp(v, 0, 600) }), 1)}
+            {num('1re ligne', round1(ps.indF), 'pt', (v) => setTextProps({ indF: clamp(v, -600, 600) }), 1)}
+            {num('Espace avant', round1(ps.spB), 'pt', (v) => setTextProps({ spB: clamp(v, 0, 300) }), 1)}
+            {num('Espace après', round1(ps.spA), 'pt', (v) => setTextProps({ spA: clamp(v, 0, 300) }), 1)}
+            <label className="flex items-center gap-2" title="Coupe les longs mots avec un trait d'union (zone de texte)">
+              <input type="checkbox" checked={ps.hyph} onChange={(e) => setTextProps({ hyph: e.target.checked })} />
+              <span>Couper les mots</span>
+            </label>
           </div>
         )
       })()}

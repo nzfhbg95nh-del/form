@@ -694,3 +694,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Constat : aucun dossier de sauvegarde n'était choisi, donc aucune sauvegarde automatique ne tournait. Désormais, sans dossier choisi, Form sauvegarde chaque jour dans « Documents\Form sauvegardes » (30 gardées, modifiable dans les Réglages). Nouvelle commande Rust `default_backup_dir`.
 - Vérifié avant nettoyage : la bibliothèque de Form est identique à celle de Klippr (10 020 blocs, 17 070 fichiers — 1 de moins = l'image supprimée définitivement —, 1 761 collections, 81 recettes dans les pages de Form, miniatures et modèles copiés).
 - Données de Klippr (base, 5 sauvegardes, miniatures, modèles, cache) et installateur .msi envoyés à la Corbeille Windows (récupérables). Dossiers regénérables du dépôt (node_modules, dist, target) effacés.
+
+## 2026-10-26 — Moodboard : panneaux Caractère et Paragraphe façon Illustrator (après la v0.47.2, pas encore publié)
+- Panneau Caractère (en bas à droite, quand un texte est sélectionné) : police, style (Fin, Normal, Demi-gras, Gras, Noir) + italique, taille, interlignage, approche (‰), échelles horizontale et verticale, décalage de la ligne de base, rotation du texte, majuscules (TT), petites capitales (Tt), exposant, indice, souligné, barré, couleur. Unités en points (pt).
+- Panneau Paragraphe : alignement (gauche, centre, droite, justifié), listes à puces et numérotées, retraits gauche/droit/première ligne, espace avant/après, coupure des mots avec trait d'union (règle simple du français).
+- Chaque ligne est maintenant posée par Form lui-même (même découpage que le calcul de la boîte) : retraits, puces et justification sont exacts. Pendant la frappe, retraits et espaces entre paragraphes sont mis de côté.
+- Pas fait : rotation de chaque lettre (seul le texte entier tourne) ; les réglages s'appliquent à tout le texte, pas à une partie sélectionnée.
+- Tests : 563 (8 nouveaux sur la mise en page).

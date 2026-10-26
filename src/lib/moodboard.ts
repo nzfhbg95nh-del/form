@@ -35,9 +35,26 @@ export interface BoardItem {
   font?: string
   bold?: boolean
   italic?: boolean
-  align?: 'left' | 'center' | 'right'
+  align?: 'left' | 'center' | 'right' | 'justify'
   lh?: number
   ls?: number
+  /** texte, caractère : épaisseur (300 à 900), échelle horizontale et verticale (1 = 100 %), décalage de la ligne de base (pt), majuscules, exposant/indice, souligné, barré. */
+  weight?: number
+  sx?: number
+  sy?: number
+  base?: number
+  caps?: 'none' | 'all' | 'small'
+  script?: 'none' | 'sup' | 'sub'
+  under?: boolean
+  strike?: boolean
+  /** texte, paragraphe (en points) : retrait gauche, droit, de première ligne ; espace avant et après ; coupure des mots ; liste. */
+  indL?: number
+  indR?: number
+  indF?: number
+  spB?: number
+  spA?: number
+  hyph?: boolean
+  list?: 'none' | 'bullet' | 'number'
   /** Rotation, en degrés (sens des aiguilles d'une montre), autour du centre de l'élément. */
   rot?: number
   /** texte : `false` = zone de texte (largeur fixe, retour à la ligne automatique) ; sinon texte de point (s'agrandit en tapant). */
