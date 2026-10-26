@@ -1,6 +1,6 @@
 import { Search, X } from 'lucide-react'
 import { PALETTE } from '@/biblio/lib/colors.ts'
-import { ColorWheel } from './ColorWheel.tsx'
+import { ColorBar } from './ColorBar.tsx'
 import { activeCount, DATE_PRESETS, datePreset, type Filters } from '@/biblio/lib/filters.ts'
 import type { BlockKind, Source } from '@/biblio/lib/scan.ts'
 import { formatDate } from '@/biblio/lib/media.ts'
@@ -65,9 +65,9 @@ export function FilterBar() {
           </div>
         </Popover>
 
-        <Popover label="Couleur" active={Boolean(filters.color)} width={290}>
+        <Popover label="Couleur" active={Boolean(filters.color)} width={340}>
           <div className="p-1">
-            <ColorWheel value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
+            <ColorBar value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
             <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
               {filters.color ? (
                 <>
@@ -76,7 +76,7 @@ export function FilterBar() {
                   <button className="ml-auto underline" onClick={() => setFilters({ color: '' })}>Aucune</button>
                 </>
               ) : (
-                'Clique sur la roue pour choisir une couleur'
+                'Glisse sur les barres pour choisir une couleur'
               )}
             </div>
           </div>
