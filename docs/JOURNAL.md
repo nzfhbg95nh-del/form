@@ -706,3 +706,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Bouton « Aligner » dans la barre du moodboard : panneau à gauche. « Aligner sur » : la sélection, l'écran (partie visible de la toile) ou un objet clé (le dernier sélectionné, qui ne bouge pas). 6 alignements, 6 répartitions d'objets (3 éléments ou plus), répartition des espaces à l'horizontale ou à la verticale, avec un espace imposé en pt (vide = égal).
 - Les éléments tournés s'alignent par leur encombrement réel (le menu clic droit « Aligner » en profite aussi).
 - Tests : 571.
+
+## 2026-10-26 — Moodboard : outil Forme, panneau Forme et contour, Disposition dans le clic droit (après la v0.47.2, pas encore publié)
+- Outil Forme (touche M, ou le bouton carré sous le texte) : on dessine en glissant (Maj : carré ou cercle) ; un clic pose une forme de taille normale. Formes : rectangle, rectangle arrondi, rond, polygone, étoile, flèche. L'outil repasse sur la sélection après chaque dessin.
+- Panneau « Forme et contour » (en bas à droite) : forme, couleur de remplissage (ou « Aucun »), couleur du contour, épaisseur (pt, 0 = sans contour), trait (plein, tirets, pointillés), opacité, coins arrondis, côtés du polygone, branches et creux de l'étoile. Les réglages valent aussi pour les prochaines formes. Les anciennes formes (« remplie ») sont reprises telles quelles.
+- Clic droit sur une forme : palettes « Contour » et « Remplissage » séparées.
+- Clic droit : « Disposition » (se déplie) regroupe premier plan, avancer, reculer, arrière-plan.
+- Tests : 578. Pas fait : la Plume (Bézier), prévue en dernier.

@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, Hand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, ArrowUpRight, Circle, Expand, Hand, Hexagon, ImagePlus, Italic, LayoutGrid, List, ListOrdered, MousePointer2, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, RectangleHorizontal, Square, Star, Strikethrough, Type as TypeIcon, Underline } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
   alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
-  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
+  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
   type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
@@ -13,6 +13,7 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
+import { cornerRadius, DASHES, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeFromDrag, shapeStyleOf, starPoints, type ShapeStyle } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
@@ -36,6 +37,7 @@ type Drag =
   | { type: 'resize'; handle: Handle; box: Rect; uniform: boolean; ids: Set<string>; items: BoardItem[]; single?: BoardItem }
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
   | { type: 'text'; start: Pt; end: Pt }
+  | { type: 'shape'; start: Pt; end: Pt }
 
 /** Couleurs proposées pour les formes et les textes. */
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
@@ -67,6 +69,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [assets, setAssets] = useState<Record<string, Asset>>({})
   const [flash, setFlash] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [arrangeOpen, setArrangeOpen] = useState(false)
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
   const [alignRef, setAlignRef] = useState<'selection' | 'screen' | 'key'>('selection')
@@ -75,7 +78,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [linkInput, setLinkInput] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   // Outil actif : la flèche (sélection) ou le texte (touche T) ; et le texte en cours de frappe.
-  const [tool, setTool] = useState<'select' | 'text' | 'hand'>('select')
+  const [tool, setTool] = useState<'select' | 'text' | 'hand' | 'shape'>('select')
+  // Les réglages des prochaines formes (comme dans Illustrator, ils suivent le dernier réglage fait).
+  const [shapeStyle, setShapeStyle] = useState<ShapeStyle>(DEFAULT_SHAPE_STYLE)
   const [draft, setDraft] = useState('')
   // Les traits d'alignement montrés pendant un déplacement (guides intelligents).
   const [guides, setGuides] = useState<Guide[]>([])
@@ -269,11 +274,18 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'text' ? fit({ ...it, ...patch }) : it)))
   }
 
+  /** Change le style des formes sélectionnées, et celui des prochaines formes. */
+  const setShapeProps = (patch: Partial<ShapeStyle>) => {
+    setShapeStyle((prev) => ({ ...prev, ...patch }))
+    if (selRef.current.size === 0) return
+    commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'shape' ? restyleShape(it, patch) : it)))
+  }
+
   const addShape = useCallback((at: Pt, kind: ShapeKind) => {
-    const sh = makeShape(at, kind)
+    const sh = shapeAt(at, { ...shapeStyle, shape: kind })
     commitItems([...itemsRef.current, sh])
     setSelection(new Set([sh.id]))
-  }, [commitItems])
+  }, [commitItems, shapeStyle])
 
   /** Ajoute les images d'un tableau Pinterest, d'une épingle ou d'un post Instagram : elles sont téléchargées dans un dossier temporaire (pas dans la bibliothèque), posées sur la toile, puis le dossier est effacé. */
   const runImport = async (text: string, at: Pt) => {
@@ -418,6 +430,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return
     }
 
+    if (tool === 'shape') {
+      setSelection(new Set())
+      dragRef.current = { type: 'shape', start: world, end: world }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
+
     if (tool === 'text') {
       const hit = target.closest('[data-item]') as HTMLElement | null
       const onText = hit ? cur.find((i) => i.id === hit.dataset.item && i.kind === 'text') : undefined
@@ -514,7 +533,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (e.shiftKey) delta = snapRotation(d.base + delta) - d.base
       setLive(rotateItems(d.items, d.ids, d.center, delta))
       setFlash(`${Math.round((((d.base + delta) % 360) + 360) % 360)}°`)
-    } else if (d.type === 'text') {
+    } else if (d.type === 'text' || d.type === 'shape') {
       d.end = world
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
     } else if (d.type === 'marquee') {
@@ -533,6 +552,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       const zoomNow = viewRef.current.zoom
       if (rect.w * zoomNow > 6 || rect.h * zoomNow > 6) addText({ x: rect.x, y: rect.y }, { w: Math.max(40, rect.w) })
       else addText(d.start)
+    }
+    if (d.type === 'shape') {
+      const rect = normalizeRect(d.start, d.end)
+      const big = rect.w * viewRef.current.zoom > 6 || rect.h * viewRef.current.zoom > 6
+      const sh = big ? shapeFromDrag(rect, shapeStyle, !!e?.shiftKey) : shapeAt(d.start, shapeStyle)
+      commitItems([...itemsRef.current, sh])
+      setSelection(new Set([sh.id]))
+      setTool('select')
     }
     if ((d.type === 'move' || d.type === 'resize' || d.type === 'rotate') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
     if (d.type === 'rotate') setFlash(null)
@@ -604,7 +631,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }),
     noteColor: (color: string) => withSelection((i, s) => i.map((it) => (s.has(it.id) && it.kind === 'note' ? { ...it, color } : it))),
     shapeColor: (color: string) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && (it.kind === 'shape' || it.kind === 'text') ? { ...it, color } : it))),
-    toggleFill: () => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, filled: !it.filled } : it))),
+    shapeFill: (fill: string) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? restyleShape(it, { fill }) : it))),
+    toggleFill: () => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? restyleShape(it, { fill: shapeStyleOf(it).fill === 'none' ? shapeStyleOf(it).color : 'none' }) : it))),
     stroke: (d: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, sw: Math.min(40, Math.max(1, (it.sw ?? 4) + d)) } : it))),
     fontSize: (f: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'text' ? { ...it, size: Math.min(400, Math.max(8, Math.round((it.size ?? 32) * f))) } : it))),
     selectAll: () => setSelection(new Set(itemsRef.current.map((i) => i.id))),
@@ -645,6 +673,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else if (mod && (key === ']' || e.code === 'BracketRight')) (e.shiftKey ? act.front() : act.forward())
     else if (mod && (key === '[' || e.code === 'BracketLeft')) (e.shiftKey ? act.back() : act.backward())
     else if (!mod && key === 't') setTool('text')
+    else if (!mod && key === 'm') setTool('shape')
     else if (!mod && key === 'h') setTool('hand')
     else if (!mod && key === 'v') setTool('select')
     else if (e.key === 'Escape') { setSelection(new Set()); setMenu(null); setEditing(null); setTool('select') }
@@ -814,24 +843,30 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )
     }
     if (it.kind === 'shape') {
-      const sw = it.sw ?? 4
-      const color = it.color ?? SHAPE_COLOR
-      const fill = it.filled ? color : 'none'
+      const ss = shapeStyleOf(it)
+      const linear = it.shape === 'line' || it.shape === 'arrow'
+      const sw = linear ? Math.max(1, ss.sw) : ss.sw
+      const color = ss.color
       const w = Math.max(2, it.w)
       const h = Math.max(2, it.h)
       const head = it.shape === 'arrow' ? arrowHead(sw, sw, w - sw, h - sw, Math.max(14, sw * 4)) : null
+      const paint = { fill: ss.fill, stroke: sw > 0 ? color : 'none', strokeWidth: sw, strokeDasharray: dashArray(ss.dash, sw), strokeLinecap: ss.dash === 'dotted' ? ('round' as const) : undefined, strokeLinejoin: 'round' as const }
       return (
         <div key={it.id} data-item={it.id} style={base}>
-          <svg width={w} height={h} style={{ display: 'block', overflow: 'visible', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }}>
+          <svg width={w} height={h} style={{ display: 'block', overflow: 'visible', pointerEvents: 'none', opacity: ss.opacity, transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }}>
             {it.shape === 'ellipse' ? (
-              <ellipse cx={w / 2} cy={h / 2} rx={Math.max(1, (w - sw) / 2)} ry={Math.max(1, (h - sw) / 2)} fill={fill} stroke={color} strokeWidth={sw} />
+              <ellipse cx={w / 2} cy={h / 2} rx={Math.max(1, (w - sw) / 2)} ry={Math.max(1, (h - sw) / 2)} {...paint} />
+            ) : it.shape === 'polygon' ? (
+              <polygon points={pointsAttr(polygonPoints(w, h, ss.sides, sw / 2))} {...paint} />
+            ) : it.shape === 'star' ? (
+              <polygon points={pointsAttr(starPoints(w, h, ss.points, ss.inner, sw / 2))} {...paint} />
             ) : it.shape === 'line' || it.shape === 'arrow' ? (
               <>
-                <line x1={sw} y1={sw} x2={w - sw} y2={h - sw} stroke={color} strokeWidth={sw} strokeLinecap="round" />
+                <line x1={sw} y1={sw} x2={w - sw} y2={h - sw} stroke={color} strokeWidth={sw} strokeLinecap="round" strokeDasharray={dashArray(ss.dash, sw)} />
                 {head && <polygon points={head.map((pt) => pt.join(',')).join(' ')} fill={color} stroke={color} strokeWidth={sw / 2} strokeLinejoin="round" />}
               </>
             ) : (
-              <rect x={sw / 2} y={sw / 2} width={Math.max(1, w - sw)} height={Math.max(1, h - sw)} rx={6} fill={fill} stroke={color} strokeWidth={sw} />
+              <rect x={sw / 2} y={sw / 2} width={Math.max(1, w - sw)} height={Math.max(1, h - sw)} rx={it.shape === 'rrect' ? cornerRadius(ss.radius, w - sw, h - sw) : 6} {...paint} />
             )}
           </svg>
         </div>
@@ -857,8 +892,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const selNotes = selected.some((i) => i.kind === 'note')
   const selShapes = selected.some((i) => i.kind === 'shape')
   const textSel = selected.filter((i) => i.kind === 'text')
+  const shapeSel = selected.filter((i) => i.kind === 'shape')
   // Le panneau du texte est posé en bas à droite de la toile (comme les panneaux d'Illustrator), et la palette de couleurs reste en haut à droite.
   const showTextPanel = !compact && textSel.length > 0 && !marquee && !live
+  const showShapePanel = !compact && !showTextPanel && (shapeSel.length > 0 || tool === 'shape') && !marquee && !live
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -877,7 +914,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : tool === 'shape' ? 'crosshair' : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -1069,6 +1106,55 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         )
       })()}
 
+      {showShapePanel && (() => {
+        const st = shapeSel.length > 0 ? shapeStyleOf(shapeSel[0]) : shapeStyle
+        const field = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
+        const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        const row = 'flex items-center gap-2'
+        const label = 'w-24 shrink-0 text-[var(--fg-muted)]'
+        const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
+        const num = (name: string, value: number, unit: string, set: (v: number) => void, step = 1) => (
+          <div className={row}>
+            <span className={label}>{name}</span>
+            <input className={field + ' w-16'} type="number" step={step} value={value} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) set(v) }} aria-label={`${name} (${unit})`} />
+            <span className="text-[var(--fg-muted)]">{unit}</span>
+          </div>
+        )
+        const colorValue = (c: string, fallback: string) => (/^#[0-9a-f]{6}$/i.test(c) ? c : fallback)
+        const kinds = [['rect', Square, 'Rectangle'], ['rrect', RectangleHorizontal, 'Rectangle arrondi'], ['ellipse', Circle, 'Rond'], ['polygon', Hexagon, 'Polygone'], ['star', Star, 'Étoile'], ['arrow', ArrowUpRight, 'Flèche']] as const
+        const hasFill = st.fill !== 'none'
+        return (
+          <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+            <div className="text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Forme et contour{shapeSel.length > 1 ? ` (${shapeSel.length} formes)` : ''}</div>
+            {shapeSel.length === 0 && <div className="text-[var(--fg-muted)]">Glisse sur la toile pour dessiner (Maj : carré ou cercle).</div>}
+            <div className="flex flex-wrap gap-1">
+              {kinds.map(([k, Ico, t]) => <button key={k} className={toggle(st.shape === k)} title={t} aria-label={t} aria-pressed={st.shape === k} onClick={() => setShapeProps({ shape: k })}><Ico size={14} /></button>)}
+            </div>
+            <div className={row}>
+              <span className={label}>Remplissage</span>
+              <input type="color" className="h-7 w-10 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={colorValue(hasFill ? st.fill : st.color, SHAPE_COLOR)} onChange={(e) => setShapeProps({ fill: e.target.value })} aria-label="Couleur de remplissage" />
+              <button className={toggle(!hasFill)} title="Sans remplissage" aria-label="Sans remplissage" aria-pressed={!hasFill} onClick={() => setShapeProps({ fill: hasFill ? 'none' : st.color })}>Aucun</button>
+            </div>
+            <div className={row}>
+              <span className={label}>Contour</span>
+              <input type="color" className="h-7 w-10 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={colorValue(st.color, SHAPE_COLOR)} onChange={(e) => setShapeProps({ color: e.target.value })} aria-label="Couleur du contour" />
+            </div>
+            {num('Épaisseur', st.sw, 'pt', (v) => setShapeProps({ sw: clamp(v, 0, 60) }), 1)}
+            <div className={row}>
+              <span className={label}>Trait</span>
+              <select className={field + ' min-w-0 flex-1'} value={st.dash} onChange={(e) => setShapeProps({ dash: e.target.value as ShapeStyle['dash'] })} aria-label="Style du trait">
+                {DASHES.map((d) => <option key={d.id} value={d.id}>{d.label}</option>)}
+              </select>
+            </div>
+            {num('Opacité', Math.round(st.opacity * 100), '%', (v) => setShapeProps({ opacity: clamp(v, 0, 100) / 100 }), 5)}
+            {st.shape === 'rrect' && num('Coins arrondis', Math.round(st.radius), 'pt', (v) => setShapeProps({ radius: clamp(v, 0, 500) }), 2)}
+            {st.shape === 'polygon' && num('Côtés', st.sides, '', (v) => setShapeProps({ sides: clamp(Math.round(v), 3, 12) }), 1)}
+            {st.shape === 'star' && num('Branches', st.points, '', (v) => setShapeProps({ points: clamp(Math.round(v), 3, 12) }), 1)}
+            {st.shape === 'star' && num('Creux', Math.round(st.inner * 100), '%', (v) => setShapeProps({ inner: clamp(v, 10, 90) / 100 }), 5)}
+          </div>
+        )
+      })()}
+
       {alignOpen && !compact && (() => {
         const n = selection.size
         const ic = (on: boolean) => 'flex h-7 w-7 items-center justify-center rounded border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)] disabled:opacity-30' + (on ? '' : '')
@@ -1078,7 +1164,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
         )
         return (
-          <div data-ui className="absolute left-3 top-[190px] z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+          <div data-ui className="absolute left-3 top-[226px] z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
             <div className="flex items-center">
               <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
               <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>
@@ -1116,7 +1202,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
       {!compact && (
         <div data-ui className="absolute left-3 top-14 z-30 flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-sm">
-          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => (
+          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['shape', Square, 'Forme (M) : glisse pour dessiner un rectangle, un rond, une étoile… (Maj : carré ou cercle)'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => (
             <button
               key={id}
               title={label}
@@ -1225,16 +1311,34 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                     )}
                     <MenuBtn label="Retourner (gauche-droite)" onClick={() => act.flip('x')} />
                     <MenuBtn label="Retourner (haut-bas)" onClick={() => act.flip('y')} />
-                    <MenuBtn label="Avancer d'un cran" hint="Ctrl+]" onClick={act.forward} />
-                    <MenuBtn label="Reculer d'un cran" hint="Ctrl+[" onClick={act.backward} />
-                    <MenuBtn label="Mettre au premier plan" hint="Ctrl+Maj+]" onClick={act.front} />
-                    <MenuBtn label="Mettre à l'arrière-plan" hint="Ctrl+Maj+[" onClick={act.back} />
+                    {/* Disposition (comme « Arrange » d'Illustrator) : l'ordre des éléments, dans un sous-menu qui se déplie. */}
+                    <button
+                      className="flex w-full items-center justify-between gap-6 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]"
+                      aria-expanded={arrangeOpen}
+                      onClick={() => setArrangeOpen(!arrangeOpen)}
+                    >
+                      <span>Disposition</span>
+                      <span className="text-xs text-[var(--fg-muted)]">{arrangeOpen ? '▾' : '▸'}</span>
+                    </button>
+                    {arrangeOpen && (
+                      <div className="ml-3 border-l border-[var(--border)] pl-1">
+                        <MenuBtn label="Mettre au premier plan" hint="Ctrl+Maj+]" onClick={act.front} />
+                        <MenuBtn label="Avancer d'un cran" hint="Ctrl+]" onClick={act.forward} />
+                        <MenuBtn label="Reculer d'un cran" hint="Ctrl+[" onClick={act.backward} />
+                        <MenuBtn label="Mettre à l'arrière-plan" hint="Ctrl+Maj+[" onClick={act.back} />
+                      </div>
+                    )}
                     {selection.size > 1 && !selGrouped && <MenuBtn label="Grouper" hint="Ctrl+G" onClick={act.group} />}
                     {selGrouped && <MenuBtn label="Dissocier" hint="Ctrl+Maj+G" onClick={act.ungroup} />}
                     {selShapes && (
                       <>
-                        <MenuHead>Couleur de la forme</MenuHead>
+                        <MenuHead>Contour</MenuHead>
                         <div className="flex gap-2 px-2 py-1">{SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeColor(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}</div>
+                        <MenuHead>Remplissage</MenuHead>
+                        <div className="flex gap-2 px-2 py-1">
+                          <button title="Sans remplissage" aria-label="Sans remplissage" onClick={() => { act.shapeFill('none'); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 50% / 8px 8px' }} />
+                          {SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeFill(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}
+                        </div>
                         {selShapes && (
                           <>
                             <MenuBtn label="Remplie / contour seulement" onClick={act.toggleFill} />

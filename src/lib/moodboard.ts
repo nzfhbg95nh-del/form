@@ -4,10 +4,13 @@
 export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape'
 
 /** Les formes proposées dans le menu « Ajouter » : rectangle, rond et flèche (la flèche va d'un coin à l'autre du cadre ; « retourner » change la diagonale). Le type « line » n'est plus proposé mais reste lisible. */
-export type ShapeKind = 'rect' | 'ellipse' | 'line' | 'arrow'
+export type ShapeKind = 'rect' | 'rrect' | 'ellipse' | 'polygon' | 'star' | 'line' | 'arrow'
 export const SHAPES: { id: ShapeKind; label: string }[] = [
   { id: 'rect', label: 'Rectangle' },
+  { id: 'rrect', label: 'Rectangle arrondi' },
   { id: 'ellipse', label: 'Rond' },
+  { id: 'polygon', label: 'Polygone' },
+  { id: 'star', label: 'Étoile' },
   { id: 'arrow', label: 'Flèche' },
 ]
 
@@ -63,6 +66,14 @@ export interface BoardItem {
   shape?: ShapeKind
   filled?: boolean
   sw?: number
+  /** forme : remplissage (une couleur, ou « none »), tirets du contour, opacité (0 à 1), rayon des coins, côtés du polygone, branches de l'étoile, creux de l'étoile (0,1 à 0,9). */
+  fill?: string
+  dash?: 'solid' | 'dashed' | 'dotted'
+  opacity?: number
+  radius?: number
+  sides?: number
+  points?: number
+  inner?: number
 }
 
 export interface View {
