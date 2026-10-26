@@ -742,7 +742,16 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const mod = e.ctrlKey || e.metaKey
     const key = e.key.toLowerCase()
     let handled = true
-    if (engine && ['Enter', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+    // Suppr / Retour arrière avec seulement des images, textes… choisis (aucun tracé) : on les retire comme d'habitude, sans passer par le moteur.
+    const deleting = e.key === 'Delete' || e.key === 'Backspace'
+    const pathSelected = itemsRef.current.some((i) => selRef.current.has(i.id) && isPathItem(i))
+    const plainDelete = deleting && selRef.current.size > 0 && !pathSelected
+    if (engine && !plainDelete && ['Enter', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
+      // Le moteur doit connaître les tracés actuels du moodboard avant de recevoir la touche (sinon un état ancien pourrait effacer des tracés).
+      if (!vc.current.loaded || vcItems.current !== presentRef.current) {
+        vcItems.current = presentRef.current
+        void vc.current.load(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint)
+      }
       // Ces touches sont celles du moteur (Entrée et Échap terminent un tracé, Suppr retire les points choisis, les flèches les déplacent).
       // Les images, textes… choisis en même temps ne sont pas connus du moteur : Suppr les retire aussi.
       const others = e.key === 'Delete' || e.key === 'Backspace' ? itemsRef.current.filter((i) => selRef.current.has(i.id) && !isPathItem(i)).map((i) => i.id) : []
