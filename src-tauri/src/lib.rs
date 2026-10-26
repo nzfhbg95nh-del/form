@@ -173,6 +173,7 @@ pub fn run() {
             biblio::ai_text::ai_download_text,
             biblio::ai_text::ai_encode_texts,
             biblio::colors::colors_start,
+            biblio::dupes::dupes_scan,
             biblio::ocr::ocr_start,
             biblio::trash::trash_files
         ])

@@ -7,6 +7,7 @@ import { formatBytes, formatSeconds } from '@/biblio/lib/vectors.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
+import { DuplicatesView } from './DuplicatesView.tsx'
 import { TrashView } from './TrashView.tsx'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -210,6 +211,7 @@ function AutoUpdate() {
 export function LibrarySettings() {
   const { root, phase, label, done, total, stats, lastResult, error, setRoot, update } = useLibrary()
   const [trashOpen, setTrashOpen] = useState(false)
+  const [dupesOpen, setDupesOpen] = useState(false)
   const busy = phase !== 'idle'
   useEffect(() => {
     void useLibrary.getState().init()
@@ -223,6 +225,7 @@ export function LibrarySettings() {
   }
 
   if (trashOpen) return <TrashView onBack={() => setTrashOpen(false)} />
+  if (dupesOpen) return <DuplicatesView onBack={() => setDupesOpen(false)} />
 
   return (
     <div className="mx-auto max-w-3xl p-8">
@@ -276,6 +279,13 @@ export function LibrarySettings() {
 
       <AutoUpdate />
       <AiSection />
+      <section className="mt-10">
+        <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Doublons</div>
+        <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
+          Trouve les images en double (identiques ou presque) et te laisse choisir lesquelles garder. Les autres partent dans la Corbeille Windows, jamais effacées pour de bon.
+        </p>
+        <button className="btn mt-3" onClick={() => setDupesOpen(true)}>Chercher les doublons</button>
+      </section>
       <TrashSection onOpen={() => setTrashOpen(true)} />
       <section className="mt-10 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
         <SocialSaverSection />

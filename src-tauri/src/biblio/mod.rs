@@ -4,6 +4,7 @@ pub mod ai;
 pub mod ai_text;
 pub mod clip_tokenizer;
 pub mod colors;
+pub mod dupes;
 pub mod ocr;
 pub mod scan;
 pub mod social;
