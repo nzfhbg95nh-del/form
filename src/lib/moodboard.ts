@@ -30,8 +30,16 @@ export interface BoardItem {
   color?: string
   /** lien : l'adresse. */
   url?: string
-  /** texte : taille des lettres. */
+  /** texte : taille des lettres, police, gras, italique, alignement, interlignage (× taille), espacement des lettres (× taille). */
   size?: number
+  font?: string
+  bold?: boolean
+  italic?: boolean
+  align?: 'left' | 'center' | 'right'
+  lh?: number
+  ls?: number
+  /** texte : `false` = zone de texte (largeur fixe, retour à la ligne automatique) ; sinon texte de point (s'agrandit en tapant). */
+  auto?: boolean
   /** forme : laquelle. La couleur est dans `color` ; `filled` : remplie (sinon, seulement le contour) ; `sw` : épaisseur du trait. */
   shape?: ShapeKind
   filled?: boolean
@@ -327,6 +335,65 @@ export function alignItems(items: BoardItem[], ids: Set<string>, mode: AlignMode
   })
 }
 
+// ───────────────────────── Poignées et ordre (comme Illustrator) ─────────────────────────
+
+/** Les 8 poignées du cadre de sélection : 4 coins et 4 côtés. */
+export type Handle = 'nw' | 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w'
+export const HANDLES: Handle[] = ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']
+export const isCorner = (h: Handle) => h.length === 2
+
+const axis = (h: Handle) => ({ hx: h.includes('w') ? -1 : h.includes('e') ? 1 : 0, hy: h.includes('n') ? -1 : h.includes('s') ? 1 : 0 })
+
+/** Où se trouve une poignée sur le cadre. */
+export function handlePoint(box: Rect, h: Handle): { x: number; y: number } {
+  const { hx, hy } = axis(h)
+  return { x: hx < 0 ? box.x : hx > 0 ? box.x + box.w : box.x + box.w / 2, y: hy < 0 ? box.y : hy > 0 ? box.y + box.h : box.y + box.h / 2 }
+}
+
+/**
+ * Tirer une poignée : le point fixe et les facteurs d'agrandissement (horizontal et vertical). Un coin agrandit dans les deux sens, un côté dans un seul ;
+ * `alt` : on agrandit depuis le centre ; `uniform` (Maj) : on garde les proportions. On ne retourne jamais l'élément (facteur d'au moins 0,05).
+ */
+export function resizeScale(box: Rect, h: Handle, world: { x: number; y: number }, opts: { alt?: boolean; uniform?: boolean } = {}): { anchor: { x: number; y: number }; fx: number; fy: number } {
+  const { hx, hy } = axis(h)
+  const grab = handlePoint(box, h)
+  const center = { x: box.x + box.w / 2, y: box.y + box.h / 2 }
+  const opposite = { x: hx < 0 ? box.x + box.w : hx > 0 ? box.x : center.x, y: hy < 0 ? box.y + box.h : hy > 0 ? box.y : center.y }
+  const anchor = opts.alt ? center : opposite
+  const sx = grab.x - anchor.x
+  const sy = grab.y - anchor.y
+  let fx = hx === 0 ? 1 : (world.x - anchor.x) / (sx || 1)
+  let fy = hy === 0 ? 1 : (world.y - anchor.y) / (sy || 1)
+  if (opts.uniform) {
+    let f: number
+    if (isCorner(h)) {
+      const len = sx * sx + sy * sy
+      f = len === 0 ? 1 : ((world.x - anchor.x) * sx + (world.y - anchor.y) * sy) / len
+    } else f = hx !== 0 ? fx : fy
+    fx = f
+    fy = f
+  }
+  return { anchor, fx: Math.max(0.05, fx), fy: Math.max(0.05, fy) }
+}
+
+/** Avance d'un cran : chaque élément choisi passe devant celui qui le recouvrait (ceux déjà tout devant ne bougent pas). */
+export function bringForward(items: BoardItem[], ids: Set<string>): BoardItem[] {
+  const out = [...items]
+  for (let i = out.length - 2; i >= 0; i--) {
+    if (ids.has(out[i].id) && !ids.has(out[i + 1].id)) [out[i], out[i + 1]] = [out[i + 1], out[i]]
+  }
+  return out
+}
+
+/** Recule d'un cran : chaque élément choisi passe derrière celui qu'il recouvrait. */
+export function sendBackward(items: BoardItem[], ids: Set<string>): BoardItem[] {
+  const out = [...items]
+  for (let i = 1; i < out.length; i++) {
+    if (ids.has(out[i].id) && !ids.has(out[i - 1].id)) [out[i - 1], out[i]] = [out[i], out[i - 1]]
+  }
+  return out
+}
+
 // ───────────────────────── Nouveaux éléments ─────────────────────────
 
 /** Taille d'une image à l'import : elle tient dans un carré de `max` unités, proportions conservées. */
@@ -352,9 +419,12 @@ export const makeLink = (at: { x: number; y: number }, url: string, title = ''):
   id: newId(), kind: 'link', x: at.x, y: at.y, w: 260, h: 64, url, text: title || url,
 })
 
-/** Texte libre posé sur la toile (sans fond) ; sa couleur est celle du fond de la toile tant qu'on n'en choisit pas. */
-export const makeText = (at: { x: number; y: number }, text = ''): BoardItem => ({
-  id: newId(), kind: 'text', x: at.x, y: at.y, w: 260, h: 56, text, size: 32,
+/**
+ * Texte libre posé sur la toile (sans fond) ; sa couleur est celle du fond de la toile tant qu'on n'en choisit pas.
+ * Par défaut un texte de point (un clic) ; avec `area`, une zone de texte de cette largeur (un glisser). La taille réelle de la boîte est refaite par `fitText`.
+ */
+export const makeText = (at: { x: number; y: number }, text = '', area: { w: number } | null = null): BoardItem => ({
+  id: newId(), kind: 'text', x: at.x, y: at.y, w: area?.w ?? 40, h: 44, text, size: 32, auto: area === null,
 })
 
 export const SHAPE_COLOR = '#4da3ff'

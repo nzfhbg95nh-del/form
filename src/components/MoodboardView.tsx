@@ -1,18 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, StickyNote, Droplet } from 'lucide-react'
+import { Expand, ImagePlus, LayoutGrid, Link2, Palette as PaletteIcon, Pin, PinOff, PictureInPicture2, Plus, StickyNote, Droplet, Type as TypeIcon, AlignLeft, AlignCenter, AlignRight, Bold, Italic, Hand, MousePointer2 } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, arrowHead, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  alignItems, arrangeColumn, arrowHead, bringForward, handlePoint, HANDLES, isCorner, resizeScale, sendBackward, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeShape, makeSwatch, makeText, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPE_COLOR, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
-  type AlignMode, type Board, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
+  type AlignMode, type Board, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
+import { cssFont, FONTS, fitText, isPointText, measureTextBox, scaleTexts, textStyleOf, TEXT_PAD, type Measure } from '@/lib/boardText'
 import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
 import { loadSaverSettings } from '@/biblio/lib/saver.ts'
 import { useApp } from '@/store/app'
@@ -30,10 +31,10 @@ type Pt = { x: number; y: number }
 type Drag =
   | { type: 'pan'; start: Pt; view: View }
   | { type: 'move'; start: Pt; ids: Set<string>; items: BoardItem[] }
-  | { type: 'resize'; anchor: Pt; startPt: Pt; ids: Set<string>; items: BoardItem[]; free: boolean }
+  | { type: 'resize'; handle: Handle; box: Rect; uniform: boolean; ids: Set<string>; items: BoardItem[] }
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
+  | { type: 'text'; start: Pt; end: Pt }
 
-const HANDLES = ['nw', 'ne', 'sw', 'se'] as const
 /** Couleurs proposées pour les formes et les textes. */
 const SHAPE_PALETTE = [SHAPE_COLOR, '#ff5c5c', '#ffd43b', '#51cf66', '#ffffff', '#111111']
 const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
@@ -65,6 +66,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [palette, setPalette] = useState<string[]>([])
   const [linkInput, setLinkInput] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  // Outil actif : la flèche (sélection) ou le texte (touche T) ; et le texte en cours de frappe.
+  const [tool, setTool] = useState<'select' | 'text' | 'hand'>('select')
+  const [draft, setDraft] = useState('')
   // Où poser ce qu'on ajoute depuis le menu « Ajouter » (le point du clic droit), pour les fenêtres de choix qui s'ouvrent ensuite.
   const fileAt = useRef<Pt | null>(null)
   const colorAt = useRef<Pt | null>(null)
@@ -211,12 +215,46 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!text) setEditing(note.id)
   }, [commitItems])
 
-  const addText = useCallback((at: Pt) => {
-    const t = makeText({ x: at.x - 130, y: at.y - 28 })
+  // Largeur d'un texte à l'écran (même police que le dessin) : sert à ajuster la boîte d'un texte de point, et le retour à la ligne d'une zone de texte.
+  const measureCtx = useRef<CanvasRenderingContext2D | null>(null)
+  const measureFor = useCallback((it: BoardItem): Measure => {
+    if (!measureCtx.current) measureCtx.current = document.createElement('canvas').getContext('2d')
+    const ctx = measureCtx.current
+    const st = textStyleOf(it)
+    return (text) => {
+      if (!ctx) return text.length * st.size * 0.55
+      ctx.font = cssFont(st)
+      return ctx.measureText(text).width + st.ls * st.size * text.length
+    }
+  }, [])
+  const fit = useCallback((it: BoardItem) => fitText(it, measureFor(it)), [measureFor])
+
+  /** Un texte de point à cet endroit (un clic) ou une zone de texte (un glisser), puis on tape tout de suite. */
+  const addText = useCallback((at: Pt, area: { w: number } | null = null) => {
+    const t = fit(makeText(at, '', area))
     commitItems([...itemsRef.current, t])
     setSelection(new Set([t.id]))
+    setDraft('')
     setEditing(t.id)
-  }, [commitItems])
+  }, [commitItems, fit])
+
+  /** Fin de la frappe : un texte resté vide disparaît ; sinon sa boîte est refaite à la bonne taille. */
+  const finishText = (id: string, value: string) => {
+    setEditing(null)
+    if (!itemsRef.current.some((i) => i.id === id)) return
+    if (value.trim() === '') {
+      commitItems(itemsRef.current.filter((i) => i.id !== id))
+      setSelection(new Set())
+      return
+    }
+    commitItems(itemsRef.current.map((i) => (i.id === id ? fit({ ...i, text: value }) : i)))
+  }
+
+  /** Change le style (police, taille, gras…) des textes sélectionnés. */
+  const setTextProps = (patch: Partial<BoardItem>) => {
+    if (selRef.current.size === 0) return
+    commitItems(itemsRef.current.map((it) => (selRef.current.has(it.id) && it.kind === 'text' ? fit({ ...it, ...patch }) : it)))
+  }
 
   const addShape = useCallback((at: Pt, kind: ShapeKind) => {
     const sh = makeShape(at, kind)
@@ -337,7 +375,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const pt = local(e)
     const v = viewRef.current
 
-    if (e.button === 1 || (e.button === 0 && (spaceDown || e.altKey))) {
+    if (e.button === 1 || (e.button === 0 && (spaceDown || tool === 'hand'))) {
       e.preventDefault()
       dragRef.current = { type: 'pan', start: pt, view: v }
       setPanning(true)
@@ -348,13 +386,27 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
     const world = screenToWorld(v, pt)
     const cur = itemsRef.current
-    const handle = target.dataset.handle
+    const handle = target.dataset.handle as Handle | undefined
     if (handle && selBox) {
-      const box = selBox
-      const anchor = { x: handle.includes('w') ? box.x + box.w : box.x, y: handle.includes('n') ? box.y + box.h : box.y }
       const single = cur.filter((i) => selRef.current.has(i.id))
-      const free = single.length === 1 && single[0].kind !== 'image'
-      dragRef.current = { type: 'resize', anchor, startPt: world, ids: new Set(selRef.current), items: cur, free }
+      // Un texte de point grandit toujours avec ses lettres (proportions gardées) ; Maj garde les proportions des autres.
+      const uniform = single.length === 1 && isPointText(single[0])
+      dragRef.current = { type: 'resize', handle, box: selBox, uniform, ids: new Set(selRef.current), items: cur }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      return
+    }
+
+    if (tool === 'text') {
+      const hit = target.closest('[data-item]') as HTMLElement | null
+      const onText = hit ? cur.find((i) => i.id === hit.dataset.item && i.kind === 'text') : undefined
+      if (onText) {
+        setSelection(new Set([onText.id]))
+        setDraft(onText.text ?? '')
+        setEditing(onText.id)
+        return
+      }
+      setSelection(new Set())
+      dragRef.current = { type: 'text', start: world, end: world }
       e.currentTarget.setPointerCapture(e.pointerId)
       return
     }
@@ -373,7 +425,17 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       }
       setSelection(sel)
       if (sel.has(id)) {
-        dragRef.current = { type: 'move', start: world, ids: sel, items: cur }
+        let from = cur
+        let moving = sel
+        // Alt + glisser : on déplace une copie (comme dans Illustrator).
+        if (e.altKey) {
+          const copy = duplicateItems(cur, sel, 0)
+          commitItems(copy.items)
+          from = copy.items
+          moving = copy.newIds
+          setSelection(copy.newIds)
+        }
+        dragRef.current = { type: 'move', start: world, ids: moving, items: from }
         e.currentTarget.setPointerCapture(e.pointerId)
       }
       return
@@ -396,21 +458,17 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (d.type === 'pan') {
       setView({ ...d.view, x: d.view.x + pt.x - d.start.x, y: d.view.y + pt.y - d.start.y })
     } else if (d.type === 'move') {
-      const dx = world.x - d.start.x
-      const dy = world.y - d.start.y
+      let dx = world.x - d.start.x
+      let dy = world.y - d.start.y
+      // Maj : le déplacement reste horizontal ou vertical.
+      if (e.shiftKey) { if (Math.abs(dx) > Math.abs(dy)) dy = 0; else dx = 0 }
       if (live || Math.hypot(dx, dy) * v.zoom > 3) setLive(moveItems(d.items, d.ids, dx, dy))
     } else if (d.type === 'resize') {
-      const sx = d.startPt.x - d.anchor.x
-      const sy = d.startPt.y - d.anchor.y
-      if (d.free) {
-        const fx = Math.max(0.05, (world.x - d.anchor.x) / (sx || 1))
-        const fy = Math.max(0.05, (world.y - d.anchor.y) / (sy || 1))
-        setLive(scaleItems(d.items, d.ids, d.anchor, fx, fy))
-      } else {
-        const dot = (world.x - d.anchor.x) * sx + (world.y - d.anchor.y) * sy
-        const f = Math.max(0.05, dot / (sx * sx + sy * sy || 1))
-        setLive(scaleItems(d.items, d.ids, d.anchor, f, f))
-      }
+      const { anchor, fx, fy } = resizeScale(d.box, d.handle, world, { alt: e.altKey, uniform: d.uniform || e.shiftKey })
+      setLive(scaleTexts(scaleItems(d.items, d.ids, anchor, fx, fy), d.items, d.ids, fx, fy))
+    } else if (d.type === 'text') {
+      d.end = world
+      setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
     } else if (d.type === 'marquee') {
       const rect = normalizeRect(d.start, world)
       const hit = expandGroups(d.items, itemsInRect(d.items, rect))
@@ -422,7 +480,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const endDrag = (e?: React.PointerEvent<HTMLDivElement>) => {
     const d = dragRef.current
     if (!d) return
-    if ((d.type === 'move' || d.type === 'resize') && live) commitItems(live)
+    if (d.type === 'text') {
+      const rect = normalizeRect(d.start, d.end)
+      const zoomNow = viewRef.current.zoom
+      if (rect.w * zoomNow > 6 || rect.h * zoomNow > 6) addText({ x: rect.x, y: rect.y }, { w: Math.max(40, rect.w) })
+      else addText(d.start)
+    }
+    if ((d.type === 'move' || d.type === 'resize') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
     setLive(null)
     setMarquee(null)
     setPanning(false)
@@ -440,7 +504,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!el) { addNote({ x: world.x - 110, y: world.y - 70 }); return }
     const it = itemsRef.current.find((i) => i.id === el.dataset.item)
     if (!it) return
-    if (it.kind === 'note' || it.kind === 'text') setEditing(it.id)
+    if (it.kind === 'text') { setDraft(it.text ?? ''); setEditing(it.id) }
+    else if (it.kind === 'note') setEditing(it.id)
     else if (it.kind === 'link' && it.url) {
       void (isTauri() ? import('@tauri-apps/plugin-opener').then((m) => m.openUrl(it.url as string)) : Promise.resolve(window.open(it.url, '_blank')))
     } else if (it.kind === 'color' && it.color) {
@@ -465,6 +530,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     ungroup: () => withSelection(ungroupItems),
     front: () => withSelection(bringToFront),
     back: () => withSelection(sendToBack),
+    forward: () => withSelection(bringForward),
+    backward: () => withSelection(sendBackward),
     flip: (axis: 'x' | 'y') => withSelection((i, s) => flipItems(i, s, axis)),
     flow: () => withSelection((i, s) => arrangeFlow(i, s)),
     row: () => withSelection((i, s) => arrangeRow(i, s)),
@@ -492,7 +559,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     const tag = (e.target as HTMLElement).tagName
-    if (tag === 'TEXTAREA' || tag === 'INPUT') {
+    if (tag === 'TEXTAREA' || tag === 'INPUT' || tag === 'SELECT') {
       if (e.key === 'Escape') (e.target as HTMLElement).blur()
       return
     }
@@ -512,7 +579,12 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else if (mod && key === '0') setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))
     else if (!mod && key === 'f') fitTo(selRef.current.size > 0 ? itemsRef.current.filter((i) => selRef.current.has(i.id)) : itemsRef.current)
     else if (e.key === 'Home') fitTo(itemsRef.current)
-    else if (e.key === 'Escape') { setSelection(new Set()); setMenu(null); setEditing(null) }
+    else if (mod && (key === ']' || e.code === 'BracketRight')) (e.shiftKey ? act.front() : act.forward())
+    else if (mod && (key === '[' || e.code === 'BracketLeft')) (e.shiftKey ? act.back() : act.backward())
+    else if (!mod && key === 't') setTool('text')
+    else if (!mod && key === 'h') setTool('hand')
+    else if (!mod && key === 'v') setTool('select')
+    else if (e.key === 'Escape') { setSelection(new Set()); setMenu(null); setEditing(null); setTool('select') }
     else if (e.key.startsWith('Arrow') && selRef.current.size > 0) {
       const step = e.shiftKey ? 10 : 1
       const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0
@@ -606,20 +678,33 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )
     }
     if (it.kind === 'text') {
-      const color = it.color ?? textColor
-      const common: React.CSSProperties = { width: '100%', height: '100%', padding: 4, fontSize: it.size ?? 32, lineHeight: 1.2, fontWeight: 600, color, fontFamily: 'inherit', boxSizing: 'border-box' }
-      return (
-        <div key={it.id} data-item={it.id} style={{ ...base, overflow: 'hidden' }}>
-          {editing === it.id ? (
+      const st = textStyleOf(it)
+      const point = isPointText(it)
+      const common: React.CSSProperties = {
+        fontFamily: `"${st.font}", sans-serif`, fontSize: st.size, fontWeight: st.bold ? 700 : 400, fontStyle: st.italic ? 'italic' : 'normal',
+        lineHeight: st.lh, letterSpacing: `${st.ls}em`, textAlign: it.align ?? 'left', color: it.color ?? textColor, padding: TEXT_PAD, margin: 0,
+        whiteSpace: point ? 'pre' : 'pre-wrap', overflowWrap: point ? 'normal' : 'anywhere', boxSizing: 'border-box', width: '100%', height: '100%',
+      }
+      if (editing === it.id) {
+        // En tapant, la boîte suit le texte : un texte de point s'allonge, une zone de texte grandit vers le bas.
+        const box = measureTextBox({ ...it, text: draft }, measureFor(it))
+        return (
+          <div key={it.id} data-item={it.id} style={{ ...base, width: box.w, height: box.h, outline: `${1.5 / zoom}px dashed #4da3ff` }}>
             <textarea
               autoFocus
-              defaultValue={it.text}
-              onBlur={(e) => { commitItems(itemsRef.current.map((i) => (i.id === it.id ? { ...i, text: e.target.value } : i))); setEditing(null) }}
-              style={{ ...common, resize: 'none', border: 0, outline: 0, background: 'transparent' }}
+              value={draft}
+              wrap={point ? 'off' : 'soft'}
+              onChange={(e) => setDraft(e.target.value)}
+              onFocus={(e) => e.currentTarget.setSelectionRange(e.currentTarget.value.length, e.currentTarget.value.length)}
+              onBlur={() => finishText(it.id, draft)}
+              style={{ ...common, resize: 'none', border: 0, outline: 0, background: 'transparent', overflow: 'hidden', display: 'block' }}
             />
-          ) : (
-            <div style={{ ...common, whiteSpace: 'pre-wrap', overflow: 'hidden', pointerEvents: 'none' }}>{it.text || <span style={{ opacity: 0.4 }}>Texte…</span>}</div>
-          )}
+          </div>
+        )
+      }
+      return (
+        <div key={it.id} data-item={it.id} style={base}>
+          <div style={{ ...common, pointerEvents: 'none', overflow: 'visible' }}>{it.text || <span style={{ opacity: 0.4 }}>Texte…</span>}</div>
         </div>
       )
     }
@@ -666,7 +751,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const hasSel = selection.size > 0
   const selNotes = selected.some((i) => i.kind === 'note')
   const selShapes = selected.some((i) => i.kind === 'shape')
-  const selTexts = selected.some((i) => i.kind === 'text')
+  const textSel = selected.filter((i) => i.kind === 'text')
   const selGrouped = selected.some((i) => i.group)
 
   const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
@@ -685,7 +770,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ref={containerRef}
       tabIndex={0}
       className="relative h-full w-full select-none overflow-hidden outline-none"
-      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown ? 'grab' : 'default', touchAction: 'none' }}
+      style={{ backgroundColor: bgColor, ...patternStyle, cursor: panning ? 'grabbing' : spaceDown || tool === 'hand' ? 'grab' : tool === 'text' ? 'text' : 'default', touchAction: 'none' }}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
@@ -702,17 +787,20 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         {selBox && !marquee && !editing && (
           <>
             <div style={{ position: 'absolute', left: selBox.x, top: selBox.y, width: selBox.w, height: selBox.h, outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }} />
-            {HANDLES.map((h) => (
-              <div
-                key={h}
-                data-handle={h}
-                style={{
-                  position: 'absolute', width: hs, height: hs, background: '#fff', border: `${1.5 / zoom}px solid #4da3ff`,
-                  left: (h.includes('w') ? selBox.x : selBox.x + selBox.w) - hs / 2, top: (h.includes('n') ? selBox.y : selBox.y + selBox.h) - hs / 2,
-                  cursor: h === 'nw' || h === 'se' ? 'nwse-resize' : 'nesw-resize',
-                }}
-              />
-            ))}
+            {HANDLES.filter((h) => isCorner(h) || !(selected.length === 1 && isPointText(selected[0]))).map((h) => {
+              const at = handlePoint(selBox, h)
+              return (
+                <div
+                  key={h}
+                  data-handle={h}
+                  style={{
+                    position: 'absolute', width: hs, height: hs, background: '#fff', border: `${1.5 / zoom}px solid #4da3ff`,
+                    left: at.x - hs / 2, top: at.y - hs / 2,
+                    cursor: h === 'n' || h === 's' ? 'ns-resize' : h === 'e' || h === 'w' ? 'ew-resize' : h === 'nw' || h === 'se' ? 'nwse-resize' : 'nesw-resize',
+                  }}
+                />
+              )
+            })}
           </>
         )}
       </div>
@@ -755,7 +843,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
 
       {linkInput !== null && (
-        <div data-ui className="absolute left-3 top-14 flex max-w-[24rem] flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
+        <div data-ui className="absolute left-14 top-14 flex max-w-[24rem] flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
           <input
             autoFocus
             value={linkInput}
@@ -778,9 +866,54 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )}
 
       {importing && (
-        <div data-ui className="absolute left-3 top-14 z-40 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-md">
+        <div data-ui className="absolute left-14 top-14 z-40 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-md">
           Téléchargement en cours…
           <button className={bar} onClick={() => void invoke('saver_stop')}>Arrêter</button>
+        </div>
+      )}
+
+      {!compact && textSel.length > 0 && selBox && !marquee && !live && (() => {
+        const first = textSel[0]
+        const st = textStyleOf(first)
+        const tl = worldToScreen(view, { x: selBox.x, y: selBox.y })
+        const field = 'rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
+        const toggle = (on: boolean) => bar + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        return (
+          <div
+            data-ui
+            className="absolute z-40 flex max-w-[34rem] flex-wrap items-center gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1.5 text-xs text-[var(--fg)] shadow-md"
+            style={{ left: Math.max(8, Math.min(tl.x, size.w - 420)), top: Math.max(48, tl.y - 46) }}
+          >
+            <select className={field + ' w-32'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
+              {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
+            </select>
+            <input className={field + ' w-14'} type="number" min={6} max={600} value={Math.round(st.size)} onChange={(e) => setTextProps({ size: Math.min(600, Math.max(6, Number(e.target.value) || 6)) })} aria-label="Taille des lettres" title="Taille des lettres" />
+            <button className={toggle(st.bold)} onClick={() => setTextProps({ bold: !st.bold })} title="Gras" aria-pressed={st.bold}><Bold size={13} /></button>
+            <button className={toggle(st.italic)} onClick={() => setTextProps({ italic: !st.italic })} title="Italique" aria-pressed={st.italic}><Italic size={13} /></button>
+            <button className={toggle((first.align ?? 'left') === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
+            <button className={toggle(first.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
+            <button className={toggle(first.align === 'right')} onClick={() => setTextProps({ align: 'right' })} title="Aligné à droite"><AlignRight size={13} /></button>
+            <input type="color" className="h-6 w-7 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} title="Couleur du texte" aria-label="Couleur du texte" />
+            <label className="flex items-center gap-1" title="Interlignage">↕<input className={field + ' w-12'} type="number" step={0.1} min={0.6} max={3} value={st.lh} onChange={(e) => setTextProps({ lh: Math.min(3, Math.max(0.6, Number(e.target.value) || 1.2)) })} aria-label="Interlignage" /></label>
+            <label className="flex items-center gap-1" title="Espacement des lettres">↔<input className={field + ' w-14'} type="number" step={0.01} min={-0.2} max={1} value={st.ls} onChange={(e) => setTextProps({ ls: Math.min(1, Math.max(-0.2, Number(e.target.value) || 0)) })} aria-label="Espacement des lettres" /></label>
+          </div>
+        )
+      })()}
+
+      {!compact && (
+        <div data-ui className="absolute left-3 top-14 z-30 flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-sm">
+          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => (
+            <button
+              key={id}
+              title={label}
+              aria-label={label}
+              aria-pressed={tool === id}
+              onClick={() => setTool(id)}
+              className={'flex h-8 w-8 items-center justify-center rounded ' + (tool === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
         </div>
       )}
 
@@ -869,25 +1002,21 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                     <MenuBtn label="Dupliquer" hint="Ctrl+D" onClick={act.duplicate} />
                     <MenuBtn label="Retourner (gauche-droite)" onClick={() => act.flip('x')} />
                     <MenuBtn label="Retourner (haut-bas)" onClick={() => act.flip('y')} />
-                    <MenuBtn label="Mettre au premier plan" onClick={act.front} />
-                    <MenuBtn label="Mettre à l'arrière-plan" onClick={act.back} />
+                    <MenuBtn label="Avancer d'un cran" hint="Ctrl+]" onClick={act.forward} />
+                    <MenuBtn label="Reculer d'un cran" hint="Ctrl+[" onClick={act.backward} />
+                    <MenuBtn label="Mettre au premier plan" hint="Ctrl+Maj+]" onClick={act.front} />
+                    <MenuBtn label="Mettre à l'arrière-plan" hint="Ctrl+Maj+[" onClick={act.back} />
                     {selection.size > 1 && !selGrouped && <MenuBtn label="Grouper" hint="Ctrl+G" onClick={act.group} />}
                     {selGrouped && <MenuBtn label="Dissocier" hint="Ctrl+Maj+G" onClick={act.ungroup} />}
-                    {(selShapes || selTexts) && (
+                    {selShapes && (
                       <>
-                        <MenuHead>{selShapes ? 'Couleur de la forme' : 'Couleur du texte'}</MenuHead>
+                        <MenuHead>Couleur de la forme</MenuHead>
                         <div className="flex gap-2 px-2 py-1">{SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeColor(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}</div>
                         {selShapes && (
                           <>
                             <MenuBtn label="Remplie / contour seulement" onClick={act.toggleFill} />
                             <MenuBtn label="Trait plus épais" onClick={() => act.stroke(2)} />
                             <MenuBtn label="Trait plus fin" onClick={() => act.stroke(-2)} />
-                          </>
-                        )}
-                        {selTexts && (
-                          <>
-                            <MenuBtn label="Lettres plus grandes" onClick={() => act.fontSize(1.25)} />
-                            <MenuBtn label="Lettres plus petites" onClick={() => act.fontSize(0.8)} />
                           </>
                         )}
                       </>

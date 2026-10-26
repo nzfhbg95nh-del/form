@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { classifyLink, imageTypeOf, importMessage } from './boardImport'
-import { arrowHead, makeShape, makeText } from './moodboard'
+import { arrowHead, bringForward, handlePoint, makeShape, makeText, resizeScale, sendBackward, type BoardItem } from './moodboard'
 
 describe('classifyLink', () => {
   it('reconnaît un tableau Pinterest, avec ou sans suite de paramètres', () => {
@@ -59,5 +59,53 @@ describe('nouveaux éléments de la toile', () => {
     expect(head[1][0]).toBeLessThan(100)
     expect(head[2][0]).toBeLessThan(100)
     expect(head[1][1]).toBeCloseTo(-head[2][1], 5)
+  })
+})
+
+const box = { x: 0, y: 0, w: 100, h: 50 }
+const mk = (id: string): BoardItem => ({ id, kind: 'note', x: 0, y: 0, w: 10, h: 10 })
+
+describe('poignées', () => {
+  it('huit poignées : coins et milieux des côtés', () => {
+    expect(handlePoint(box, 'nw')).toEqual({ x: 0, y: 0 })
+    expect(handlePoint(box, 'se')).toEqual({ x: 100, y: 50 })
+    expect(handlePoint(box, 'n')).toEqual({ x: 50, y: 0 })
+    expect(handlePoint(box, 'e')).toEqual({ x: 100, y: 25 })
+  })
+  it('un coin agrandit dans les deux sens autour du coin opposé', () => {
+    expect(resizeScale(box, 'se', { x: 200, y: 75 })).toEqual({ anchor: { x: 0, y: 0 }, fx: 2, fy: 1.5 })
+  })
+  it('un côté agrandit dans un seul sens', () => {
+    const r = resizeScale(box, 'e', { x: 150, y: 999 })
+    expect(r).toEqual({ anchor: { x: 0, y: 25 }, fx: 1.5, fy: 1 })
+    expect(resizeScale(box, 'n', { x: 999, y: -50 })).toMatchObject({ fx: 1, fy: 2, anchor: { x: 50, y: 50 } })
+  })
+  it('Alt agrandit depuis le centre', () => {
+    expect(resizeScale(box, 'se', { x: 150, y: 75 }, { alt: true })).toEqual({ anchor: { x: 50, y: 25 }, fx: 2, fy: 2 })
+  })
+  it('Maj garde les proportions (coin et côté)', () => {
+    const corner = resizeScale(box, 'se', { x: 200, y: 50 }, { uniform: true })
+    expect(corner.fx).toBeCloseTo(corner.fy, 10)
+    const side = resizeScale(box, 'e', { x: 200, y: 0 }, { uniform: true })
+    expect(side.fx).toBe(2)
+    expect(side.fy).toBe(2)
+  })
+  it('on ne retourne jamais l\'élément', () => {
+    expect(resizeScale(box, 'e', { x: -500, y: 0 }).fx).toBe(0.05)
+  })
+})
+
+describe('ordre des éléments', () => {
+  const ids = (list: BoardItem[]) => list.map((i) => i.id).join('')
+  const abcd = [mk('a'), mk('b'), mk('c'), mk('d')]
+  it('avance d\'un cran, ensemble, sans toucher à ce qui est déjà devant', () => {
+    expect(ids(bringForward(abcd, new Set(['a'])))).toBe('bacd')
+    expect(ids(bringForward(abcd, new Set(['a', 'b'])))).toBe('cabd')
+    expect(ids(bringForward(abcd, new Set(['d'])))).toBe('abcd')
+  })
+  it('recule d\'un cran', () => {
+    expect(ids(sendBackward(abcd, new Set(['d'])))).toBe('abdc')
+    expect(ids(sendBackward(abcd, new Set(['c', 'd'])))).toBe('acdb')
+    expect(ids(sendBackward(abcd, new Set(['a'])))).toBe('abcd')
   })
 })
