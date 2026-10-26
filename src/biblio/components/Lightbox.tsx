@@ -90,9 +90,9 @@ function LightboxContent() {
   const fallbackThumb = file?.thumb ? fileUrl(thumbPath(thumbsDir, file.thumb)) : null
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Détail">
-      <button className="btn fixed left-3 top-3 z-20" onClick={() => open(null)} aria-label="Fermer"><X size={16} /></button>
-      <div className="flex h-screen min-h-[520px] w-full overflow-hidden">
+    <div className="absolute inset-0 z-40 overflow-y-auto" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Détail">
+      <button className="btn absolute left-3 top-3 z-20" onClick={() => open(null)} aria-label="Fermer" title="Fermer (Échap)"><X size={16} /></button>
+      <div className="flex h-full min-h-[520px] w-full overflow-hidden">
         <div className="relative flex min-w-0 flex-1 flex-col">
         {pos > 0 && (
           <button className="btn absolute left-3 top-1/2 z-10 -translate-y-1/2" onClick={() => swipe(-1)} aria-label="Image précédente du carrousel"><ChevronLeft size={18} /></button>

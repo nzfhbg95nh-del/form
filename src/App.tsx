@@ -189,7 +189,7 @@ export default function App() {
         {backupMessage && (
           <div className="bg-[var(--bg-side)] px-4 py-1 text-center text-xs text-[var(--fg-muted)]">{backupMessage}</div>
         )}
-        <div className="flex min-h-0 flex-1">
+        <div className="relative flex min-h-0 flex-1">
           <main className="relative min-w-0 flex-1 overflow-y-auto">
             {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : selected?.type === 'moodboard' ? <MoodboardView key={`${selected.id}:${boardReloads[selected.id] ?? 0}`} board={selected} /> : <PageView />)}
             {view === 'home' && <HomeView />}
@@ -204,9 +204,10 @@ export default function App() {
             {libraryOpened && <div className="h-full" hidden={view !== 'library'}><LibraryPage active={view === 'library'} /></div>}
           </main>
           {peekId && <PeekPanel key={peekId} id={peekId} />}
+          {/* La vue détail d'une image reste dans la zone de contenu : la barre latérale et les onglets (précédent / suivant) restent accessibles. */}
+          <LibraryOverlays />
         </div>
       </div>
-      <LibraryOverlays />
       {movingId && <MovePicker key={movingId} id={movingId} />}
       {assistantMode && <AssistantModal initialMode={assistantMode} onClose={() => setAssistant(null)} />}
       {searchOpen && <SearchPalette />}
