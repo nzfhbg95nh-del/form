@@ -64,10 +64,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [palette, setPalette] = useState<string[]>([])
   const [linkInput, setLinkInput] = useState<string | null>(null)
-  const [importUrl, setImportUrl] = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
   // Où poser ce qu'on ajoute depuis le menu « Ajouter » (le point du clic droit), pour les fenêtres de choix qui s'ouvrent ensuite.
-  const importAt = useRef<Pt | null>(null)
   const fileAt = useRef<Pt | null>(null)
   const colorAt = useRef<Pt | null>(null)
   const linkAt = useRef<Pt | null>(null)
@@ -234,7 +232,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const saved = (await loadSaverSettings().catch(() => null))?.settings
     const cookies = info.site === 'instagram' ? saved?.igCookies : saved?.pinCookies
     if (info.site === 'instagram' && !cookies) { say("Pour Instagram, choisis d'abord ton fichier cookies dans les paramètres de la bibliothèque (Télécharger mes enregistrements)."); return }
-    setImportUrl(null)
     setImporting(true)
     say('Téléchargement des images…')
     const off = await listen<{ count: number }>('linkimport-count', (e) => say(`${e.payload.count} image${e.payload.count > 1 ? 's' : ''} reçue${e.payload.count > 1 ? 's' : ''}…`))
@@ -263,6 +260,19 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }
   }
 
+  /** Un lien : celui d'un tableau Pinterest, d'une épingle ou d'un post Instagram télécharge ses images ; un autre lien devient une carte « lien ». */
+  const addLink = (text: string, at: Pt) => {
+    if (classifyLink(text).info) {
+      void runImport(text, at)
+      return
+    }
+    const l = makeLink({ x: at.x - 130, y: at.y - 32 }, text.trim())
+    commitItems([...itemsRef.current, l])
+    setSelection(new Set([l.id]))
+  }
+  const addLinkRef = useRef(addLink)
+  addLinkRef.current = addLink
+
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
       const a = document.activeElement as HTMLElement | null
@@ -281,9 +291,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         setSelection(newIds)
       } else if (looksLikeUrl(text)) {
         e.preventDefault()
-        const link = makeLink({ x: center.x - 130, y: center.y - 32 }, text.trim())
-        commitItems([...itemsRef.current, link])
-        setSelection(new Set([link.id]))
+        addLinkRef.current(text, center)
       } else if (text.trim()) {
         e.preventDefault()
         addNote({ x: center.x - 110, y: center.y - 70 }, text.trim())
@@ -731,7 +739,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()}><ImagePlus size={14} className="mr-1 inline" />Images</button>
         <button className={bar} title="Nouvelle note" onClick={() => { const c = viewCenter(); addNote({ x: c.x - 110, y: c.y - 70 }) }}><StickyNote size={14} className="mr-1 inline" />Note</button>
         <button className={bar} title="Nouvelle couleur" onClick={() => colorInput.current?.click()}><Droplet size={14} className="mr-1 inline" />Couleur</button>
-        <button className={bar} title="Nouveau lien" onClick={() => setLinkInput(linkInput === null ? '' : null)}><Link2 size={14} className="mr-1 inline" />Lien</button>
+        <button className={bar} title="Nouveau lien (un lien Pinterest ou Instagram ajoute ses images)" onClick={() => setLinkInput(linkInput === null ? '' : null)}><Link2 size={14} className="mr-1 inline" />Lien</button>
         <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
         <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
         <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
@@ -747,11 +755,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
 
       {linkInput !== null && (
-        <div data-ui className="absolute left-3 top-14 flex gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
+        <div data-ui className="absolute left-3 top-14 flex max-w-[24rem] flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
           <input
             autoFocus
             value={linkInput}
-            placeholder="https://…"
+            placeholder="Colle un lien (https://…)"
             onChange={(e) => setLinkInput(e.target.value)}
             onKeyDown={(e) => {
               e.stopPropagation()
@@ -759,37 +767,16 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               if (e.key === 'Enter' && looksLikeUrl(linkInput)) {
                 const c = linkAt.current ?? viewCenter()
                 linkAt.current = null
-                const l = makeLink({ x: c.x - 130, y: c.y - 32 }, linkInput.trim())
-                commitItems([...itemsRef.current, l]); setSelection(new Set([l.id])); setLinkInput(null)
+                addLink(linkInput, c)
+                setLinkInput(null)
               }
             }}
             className="w-72 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
           />
+          <p className="text-xs text-[var(--fg-muted)]">Un lien de <b>tableau ou d'épingle Pinterest</b>, ou de <b>post Instagram</b>, télécharge ses images et les pose sur la toile (au plus {IMPORT_LIMIT}). Un autre lien devient une carte.</p>
         </div>
       )}
 
-      {importUrl !== null && (
-        <div data-ui className="absolute left-3 top-14 z-40 w-[26rem] max-w-[90%] rounded-md border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
-          <div className="mb-1 text-sm font-medium">Ajouter les images d'un lien</div>
-          <input
-            autoFocus
-            value={importUrl}
-            placeholder="Lien d'un tableau Pinterest ou d'un post Instagram"
-            onChange={(e) => setImportUrl(e.target.value)}
-            onKeyDown={(e) => {
-              e.stopPropagation()
-              if (e.key === 'Escape') setImportUrl(null)
-              if (e.key === 'Enter') void runImport(importUrl, importAt.current ?? viewCenter())
-            }}
-            className="w-full rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
-          />
-          <p className="mt-1.5 text-xs text-[var(--fg-muted)]">Les images sont téléchargées temporairement, posées sur la toile (au plus {IMPORT_LIMIT}), puis le téléchargement est effacé. Pour Instagram, il faut ton fichier cookies (réglages de la bibliothèque).</p>
-          <div className="mt-2 flex gap-1.5">
-            <button className={bar} onClick={() => void runImport(importUrl, importAt.current ?? viewCenter())}>Ajouter</button>
-            <button className={bar} onClick={() => setImportUrl(null)}>Annuler</button>
-          </div>
-        </div>
-      )}
       {importing && (
         <div data-ui className="absolute left-3 top-14 z-40 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-md">
           Téléchargement en cours…
@@ -856,14 +843,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 {menu.add && (
                   <div className="mb-1 ml-3 border-l border-[var(--border)] pl-1">
                     <MenuBtn label="Image…" onClick={() => { fileAt.current = menu.world; fileInput.current?.click() }} />
-                    <MenuBtn label="Depuis un lien Pinterest / Instagram…" onClick={() => { importAt.current = menu.world; setImportUrl('') }} />
                     <MenuBtn label="Texte" onClick={() => addText(menu.world)} />
                     <MenuBtn label="Note" onClick={() => addNote({ x: menu.world.x - 110, y: menu.world.y - 70 })} />
                     <MenuHead>Forme</MenuHead>
                     {SHAPES.map((sh) => <MenuBtn key={sh.id} label={sh.label} onClick={() => addShape(menu.world, sh.id)} />)}
                     <MenuHead>Autres</MenuHead>
                     <MenuBtn label="Couleur…" onClick={() => { colorAt.current = menu.world; colorInput.current?.click() }} />
-                    <MenuBtn label="Lien (adresse)…" onClick={() => { linkAt.current = menu.world; setLinkInput('') }} />
+                    <MenuBtn label="Lien (Pinterest, Instagram, autre)…" onClick={() => { linkAt.current = menu.world; setLinkInput('') }} />
                   </div>
                 )}
                 <div className="my-1 border-t border-[var(--border)]" />
