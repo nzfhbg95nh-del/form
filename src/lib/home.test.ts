@@ -68,6 +68,11 @@ describe('widgets de la page d’accueil', () => {
     expect(favoritePages(objects).map((o) => o.id)).toEqual(['neuve'])
   })
 
+  it('les moodboards ne figurent pas parmi les pages récentes', () => {
+    const objects = [obj('page'), obj('board', { type: 'moodboard', updated_at: '2026-10-09T00:00:00Z' })]
+    expect(recentPages(objects, 5).map((o) => o.id)).toEqual(['page'])
+  })
+
   it('liste les lignes d’une base, les plus récentes d’abord', () => {
     const objects = [
       obj('l1', { type: 'row', parent_id: 'db', updated_at: '2026-10-01T00:00:00Z' }),

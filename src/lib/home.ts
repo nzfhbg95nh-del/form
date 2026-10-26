@@ -93,7 +93,8 @@ const isPageLike = (o: ObjectRow) =>
   (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !o.deleted_at && !isSystemDatabase(o)
 
 export function recentPages(objects: ObjectRow[], count = 6): ObjectRow[] {
-  return objects.filter(isPageLike).sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, count)
+  // Les moodboards vivent dans Bibliothèque > Moodboards : ils ne s'affichent pas parmi les pages récentes.
+  return objects.filter((o) => isPageLike(o) && o.type !== 'moodboard').sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, count)
 }
 
 export const favoritePages = (objects: ObjectRow[]): ObjectRow[] =>

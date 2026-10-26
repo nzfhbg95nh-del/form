@@ -269,7 +269,7 @@ export function Sidebar() {
   const recipesDb = objects.find((o) => o.type === 'database' && !o.deleted_at && parseSchema(o.properties).kind === 'recipes')
   const favorites = live.filter((o) => o.is_favorite)
   const pinnedList = pinnedPages(pinned, live)
-  const recents = [...live].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
+  const recents = live.filter((o) => o.type !== 'moodboard').sort((a, b) => b.updated_at.localeCompare(a.updated_at)).slice(0, 5)
   const openMenu: OpenMenu = (id, x, y) => setMenu({ id, x, y })
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>(() => {
     try { return JSON.parse(localStorage.getItem('form-sidebar-collapsed') ?? '{}') } catch { return {} }
