@@ -728,3 +728,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Pendant le tracé : Maj garde un angle de 45°, Espace déplace le point qu'on est en train de poser, Ctrl+clic ailleurs termine le tracé.
 - Le cadre de sélection disparaît pendant l'édition des points. Un tracé modifié perd sa rotation « cuite » dans ses points (même forme à l'écran).
 - Tests : logique de modification dans `boardPathEdit.test.ts`. Pas vérifié à l'écran (la fenêtre d'Illustrator reprenait le premier plan pendant mes essais).
+
+## 2026-10-26 — Outils de tracé : ajouter/supprimer/convertir un point, Crayon, Lisseur, Gomme de tracé, Jonction (après la v0.47.2, pas encore publié)
+- La Plume reste active après un tracé (Ctrl/Alt servent tout de suite) ; trait fin sans remplissage par défaut (noir sur fond clair, blanc sur fond sombre) : plus de « saut » à la fermeture. Échap termine le tracé en le laissant ouvert.
+- Groupe Plume (appui long sur le bouton) : Plume, Ajout de point d'ancrage (clic sur la courbe, forme conservée par subdivision de De Casteljau), Suppression de point d'ancrage, Conversion de point (Maj+C : clic = lisse/angle, glisser = poignées).
+- Groupe Crayon (N, appui long) : Crayon (geste simplifié par Douglas-Peucker puis lissé en Bézier ; un geste qui revient à son départ ferme le tracé), Lisseur (passer sur un tracé), Gomme de tracé (coupe en un ou deux morceaux, un tracé fermé s'ouvre), Jonction (glisser d'un bout de tracé à un autre, ou clic sur un bout proche d'un autre ; un même tracé dont on relie les deux bouts se ferme).
+- Logique dans `boardPathTools.ts` (+ tests). Tests : 605.
+- Pas fait : Shaper, texte sur un tracé, mise en forme d'une partie seulement d'un texte, points « symétriques » comme type à part.
