@@ -151,3 +151,10 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 
 .lib-input.border-yellow-500 { border-color: #eab308 !important; }
 .lib-input.border-red-500 { border-color: #ef4444 !important; }
+
+/* Moodboard et base de données au milieu d'une page : on y travaille avec la souris, ce n'est pas du texte. Sans ces règles, le moindre clic « sélectionne le bloc » : BlockNote pose alors un voile bleu et un cadre bleu épais par-dessus tout le moodboard. */
+.bn-block-content[data-content-type='moodboard'], .bn-block-content[data-content-type='database'] { user-select: none; -webkit-user-select: none; }
+.bn-block-content[data-content-type='moodboard'].ProseMirror-selectednode > *::after,
+.ProseMirror-selectednode > .bn-block-content[data-content-type='moodboard'] > *::after,
+.bn-block-content[data-content-type='database'].ProseMirror-selectednode > *::after,
+.ProseMirror-selectednode > .bn-block-content[data-content-type='database'] > *::after { display: none; }
