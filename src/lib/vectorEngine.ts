@@ -143,6 +143,11 @@ export class VectorSession {
     return this.enqueue(() => invoke<VcOut>('vc_paint', { style, zoom }))
   }
 
+  /** Change le style de tracés précis, sans changer celui des prochains objets (`defaults`). */
+  restyle(ids: string[], style: PaintStyle, defaults: PaintStyle, zoom: number): Promise<VcOut> {
+    return this.enqueue(() => invoke<VcOut>('vc_restyle', { ids, style, defaults, zoom }))
+  }
+
   pointer(kind: VcKind, x: number, y: number, mods: VcMods, zoom: number): Promise<VcOut | null> {
     if (kind === 'move' || kind === 'drag') {
       // Un seul déplacement en attente à la fois : le plus récent remplace les précédents.

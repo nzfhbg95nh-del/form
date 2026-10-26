@@ -66,37 +66,44 @@ export function VectorOverlay({ overlays, zoom }: { overlays: VcOverlay[]; zoom:
   )
 }
 
-/** La forme du curseur d'un outil du moteur : un curseur de l'écran, ou une petite plume avec la marque de l'action. */
+// Les curseurs : l'icône de l'outil (celle de la barre) cernée de blanc pour se voir sur toute couleur, avec une petite marque pour l'action
+// (nouveau tracé, ajout, retrait, fermeture…). Ils sont fabriqués une fois et gardés, pour ne pas clignoter quand on passe de l'un à l'autre.
+const ICONS = import.meta.glob('../assets/vc-icons/*.svg', { query: '?raw', import: 'default', eager: true }) as Record<string, string>
+const inner = (name: string) => (ICONS[`../assets/vc-icons/${name}.svg`] ?? '').replace(/<!--[\s\S]*?-->/g, '').replace(/<svg[^>]*>/, '').replace(/<\/svg>/, '')
+
+/** [icône, marque, point actif en pixels (la pointe de l'outil)] */
+const CURSORS: Record<string, [string, string, [number, number]]> = {
+  Pen: ['pen-tool', '*', [3, 3]],
+  PenDrawing: ['pen-tool', '', [3, 3]],
+  PenAdd: ['pen-tool-add', '', [3, 3]],
+  PenDelete: ['pen-tool-delete', '', [3, 3]],
+  PenClose: ['pen-tool', 'o', [3, 3]],
+  PenContinue: ['pen-tool', '/', [3, 3]],
+  PenJoin: ['pen-tool', '+', [3, 3]],
+  PenConvert: ['dc-anchor', '', [16, 5]],
+  AnchorPoint: ['dc-anchor', '', [16, 5]],
+  Curvature: ['spline', '', [3, 3]],
+  Pencil: ['pencil', '', [4, 28]],
+  PathEraser: ['dc-path-eraser', '', [16, 16]],
+  Smooth: ['dc-smooth', '', [16, 16]],
+  Join: ['dc-join', '', [16, 16]],
+}
+const cache = new Map<string, string>()
+
+/** La forme du curseur d'un outil du moteur : un curseur de l'écran, ou l'icône de l'outil avec la marque de l'action. */
 export function vectorCursor(name: string): string {
-  const pen = (badge: string) => {
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 4 L16 14 L14 26 L8 20 Z' fill='white' stroke='black' stroke-width='1.5' stroke-linejoin='round'/><text x='19' y='28' font-size='14' font-family='sans-serif' font-weight='bold' fill='black' stroke='white' stroke-width='2.5' paint-order='stroke'>${badge}</text></svg>`
-    return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 4 4, crosshair`
+  const hit = cache.get(name)
+  if (hit) return hit
+  const spec = CURSORS[name]
+  let css: string
+  if (spec && inner(spec[0])) {
+    const body = inner(spec[0])
+    const badge = spec[1] ? `<text x='15' y='23' font-size='11' font-family='sans-serif' font-weight='bold' fill='black' stroke='white' stroke-width='2.5' paint-order='stroke'>${spec[1]}</text>` : ''
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 24 24' fill='none' stroke-linecap='round' stroke-linejoin='round'><g stroke='white' stroke-width='4.2'>${body}</g><g stroke='black' stroke-width='1.8'>${body}</g>${badge}</svg>`
+    css = `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") ${spec[2][0]} ${spec[2][1]}, crosshair`
+  } else {
+    css = ({ ArrowHollow: 'default', DirectAnchor: 'default', DirectAnchorSelected: 'default', ReshapeSegment: 'default', GroupSelection: 'default', SelectionCopy: 'copy', Move: 'move', Crosshair: 'crosshair', ResizeH: 'ew-resize', ResizeV: 'ns-resize', ResizeNwSe: 'nwse-resize', ResizeNeSw: 'nesw-resize' } as Record<string, string>)[name] ?? 'default'
   }
-  const arrow = (hollow: boolean, badge: string) => {
-    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'><path d='M4 3 L4 22 L9 17 L13 26 L16 25 L12 16 L19 16 Z' fill='${hollow ? 'white' : 'black'}' stroke='${hollow ? 'black' : 'white'}' stroke-width='1.3' stroke-linejoin='round'/><text x='18' y='28' font-size='13' font-family='sans-serif' font-weight='bold' fill='black' stroke='white' stroke-width='2.5' paint-order='stroke'>${badge}</text></svg>`
-    return `url("data:image/svg+xml;utf8,${encodeURIComponent(svg)}") 4 3, default`
-  }
-  switch (name) {
-    case 'Pen': return pen('*')
-    case 'PenDrawing': return pen('')
-    case 'PenAdd': return pen('+')
-    case 'PenDelete': return pen('−')
-    case 'PenClose': return pen('o')
-    case 'PenContinue': return pen('/')
-    case 'PenJoin': return pen('∪')
-    case 'AnchorPoint': return pen('^')
-    case 'ArrowHollow': return arrow(true, '')
-    case 'DirectAnchor': return arrow(true, '▫')
-    case 'DirectAnchorSelected': return arrow(true, '▪')
-    case 'ReshapeSegment': return arrow(true, '~')
-    case 'GroupSelection': return arrow(true, '+')
-    case 'SelectionCopy': return arrow(false, '+')
-    case 'Move': return 'move'
-    case 'Crosshair': return 'crosshair'
-    case 'ResizeH': return 'ew-resize'
-    case 'ResizeV': return 'ns-resize'
-    case 'ResizeNwSe': return 'nwse-resize'
-    case 'ResizeNeSw': return 'nesw-resize'
-    default: return name.startsWith('Pencil') || name.startsWith('Path') || name === 'Join' || name === 'Smooth' ? 'crosshair' : 'default'
-  }
+  cache.set(name, css)
+  return css
 }

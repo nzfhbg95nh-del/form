@@ -451,6 +451,26 @@ pub fn vc_paint(state: tauri::State<VectorState>, style: StyleIo, zoom: f64) -> 
     })
 }
 
+/// Change le style de tracés précis (par exemple les formes de tache, qui ne doivent pas être remplies) sans toucher aux couleurs des prochains objets.
+#[tauri::command]
+pub fn vc_restyle(state: tauri::State<VectorState>, ids: Vec<String>, style: StyleIo, defaults: StyleIo, zoom: f64) -> Result<VectorOut, String> {
+    with(&state, |v| {
+        let nodes: Vec<u64> = ids.iter().filter_map(|i| v.to_node.get(i).copied()).collect();
+        let s = v.session()?;
+        let previous: Vec<u64> = s.doc().map_err(|e| e.to_string())?.selection.objects.iter().map(|id| id.0).collect();
+        for n in &nodes {
+            set_style(s, Some(*n), &style)?;
+        }
+        // Changer le style d'un objet change aussi celui des prochains : on remet celui qui était choisi.
+        s.execute("select.none", &json!({})).map_err(|e| e.to_string())?;
+        set_style(s, None, &defaults)?;
+        if !previous.is_empty() {
+            s.execute("select.set", &json!({ "ids": previous })).map_err(|e| e.to_string())?;
+        }
+        v.snapshot(zoom, vec![])
+    })
+}
+
 /// Change d'outil (le moteur termine le geste en cours).
 #[tauri::command]
 pub fn vc_tool(state: tauri::State<VectorState>, tool: String, zoom: f64) -> Result<VectorOut, String> {
