@@ -92,7 +92,7 @@ function LightboxContent() {
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Détail">
       <button className="btn fixed left-3 top-3 z-20" onClick={() => open(null)} aria-label="Fermer"><X size={16} /></button>
-      <div className="mx-auto flex h-[calc(100vh-32px)] min-h-[520px] max-w-[1500px] overflow-hidden rounded-2xl border mt-4" style={{ borderColor: 'var(--border)' }}>
+      <div className="flex h-screen min-h-[520px] w-full overflow-hidden">
         <div className="relative flex min-w-0 flex-1 flex-col">
         {pos > 0 && (
           <button className="btn absolute left-3 top-1/2 z-10 -translate-y-1/2" onClick={() => swipe(-1)} aria-label="Image précédente du carrousel"><ChevronLeft size={18} /></button>
@@ -139,7 +139,7 @@ function LightboxContent() {
               <button
                 key={f.rel}
                 onClick={() => setPos(i)}
-                className="h-14 w-14 shrink-0 overflow-hidden rounded-md border-2"
+                className="h-14 w-14 shrink-0 overflow-hidden rounded-xl border-2"
                 style={{ borderColor: i === pos ? 'var(--accent)' : 'transparent', background: 'var(--bg-hover)' }}
                 aria-label={`Image ${i + 1}`}
               >
@@ -150,9 +150,9 @@ function LightboxContent() {
         )}
         </div>
 
-      <aside className="w-80 shrink-0 overflow-auto border-l p-5" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
-        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>{SOURCE_LABEL[block.source]}</div>
-        <div className="mt-1 text-lg font-semibold break-words">{block.source === 'instagram' ? `@${block.owner}` : block.board}</div>
+      <aside className="w-[22rem] shrink-0 overflow-auto border-l px-6 py-7 [scrollbar-width:thin]" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
+        <div className="lib-count mb-2">{SOURCE_LABEL[block.source]}</div>
+        <div className="text-xl font-semibold tracking-tight break-words">{block.source === 'instagram' ? `@${block.owner}` : block.board}</div>
         {block.source === 'pinterest' && <div className="text-sm" style={{ color: 'var(--fg-muted)' }}>par {block.owner}</div>}
         {block.publishedAt && <div className="mt-2 text-sm">{formatDate(block.publishedAt)}</div>}
         {files.length > 1 && <div className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>Image {pos + 1} sur {files.length}</div>}
@@ -272,8 +272,8 @@ function BlockCollections({ blockId }: { blockId: string }) {
   const origin = cards.filter((c) => c.kind !== 'manual' && ids.includes(c.id))
 
   return (
-    <div className="mt-6">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Collections</div>
+    <div className="mt-7">
+      <div className="lib-count mb-2">Collections</div>
       {origin.length > 0 && (
         <div className="mb-1.5 text-sm" style={{ color: 'var(--fg-muted)' }}>
           {origin.map((c) => (c.kind === 'instagram' ? `@${c.name}` : c.name)).join(', ')}
@@ -345,8 +345,8 @@ function BlockMoodboards({ block }: { block: GridBlock }) {
   }
   const inBoards = boards.filter((b) => containing.includes(b.id))
   return (
-    <div className="mt-6">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Moodboard</div>
+    <div className="mt-7">
+      <div className="lib-count mb-2">Moodboard</div>
       {inBoards.length > 0 && (
         <div className="mb-2 flex flex-wrap items-center gap-1.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
           Dans :
@@ -373,7 +373,7 @@ function BlockMoodboards({ block }: { block: GridBlock }) {
             const m = boards.find((c) => c.id === e.target.value)
             if (m) void add(m.id, m.name)
           }}
-          className="w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
+          className="lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none"
           style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
           aria-label="Ajouter à un moodboard"
         >
@@ -414,9 +414,9 @@ function ColorPalette({ rel }: { rel: string }) {
     })
   }
   return (
-    <div className="mt-6">
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Couleurs</div>
-      <div className="flex overflow-hidden rounded-md border" style={{ borderColor: 'var(--border)' }}>
+    <div className="mt-7">
+      <div className="lib-count mb-2">Couleurs</div>
+      <div className="flex overflow-hidden rounded-xl">
         {swatches.map((s) => (
           <button
             key={s.hex}
@@ -470,7 +470,7 @@ function BlockTypes({ blockId }: { blockId: string }) {
 
   return (
     <div>
-      <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Types d'image</div>
+      <div className="lib-count mb-2">Types d'image</div>
       <div className="flex flex-wrap gap-1.5">
         {types.length === 0 && <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>Aucun type</span>}
         {types.map((t) => (
@@ -493,7 +493,7 @@ function BlockTypes({ blockId }: { blockId: string }) {
         }}
         list="type-suggestions"
         placeholder="Ajouter un type, puis Entrée"
-        className="mt-2 w-full rounded-md border px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
+        className="lib-input mt-2 w-full rounded-xl border px-3 py-2 text-sm outline-none"
         style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
         aria-label="Ajouter un type"
       />
@@ -541,7 +541,7 @@ function BlockMeta({ blockId }: { blockId: string }) {
     <div className="mt-6 flex flex-col gap-5">
       <BlockTypes blockId={blockId} />
       <div>
-        <div className="mb-1 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Note</div>
+        <div className="lib-count mb-2">Note</div>
         <textarea
           value={note}
           onChange={(e) => {
@@ -551,7 +551,7 @@ function BlockMeta({ blockId }: { blockId: string }) {
           }}
           rows={4}
           placeholder="Une note perso sur ce bloc…"
-          className="w-full resize-y rounded-md border px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]"
+          className="lib-input w-full resize-y rounded-xl border px-3 py-2 text-sm outline-none"
           style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
           aria-label="Note"
         />
