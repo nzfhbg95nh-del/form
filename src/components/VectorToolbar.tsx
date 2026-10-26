@@ -212,15 +212,6 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
           <input ref={fillInput} type="color" className="sr-only" tabIndex={-1} value={paint.fill ?? '#ffffff'} onChange={(e) => onPaint({ ...paint, fill: e.target.value })} aria-hidden />
           <input ref={strokeInput} type="color" className="sr-only" tabIndex={-1} value={paint.stroke ?? '#000000'} onChange={(e) => onPaint({ ...paint, stroke: e.target.value, sw: paint.sw > 0 ? paint.sw : 1 })} aria-hidden />
         </div>
-        {!single && (
-          <div className="flex gap-1 rounded p-0.5" style={{ background: 'var(--bg-side)' }}>
-            <button title="Couleur" aria-label="Couleur" onClick={() => (active === 'fill' ? fillInput : strokeInput).current?.click()} className="h-[22px] w-[22px] border border-[var(--border)] bg-white" />
-            <button title="Dégradé (pas encore disponible)" aria-label="Dégradé" disabled className="h-[22px] w-[22px] border border-[var(--border)] opacity-70" style={{ background: 'linear-gradient(90deg, #fff, #000)' }} />
-            <button title="Aucun (/)" aria-label="Aucune couleur" onClick={() => onPaint(active === 'fill' ? { ...paint, fill: null } : { ...paint, stroke: null })} className="relative h-[22px] w-[22px] overflow-hidden border border-[var(--border)] bg-white">
-              <span aria-hidden className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" />
-            </button>
-          </div>
-        )}
         <label className="flex items-center gap-1 text-[11px] opacity-80" title="Épaisseur du contour (pt)">
           <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className="w-10 rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs outline-none focus:border-[var(--accent)]" style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
           pt
