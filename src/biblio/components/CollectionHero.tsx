@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
-import { FolderPlus, ListChecks, Map as MapIcon, Pencil } from 'lucide-react'
+import { FolderPlus, ListChecks, Pencil } from 'lucide-react'
 import { childrenOf, collectionPath, openTarget, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
-import { useMapRequest } from '@/biblio/store/map.ts'
 import { CollectionSettings } from './CollectionSettings.tsx'
 import { NameInput } from './NameInput.tsx'
 import { useReorder } from './useReorder.ts'
@@ -85,11 +84,6 @@ export function CollectionHero() {
             title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"
           >
             <ListChecks size={15} /> Organiser
-          </button>
-        )}
-        {!naming && shown.length > 0 && (
-          <button className="btn" onClick={() => useMapRequest.getState().open(shown[0].id)} title="Voir où se trouvent les images de ce tableau sur la carte">
-            <MapIcon size={15} /> Voir sur la carte
           </button>
         )}
         {!naming && card && <EditButton card={card} />}
