@@ -305,6 +305,7 @@ function BlockCollections({ blockId }: { blockId: string }) {
         <PickerPopover
           x={picker.x}
           y={picker.y}
+          blockIds={[blockId]}
           onClose={() => setPicker(null)}
           onPick={(id) => void add(id, [blockId]).then(() => { setPicker(null); reload() })}
         />

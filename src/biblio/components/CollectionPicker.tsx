@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
-import { bestChoices, childrenOf, collectionPath, manualCollections, recentCollections, rememberCollection, searchCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
+import { Check, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react'
+import { bestChoices, childrenOf, collectionPath, loadCollectionCounts, manualCollections, recentCollections, rememberCollection, savedCollections, savedNote, searchCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
@@ -9,9 +9,11 @@ import { NameInput } from './NameInput.tsx'
 const heading = 'px-3 pb-1 pt-3 text-xs font-medium'
 
 /** Une ligne : miniature, nom, et une flèche pour entrer dans les sous-tableaux. */
-function Row({ card, label, hasChildren, onPick, onEnter }: {
+function Row({ card, label, note, hasChildren, onPick, onEnter }: {
   card: CollectionCard
   label?: string
+  /** Écrit sous le nom : « Déjà enregistrée » quand l'image est déjà dans cette collection. */
+  note?: string
   hasChildren: boolean
   onPick: () => void
   onEnter: () => void
@@ -26,6 +28,7 @@ function Row({ card, label, hasChildren, onPick, onEnter }: {
         </span>
         <span className="min-w-0">
           <span className="block truncate text-sm font-semibold">{label ?? card.name}</span>
+          {note && <span className="flex items-center gap-1 text-xs font-medium" style={{ color: 'var(--accent)' }}><Check size={12} /> {note}</span>}
         </span>
       </button>
       {hasChildren && (
@@ -41,8 +44,9 @@ function Row({ card, label, hasChildren, onPick, onEnter }: {
  * « Enregistrer dans… » façon Pinterest : une recherche, les meilleurs choix (la collection ouverte et les dernières utilisées),
  * puis tous mes tableaux avec leur miniature ; la flèche ouvre les sous-tableaux ; on peut créer un tableau ou un sous-tableau.
  * `exclude` : une collection à ne pas proposer (celle d'où l'on déplace).
+ * `blockIds` : les images qu'on range ; les collections qui les contiennent déjà passent tout en haut, marquées « Déjà enregistrée ».
  */
-export function CollectionPicker({ exclude = null, onPick }: { exclude?: string | null; onPick: (collectionId: string) => void }) {
+export function CollectionPicker({ exclude = null, blockIds, onPick }: { exclude?: string | null; blockIds?: string[]; onPick: (collectionId: string) => void }) {
   const { cards, create } = useCollections()
   const open = useGrid((s) => s.filters.collection)
   const [query, setQuery] = useState('')
@@ -52,10 +56,29 @@ export function CollectionPicker({ exclude = null, onPick }: { exclude?: string 
 
   useEffect(() => setNaming(false), [parent])
 
+  const [counts, setCounts] = useState<ReadonlyMap<string, number>>(new Map())
+  const total = blockIds?.length ?? 0
+  const idsKey = blockIds?.join('|') ?? ''
+  useEffect(() => {
+    let cancelled = false
+    if (total === 0) { setCounts(new Map()); return }
+    void loadCollectionCounts(blockIds ?? []).then((m) => { if (!cancelled) setCounts(m) }).catch(() => undefined)
+    return () => { cancelled = true }
+  }, [idsKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  const saved = useMemo(() => savedCollections(cards, counts, exclude), [cards, counts, exclude])
+  const savedIds = useMemo(() => new Set(saved.map((c) => c.id)), [saved])
+  const noteOf = (c: CollectionCard) => (counts.get(c.id) ? savedNote(counts.get(c.id) ?? 0, total) : undefined)
+
   const recent = useMemo(() => recentCollections(), [])
-  const best = useMemo(() => bestChoices(cards, recent, open?.id ?? null, exclude), [cards, recent, open?.id, exclude])
+  const best = useMemo(() => bestChoices(cards, recent, open?.id ?? null, exclude).filter((c) => !savedIds.has(c.id)), [cards, recent, open?.id, exclude, savedIds])
   const top = useMemo(() => manualCollections(cards).filter((c) => !c.parentId && c.id !== exclude).sort((a, b) => (a.position ?? 1e9) - (b.position ?? 1e9) || a.name.localeCompare(b.name, 'fr')), [cards, exclude])
-  const found = useMemo(() => searchCollections(cards, query, exclude), [cards, query, exclude])
+  const topRest = useMemo(() => top.filter((c) => !savedIds.has(c.id)), [top, savedIds])
+  // Dans une recherche aussi, les collections qui contiennent déjà l'image passent en premier.
+  const found = useMemo(() => {
+    const list = searchCollections(cards, query, exclude)
+    return [...list.filter((c) => savedIds.has(c.id)), ...list.filter((c) => !savedIds.has(c.id))]
+  }, [cards, query, exclude, savedIds])
+
   const hasKids = (c: CollectionCard) => childrenOf(cards, c.id).some((k) => k.id !== exclude)
 
   const pick = (id: string) => {
@@ -63,7 +86,7 @@ export function CollectionPicker({ exclude = null, onPick }: { exclude?: string 
     onPick(id)
   }
   const row = (c: CollectionCard, withPath = false) => (
-    <Row key={c.id} card={c} label={withPath ? collectionPath(cards, c.id) : undefined} hasChildren={!withPath && hasKids(c)} onPick={() => pick(c.id)} onEnter={() => setParent([...parent, c.id])} />
+    <Row key={c.id} card={c} label={withPath ? collectionPath(cards, c.id) : undefined} note={noteOf(c)} hasChildren={!withPath && hasKids(c)} onPick={() => pick(c.id)} onEnter={() => setParent([...parent, c.id])} />
   )
 
   // Vue d'un tableau : lui-même, puis ses sous-tableaux.
@@ -122,11 +145,13 @@ export function CollectionPicker({ exclude = null, onPick }: { exclude?: string 
           )
         ) : (
           <>
+            {saved.length > 0 && <div className={heading} style={{ color: 'var(--accent)' }}>{total > 1 ? 'Déjà enregistrées dans' : 'Déjà enregistrée dans'}</div>}
+            {saved.map((c) => row(c, !!c.parentId))}
             {best.length > 0 && <div className={heading} style={{ color: 'var(--fg-muted)' }}>Meilleurs choix</div>}
             {best.map((c) => row(c))}
             <div className={heading} style={{ color: 'var(--fg-muted)' }}>Tous les tableaux</div>
             {top.length === 0 && <div className="px-4 py-2 text-sm" style={{ color: 'var(--fg-muted)' }}>Tu n'as pas encore de collection.</div>}
-            {top.map((c) => row(c))}
+            {topRest.map((c) => row(c))}
           </>
         )}
       </div>
@@ -145,13 +170,13 @@ export function CollectionPicker({ exclude = null, onPick }: { exclude?: string 
 }
 
 /** Le sélecteur dans une petite fenêtre posée à l'endroit demandé (fond cliquable pour fermer). */
-export function PickerPopover({ x, y, exclude, onPick, onClose }: { x: number; y: number; exclude?: string | null; onPick: (collectionId: string) => void; onClose: () => void }) {
+export function PickerPopover({ x, y, exclude, blockIds, onPick, onClose }: { x: number; y: number; exclude?: string | null; blockIds?: string[]; onPick: (collectionId: string) => void; onClose: () => void }) {
   const left = Math.max(8, Math.min(x, window.innerWidth - 340))
   const top = Math.max(8, Math.min(y, window.innerHeight - 560))
   return (
     <div className="fixed inset-0 z-[60]" onMouseDown={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }}>
       <div className="absolute w-80 overflow-hidden rounded-2xl border shadow-xl" style={{ left, top, background: 'var(--bg)', borderColor: 'var(--border)' }} onMouseDown={(e) => e.stopPropagation()}>
-        <CollectionPicker exclude={exclude ?? null} onPick={onPick} />
+        <CollectionPicker exclude={exclude ?? null} blockIds={blockIds} onPick={onPick} />
       </div>
     </div>
   )

@@ -81,7 +81,7 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
             {!moveFrom && (
               <button className="flex items-center gap-1 px-3 pt-2.5 text-xs" style={{ color: 'var(--fg-muted)' }} onClick={() => setView('main')}><ChevronLeft size={14} /> Retour</button>
             )}
-            <CollectionPicker exclude={moveFrom ?? null} onPick={(id) => void put(id)} />
+            <CollectionPicker exclude={moveFrom ?? null} blockIds={blockIds} onPick={(id) => void put(id)} />
           </>
         )}
 

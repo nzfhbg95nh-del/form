@@ -231,6 +231,34 @@ export async function loadBlockCollectionIds(blockId: string): Promise<string[]>
   return rows.map((r) => r.collection_id)
 }
 
+/** Pour une liste de blocs : dans combien d'entre eux se trouve chaque collection (identifiant de collection → nombre de blocs de la liste qui y sont). */
+export async function loadCollectionCounts(blockIds: readonly string[]): Promise<Map<string, number>> {
+  const d = await getDb()
+  const out = new Map<string, number>()
+  for (let i = 0; i < blockIds.length; i += 500) {
+    const part = blockIds.slice(i, i + 500)
+    const rows = await d.select<{ collection_id: string; n: number }[]>(
+      `SELECT collection_id, COUNT(*) AS n FROM lib_block_collections WHERE block_id IN (${part.map((_, k) => `$${k + 1}`).join(',')}) GROUP BY collection_id`,
+      [...part],
+    )
+    for (const r of rows) out.set(r.collection_id, (out.get(r.collection_id) ?? 0) + r.n)
+  }
+  return out
+}
+
+/** Mes collections qui contiennent déjà au moins un de ces blocs : celles qui en contiennent le plus d'abord, puis par nom. */
+export function savedCollections(cards: readonly CollectionCard[], counts: ReadonlyMap<string, number>, exclude: string | null = null): CollectionCard[] {
+  return manualCollections(cards)
+    .filter((c) => c.id !== exclude && (counts.get(c.id) ?? 0) > 0)
+    .sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || a.name.localeCompare(b.name, 'fr'))
+}
+
+/** Ce qu'on écrit sous le nom d'une collection qui contient déjà l'image (ou une partie de la sélection). */
+export function savedNote(count: number, total: number): string {
+  if (count >= total) return total > 1 ? 'Déjà enregistrées' : 'Déjà enregistrée'
+  return `${count} sur ${total} déjà dedans`
+}
+
 /** Enregistre l'ordre choisi à la main : la première reçoit 0, la suivante 1… */
 export async function saveOrder(ids: readonly string[]) {
   const d = await getDb()

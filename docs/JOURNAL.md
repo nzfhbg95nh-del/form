@@ -589,3 +589,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Carte : le temps d'ouverture venait de la lecture des 17 071 empreintes d'images (46,6 Mo de texte à passer de la base à l'écran, d'un seul bloc). Elles sont maintenant lues par paquets de 2 000 (l'écran garde la main entre deux paquets) et surtout lues en arrière-plan 3 secondes après le lancement de Form : à l'ouverture de la Carte, elles sont déjà prêtes. Une lecture ratée n'est plus gardée en mémoire (la suivante réessaie). Même gain pour la recherche par contenu.
 - Non mesuré à l'écran : à confirmer sur le vrai usage (première ouverture de la Carte après un lancement).
 - Compilation, 473 tests : OK.
+
+## 2026-10-26 — « Ranger dans… » : les collections qui contiennent déjà l'image (pas encore publié)
+- Dans le choix de collection (vue détail, clic droit, sélection), les collections qui contiennent déjà l'image (ou une partie de la sélection) passent tout en haut, sous le titre « Déjà enregistrée dans », avec une coche et « Déjà enregistrée » (ou « 2 sur 5 déjà dedans » pour une sélection). Elles ne sont pas répétées plus bas ; dans une recherche, elles passent aussi en premier. Les sous-tableaux s'affichent avec leur chemin.
+- Nouvelle lecture `loadCollectionCounts` (un seul appel, par paquets de 500 images). Tests : `savedCollections`, `savedNote`.
+- Compilation, 477 tests : OK.

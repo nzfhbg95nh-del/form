@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bestChoices, childrenOf, collectionPath, groupCollections, manualCollections, openTarget, reorderIds, searchCollections, withCover, withDescendants, withRecent, type CollectionCard } from './collections.ts'
+import { bestChoices, childrenOf, collectionPath, groupCollections, manualCollections, openTarget, reorderIds, savedCollections, savedNote, searchCollections, withCover, withDescendants, withRecent, type CollectionCard } from './collections.ts'
 
 const card = (id: string, name: string, kind: CollectionCard['kind'], owner: string | null, count: number, parentId: string | null = null, position: number | null = null): CollectionCard => ({
   id, name, kind, owner, description: '', parentId, position, coverBlock: null, count, previews: [],
@@ -129,5 +129,28 @@ describe('choisir une collection', () => {
   it('on se souvient des 6 dernières collections, la dernière d\'abord', () => {
     expect(withRecent(['a', 'b', 'c'], 'b')).toEqual(['b', 'a', 'c'])
     expect(withRecent(['a', 'b', 'c', 'd', 'e', 'f'], 'z')).toEqual(['z', 'a', 'b', 'c', 'd', 'e'])
+  })
+})
+
+describe('savedCollections', () => {
+  const mine = [card('m:a', 'Affiches', 'manual', null, 7), card('m:b', 'Typo', 'manual', null, 3), card('m:c', 'Zèbre', 'manual', null, 1), card('pin:x', 'Tattoo', 'pinterest', 'x', 4)]
+  it('ne garde que mes collections qui contiennent déjà au moins une des images, les plus remplies d\'abord', () => {
+    const counts = new Map([['m:a', 1], ['m:b', 3], ['pin:x', 2]])
+    expect(savedCollections(mine, counts).map((c) => c.id)).toEqual(['m:b', 'm:a'])
+  })
+  it('à égalité : par nom ; rien si l\'image n\'est nulle part', () => {
+    expect(savedCollections(mine, new Map([['m:c', 1], ['m:a', 1]])).map((c) => c.id)).toEqual(['m:a', 'm:c'])
+    expect(savedCollections(mine, new Map())).toEqual([])
+  })
+  it('écarte la collection exclue', () => {
+    expect(savedCollections(mine, new Map([['m:a', 1]]), 'm:a')).toEqual([])
+  })
+})
+
+describe('savedNote', () => {
+  it('dit déjà enregistrée, ou combien de la sélection y sont', () => {
+    expect(savedNote(1, 1)).toBe('Déjà enregistrée')
+    expect(savedNote(3, 3)).toBe('Déjà enregistrées')
+    expect(savedNote(2, 5)).toBe('2 sur 5 déjà dedans')
   })
 })
