@@ -21,27 +21,36 @@ export function Popover({ label, active, children, width = 260 }: { label: strin
     const b = button.current.getBoundingClientRect()
     const p = panel.current.getBoundingClientRect()
     if (p.width === 0 || p.height === 0) return
-    const D = 700
-    const spring = 'cubic-bezier(0.3, 1.2, 0.5, 1)'
+    const D = 440
+    const ease = 'cubic-bezier(0.22, 1.12, 0.36, 1)'
+    // Le dessin liquide ne couvre que la zone utile (bouton + panneau + marge) : le filtre ne travaille pas sur tout l'écran, donc c'est fluide.
+    const M = 36
+    const ox = Math.min(b.left, p.left) - M
+    const oy = b.top - M
+    const w = Math.max(b.right, p.right) - ox + M
+    const h = p.bottom - oy + M
     const stage = document.createElement('div')
-    stage.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:29;filter:url(#form-goo)'
-    const blob = (css: string) => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;' + css; stage.appendChild(d); return d }
+    stage.style.cssText = `position:fixed;left:${ox}px;top:${oy}px;width:${w}px;height:${h}px;pointer-events:none;z-index:29;filter:url(#form-goo);will-change:opacity`
+    const blob = (css: string) => { const d = document.createElement('div'); d.style.cssText = 'position:absolute;will-change:transform;' + css; stage.appendChild(d); return d }
     const tint = 'color-mix(in srgb, var(--fg) 9%, var(--bg))'
-    // A : l'ancre, sur le bord bas du bouton. B : la goutte qui devient le panneau.
-    const anchor = blob(`left:${b.left + b.width * 0.15}px;top:${b.bottom - 8}px;width:${b.width * 0.7}px;height:14px;border-radius:999px;background:${tint}`)
-    const drop = blob(`left:${p.left}px;top:${b.bottom - 6}px;width:${Math.min(b.width, p.width)}px;height:12px;border-radius:999px;background:${tint}`)
+    // A : l'ancre, sur le bord bas du bouton. B : la goutte, de la taille finale du panneau, qu'on étire par transformation (très fluide).
+    const anchor = blob(`left:${b.left - ox + b.width * 0.15}px;top:${b.bottom - oy - 8}px;width:${b.width * 0.7}px;height:14px;border-radius:999px;background:${tint};transform-origin:50% 0`)
+    const drop = blob(`left:${p.left - ox}px;top:${p.top - oy}px;width:${p.width}px;height:${p.height}px;border-radius:16px;background:${tint};transform-origin:0 0`)
     document.body.appendChild(stage)
-    anchor.animate([{ transform: 'scale(1)', offset: 0 }, { transform: 'scale(1)', offset: 0.45 }, { transform: 'scale(0.2, 0)', offset: 1 }], { duration: D, easing: 'ease-in', fill: 'forwards' })
+    const sx = Math.min(b.width, p.width) / p.width
+    const sy = 12 / p.height
+    const startY = b.bottom - 6 - p.top
+    anchor.animate([{ transform: 'scale(1)', offset: 0 }, { transform: 'scale(1)', offset: 0.4 }, { transform: 'scale(0.15, 0)', offset: 1 }], { duration: D, easing: 'ease-in', fill: 'forwards' })
     drop.animate(
       [
-        { top: `${b.bottom - 6}px`, width: `${Math.min(b.width, p.width)}px`, height: '12px', borderRadius: '999px' },
-        { top: `${p.top}px`, width: `${p.width}px`, height: `${p.height}px`, borderRadius: '14px' },
+        { transform: `translateY(${startY}px) scale(${sx}, ${sy})` },
+        { transform: 'translateY(0) scale(1, 1)' },
       ],
-      { duration: D, easing: spring, fill: 'forwards' },
+      { duration: D, easing: ease, fill: 'forwards' },
     )
-    // Le vrai panneau n'apparaît qu'à la fin, pendant que le dessin liquide s'efface.
-    panel.current.animate([{ opacity: 0 }, { opacity: 0, offset: 0.78 }, { opacity: 1 }], { duration: D })
-    stage.animate([{ opacity: 1 }, { opacity: 1, offset: 0.78 }, { opacity: 0 }], { duration: D, fill: 'forwards' }).onfinish = () => stage.remove()
+    // Le vrai panneau se montre en fondu pendant que le dessin liquide s'efface (les deux se recouvrent un instant : pas de saut).
+    panel.current.animate([{ opacity: 0 }, { opacity: 0, offset: 0.55 }, { opacity: 1 }], { duration: D })
+    stage.animate([{ opacity: 1 }, { opacity: 1, offset: 0.6 }, { opacity: 0 }], { duration: D, fill: 'forwards' }).onfinish = () => stage.remove()
     return () => stage.remove()
   }, [open, pos])
 
