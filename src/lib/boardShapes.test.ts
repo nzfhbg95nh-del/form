@@ -10,14 +10,18 @@ describe('formes', () => {
     expect(polygonPoints(100, 100, 2)).toHaveLength(3)
     expect(polygonPoints(100, 100, 40)).toHaveLength(12)
   })
-  it('une étoile alterne pointes et creux', () => {
-    const pts = starPoints(100, 100, 5, 0.5)
-    expect(pts).toHaveLength(10)
-    expect(pts[0]).toEqual([50, 0])
-    const [cx, cy] = [50, 50]
-    const r = (p: [number, number]) => Math.hypot(p[0] - cx, p[1] - cy)
-    expect(r(pts[1])).toBeCloseTo(25, 0)
-    expect(r(pts[0])).toBeCloseTo(50, 0)
+  it('une étoile a 2 sommets par branche et son cadre colle exactement au cadre de l’élément', () => {
+    for (const pts of [starPoints(100, 60, 5, 0.5), polygonPoints(100, 60, 5), polygonPoints(100, 60, 6)]) {
+      const xs = pts.map((p) => p[0])
+      const ys = pts.map((p) => p[1])
+      expect([Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]).toEqual([0, 100, 0, 60])
+    }
+    expect(starPoints(100, 60, 5, 0.5)).toHaveLength(10)
+    expect(starPoints(100, 100, 5, 0.5)[0]).toEqual([50, 0])
+  })
+  it('la marge du trait réduit le cadre des points des deux côtés', () => {
+    const xs = starPoints(100, 100, 5, 0.5, 4).map((p) => p[0])
+    expect([Math.min(...xs), Math.max(...xs)]).toEqual([4, 96])
   })
   it('les tirets dépendent de l’épaisseur ; pas de tirets sans trait', () => {
     expect(dashArray('solid', 4)).toBeUndefined()

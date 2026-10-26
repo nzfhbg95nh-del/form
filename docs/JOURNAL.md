@@ -713,3 +713,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic droit sur une forme : palettes « Contour » et « Remplissage » séparées.
 - Clic droit : « Disposition » (se déplie) regroupe premier plan, avancer, reculer, arrière-plan.
 - Tests : 578. Pas fait : la Plume (Bézier), prévue en dernier.
+- (suite) Retiré du clic droit : palettes Contour/Remplissage, « Remplie / contour seulement », « Trait plus épais/fin » (tout est dans le panneau Forme et contour). Le cadre de sélection d'une étoile ou d'un polygone colle maintenant à la forme (points étirés au cadre). Outil Forme : l'icône montre la forme choisie ; appui long (ou clic droit) sur le bouton = liste des autres formes. Tests : 579.

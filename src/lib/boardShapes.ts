@@ -44,28 +44,36 @@ export const styleToItem = (st: ShapeStyle): Partial<BoardItem> => ({
 
 const round = (v: number) => Math.round(v * 100) / 100
 
-/** Les sommets d'un polygone régulier (ou ovale) inscrit dans le cadre, la pointe vers le haut ; `inset` : marge pour que le trait ne dépasse pas. */
-export function polygonPoints(w: number, h: number, sides: number, inset = 0): [number, number][] {
-  const n = Math.min(12, Math.max(3, Math.round(sides)))
-  const rx = Math.max(1, w / 2 - inset)
-  const ry = Math.max(1, h / 2 - inset)
-  return Array.from({ length: n }, (_, i) => {
-    const a = -Math.PI / 2 + (2 * Math.PI * i) / n
-    return [round(w / 2 + rx * Math.cos(a)), round(h / 2 + ry * Math.sin(a))] as [number, number]
-  })
+/** Étire des points pour que leur cadre colle exactement au cadre de l'élément (moins la marge `inset` du trait) : la boîte de sélection est celle de la forme. */
+function fitToBox(raw: [number, number][], w: number, h: number, inset: number): [number, number][] {
+  const xs = raw.map((p) => p[0])
+  const ys = raw.map((p) => p[1])
+  const [x0, x1, y0, y1] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+  const sx = x1 === x0 ? 1 : Math.max(1, w - inset * 2) / (x1 - x0)
+  const sy = y1 === y0 ? 1 : Math.max(1, h - inset * 2) / (y1 - y0)
+  return raw.map(([x, y]) => [round(inset + (x - x0) * sx), round(inset + (y - y0) * sy)] as [number, number])
 }
 
-/** Les sommets d'une étoile : `points` branches, `inner` = rayon du creux par rapport au rayon des pointes (0,1 à 0,9). */
+/** Les sommets d'un polygone régulier (étiré à la taille du cadre), la pointe vers le haut ; `inset` : marge pour que le trait ne dépasse pas. */
+export function polygonPoints(w: number, h: number, sides: number, inset = 0): [number, number][] {
+  const n = Math.min(12, Math.max(3, Math.round(sides)))
+  const raw = Array.from({ length: n }, (_, i) => {
+    const a = -Math.PI / 2 + (2 * Math.PI * i) / n
+    return [Math.cos(a), Math.sin(a)] as [number, number]
+  })
+  return fitToBox(raw, w, h, inset)
+}
+
+/** Les sommets d'une étoile (étirée à la taille du cadre) : `points` branches, `inner` = rayon du creux par rapport aux pointes (0,1 à 0,9). */
 export function starPoints(w: number, h: number, points: number, inner: number, inset = 0): [number, number][] {
   const n = Math.min(12, Math.max(3, Math.round(points)))
   const k = Math.min(0.9, Math.max(0.1, inner))
-  const rx = Math.max(1, w / 2 - inset)
-  const ry = Math.max(1, h / 2 - inset)
-  return Array.from({ length: n * 2 }, (_, i) => {
+  const raw = Array.from({ length: n * 2 }, (_, i) => {
     const a = -Math.PI / 2 + (Math.PI * i) / n
     const f = i % 2 === 0 ? 1 : k
-    return [round(w / 2 + rx * f * Math.cos(a)), round(h / 2 + ry * f * Math.sin(a))] as [number, number]
+    return [f * Math.cos(a), f * Math.sin(a)] as [number, number]
   })
+  return fitToBox(raw, w, h, inset)
 }
 
 export const pointsAttr = (pts: [number, number][]) => pts.map((p) => p.join(',')).join(' ')

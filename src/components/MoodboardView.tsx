@@ -42,7 +42,7 @@ type Drag =
 /** Couleurs proposées pour les formes et les textes. */
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
 const ROTATE_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.5-5.8'/%3E%3Cpath d='M20 3v5h-5'/%3E%3C/svg%3E") 12 12, crosshair`
-const SHAPE_PALETTE = [SHAPE_COLOR, '#ff5c5c', '#ffd43b', '#51cf66', '#ffffff', '#111111']
+const SHAPE_TOOLS = [['rect', Square, 'Rectangle'], ['rrect', RectangleHorizontal, 'Rectangle arrondi'], ['ellipse', Circle, 'Rond'], ['polygon', Hexagon, 'Polygone'], ['star', Star, 'Étoile'], ['arrow', ArrowUpRight, 'Flèche']] as const
 const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
@@ -70,6 +70,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [flash, setFlash] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [arrangeOpen, setArrangeOpen] = useState(false)
+  // Outil Forme : un appui long sur le bouton déplie les autres formes.
+  const [shapeFlyout, setShapeFlyout] = useState(false)
+  const longPress = useRef<{ timer: number | undefined; fired: boolean }>({ timer: undefined, fired: false })
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
   const [alignRef, setAlignRef] = useState<'selection' | 'screen' | 'key'>('selection')
@@ -890,7 +893,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
   const hasSel = selection.size > 0
   const selNotes = selected.some((i) => i.kind === 'note')
-  const selShapes = selected.some((i) => i.kind === 'shape')
   const textSel = selected.filter((i) => i.kind === 'text')
   const shapeSel = selected.filter((i) => i.kind === 'shape')
   // Le panneau du texte est posé en bas à droite de la toile (comme les panneaux d'Illustrator), et la palette de couleurs reste en haut à droite.
@@ -1202,18 +1204,49 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
       {!compact && (
         <div data-ui className="absolute left-3 top-14 z-30 flex flex-col gap-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-sm">
-          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['shape', Square, 'Forme (M) : glisse pour dessiner un rectangle, un rond, une étoile… (Maj : carré ou cercle)'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => (
-            <button
-              key={id}
-              title={label}
-              aria-label={label}
-              aria-pressed={tool === id}
-              onClick={() => setTool(id)}
-              className={'flex h-8 w-8 items-center justify-center rounded ' + (tool === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')}
-            >
-              <Icon size={16} />
-            </button>
-          ))}
+          {([['select', MousePointer2, 'Sélection (V)'], ['text', TypeIcon, 'Texte (T) : un clic pour un texte, glisser pour une zone de texte'], ['shape', Square, 'Forme (M) : glisse pour dessiner (Maj : carré ou cercle). Appui long : choisir une autre forme'], ['hand', Hand, 'Main (H ou Espace) : déplacer la toile']] as const).map(([id, Icon, label]) => {
+            const isShape = id === 'shape'
+            const Ico = isShape ? SHAPE_TOOLS.find((t) => t[0] === shapeStyle.shape)?.[1] ?? Square : Icon
+            return (
+              <div key={id} className="relative">
+                <button
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={tool === id}
+                  onPointerDown={isShape ? () => {
+                    longPress.current.fired = false
+                    window.clearTimeout(longPress.current.timer)
+                    longPress.current.timer = window.setTimeout(() => { longPress.current.fired = true; setShapeFlyout(true) }, 400)
+                  } : undefined}
+                  onPointerUp={isShape ? () => window.clearTimeout(longPress.current.timer) : undefined}
+                  onPointerLeave={isShape ? () => window.clearTimeout(longPress.current.timer) : undefined}
+                  onContextMenu={isShape ? (e) => { e.preventDefault(); setShapeFlyout(true) } : undefined}
+                  onClick={() => { if (isShape && longPress.current.fired) { longPress.current.fired = false; return } setTool(id) }}
+                  className={'flex h-8 w-8 items-center justify-center rounded ' + (tool === id ? 'bg-[var(--accent)] text-white' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')}
+                >
+                  <Ico size={16} />
+                </button>
+                {isShape && <span aria-hidden className="pointer-events-none absolute bottom-0.5 right-0.5 h-0 w-0 border-b-[5px] border-l-[5px] border-b-current border-l-transparent opacity-60" />}
+                {isShape && shapeFlyout && (
+                  <>
+                    <div className="fixed inset-0 z-40" onPointerDown={() => setShapeFlyout(false)} />
+                    <div role="menu" className="absolute left-full top-0 z-50 ml-2 flex w-44 flex-col rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
+                      {SHAPE_TOOLS.map(([k, KIco, name]) => (
+                        <button
+                          key={k}
+                          role="menuitem"
+                          className={'flex items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)] ' + (shapeStyle.shape === k ? 'font-medium text-[var(--accent)]' : '')}
+                          onClick={() => { setShapeProps({ shape: k }); setTool('shape'); setShapeFlyout(false) }}
+                        >
+                          <KIco size={15} /> {name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -1330,24 +1363,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                     )}
                     {selection.size > 1 && !selGrouped && <MenuBtn label="Grouper" hint="Ctrl+G" onClick={act.group} />}
                     {selGrouped && <MenuBtn label="Dissocier" hint="Ctrl+Maj+G" onClick={act.ungroup} />}
-                    {selShapes && (
-                      <>
-                        <MenuHead>Contour</MenuHead>
-                        <div className="flex gap-2 px-2 py-1">{SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeColor(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}</div>
-                        <MenuHead>Remplissage</MenuHead>
-                        <div className="flex gap-2 px-2 py-1">
-                          <button title="Sans remplissage" aria-label="Sans remplissage" onClick={() => { act.shapeFill('none'); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: 'repeating-conic-gradient(#ccc 0 25%, #fff 0 50%) 50% / 8px 8px' }} />
-                          {SHAPE_PALETTE.map((c) => <button key={c} onClick={() => { act.shapeFill(c); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={{ background: c }} />)}
-                        </div>
-                        {selShapes && (
-                          <>
-                            <MenuBtn label="Remplie / contour seulement" onClick={act.toggleFill} />
-                            <MenuBtn label="Trait plus épais" onClick={() => act.stroke(2)} />
-                            <MenuBtn label="Trait plus fin" onClick={() => act.stroke(-2)} />
-                          </>
-                        )}
-                      </>
-                    )}
                     {selNotes && (
                       <>
                         <MenuHead>Couleur de la note</MenuHead>
