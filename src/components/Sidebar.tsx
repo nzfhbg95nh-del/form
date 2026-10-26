@@ -4,7 +4,7 @@ import {
 } from 'lucide-react'
 import { LibraryStatus } from '@/biblio/components/LibraryStatus'
 import { useGrid } from '@/biblio/store/grid'
-import { useLibraryNav } from '@/biblio/store/nav'
+import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { AppMenu } from '@/components/AppMenu'
 import { PageMenu } from '@/components/PageMenu'
 import { isSystemDatabase, parseSchema } from '@/lib/database'
@@ -12,14 +12,15 @@ import { pinnedPages } from '@/lib/pinned'
 import { childrenOf, type DropZone } from '@/lib/tree'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { cn } from '@/lib/utils'
-import { useApp } from '@/store/app'
+import { useApp, type View } from '@/store/app'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 
-function Item({ active, onClick, children }: { active?: boolean; onClick: () => void; children: React.ReactNode }) {
+function Item({ active, onClick, onNewTab, children }: { active?: boolean; onClick: () => void; onNewTab?: (x: number, y: number) => void; children: React.ReactNode }) {
   return (
     <button
       onClick={onClick}
+      onContextMenu={onNewTab ? (e) => { e.preventDefault(); onNewTab(e.clientX, e.clientY) } : undefined}
       className={cn(
         'flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]',
         active && 'bg-[var(--bg-hover)] font-medium',
@@ -253,7 +254,7 @@ function useSidebarWidth() {
 export function Sidebar() {
   const { width, startDrag, reset } = useSidebarWidth()
   const {
-    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, setSearch, openRecipes, selectedId, theme, toggleTheme, pinned,
+    objects, view, show, createPage, createDatabase, createTasks, createMoodboard, createFromTemplate, openViewTab, setSearch, openRecipes, selectedId, theme, toggleTheme, pinned,
   } = useApp()
   // Bibliothèque : la page ouverte, et si un tableau est ouvert (il compte alors comme « Collections »).
   const libPage = useLibraryNav((s) => s.page)
@@ -263,6 +264,9 @@ export function Sidebar() {
   const reshuffleLibrary = useGrid((s) => s.reshuffle)
   const [newMenu, setNewMenu] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  // Clic droit sur un écran de la barre latérale : « Ouvrir dans un nouvel onglet ».
+  const [tabMenu, setTabMenu] = useState<{ x: number; y: number; view: View; lib?: LibraryPageId } | null>(null)
+  const newTabMenu = (view: View, lib?: LibraryPageId) => (x: number, y: number) => setTabMenu({ x, y, view, lib })
   const [drag, setDrag] = useState<DragState>({ dragId: null, over: null })
   const live = objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && !isSystemDatabase(o))
   const roots = childrenOf(objects, null).filter((o) => o.type !== 'moodboard')
@@ -292,7 +296,26 @@ export function Sidebar() {
         onDoubleClick={reset}
       />
       <AppMenu />
-      <Item active={view === 'home'} onClick={() => show('home')}>
+      {tabMenu && (
+        <div className="fixed inset-0 z-50" onMouseDown={() => setTabMenu(null)} onContextMenu={(e) => { e.preventDefault(); setTabMenu(null) }}>
+          <div
+            role="menu"
+            className="absolute min-w-48 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 text-sm shadow-lg"
+            style={{ left: tabMenu.x, top: tabMenu.y }}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <button
+              role="menuitem"
+              autoFocus
+              className="flex w-full items-center rounded px-2 py-1.5 text-left hover:bg-[var(--bg-hover)]"
+              onClick={() => { openViewTab(tabMenu.view, tabMenu.lib); setTabMenu(null) }}
+            >
+              Ouvrir dans un nouvel onglet
+            </button>
+          </div>
+        </div>
+      )}
+      <Item active={view === 'home'} onClick={() => show('home')} onNewTab={newTabMenu('home')}>
         <Home size={14} /> Accueil
       </Item>
       <Item onClick={() => setSearch(true)}>
@@ -307,22 +330,22 @@ export function Sidebar() {
         <CollapsibleLabel id="company" collapsed={!!collapsed.company} toggle={toggleSection}>Mon entreprise</CollapsibleLabel>
         {!collapsed.company && (
           <>
-        <Item active={view === 'dashboard'} onClick={() => show('dashboard')}>
+        <Item active={view === 'dashboard'} onClick={() => show('dashboard')} onNewTab={newTabMenu('dashboard')}>
           <LayoutDashboard size={14} /> Tableau de bord
         </Item>
-        <Item active={view === 'clients'} onClick={() => show('clients')}>
+        <Item active={view === 'clients'} onClick={() => show('clients')} onNewTab={newTabMenu('clients')}>
           <Users size={14} /> Clients
         </Item>
-        <Item active={view === 'services'} onClick={() => show('services')}>
+        <Item active={view === 'services'} onClick={() => show('services')} onNewTab={newTabMenu('services')}>
           <Briefcase size={14} /> Tarifs
         </Item>
-        <Item active={view === 'quotes'} onClick={() => show('quotes')}>
+        <Item active={view === 'quotes'} onClick={() => show('quotes')} onNewTab={newTabMenu('quotes')}>
           <FileSignature size={14} /> Devis
         </Item>
-        <Item active={view === 'invoices'} onClick={() => show('invoices')}>
+        <Item active={view === 'invoices'} onClick={() => show('invoices')} onNewTab={newTabMenu('invoices')}>
           <Receipt size={14} /> Factures
         </Item>
-        <Item active={view === 'payments'} onClick={() => show('payments')}>
+        <Item active={view === 'payments'} onClick={() => show('payments')} onNewTab={newTabMenu('payments')}>
           <Banknote size={14} /> Paiements
         </Item>
           </>
@@ -331,16 +354,16 @@ export function Sidebar() {
         <CollapsibleLabel id="library" collapsed={!!collapsed.library} toggle={toggleSection}>Bibliothèque</CollapsibleLabel>
         {!collapsed.library && (
           <>
-            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }}>
+            <Item active={view === 'library' && libPage === 'all' && !openedCollection} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); reshuffleLibrary(); goLibrary('all'); show('library') }} onNewTab={newTabMenu('library', 'all')}>
               <LayoutGrid size={14} /> Tout
             </Item>
-            <Item active={view === 'library' && (libPage === 'collections' || (libPage === 'all' && openedCollection))} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('collections'); show('library') }}>
+            <Item active={view === 'library' && (libPage === 'collections' || (libPage === 'all' && openedCollection))} onClick={() => { if (openedCollection) setLibFilters({ collection: null }); goLibrary('collections'); show('library') }} onNewTab={newTabMenu('library', 'collections')}>
               <FolderOpen size={14} /> Collections
             </Item>
-            <Item active={view === 'library' && libPage === 'moodboards'} onClick={() => { goLibrary('moodboards'); show('library') }}>
+            <Item active={view === 'library' && libPage === 'moodboards'} onClick={() => { goLibrary('moodboards'); show('library') }} onNewTab={newTabMenu('library', 'moodboards')}>
               <Images size={14} /> Moodboards
             </Item>
-            <Item active={view === 'library' && libPage === 'map'} onClick={() => { goLibrary('map'); show('library') }}>
+            <Item active={view === 'library' && libPage === 'map'} onClick={() => { goLibrary('map'); show('library') }} onNewTab={newTabMenu('library', 'map')}>
               <MapIcon size={14} /> Carte
             </Item>
             <LibraryStatus />

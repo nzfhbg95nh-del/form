@@ -3,8 +3,21 @@ export interface Tabs {
   active: number
 }
 
+/** Un onglet peut aussi montrer un écran (Devis, Tout, Carte…) : son identifiant commence par « view: ». */
+export const VIEW_TAB = 'view:'
+export const isViewTab = (id: string | undefined): boolean => !!id && id.startsWith(VIEW_TAB)
+/** « view:quotes » ou « view:library:map » → l'écran et, pour la bibliothèque, sa page. */
+export function parseViewTab(id: string): { view: string; libPage?: string } | null {
+  if (!isViewTab(id)) return null
+  const [, view, libPage] = id.split(':')
+  return view ? { view, libPage } : null
+}
+export const viewTabId = (view: string, libPage?: string): string => VIEW_TAB + view + (libPage ? ':' + libPage : '')
+
+/** La page de l'onglet actif (rien quand l'onglet montre un écran). */
 export function currentId(t: Tabs): string | null {
-  return t.ids[t.active] ?? null
+  const id = t.ids[t.active]
+  return id && !isViewTab(id) ? id : null
 }
 
 /** Ouvre une page : dans l'onglet actif, ou dans un nouvel onglet (on rebascule sur l'onglet existant s'il y en a déjà un). */

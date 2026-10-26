@@ -684,3 +684,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-10-26 — Recettes pleine largeur, icônes pour le voyage de la Carte (après la v0.47.2, pas encore publié)
 - La page Recettes prend la même largeur que « Tout » de la Bibliothèque (marges `px-6`), sans barre de défilement horizontale.
 - Les 4 boutons du voyage de la Carte (même, différent, couleurs, surprends-moi) sont de simples icônes ; le nom reste en infobulle.
+
+## 2026-10-26 — Onglets pour les écrans, clic droit sur les onglets (après la v0.47.2, pas encore publié)
+- Clic droit sur Accueil, Tableau de bord, Clients, Tarifs, Devis, Factures, Paiements, Tout, Collections, Moodboards ou Carte : « Ouvrir dans un nouvel onglet » (vrai onglet en haut, pas une page).
+- Clic droit sur un onglet : menu de la page (favori, épingler, renommer, dupliquer, déplacer, corbeille, fermer l'onglet) ; pour un écran : « Fermer l'onglet ».
+- Notes rapides des Recettes remontées en haut de la page.

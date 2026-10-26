@@ -2,7 +2,8 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
-import { activateTab, closeTab, currentId, dropTabs, openTab, type Tabs } from '@/lib/tabs'
+import { activateTab, closeTab, currentId, dropTabs, openTab, parseViewTab, viewTabId, type Tabs } from '@/lib/tabs'
+import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema, TASK } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
@@ -22,7 +23,15 @@ import type { AiMode, AiTask, Recipe } from '@/lib/ai'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
-export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
+export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
+
+/** L'écran à afficher pour l'onglet actif : une page, ou un écran (et sa page de bibliothèque) pour un onglet « view: ». */
+function viewOfTab(t: Tabs): { view: View } {
+  const parsed = parseViewTab(t.ids[t.active] ?? '')
+  if (!parsed) return { view: 'page' }
+  if (parsed.libPage) useLibraryNav.getState().go(parsed.libPage as LibraryPageId)
+  return { view: parsed.view as View }
+}
 
 /** Fiche client ou prestation en cours d'édition (id = null : nouvelle fiche). */
 export interface Editing {
@@ -133,6 +142,8 @@ interface AppState {
   setRenaming(id: string | null): void
   setMoving(id: string | null): void
   show(view: View): void
+  /** Ouvre un écran (Devis, Tout, Carte…) dans un nouvel onglet. */
+  openViewTab(view: View, libPage?: LibraryPageId): void
   toggleExpanded(id: string, value?: boolean): void
   createPage(parentId?: string | null, newTab?: boolean): Promise<void>
   createDatabase(parentId?: string | null): Promise<void>
@@ -421,7 +432,7 @@ export const useApp = create<AppState>((set, get) => ({
     if (tabs.ids.length < 2) return
     const index = (tabs.active + delta + tabs.ids.length) % tabs.ids.length
     const next = activateTab(tabs, index)
-    set({ tabs: next, selectedId: currentId(next), view: 'page' })
+    set({ tabs: next, selectedId: currentId(next), ...viewOfTab(next) })
   },
 
   toggleSidebar() {
@@ -439,13 +450,15 @@ export const useApp = create<AppState>((set, get) => ({
 
   activate(index) {
     const tabs = activateTab(get().tabs, index)
-    set({ tabs, selectedId: currentId(tabs), view: 'page' })
+    set({ tabs, selectedId: currentId(tabs), ...viewOfTab(tabs) })
   },
 
   closeTabAt(index) {
     const closedId = get().tabs.ids[index]
     const tabs = closeTab(get().tabs, index)
-    set({ tabs, selectedId: currentId(tabs), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs })
+    // Fermer l'onglet d'un écran qu'on regarde : on passe à l'écran (ou à la page) de l'onglet voisin.
+    const wasShown = get().view !== 'page' && index === get().tabs.active && parseViewTab(closedId ?? '')
+    set({ tabs, selectedId: currentId(tabs), ...(wasShown ? viewOfTab(tabs) : {}), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs })
   },
 
   openPeek(id) {
@@ -470,7 +483,21 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   show(view) {
+    // Si l'onglet actif montre un écran, il suit : il prend le nom du nouvel écran.
+    const { tabs } = get()
+    const active = tabs.ids[tabs.active]
+    if (view !== 'page' && parseViewTab(active ?? '')) {
+      const id = viewTabId(view, view === 'library' ? useLibraryNav.getState().page : undefined)
+      set({ view, tabs: { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active }, selectedId: null })
+      return
+    }
     set({ view })
+  },
+
+  openViewTab(view, libPage) {
+    if (libPage) useLibraryNav.getState().go(libPage)
+    const tabs = openTab(get().tabs, viewTabId(view, view === 'library' ? libPage : undefined), true)
+    set({ tabs, selectedId: null, view })
   },
 
   setEditing(editing) {

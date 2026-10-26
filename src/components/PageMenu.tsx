@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, FolderInput, PanelRight, PenLine, Pin, PinOff, Star, Trash2 } from 'lucide-react'
+import { Copy, ExternalLink, X, FolderInput, PanelRight, PenLine, Pin, PinOff, Star, Trash2 } from 'lucide-react'
 import { useApp } from '@/store/app'
 
 function formatDate(iso: string): string {
@@ -6,7 +6,7 @@ function formatDate(iso: string): string {
 }
 
 /** Menu « ⋯ » d'une page (clic sur ⋯ ou clic droit dans la barre latérale). */
-export function PageMenu({ id, x, y, onClose }: { id: string; x: number; y: number; onClose: () => void }) {
+export function PageMenu({ id, x, y, onClose, closeTab }: { id: string; x: number; y: number; onClose: () => void; closeTab?: () => void }) {
   const { objects, update, select, openPeek, setRenaming, setMoving, duplicate, trash, pinned, togglePin } = useApp()
   const page = objects.find((o) => o.id === id)
   if (!page) return null
@@ -39,6 +39,7 @@ export function PageMenu({ id, x, y, onClose }: { id: string; x: number; y: numb
         <div className="my-1 border-t border-[var(--border)]" />
         {item(<ExternalLink size={14} />, 'Nouvel onglet', () => select(id, { newTab: true }))}
         {item(<PanelRight size={14} />, 'Ouvrir en aperçu latéral', () => openPeek(id), 'Alt+clic')}
+        {closeTab && item(<X size={14} />, "Fermer l'onglet", closeTab, 'Ctrl+W')}
         <div className="my-1 border-t border-[var(--border)]" />
         <div className="px-2 py-1 text-xs text-[var(--fg-muted)]">Dernière modification : {formatDate(page.updated_at)}</div>
       </div>
