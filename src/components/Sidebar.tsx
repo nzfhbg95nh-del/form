@@ -21,7 +21,7 @@ function Item({ active, onClick, onNewTab, reload, children }: { active?: boolea
       onClick={onClick}
       onContextMenu={onNewTab ? (e) => { e.preventDefault(); onNewTab(e.clientX, e.clientY) } : undefined}
       className={cn(
-        'group flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
+        'group flex w-full select-none items-center gap-2 rounded-lg px-2.5 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]',
         active && 'bg-[var(--bg-hover)] font-semibold shadow-[var(--shadow-soft)]',
       )}
     >

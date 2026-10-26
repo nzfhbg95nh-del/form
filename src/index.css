@@ -115,11 +115,12 @@ button, a, [role="menuitem"], input, select, textarea {
   transition: background-color 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.2s var(--ease-out-soft), transform 0.2s var(--ease-out-soft), opacity 0.15s;
 }
 /* Un appui se sent : le bouton s'enfonce très légèrement. */
-button:active:not(:disabled), .btn:active:not(:disabled) { transform: scale(0.97); }
+/* Seuls les vrais boutons s'enfoncent ; les éléments de liste, onglets et outils (appui long = menu) ne bougent pas pendant qu'on appuie. */
+.btn:active:not(:disabled) { transform: scale(0.97); }
 .btn-primary { box-shadow: 0 1px 2px rgba(35, 131, 226, 0.35); }
 /* Les cartes cliquables se soulèvent au survol (pages récentes, chiffres de l'accueil…). */
 button.rounded-lg.border:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
-button.rounded-lg.border:not(:disabled):active { transform: translateY(0) scale(0.99); }
+button.rounded-lg.border:not(:disabled):active { transform: translateY(0); }
 /* Menus et fenêtres : ils s'ouvrent en douceur au lieu d'apparaître d'un coup. */
 [role="menu"], [role="dialog"], [data-popup] { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; box-shadow: var(--shadow-lift); }
 @keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.97); } to { opacity: 1; transform: none; } }
