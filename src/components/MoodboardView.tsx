@@ -50,6 +50,9 @@ type Drag =
 const ROTATE_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.5-5.8'/%3E%3Cpath d='M20 3v5h-5'/%3E%3C/svg%3E") 12 12, crosshair`
 type Tool = string
 const bar = 'btn !px-2.5 !py-1 !text-xs !bg-[color-mix(in_srgb,var(--fg)_7%,var(--bg))] shadow-sm disabled:opacity-40'
+// Barre du haut : des groupes arrondis (un fond commun) dont les boutons sont à plat ; l'état actif prend un fond clair avec relief.
+const group = 'pointer-events-auto flex items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--fg)_7%,var(--bg))] p-0.5 shadow-sm'
+const item = 'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-[var(--fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)] aria-pressed:bg-[var(--bg)] aria-pressed:text-[var(--accent)] aria-pressed:shadow-sm'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
 let internalClip: { stamp: string; items: BoardItem[] } | null = null
@@ -1114,22 +1117,40 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
         </div>
       ) : (
-      <div data-ui className="absolute left-3 top-3 flex flex-wrap items-center gap-1.5">
+      <div data-ui className="pointer-events-none absolute left-3 right-3 top-3 flex flex-wrap items-center gap-2">
+        {/* Ajouter : l'action principale, seule à gauche */}
         <button
-          className={bar + ' !border-[var(--accent)] !bg-[var(--accent)] !text-white hover:!opacity-90'}
+          className={bar + ' pointer-events-auto !border-[var(--accent)] !bg-[var(--accent)] !text-white hover:!opacity-90'}
           title="Ajouter une image, un texte, une forme, un lien… (clic droit ou Maj+A sur la toile)"
           onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'full', add: true }) }}
         ><Plus size={14} className="mr-1 inline" />Ajouter</button>
-        <button className={bar} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} className="mr-1 inline" />Organiser</button>
-        <button className={bar + (alignOpen ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')} title="Panneau Aligner : aligner et répartir la sélection" aria-pressed={alignOpen} onClick={() => setAlignOpen(!alignOpen)}><AlignStartVertical size={14} className="mr-1 inline" />Aligner</button>
-        <button className={bar} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} className="mr-1 inline" />Palette</button>
-        <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
-        <button className={bar} title="Fond : petits points ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
-        <button className={bar} title="Réduire ce moodboard en petite fenêtre flottante, toujours devant (comme PureRef) ; la page se ferme derrière" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={14} className="mr-1 inline" />Réduire en flottant</button>
-        <button className={bar} title="Toujours au premier plan" onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
-        {BACKGROUNDS.map((b) => (
-          <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-label={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-pressed={isDark === (b !== '#ffffff')} onClick={() => setBg(b)} className="h-5 w-5 rounded-full" style={{ ...swatch(b), border: isDark === (b !== '#ffffff') ? '2px solid #4da3ff' : '1px solid var(--border)' }} />
-        ))}
+
+        {/* Mise en page : ranger et aligner ce qui est choisi */}
+        <div className={group}>
+          <button className={item} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} />Organiser</button>
+          <button className={item} aria-pressed={alignOpen} title="Panneau Aligner : aligner et répartir la sélection" onClick={() => setAlignOpen(!alignOpen)}><AlignStartVertical size={14} />Aligner</button>
+        </div>
+
+        {/* Couleurs : la palette et le fond */}
+        <div className={group}>
+          <button className={item} aria-pressed={paletteOpen} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} />Palette</button>
+          <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden />
+          {BACKGROUNDS.map((b) => (
+            <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-label={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-pressed={isDark === (b !== '#ffffff')} onClick={() => setBg(b)} className="mx-0.5 h-5 w-5 rounded-full" style={{ ...swatch(b), border: isDark === (b !== '#ffffff') ? '2px solid var(--accent)' : '1px solid var(--border)' }} />
+          ))}
+        </div>
+
+        {/* Vue : cadrer et choisir le fond de la toile */}
+        <div className={group}>
+          <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} />Ajuster</button>
+          <button className={item} title="Fond de la toile : petits points ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
+        </div>
+
+        {/* Fenêtre : à droite, seulement des icônes */}
+        <div className={group + ' ml-auto'}>
+          <button className={item + ' !px-2'} title="Réduire ce moodboard en petite fenêtre flottante, toujours devant (comme PureRef) ; la page se ferme derrière" aria-label="Réduire en fenêtre flottante" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={15} /></button>
+          <button className={item + ' !px-2'} title={onTop ? 'Ne plus rester au premier plan' : 'Toujours au premier plan'} aria-label="Toujours au premier plan" aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={15} /> : <Pin size={15} />}</button>
+        </div>
       </div>
       )}
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
