@@ -22,7 +22,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -32,6 +32,7 @@ import { recipeSlashBlocks } from '@/lib/recipes'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
+import { parseBoard } from '@/lib/moodboard'
 import { openFloatingBoard } from '@/lib/floating'
 import { normalize } from '@/lib/search'
 import { isSystemDatabase } from '@/lib/database'
@@ -150,7 +151,6 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
   const board = useApp((s) => s.objects.find((o) => o.id === boardId))
   const select = useApp((s) => s.select)
   const [live, setLive] = useState<number | null>(null)
-  const frame = 'rounded px-2 py-0.5 text-xs text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
   if (!board || board.deleted_at) {
     return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Ce moodboard a été supprimé.</div>
   }
@@ -171,15 +171,21 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
     window.addEventListener('pointermove', move)
     window.addEventListener('pointerup', up)
   }
+  const count = parseBoard(board.content).items.length
+  const act = 'flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs text-[var(--fg-muted)] transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)] hover:text-[var(--fg)]'
   return (
-    <div contentEditable={false} className="w-full overflow-hidden rounded-md border border-[var(--border)]" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
-      <div className="flex items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
-        <Icon value={board.icon ?? '🖼️'} size={14} />
-        <span className="flex-1 truncate font-medium">{board.title || 'Moodboard'}</span>
-        <button type="button" className={frame} onClick={() => void openFloatingBoard(board.id, board.title)} title="Petite fenêtre toujours devant (Windows)">Flottant</button>
-        <button type="button" className={frame} onClick={() => select(board.id)}>Ouvrir en pleine page ↗</button>
+    <div contentEditable={false} className="group/mb w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-[var(--shadow-soft)]" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
+      {/* Bandeau : le nom du moodboard, son contenu, et à droite deux actions (elles se révèlent au survol) */}
+      <div className="flex items-center gap-2.5 px-4 py-2.5">
+        <Icon value={board.icon ?? '🖼️'} size={16} />
+        <span className="min-w-0 truncate text-sm font-semibold">{board.title || 'Moodboard'}</span>
+        {count > 0 && <span className="lib-count shrink-0">{`${count} élément${count > 1 ? 's' : ''}`}</span>}
+        <div className="ml-auto flex items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--fg)_6%,transparent)] p-0.5 opacity-60 transition-opacity group-hover/mb:opacity-100">
+          <button type="button" className={act} onClick={() => void openFloatingBoard(board.id, board.title)} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre toujours devant (Windows)"><PictureInPicture2 size={13} />Fenêtre flottante</button>
+          <button type="button" className={act} onClick={() => select(board.id)} title="Ouvrir ce moodboard en pleine page"><Maximize2 size={13} />Pleine page</button>
+        </div>
       </div>
-      <div style={{ height: live ?? height }}>
+      <div className="border-t border-[var(--border)]" style={{ height: live ?? height }}>
         <MoodboardView key={board.id} board={board} compact />
       </div>
       <div
@@ -187,7 +193,7 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
         aria-label="Glisser pour redimensionner"
         title="Glisser pour agrandir ou réduire"
         onPointerDown={startDrag}
-        className="flex h-3 cursor-ns-resize items-center justify-center border-t border-[var(--border)] bg-[var(--bg-side)] hover:bg-[var(--bg-hover)]"
+        className="flex h-4 cursor-ns-resize items-center justify-center border-t border-[var(--border)] transition-colors hover:bg-[var(--bg-hover)]"
         style={{ touchAction: 'none' }}
       >
         <span className="h-1 w-10 rounded-full bg-[var(--border)]" />
