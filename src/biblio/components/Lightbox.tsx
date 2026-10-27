@@ -173,7 +173,7 @@ function LightboxContent() {
         {FEATURES.moodboards && <BlockMoodboards block={block} />}
 
         {FEATURES.carte && (
-          <button className="btn mt-6 w-full" onClick={() => useMapRequest.getState().open(block.id)}>
+          <button className="btn mt-6 w-full" onClick={() => useMapRequest.getState().open(block.id, block.id)}>
             <MapIcon size={15} /> Voir sur la carte
           </button>
         )}

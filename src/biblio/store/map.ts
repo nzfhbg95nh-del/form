@@ -4,11 +4,16 @@ import { create } from 'zustand'
 interface MapRequestState {
   request: number
   blockId: string | null
-  open: (blockId: string) => void
+  /** L'image d'où l'on vient (vue détail) : la carte propose d'y retourner. */
+  backTo: string | null
+  open: (blockId: string, backTo?: string) => void
+  clearBack: () => void
 }
 
 export const useMapRequest = create<MapRequestState>((set) => ({
   request: 0,
   blockId: null,
-  open: (blockId) => set((s) => ({ request: s.request + 1, blockId })),
+  backTo: null,
+  open: (blockId, backTo) => set((s) => ({ request: s.request + 1, blockId, backTo: backTo ?? null })),
+  clearBack: () => set({ backTo: null }),
 }))

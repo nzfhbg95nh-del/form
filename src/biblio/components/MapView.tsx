@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Dices, Equal, Expand, ExternalLink, Map as MapIcon, Palette, RefreshCw, Shapes, X } from 'lucide-react'
+import { ChevronLeft, Dices, Equal, Expand, ExternalLink, Map as MapIcon, Palette, RefreshCw, Shapes, X } from 'lucide-react'
 import { loadColorIndex, paletteDistance, type ColorIndex } from '@/biblio/lib/colors.ts'
 import { computeMap, loadMap, type MapData } from '@/biblio/lib/mapData.ts'
 import { kmeans2d, labelClusters, mulberry32, nearestByVector } from '@/biblio/lib/mapLayout.ts'
@@ -88,6 +88,7 @@ export function MapView() {
   const typeIndex = useGrid((s) => s.typeIndex)
   const request = useMapRequest((s) => s.request)
   const requested = useMapRequest((s) => s.blockId)
+  const backTo = useMapRequest((s) => s.backTo)
 
   const [data, setData] = useState<MapData | null>(null)
   const [status, setStatus] = useState<'loading' | 'computing' | 'ready' | 'noai'>('loading')
@@ -642,6 +643,11 @@ export function MapView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
+        {backTo && (
+          <button className="btn" onClick={() => { useMapRequest.getState().clearBack(); useGrid.getState().open(backTo) }} title="Revenir à l'image que tu regardais">
+            <ChevronLeft size={15} /> Retour à l'image
+          </button>
+        )}
         <h1 className="text-base font-semibold">Carte</h1>
         <span className="lib-count">
           {status === 'ready' && pts ? `${pts.ids.length.toLocaleString('fr-FR')} images${missing > 0 ? ` · ${missing.toLocaleString('fr-FR')} pas encore analysées par l'IA` : ''}` : ''}

@@ -48,7 +48,7 @@ type Drag =
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
 const ROTATE_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.5-5.8'/%3E%3Cpath d='M20 3v5h-5'/%3E%3C/svg%3E") 12 12, crosshair`
 type Tool = string
-const bar = 'rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] shadow-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+const bar = 'btn !px-2.5 !py-1 !text-xs !bg-[color-mix(in_srgb,var(--fg)_7%,var(--bg))] shadow-sm disabled:opacity-40'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
 let internalClip: { stamp: string; items: BoardItem[] } | null = null
@@ -1107,7 +1107,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       <input ref={fileInput} type="file" accept="image/*" multiple className="hidden" onChange={(e) => { const at = fileAt.current ?? viewCenter(); fileAt.current = null; void addFiles(Array.from(e.target.files ?? []), at); e.target.value = '' }} />
 
       {linkInput !== null && (
-        <div data-ui className="absolute left-14 top-14 flex max-w-[24rem] flex-col gap-1.5 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-md">
+        <div data-ui className="absolute left-14 top-14 flex max-w-[24rem] flex-col gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-2 shadow-[var(--shadow-lift)]">
           <input
             autoFocus
             value={linkInput}
@@ -1123,14 +1123,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 setLinkInput(null)
               }
             }}
-            className="w-72 rounded border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
+            className="w-72 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1 text-sm text-[var(--fg)] outline-none focus:border-[var(--accent)]"
           />
           <p className="text-xs text-[var(--fg-muted)]">Un lien de <b>tableau ou d'épingle Pinterest</b>, ou de <b>post Instagram</b>, télécharge ses images et les pose sur la toile (au plus {IMPORT_LIMIT}). Un autre lien devient une carte.</p>
         </div>
       )}
 
       {importing && (
-        <div data-ui className="absolute left-14 top-14 z-40 flex items-center gap-2 rounded-md border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-md">
+        <div data-ui className="absolute left-14 top-14 z-40 flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] px-3 py-2 text-sm text-[var(--fg)] shadow-[var(--shadow-lift)]">
           Téléchargement en cours…
           <button className={bar} onClick={() => void invoke('saver_stop')}>Arrêter</button>
         </div>
@@ -1140,7 +1140,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const first = textSel[0]
         const st = textStyleOf(first)
         const ps = paraStyleOf(first)
-        const field = 'rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
+        const field = 'lib-input rounded-lg border px-2 py-1 text-xs text-[var(--fg)] outline-none'
         const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5 text-[11px] font-semibold' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
         const row = 'flex items-center gap-2'
         const label = 'w-24 shrink-0 text-[var(--fg-muted)]'
@@ -1158,7 +1158,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const leadingPt = round1(st.size * st.lh)
         const boxes = (list: [boolean, React.ReactNode, string, () => void][]) => list.map(([on, text, title, fn]) => <button key={title} className={toggle(on)} onClick={fn} title={title} aria-label={title} aria-pressed={on}>{text}</button>)
         return (
-          <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+          <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-[var(--shadow-lift)]">
             <div className={head}>Caractère{textSel.length > 1 ? ` (${textSel.length} textes)` : ''}</div>
             <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
@@ -1188,7 +1188,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
             </div>
             <div className={row}>
               <span className={label}>Couleur</span>
-              <input type="color" className="h-7 w-10 cursor-pointer rounded border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
+              <input type="color" className="h-7 w-10 cursor-pointer rounded-lg border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
             </div>
 
             <div className={head + ' mt-1 border-t border-[var(--border)] pt-2'}>Paragraphe</div>
@@ -1215,14 +1215,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
       {alignOpen && !compact && (() => {
         const n = selection.size
-        const ic = (on: boolean) => 'flex h-7 w-7 items-center justify-center rounded border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)] disabled:opacity-30' + (on ? '' : '')
+        const ic = (on: boolean) => 'flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)] disabled:opacity-30' + (on ? '' : '')
         const can = n >= 1 && (alignRef === 'screen' || n >= 2)
         const row = 'flex gap-1'
         const pick = (id: 'selection' | 'screen' | 'key', text: string, title: string) => (
           <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
         )
         return (
-          <div data-ui className="absolute left-[104px] top-14 z-30 flex w-52 flex-col gap-2 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-md">
+          <div data-ui className="absolute left-[104px] top-14 z-30 flex w-52 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-[var(--shadow-lift)]">
             <div className="flex items-center">
               <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
               <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>
@@ -1250,7 +1250,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
             <div className="flex items-center gap-1">
               <button className={ic(false)} title="Mêmes espaces à l’horizontale" aria-label="Mêmes espaces à l’horizontale" disabled={n < 3} onClick={() => act.space('x')}><AlignHorizontalSpaceBetween size={14} /></button>
               <button className={ic(false)} title="Mêmes espaces à la verticale" aria-label="Mêmes espaces à la verticale" disabled={n < 3} onClick={() => act.space('y')}><AlignVerticalSpaceBetween size={14} /></button>
-              <input className="ml-1 w-14 rounded border border-[var(--border)] bg-transparent px-1.5 py-1 text-xs outline-none focus:border-[var(--accent)]" type="number" placeholder="auto" value={spaceInput} onChange={(e) => setSpaceInput(e.target.value)} aria-label="Espace imposé entre les éléments (pt)" title="Espace imposé entre les éléments ; vide = espaces égaux" />
+              <input className="lib-input ml-1 w-14 rounded-lg border px-2 py-1 text-xs outline-none" type="number" placeholder="auto" value={spaceInput} onChange={(e) => setSpaceInput(e.target.value)} aria-label="Espace imposé entre les éléments (pt)" title="Espace imposé entre les éléments ; vide = espaces égaux" />
               <span className="text-[var(--fg-muted)]">pt</span>
             </div>
             {n === 0 && <div className="text-[var(--fg-muted)]">Sélectionne des éléments (Maj+clic pour en ajouter).</div>}
@@ -1273,7 +1273,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
       {!compact && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
-        <div data-ui className="pointer-events-none absolute bottom-10 left-1/2 max-w-[80%] -translate-x-1/2 truncate rounded-md border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-1 text-xs text-[var(--fg-muted)] shadow-sm">
+        <div data-ui className="pointer-events-none absolute bottom-10 left-1/2 max-w-[80%] -translate-x-1/2 truncate rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-1 text-xs text-[var(--fg-muted)] shadow-sm">
           {TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool].map(([text, bold], i) => (bold ? <b key={i} className="font-semibold text-[var(--fg)]">{text}</b> : <span key={i}>{text}</span>))}
         </div>
       )}
@@ -1287,12 +1287,12 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && !compact && (
-        <div data-ui data-scroll style={{ top: 12, maxHeight: showTextPanel ? 'calc(100% - 350px)' : '80%' }} className="absolute right-3 w-52 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-md">
+        <div data-ui data-scroll style={{ top: 12, maxHeight: showTextPanel ? 'calc(100% - 350px)' : '80%' }} className="absolute right-3 w-52 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-[var(--shadow-lift)]">
           <div className="mb-2 text-xs font-semibold uppercase text-[var(--fg-muted)]">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
           {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
           <div className="grid grid-cols-2 gap-2">
             {palette.map((c) => (
-              <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded border border-[var(--border)] text-left">
+              <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded-lg border border-[var(--border)] text-left">
                 <div className="h-10" style={{ background: c }} />
                 <div className="px-1 py-0.5 font-mono text-[11px]">{c}</div>
               </button>
@@ -1311,7 +1311,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {menu && (
         <>
           <div data-ui className="fixed inset-0 z-40" onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
-          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-72 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.max(0, Math.min(menu.x, size.w - 290)), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
+          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.max(0, Math.min(menu.x, size.w - 290)), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
             {menu.mode === 'full' && (
               <>
                 <button
