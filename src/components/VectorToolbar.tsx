@@ -172,6 +172,9 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
                         role="menuitem"
                         className="flex items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]"
                         style={x.id === t.id ? { color: 'var(--accent)' } : undefined}
+                        // Passer la souris dessus suffit pour changer d'outil ; lâcher le bouton (après un appui long) referme la liste ; un clic marche aussi.
+                        onMouseEnter={() => { if (x.id !== t.id) { setChosen((c) => ({ ...c, [i]: x.id })); onTool(x.tool) } }}
+                        onPointerUp={() => { if (fired.current) { fired.current = false; setOpen(null) } }}
                         onClick={() => { setOpen(null); setChosen((c) => ({ ...c, [i]: x.id })); onTool(x.tool) }}
                       >
                         <span className="flex w-2 justify-center text-[8px]">{x.id === t.id ? '■' : ''}</span>
