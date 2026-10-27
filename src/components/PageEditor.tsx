@@ -151,6 +151,8 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
   const board = useApp((s) => s.objects.find((o) => o.id === boardId))
   const select = useApp((s) => s.select)
   const [live, setLive] = useState<number | null>(null)
+  const [name, setName] = useState(board?.title ?? '')
+  useEffect(() => setName(board?.title ?? ''), [board?.title])
   if (!board || board.deleted_at) {
     return <div contentEditable={false} className="w-full rounded-md border border-dashed border-[var(--border)] p-4 text-sm text-[var(--fg-muted)]">Ce moodboard a été supprimé.</div>
   }
@@ -177,8 +179,18 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
     <div contentEditable={false} className="group/mb w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-[var(--shadow-soft)]" style={{ position: 'relative', zIndex: 0, isolation: 'isolate' }}>
       {/* Bandeau : le nom du moodboard, son contenu, et à droite deux actions (elles se révèlent au survol) */}
       <div className="flex items-center gap-2.5 px-4 py-2.5">
-        <Icon value={board.icon ?? '🖼️'} size={16} />
-        <span className="min-w-0 truncate text-sm font-semibold">{board.title || 'Moodboard'}</span>
+        {/* L'icône et le nom se changent ici même (comme ceux d'une page) */}
+        <IconPicker value={board.icon} onChange={(icon) => void useApp.getState().update(board.id, { icon })} trigger={<Icon value={board.icon ?? '🖼️'} size={16} />} />
+        <input
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          onBlur={() => { if (name.trim() !== board.title) void useApp.getState().update(board.id, { title: name.trim() }) }}
+          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setName(board.title); (e.target as HTMLInputElement).blur() } }}
+          placeholder="Moodboard"
+          aria-label="Nom du moodboard"
+          size={Math.max(8, Math.min(40, name.length + 1))}
+          className="min-w-0 rounded-md bg-transparent px-1 text-sm font-semibold outline-none transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_6%,transparent)] focus:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]"
+        />
         {count > 0 && <span className="lib-count shrink-0">{`${count} élément${count > 1 ? 's' : ''}`}</span>}
         <div className="ml-auto flex items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--fg)_6%,transparent)] p-0.5 opacity-60 transition-opacity group-hover/mb:opacity-100">
           <button type="button" className={act} onClick={() => void openFloatingBoard(board.id, board.title)} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre toujours devant (Windows)"><PictureInPicture2 size={13} />Fenêtre flottante</button>
