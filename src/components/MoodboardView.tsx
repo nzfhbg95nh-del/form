@@ -1233,7 +1233,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         return (
           <>
             {/* Comme dans Illustrator : une fine colonne d'icônes (Caractère, Paragraphe) ; un clic ouvre le panneau à côté, avec ses onglets ; « × » le range. */}
-            <FloatPanel id="text-strip" slim title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-12">
+            <FloatPanel id="text-strip" slim title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'top', dy: 56 }} className="w-12">
               <button className={stripBtn(textTab === 'char')} aria-pressed={textTab === 'char'} title="Caractère : police, taille, couleur…" aria-label="Caractère" onClick={() => setTextTab(textTab === 'char' ? null : 'char')}><ALargeSmall size={19} /></button>
               <button className={stripBtn(textTab === 'para')} aria-pressed={textTab === 'para'} title="Paragraphe : alignement, retraits, espaces…" aria-label="Paragraphe" onClick={() => setTextTab(textTab === 'para' ? null : 'para')}><Pilcrow size={19} /></button>
             </FloatPanel>
@@ -1243,7 +1243,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 noCollapse
                 title="Texte"
                 icon={<Type size={14} />}
-                anchor={{ x: 'right', y: 'bottom', dx: 68 }}
+                anchor={{ x: 'right', y: 'top', dx: 68, dy: 56 }}
+                nextTo="text-strip"
                 className="w-64"
                 onClose={() => setTextTab(null)}
                 headerContent={(
@@ -1393,7 +1394,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && !compact && (
-        <FloatPanel id="palette" title={`Palette ${selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}`} icon={<PaletteIcon size={14} />} anchor={{ x: 'right', y: 'top', dy: 56 }} className="w-52" onClose={() => setPaletteOpen(false)}>
+        <FloatPanel id="palette" title={`Palette ${selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}`} icon={<PaletteIcon size={14} />} anchor={{ x: 'right', y: 'top', dx: 76, dy: 56 }} className="w-52" onClose={() => setPaletteOpen(false)}>
                     {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
           <div className="grid grid-cols-2 gap-2">
             {palette.map((c) => (

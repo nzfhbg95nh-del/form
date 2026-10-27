@@ -17,7 +17,7 @@ const write = (id: string, v: Saved) => { try { localStorage.setItem(KEY(id), JS
  * Un panneau flottant du moodboard (Caractère, Aligner, Palette, Réglages…) : on le déplace en tirant sa barre de titre, on le réduit en une
  * petite icône (un clic sur l'icône le rouvre), et sa place est retenue d'une fois sur l'autre. Il reste toujours dans la toile.
  */
-export function FloatPanel({ id, title, icon, anchor, className = '', onClose, noCollapse = false, headerContent, slim = false, children }: {
+export function FloatPanel({ id, title, icon, anchor, className = '', onClose, noCollapse = false, headerContent, slim = false, nextTo, children }: {
   id: string; title: string; icon: ReactNode; anchor: Anchor; className?: string; onClose?: () => void; children: ReactNode
   /** Pas de bouton « réduire en icône » (quand le panneau a déjà son icône ailleurs). */
   noCollapse?: boolean
@@ -25,9 +25,12 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
   headerContent?: ReactNode
   /** Version fine : seulement une poignée d'icône en haut, puis le contenu serré (colonne d'icônes). */
   slim?: boolean
+  /** S'ouvre juste à côté du panneau portant cet identifiant, à chaque ouverture (sa place n'est pas gardée). */
+  nextTo?: string
 }) {
   const box = useRef<HTMLDivElement>(null)
-  const [state, setState] = useState<Saved | null>(() => read(id))
+  const [state, setState] = useState<Saved | null>(() => (nextTo ? null : read(id)))
+  const [, setTick] = useState(0)
   const drag = useRef<{ px: number; py: number; x: number; y: number; moved: boolean } | null>(null)
 
   const bounds = () => {
@@ -50,8 +53,17 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       const bh = box.current.offsetHeight
       const dx = anchor.dx ?? 12
       const dy = anchor.dy ?? 12
-      const x = anchor.x === 'left' ? dx : anchor.x === 'right' ? w - bw - dx : (w - bw) / 2
-      const y = anchor.y === 'top' ? dy : h - bh - dy
+      let x = anchor.x === 'left' ? dx : anchor.x === 'right' ? w - bw - dx : (w - bw) / 2
+      let y = anchor.y === 'top' ? dy : h - bh - dy
+      // À côté d'un autre panneau (la colonne d'icônes) : à sa gauche, à sa hauteur ; s'il n'y a pas la place, à sa droite.
+      const other = nextTo ? (box.current.offsetParent?.querySelector(`[data-panel-id="${nextTo}"]`) as HTMLElement | null) : null
+      // Le voisin n'a pas encore sa place (premier affichage des deux ensemble) : on réessaie à l'image suivante.
+      if (other && other.style.visibility === 'hidden') { requestAnimationFrame(() => setTick((t) => t + 1)); return }
+      if (other) {
+        x = other.offsetLeft - bw - 8
+        if (x < 4) x = other.offsetLeft + other.offsetWidth + 8
+        y = other.offsetTop
+      }
       setState({ ...clamp(x, y), collapsed: false })
     } else {
       const c = clamp(state.x, state.y)
@@ -91,6 +103,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       <div
         ref={box}
         data-ui
+        data-panel-id={id}
         title={`${title} (clic : rouvrir, glisser : déplacer)`}
         className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
         style={place}
@@ -108,6 +121,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
     <div
       ref={box}
       data-ui
+      data-panel-id={id}
       data-scroll
       className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
       style={place}
