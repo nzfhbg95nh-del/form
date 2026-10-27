@@ -124,7 +124,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   }
 
   return (
-    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-100px)] flex-col overflow-hidden rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'var(--bg-side)', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
+    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-200px)] flex-col overflow-hidden rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'var(--bg-side)', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
       {/* En-tête : replier (deux colonnes ↔ une colonne), masquer, poignée */}
       <div className="flex items-center justify-between px-1.5 pt-1 text-[11px] text-[var(--fg-muted)]" style={{ background: 'var(--bg-side)' }}>
         <button title={single ? 'Deux colonnes' : 'Une colonne'} aria-label={single ? 'Deux colonnes' : 'Une colonne'} onClick={() => setSingle(!single)} className="rounded px-0.5 hover:bg-[var(--bg-hover)]">{single ? '»' : '«'}</button>

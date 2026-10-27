@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -101,6 +101,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [vcTip, setVcTip] = useState<VcOut['tip']>(null)
   // Les réglages de l'outil de dessin actif (taille de la gomme et de la tache, fidélité du crayon).
   const [vcOptions, setVcOptions] = useState<VcOut['options']>(null)
+  // L'aide des outils (en bas à gauche) peut être réduite en un petit « ? » ; le choix est gardé.
+  const [hintOpen, setHintOpen] = useState(() => { try { return localStorage.getItem('form-board-hint') !== 'closed' } catch { return true } })
+  const toggleHint = (open: boolean) => { setHintOpen(open); try { localStorage.setItem('form-board-hint', open ? 'open' : 'closed') } catch { /* sans importance */ } }
   const [tipAt, setTipAt] = useState<[number, number] | null>(null)
   const vcItems = useRef<BoardItem[] | null>(null)
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
@@ -1336,9 +1339,17 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
       {!compact && !showTextPanel && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
-        <div data-ui className="pointer-events-none absolute bottom-12 left-[112px] flex w-64 flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-2 text-[11px] leading-snug text-[var(--fg-muted)] shadow-sm">
-          {hintLines(TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool]).map((line, i) => <div key={i}>{line}</div>)}
-        </div>
+        hintOpen ? (
+          <div data-ui className="absolute bottom-12 left-3 flex w-64 flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-2 text-[11px] leading-snug text-[var(--fg-muted)] shadow-sm">
+            <div className="mb-0.5 flex items-center justify-between">
+              <span className="lib-count">Aide</span>
+              <button className="rounded-md p-0.5 hover:bg-[var(--bg-hover)]" title="Réduire l'aide" aria-label="Réduire l'aide" onClick={() => toggleHint(false)}><ChevronDown size={14} /></button>
+            </div>
+            {hintLines(TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool]).map((line, i) => <div key={i}>{line}</div>)}
+          </div>
+        ) : (
+          <button data-ui className="absolute bottom-12 left-3 flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)]/90 text-[var(--fg-muted)] shadow-sm hover:text-[var(--fg)]" title="Afficher l'aide des outils" aria-label="Afficher l'aide des outils" onClick={() => toggleHint(true)}><CircleHelp size={15} /></button>
+        )
       )}
       {isFloatingElsewhere && (
         <div data-ui className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-3 bg-[var(--bg)]/95 p-6 text-center">
