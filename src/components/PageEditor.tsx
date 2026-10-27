@@ -1,3 +1,4 @@
+import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
 import { BookmarkBlock, EmbedBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
@@ -20,7 +21,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2 } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -379,6 +380,18 @@ const columns = (n: number) => ({
   children: Array.from({ length: n }, () => ({ type: 'column', props: { width: 1 }, children: [{ type: 'paragraph' }] })),
 })
 
+const SLASH_DESCRIPTIONS: Record<string, string> = {
+  paragraph: 'Écris du texte, tout simplement.',
+  h1: 'Titre de grande taille.', h2: 'Titre de taille moyenne.', h3: 'Titre de petite taille.', h4: 'Titre de très petite taille.',
+  bullet: 'Une liste à puces.', numbered: 'Une liste numérotée.', check: 'Une liste de cases à cocher.', todo: 'Une tâche avec un statut (à faire, en cours, fait).',
+  toggle: 'Un menu qui se déplie et se replie.', subpage: 'Une page à l’intérieur de cette page.', callout: 'Un encadré pour mettre une info en avant.',
+  quote: 'Une citation.', table: 'Un tableau simple.', divider: 'Une ligne pour séparer.', code: 'Un bloc de code.',
+  th1: 'Un titre grand format qui déplie son contenu.', th2: 'Un titre moyen qui déplie son contenu.', th3: 'Un petit titre qui déplie son contenu.',
+  c2: 'Deux blocs côte à côte.', c3: 'Trois blocs côte à côte.', c4: 'Quatre blocs côte à côte.', c5: 'Cinq blocs côte à côte.',
+  image: 'Ajoute une image.', video: 'Ajoute un fichier vidéo.', audio: 'Ajoute un fichier audio.', file: 'Joins un fichier à la page.',
+  toc: 'Les titres de la page, cliquables.', today: 'Insère la date du jour.', tomorrow: 'Insère la date de demain.', yesterday: 'Insère la date d’hier.', now: 'Insère la date et l’heure.',
+}
+
 function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
   const defaults = getDefaultReactSlashMenuItems(editor as never) as unknown as { key: string; badge?: string; onItemClick: () => void }[]
   const std = (key: string) => defaults.find((d) => d.key === key)
@@ -394,7 +407,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
   const B = 'Blocs de base'
   const M = 'Médias'
   const mod = (k: string) => std(k)?.badge
-  return [
+  const items: SlashItem[] = [
     { key: 'paragraph', title: 'Texte', aliases: ['texte', 'paragraphe', 'text'], group: B, icon: ico(Type), badge: mod('paragraph'), onItemClick: viaDefault('paragraph') },
     { key: 'h1', title: 'Titre 1', aliases: ['titre', 'h1', 'heading'], group: B, icon: ico(Heading1), badge: '#', onItemClick: put({ type: 'heading', props: { level: 1 } }) },
     { key: 'h2', title: 'Titre 2', aliases: ['titre', 'h2'], group: B, icon: ico(Heading2), badge: '##', onItemClick: put({ type: 'heading', props: { level: 2 } }) },
@@ -442,7 +455,12 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'moodboard', title: 'Moodboard', aliases: ['moodboard', 'mood board', 'planche', 'inspiration', 'cadre', 'images'], group: M, subtext: 'Un moodboard dans un cadre, ouvrable en pleine page', icon: ico(Images), onItemClick: embed('moodboard', 'moodboard') },
     { key: 'dbinline', title: 'Base de données – Intégrée', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau', 'intégrée', 'integree', 'kanban', 'calendrier', 'galerie'], group: 'Base de données', subtext: 'Une base de données dans la page (tableau, kanban, calendrier...)', icon: ico(Database), onItemClick: embed('database', 'database') },
     { key: 'db', title: 'Base de données – Pleine page', aliases: ['base', 'données', 'donnees', 'database', 'table', 'tableau'], group: 'Base de données', icon: ico(Database), onItemClick: embed('database', 'subpage') },
+    { key: 'today', title: 'Aujourd’hui', aliases: ['date', 'aujourd’hui', 'aujourdhui', 'today', 'jour'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateText(new Date(), 0) + ' '] as never) },
+    { key: 'tomorrow', title: 'Demain', aliases: ['date', 'demain', 'tomorrow'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateText(new Date(), 1) + ' '] as never) },
+    { key: 'yesterday', title: 'Hier', aliases: ['date', 'hier', 'yesterday'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateText(new Date(), -1) + ' '] as never) },
+    { key: 'now', title: 'Maintenant', aliases: ['date', 'heure', 'maintenant', 'now'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateTimeText(new Date()) + ' '] as never) },
   ]
+  return items.map((it) => ({ ...it, subtext: it.subtext ?? SLASH_DESCRIPTIONS[it.key] }))
 }
 
 /** Pages proposées après « @ » (recherche sans accents, 10 résultats). */

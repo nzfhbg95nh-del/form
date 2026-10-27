@@ -55,7 +55,10 @@ export function SlashMenu({ items, loadingState, selectedIndex, onItemClick }: S
                 className={'flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 ' + (active ? 'bg-[var(--bg-hover)]' : 'hover:bg-[var(--bg-hover)]')}
               >
                 <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--fg-muted)]">{item.icon}</span>
-                <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{item.title}</span>
+                  {item.subtext && <span className="block truncate text-xs text-[var(--fg-muted)]">{item.subtext}</span>}
+                </span>
                 {item.badge && <span className="shrink-0 text-xs text-[var(--fg-muted)]">{item.badge}</span>}
               </div>
             </div>
