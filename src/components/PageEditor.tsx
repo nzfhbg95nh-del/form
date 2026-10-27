@@ -188,8 +188,9 @@ function MoodboardFrame({ boardId, height, onResize }: { boardId: string; height
           onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setName(board.title); (e.target as HTMLInputElement).blur() } }}
           placeholder="Moodboard"
           aria-label="Nom du moodboard"
-          size={Math.max(8, Math.min(40, name.length + 1))}
-          className="min-w-0 rounded-md bg-transparent px-1 text-sm font-semibold outline-none transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_6%,transparent)] focus:bg-[color-mix(in_srgb,var(--fg)_8%,transparent)]"
+          spellCheck={false}
+          style={{ width: `${Math.min(40, Math.max(name.length, 9))}ch` }}
+          className="min-w-0 max-w-full rounded bg-transparent text-sm font-semibold outline-none transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_5%,transparent)] focus:bg-transparent focus:underline focus:decoration-[var(--border)] focus:underline-offset-4"
         />
         {count > 0 && <span className="lib-count shrink-0">{`${count} élément${count > 1 ? 's' : ''}`}</span>}
         <div className="ml-auto flex items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--fg)_6%,transparent)] p-0.5 opacity-60 transition-opacity group-hover/mb:opacity-100">
