@@ -1214,8 +1214,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const first = textSel[0]
         const st = textStyleOf(first)
         const ps = paraStyleOf(first)
-        const field = 'lib-input rounded-lg border px-2 py-1 text-xs text-[var(--fg)] outline-none'
-        const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5 text-[11px] font-semibold' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
+        const field = 'rounded-lg border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs text-[var(--fg)] outline-none focus:border-[var(--accent)]'
+        const toggle = (on: boolean) => 'flex h-7 min-w-7 items-center justify-center rounded-lg border bg-[var(--bg)] px-1.5 text-[11px] font-semibold transition-colors hover:bg-[var(--bg-hover)] ' + (on ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)]')
         const row = 'flex items-center gap-2'
         const label = 'w-24 shrink-0 text-[var(--fg-muted)]'
         const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
