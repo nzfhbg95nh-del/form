@@ -10,6 +10,9 @@ import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { resetSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { DEFAULT_OPTIONS } from '@/biblio/lib/neighbours.ts'
 import { clearAutoTypes } from '@/biblio/lib/types.ts'
+import { placeAddedImages, placedMessage } from '@/biblio/lib/autoPlaceRun.ts'
+import { useCollections } from '@/biblio/store/collections.ts'
+import { useToast } from '@/biblio/store/toast.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
 
 interface AiState {
@@ -154,6 +157,13 @@ export const useAi = create<AiState>((set, get) => ({
     void get().computeColors()
     void get().computeOcr()
 
+    // Les images ajoutées à la main qui n'ont pas encore été rangées (par exemple ajoutées pendant que l'IA n'était pas prête).
+    void placeAddedImages().then(async (placed) => {
+      if (placed.length === 0) return
+      await useCollections.getState().load()
+      useToast.getState().show(placedMessage(placed))
+    }).catch(() => undefined)
+
     // Le classement est refait au démarrage quand la règle a changé, ou quand des images n'ont encore aucun type.
     const version = await getSetting('classify_version')
     if (version !== CLASSIFY_VERSION || (await countUnclassified()) > 0) void get().classify()
@@ -220,6 +230,12 @@ export const useAi = create<AiState>((set, get) => ({
       await setSetting('classify_version', CLASSIFY_VERSION)
       set({ lastClassify: run })
       await useGrid.getState().loadTypes()
+      // Les images ajoutées à la main : l'IA les range dans la collection de leurs voisines.
+      const placed = await placeAddedImages().catch(() => [])
+      if (placed.length > 0) {
+        await useCollections.getState().load()
+        useToast.getState().show(placedMessage(placed))
+      }
     } catch (e) {
       set({ error: String(e) })
     } finally {
