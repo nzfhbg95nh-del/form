@@ -97,6 +97,13 @@ const CURSORS: Record<string, [string, string, [number, number]]> = {
   AnchorPoint: ['dc-anchor', '', [16, 5]],
   Curvature: ['spline', '', [3, 3]],
   Pencil: ['pencil', '', [4, 28]],
+  Eyedropper: ['pipette', '', [3, 29]],
+  Rotate: ['rotate-ccw', '', [16, 16]],
+  ZoomIn: ['zoom-in', '', [13, 13]],
+  ZoomOut: ['zoom-in', '', [13, 13]],
+  CornerRadius: ['dc-rounded-rect', '', [16, 16]],
+  ShearH: ['dc-shear', '', [16, 16]],
+  ShearV: ['dc-shear', '', [16, 16]],
   Hand: ['hand', '', [16, 16]],
   HandGrab: ['hand-grab', '', [16, 16]],
   PathEraser: ['dc-path-eraser', '', [16, 16]],
@@ -108,7 +115,9 @@ const CURSOR_SCALE = 22 / 32
 const cache = new Map<string, string>()
 
 /** La forme du curseur d'un outil du moteur : un curseur de l'écran, ou l'icône de l'outil avec la marque de l'action. */
-export function vectorCursor(name: string): string {
+export function vectorCursor(rawName: string): string {
+  // « RotateToward… » (autour d'un cadre) : le même curseur de rotation.
+  const name = rawName.startsWith('RotateToward') ? 'Rotate' : rawName
   const hit = cache.get(name)
   if (hit) return hit
   const spec = CURSORS[name]

@@ -7,8 +7,8 @@ interface Setting { key: keyof VcToolOptions; label: string; min: number; max: n
 export const TOOL_SETTINGS: Record<string, Setting[]> = {
   eraser: [
     { key: 'size', label: 'Taille', min: 1, max: 150, step: 1, unit: ' px' },
-    { key: 'angle', label: 'Angle', min: -180, max: 180, step: 5, unit: '°' },
     { key: 'roundness', label: 'Arrondi', min: 1, max: 100, step: 1, unit: ' %' },
+    { key: 'angle', label: 'Angle', min: -180, max: 180, step: 5, unit: '°' },
   ],
   blobBrush: [{ key: 'size', label: 'Taille', min: 1, max: 150, step: 1, unit: ' px' }],
   pencil: [{ key: 'fidelity', label: 'Fidélité', min: 0.5, max: 20, step: 0.5, unit: ' px' }],
@@ -20,7 +20,8 @@ export const TOOL_SETTINGS: Record<string, Setting[]> = {
 export const settingText = (v: number, unit: string) => `${Math.round(v * 10) / 10}${unit}`
 
 export function ToolOptionsPanel({ tool, options, onChange }: { tool: string; options: VcToolOptions | null; onChange: (key: string, value: number) => void }) {
-  const settings = TOOL_SETTINGS[tool]
+  // L'angle ne change rien tant que le bout de la gomme est un rond parfait (arrondi à 100 %) : on ne le propose que pour un bout aplati.
+  const settings = TOOL_SETTINGS[tool]?.filter((s) => s.key !== 'angle' || (options?.roundness ?? 100) < 100)
   if (!settings || !options) return null
   return (
     <div data-ui className="absolute bottom-16 left-1/2 z-30 flex w-72 -translate-x-1/2 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 shadow-[var(--shadow-lift)]">

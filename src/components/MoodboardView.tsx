@@ -305,6 +305,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       localStorage.setItem('form-vc-options', JSON.stringify(all))
     } catch { /* sans importance */ }
   }
+  /** Charge le moteur avec les tracés du moodboard, puis lui remet les réglages gardés de l'outil (la taille de la gomme ne revient pas à l'ancienne valeur à chaque trait). */
+  const vcLoad = (paths: ReturnType<typeof itemToVcPath>[], selected: string[], toolId: string, zoomNow: number, paintNow: typeof paint) => {
+    const p = vc.current.load(paths, selected, toolId, zoomNow, paintNow)
+    // Tout de suite après le chargement dans la file : le premier geste utilise déjà les bons réglages.
+    restoreOptions(toolId)
+    return p
+  }
   const restoreOptions = (toolId: string) => {
     try {
       const saved = (JSON.parse(localStorage.getItem('form-vc-options') ?? '{}') as Record<string, Record<string, number>>)[toolId]
@@ -344,7 +351,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const zoomNow = viewRef.current.zoom
     if (kind === 'down' && (!s.loaded || vcItems.current !== presentRef.current)) {
       vcItems.current = presentRef.current
-      void s.load(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, zoomNow, paint)
+      void vcLoad(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, zoomNow, paint)
     }
     void s.pointer(kind, world.x, world.y, modsOf(e), zoomNow).then((out) => vcApply(out, kind))
   }
@@ -360,12 +367,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         void s.setTool(engine, viewRef.current.zoom).then((out) => { setVcOverlays(out.overlays); setVcCursor(out.cursor); setVcTip(out.tip); setVcOptions(out.options); restoreOptions(engine) })
       } else {
         vcItems.current = present
-        void s.load(present.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint).then((out) => {
+        void vcLoad(present.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint).then((out) => {
           setVcOverlays(out.overlays)
           setVcCursor(out.cursor)
           setVcTip(out.tip)
           setVcOptions(out.options)
-          restoreOptions(engine)
         })
       }
     } else if (s.loaded) {
@@ -772,7 +778,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       // Le moteur doit connaître les tracés actuels du moodboard avant de recevoir la touche (sinon un état ancien pourrait effacer des tracés).
       if (!vc.current.loaded || vcItems.current !== presentRef.current) {
         vcItems.current = presentRef.current
-        void vc.current.load(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint)
+        void vcLoad(presentRef.current.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint)
       }
       // Ces touches sont celles du moteur (Entrée et Échap terminent un tracé, Suppr retire les points choisis, les flèches les déplacent).
       // Les images, textes… choisis en même temps ne sont pas connus du moteur : Suppr les retire aussi.
