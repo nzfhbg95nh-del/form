@@ -102,14 +102,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [vcTip, setVcTip] = useState<VcOut['tip']>(null)
   // Les réglages de l'outil de dessin actif (taille de la gomme et de la tache, fidélité du crayon).
   const [vcOptions, setVcOptions] = useState<VcOut['options']>(null)
-  // Les panneaux Caractère et Paragraphe s'ouvrent chacun à part (depuis le petit bloc « T »), et on s'en souvient.
-  const [textPanels, setTextPanelsState] = useState<{ char: boolean; para: boolean }>(() => {
-    try { const v = JSON.parse(localStorage.getItem('form-text-panels') ?? 'null'); return { char: !!v?.char, para: !!v?.para } } catch { return { char: false, para: false } }
+  // Texte : une colonne d'icônes ; l'onglet ouvert (Caractère ou Paragraphe, ou aucun) est gardé d'une séance à l'autre.
+  const [textTab, setTextTabState] = useState<'char' | 'para' | null>(() => {
+    try { const v = localStorage.getItem('form-text-tab'); return v === 'char' || v === 'para' ? v : null } catch { return null }
   })
-  const charOpen = textPanels.char
-  const paraOpen = textPanels.para
-  const setTextPanels = (v: { char: boolean; para: boolean }) => { setTextPanelsState(v); try { localStorage.setItem('form-text-panels', JSON.stringify(v)) } catch { /* sans importance */ } }
-  const dockBtn = (on: boolean) => 'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)] ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg)]')
+  const setTextTab = (v: 'char' | 'para' | null) => { setTextTabState(v); try { localStorage.setItem('form-text-tab', v ?? 'none') } catch { /* sans importance */ } }
+  const stripBtn = (on: boolean) => 'flex h-9 w-9 items-center justify-center rounded-lg ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg)] hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)]')
+  const tabBtn = (on: boolean) => 'border-b-2 px-0.5 pb-1 pt-1 text-[11px] font-semibold ' + (on ? 'border-[var(--accent)] text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')
   // L'aide des outils (en bas à gauche) peut être réduite en un petit « ? » ; le choix est gardé.
   const [hintOpen, setHintOpen] = useState(() => { try { return localStorage.getItem('form-board-hint') !== 'closed' } catch { return true } })
   const toggleHint = (open: boolean) => { setHintOpen(open); try { localStorage.setItem('form-board-hint', open ? 'open' : 'closed') } catch { /* sans importance */ } }
@@ -1233,13 +1232,29 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const boxes = (list: [boolean, React.ReactNode, string, () => void][]) => list.map(([on, text, title, fn]) => <button key={title} className={toggle(on)} onClick={fn} title={title} aria-label={title} aria-pressed={on}>{text}</button>)
         return (
           <>
-            {/* Un petit bloc « T » : en dessous, Caractère et Paragraphe, qui s'ouvrent chacun à part (et se déplacent chacun comme ils veulent). */}
-            <FloatPanel id="text-dock" title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-36">
-              <button className={dockBtn(charOpen)} aria-pressed={charOpen} title="Caractère : police, taille, couleur…" onClick={() => setTextPanels({ char: !charOpen, para: paraOpen })}><ALargeSmall size={15} />Caractère</button>
-              <button className={dockBtn(paraOpen)} aria-pressed={paraOpen} title="Paragraphe : alignement, retraits, espaces…" onClick={() => setTextPanels({ char: charOpen, para: !paraOpen })}><Pilcrow size={15} />Paragraphe</button>
+            {/* Comme dans Illustrator : une fine colonne d'icônes (Caractère, Paragraphe) ; un clic ouvre le panneau à côté, avec ses onglets ; « × » le range. */}
+            <FloatPanel id="text-strip" slim title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-12">
+              <button className={stripBtn(textTab === 'char')} aria-pressed={textTab === 'char'} title="Caractère : police, taille, couleur…" aria-label="Caractère" onClick={() => setTextTab(textTab === 'char' ? null : 'char')}><ALargeSmall size={19} /></button>
+              <button className={stripBtn(textTab === 'para')} aria-pressed={textTab === 'para'} title="Paragraphe : alignement, retraits, espaces…" aria-label="Paragraphe" onClick={() => setTextTab(textTab === 'para' ? null : 'para')}><Pilcrow size={19} /></button>
             </FloatPanel>
-            {charOpen && (
-              <FloatPanel id="text-char" noCollapse title={`Caractère${textSel.length > 1 ? ` (${textSel.length} textes)` : ''}`} icon={<ALargeSmall size={14} />} anchor={{ x: 'right', y: 'bottom', dx: 168 }} className="w-64" onClose={() => setTextPanels({ char: false, para: paraOpen })}>
+            {textTab && (
+              <FloatPanel
+                id="text-panel"
+                noCollapse
+                title="Texte"
+                icon={<Type size={14} />}
+                anchor={{ x: 'right', y: 'bottom', dx: 68 }}
+                className="w-64"
+                onClose={() => setTextTab(null)}
+                headerContent={(
+                  <div className="flex flex-1 items-end gap-3" role="tablist">
+                    <button data-nodrag role="tab" aria-selected={textTab === 'char'} className={tabBtn(textTab === 'char')} onClick={() => setTextTab('char')}>{`Caractère${textSel.length > 1 ? ` (${textSel.length})` : ''}`}</button>
+                    <button data-nodrag role="tab" aria-selected={textTab === 'para'} className={tabBtn(textTab === 'para')} onClick={() => setTextTab('para')}>Paragraphe</button>
+                  </div>
+                )}
+              >
+                {textTab === 'char' ? (
+                  <>
             <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -1271,10 +1286,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="color" className="h-7 w-10 cursor-pointer rounded-lg border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
             </div>
 
-              </FloatPanel>
-            )}
-            {paraOpen && (
-              <FloatPanel id="text-para" noCollapse title="Paragraphe" icon={<Pilcrow size={14} />} anchor={{ x: 'right', y: 'bottom', dx: 444 }} className="w-64" onClose={() => setTextPanels({ char: charOpen, para: false })}>
+                  </>
+                ) : (
+                  <>
             <div className="flex flex-wrap gap-1">
               <button className={toggle(ps.align === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
               <button className={toggle(ps.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
@@ -1292,6 +1306,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="checkbox" checked={ps.hyph} onChange={(e) => setTextProps({ hyph: e.target.checked })} />
               <span>Couper les mots</span>
             </label>
+                  </>
+                )}
               </FloatPanel>
             )}
           </>

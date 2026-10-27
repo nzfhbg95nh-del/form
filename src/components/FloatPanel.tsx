@@ -17,10 +17,14 @@ const write = (id: string, v: Saved) => { try { localStorage.setItem(KEY(id), JS
  * Un panneau flottant du moodboard (Caractère, Aligner, Palette, Réglages…) : on le déplace en tirant sa barre de titre, on le réduit en une
  * petite icône (un clic sur l'icône le rouvre), et sa place est retenue d'une fois sur l'autre. Il reste toujours dans la toile.
  */
-export function FloatPanel({ id, title, icon, anchor, className = '', onClose, noCollapse = false, children }: {
+export function FloatPanel({ id, title, icon, anchor, className = '', onClose, noCollapse = false, headerContent, slim = false, children }: {
   id: string; title: string; icon: ReactNode; anchor: Anchor; className?: string; onClose?: () => void; children: ReactNode
   /** Pas de bouton « réduire en icône » (quand le panneau a déjà son icône ailleurs). */
   noCollapse?: boolean
+  /** Remplace le titre dans la barre (par exemple des onglets). */
+  headerContent?: ReactNode
+  /** Version fine : seulement une poignée d'icône en haut, puis le contenu serré (colonne d'icônes). */
+  slim?: boolean
 }) {
   const box = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<Saved | null>(() => read(id))
@@ -111,19 +115,18 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       onPointerMove={(e) => e.stopPropagation()}
     >
       <div
-        className="flex shrink-0 cursor-grab touch-none select-none items-center gap-2 border-b border-[var(--border)] px-3 py-1.5 active:cursor-grabbing"
+        className={'flex shrink-0 cursor-grab touch-none select-none items-center gap-2 border-b border-[var(--border)] active:cursor-grabbing ' + (slim ? 'justify-center px-1 py-1' : headerContent ? 'px-3 pb-0 pt-1.5' : 'px-3 py-1.5')}
         title="Tire pour déplacer le panneau"
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
         onPointerUp={() => endDrag(false)}
         onPointerCancel={() => endDrag(false)}
       >
-        <span className="text-[var(--fg-muted)]">{icon}</span>
-        <span className="lib-count flex-1 truncate">{title}</span>
-        {!noCollapse && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}><ChevronsUpDown size={13} /></button>}
+        {slim ? <span className="mx-auto text-[var(--fg-muted)]">{icon}</span> : <><span className="text-[var(--fg-muted)]">{icon}</span>{headerContent ?? <span className="lib-count flex-1 truncate">{title}</span>}</>}
+        {!noCollapse && !slim && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}><ChevronsUpDown size={13} /></button>}
         {onClose && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}><X size={13} /></button>}
       </div>
-      <div data-scroll className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">{children}</div>
+      <div data-scroll className={'flex min-h-0 flex-1 flex-col overflow-y-auto ' + (slim ? 'items-center gap-1 p-1' : 'gap-2 p-3')}>{children}</div>
     </div>
   )
 }
