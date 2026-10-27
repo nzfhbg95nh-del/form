@@ -1336,7 +1336,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
       {!compact && !showTextPanel && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
-        <div data-ui className="pointer-events-none absolute bottom-12 right-3 flex w-64 flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-2 text-[11px] leading-snug text-[var(--fg-muted)] shadow-sm">
+        <div data-ui className="pointer-events-none absolute bottom-12 left-[112px] flex w-64 flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-2 text-[11px] leading-snug text-[var(--fg-muted)] shadow-sm">
           {hintLines(TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool]).map((line, i) => <div key={i}>{line}</div>)}
         </div>
       )}
