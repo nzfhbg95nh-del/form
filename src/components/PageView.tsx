@@ -5,6 +5,7 @@ import { addOption } from '@/components/DatabaseView'
 import { PropertyEditor } from '@/components/PropertyEditor'
 import { allColumns, cellValue, parseSchema } from '@/lib/database'
 import { PageEditor } from '@/components/PageEditor'
+import { Backlinks, PageOutline } from '@/components/PageOutline'
 import { CoverPicker, coverStyle, IconPicker } from '@/components/PagePickers'
 import { useApp } from '@/store/app'
 import { Icon } from '@/components/Icon'
@@ -231,6 +232,8 @@ export function PageView({ pageId }: { pageId?: string }) {
         <div className="-mx-12 mt-4">
           <PageEditor key={page.id} editable={!ui.locked} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
+        <Backlinks pageId={page.id} />
+        <PageOutline content={page.content} />
       </div>
     </div>
   )

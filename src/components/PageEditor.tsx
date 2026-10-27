@@ -1,6 +1,6 @@
 import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
-import { BookmarkBlock, EmbedBlock, PasteLinkMenu } from '@/components/LinkBlocks'
+import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
@@ -266,6 +266,11 @@ const createEmbedBlock = createReactBlockSpec(
   { render: (props) => <EmbedBlock props={props.block.props} update={(p) => props.editor.updateBlock(props.block, { props: p } as never)} /> },
 )
 
+const createPageCardBlock = createReactBlockSpec(
+  { type: 'pagecard', propSchema: { pageId: { default: '' } }, content: 'none' },
+  { render: (props) => <PageCardBlock pageId={props.block.props.pageId} update={(id) => props.editor.updateBlock(props.block, { props: { pageId: id } } as never)} /> },
+)
+
 type Ed = BlockNoteEditor<never, never, never>
 
 // Bloc « Table des matières » : liste cliquable des titres de la page, mise à jour pendant la frappe.
@@ -333,7 +338,7 @@ const createMention = createReactInlineContentSpec(
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock() },
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -433,6 +438,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'c5', title: '5 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns4), onItemClick: put(columns(5)) },
     { key: 'bookmark', title: 'Aperçu de lien web', aliases: ['lien', 'aperçu', 'apercu', 'signet', 'bookmark', 'site', 'url'], group: M, subtext: 'Une carte avec le titre, la description et l’image d’un site', icon: ico(Globe), onItemClick: put({ type: 'bookmark' }) },
     { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
+    { key: 'pagecard', title: 'Carte de page', aliases: ['page', 'carte', 'aperçu', 'apercu', 'lien', 'lier'], group: 'Blocs avancés', subtext: 'Un aperçu d’une autre page (titre et début du texte)', icon: ico(FileText), onItemClick: put({ type: 'pagecard' }) },
     { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },

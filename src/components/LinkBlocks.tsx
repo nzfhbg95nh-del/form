@@ -1,10 +1,15 @@
 // Blocs de page « Aperçu de lien » (signet) et « Intégrer » (YouTube, Spotify, Figma…), et le petit menu qui s'ouvre quand on colle un lien.
 
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { openUrl } from '@tauri-apps/plugin-opener'
 import { ExternalLink, Globe, Link as LinkIcon, X } from 'lucide-react'
+import { Icon } from '@/components/Icon'
 import { embedFor, isUrl } from '@/lib/embeds'
+import { displayTitle } from '@/lib/lastEdit'
+import { excerptOf } from '@/lib/pageLinks'
+import { normalize } from '@/lib/search'
+import { useApp } from '@/store/app'
 
 export interface LinkPreview { url: string; title: string; description: string; site: string; image: string | null }
 
@@ -146,5 +151,56 @@ export function PasteLinkMenu({ url, x, y, onKeep, onPreview, onEmbed, onClose }
         {info && <button role="menuitem" className={item} onClick={onEmbed}><ExternalLink size={15} /> Intégrer ({info.label})</button>}
       </div>
     </>
+  )
+}
+
+/** Le bloc « Carte de page » : un aperçu (icône, titre, début du texte) d'une autre page ; un clic l'ouvre. */
+export function PageCardBlock({ pageId, update }: { pageId: string; update: (id: string) => void }) {
+  const objects = useApp((s) => s.objects)
+  const select = useApp((s) => s.select)
+  const [query, setQuery] = useState('')
+  const page = pageId ? objects.find((o) => o.id === pageId && !o.deleted_at) : undefined
+  const choices = useMemo(() => {
+    const q = normalize(query)
+    return objects.filter((o) => !o.deleted_at && (o.type === 'page' || o.type === 'database' || o.type === 'moodboard') && (!q || normalize(o.title || 'Nouvelle page').includes(q))).slice(0, 8)
+  }, [objects, query])
+  if (!pageId) {
+    return (
+      <div contentEditable={false} className="w-full rounded-xl border border-dashed border-[var(--border)] p-2">
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter' && choices[0]) update(choices[0].id) }}
+          placeholder="Cherche une page à afficher ici…"
+          aria-label="Page à afficher"
+          className="w-full bg-transparent px-2 py-1 text-sm outline-none placeholder:text-[var(--fg-muted)]"
+        />
+        <div className="mt-1 flex flex-col">
+          {choices.map((o) => (
+            <button key={o.id} type="button" onClick={() => update(o.id)} className="flex items-center gap-2 rounded-lg px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
+              <Icon value={o.icon ?? (o.type === 'database' ? '📊' : o.type === 'moodboard' ? '🖼️' : '📄')} size={16} />
+              <span className="truncate">{displayTitle(o.title)}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+    )
+  }
+  if (!page) return <div contentEditable={false} className="text-sm text-[var(--fg-muted)]">Page supprimée</div>
+  const excerpt = excerptOf(page.content)
+  return (
+    <button
+      type="button"
+      contentEditable={false}
+      onClick={() => select(page.id)}
+      className="flex w-full items-start gap-3 rounded-xl border border-[var(--border)] px-4 py-3 text-left transition-colors hover:bg-[var(--bg-hover)]"
+    >
+      <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={26} />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-sm font-semibold">{displayTitle(page.title)}</span>
+        {excerpt && <span className="mt-0.5 line-clamp-2 block text-xs text-[var(--fg-muted)]">{excerpt}</span>}
+      </span>
+    </button>
   )
 }
