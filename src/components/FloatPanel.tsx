@@ -140,7 +140,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
           {!noCollapse ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}>«</button> : <span />}
           {onClose ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}>✕</button> : <span />}
         </div>
-        <span aria-hidden className="mx-auto my-1 h-1 w-8 rounded-full bg-[color-mix(in_srgb,var(--accent)_35%,var(--border))]" />
+        <span aria-hidden className="mx-auto my-1 h-1 w-8 rounded-full bg-[var(--border)]" />
         {!slim && (
           <div className="flex items-center gap-2 px-3 pb-1.5 pt-0.5">
             <span className="text-[var(--fg-muted)]">{icon}</span>
