@@ -125,6 +125,8 @@ pub struct VectorOut {
     pub busy: bool,
     /// Le bout de la gomme ou de la tache (taille, angle, aplatissement) : un rond autour du curseur.
     pub tip: Option<Value>,
+    /// Les réglages de l'outil (taille de la gomme ou de la tache, fidélité du crayon…), s'il en a.
+    pub options: Option<Value>,
 }
 
 fn view(zoom: f64) -> ViewInfo {
@@ -288,6 +290,7 @@ impl Vector {
         if matches!(out.tool.as_str(), "eraser" | "blobBrush") {
             out.tip = Some(s.tool_options());
         }
+        out.options = Some(s.tool_options()).filter(|o| !o.is_null());
         for r in requests {
             match r {
                 UiRequest::SwitchTool(t) => out.switch_tool = Some(t),
@@ -331,6 +334,14 @@ impl Vector {
         }
         let reqs = self.session()?.tool_key(k, mods.mods(), view(zoom)).map_err(|e| e.to_string())?;
         self.snapshot(zoom, reqs)
+    }
+}
+
+impl Vector {
+    /// Change un réglage de l'outil actif (« size », « fidelity »…).
+    fn set_option(&mut self, key: &str, value: &Value, zoom: f64) -> Result<VectorOut, String> {
+        self.session()?.set_tool_option(key, value);
+        self.snapshot(zoom, vec![])
     }
 }
 
@@ -542,6 +553,11 @@ pub fn vc_key(state: tauri::State<VectorState>, key: String, mods: ModsIn, zoom:
 
 /// Ferme le moteur.
 #[tauri::command]
+pub fn vc_option(state: tauri::State<VectorState>, key: String, value: Value, zoom: f64) -> Result<VectorOut, String> {
+    with(&state, |v| v.set_option(&key, &value, zoom))
+}
+
+#[tauri::command]
 pub fn vc_close(state: tauri::State<VectorState>) -> Result<(), String> {
     with(&state, |v| {
         v.session = None;
@@ -610,6 +626,22 @@ mod tests {
         assert_eq!(out.paths[0].id, "a");
         assert!((out.paths[0].points[1].y - 60.0).abs() < 1e-6, "{:?}", out.paths[0].points);
         assert!((out.paths[0].points[0].y - 10.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn les_réglages_de_la_gomme_et_du_crayon_se_changent() {
+        let mut v = started("eraser");
+        let o = v.set_option("size", &json!(42.0), 1.0).unwrap();
+        assert_eq!(o.options.as_ref().unwrap()["size"], json!(42.0));
+        assert_eq!(o.tip.as_ref().unwrap()["size"], json!(42.0));
+        let mut v = started("pencil");
+        let o = v.set_option("fidelity", &json!(8.0), 1.0).unwrap();
+        assert_eq!(o.options.as_ref().unwrap()["fidelity"], json!(8.0));
+        let mut v = started("blobBrush");
+        assert_eq!(v.set_option("size", &json!(30.0), 1.0).unwrap().options.unwrap()["size"], json!(30.0));
+        // un outil sans réglage : rien
+        let v2 = started("pen").snapshot(1.0, vec![]).unwrap();
+        assert!(v2.options.is_none());
     }
 
     #[test]

@@ -46,9 +46,13 @@ export interface VcOut {
   busy: boolean
   /** Le bout de la gomme ou de la tache : `size` (et pour la gomme `angle`, `roundness` en %). */
   tip: { size?: number; angle?: number; roundness?: number } | null
+  /** Les réglages de l'outil actif (taille de la gomme, fidélité du crayon…), s'il en a. */
+  options: VcToolOptions | null
 }
 
 export interface VcMods { shift: boolean; alt: boolean; ctrl: boolean; space: boolean }
+export interface VcToolOptions { size?: number; angle?: number; roundness?: number; fidelity?: number }
+
 export type VcKind = 'down' | 'move' | 'drag' | 'up' | 'double'
 
 /** Comme VectorCraft au départ : remplissage blanc, contour noir de 1 pt. */
@@ -172,6 +176,11 @@ export class VectorSession {
     }
     // Un appui ou un relâchement passe après les déplacements en attente.
     return this.enqueue(() => invoke<VcOut>('vc_pointer', { event: { kind, x, y, mods }, zoom }))
+  }
+
+  /** Change un réglage de l'outil actif (« size », « angle », « roundness », « fidelity »). */
+  option(key: string, value: number, zoom: number): Promise<VcOut> {
+    return this.enqueue(() => invoke<VcOut>('vc_option', { key, value, zoom }))
   }
 
   key(key: string, mods: VcMods, zoom: number): Promise<VcOut> {

@@ -17,6 +17,7 @@ import { itemPathD } from '@/lib/boardPath'
 import { applyVcPaths, DEFAULT_PAINT, isEngineTool, isPathItem, itemToVcPath, VectorSession, type PaintStyle, type VcKind, type VcMods, type VcOut, type VcOverlay } from '@/lib/vectorEngine'
 import { SHORTCUTS, VectorToolbar } from '@/components/VectorToolbar'
 import { VectorOverlay, vectorCursor } from '@/components/VectorOverlay'
+import { ToolOptionsPanel } from '@/components/ToolOptionsPanel'
 import { TOOL_HINTS } from '@/lib/vectorHints'
 import { cornerRadius, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeStyleOf, starPoints } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
@@ -81,6 +82,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [vcCursor, setVcCursor] = useState('default')
   // Le bout de la gomme / de la tache, et où est la souris sur la toile : le rond qui suit le curseur.
   const [vcTip, setVcTip] = useState<VcOut['tip']>(null)
+  // Les réglages de l'outil de dessin actif (taille de la gomme et de la tache, fidélité du crayon).
+  const [vcOptions, setVcOptions] = useState<VcOut['options']>(null)
   const [tipAt, setTipAt] = useState<[number, number] | null>(null)
   const vcItems = useRef<BoardItem[] | null>(null)
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
@@ -294,12 +297,29 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const modsOf = (e: { shiftKey: boolean; altKey: boolean; ctrlKey: boolean; metaKey: boolean }): VcMods => ({ shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey || e.metaKey, space: spaceDown })
   const toolOfEngine = (id: string): Tool => (id === 'selection' ? 'select' : id === 'hand' ? 'hand' : id)
 
+  // Les réglages d'un outil (taille de la gomme…) sont gardés d'une séance à l'autre : le moteur redémarre à chaque changement d'outil.
+  const rememberOption = (toolId: string, key: string, value: number) => {
+    try {
+      const all = JSON.parse(localStorage.getItem('form-vc-options') ?? '{}') as Record<string, Record<string, number>>
+      all[toolId] = { ...all[toolId], [key]: value }
+      localStorage.setItem('form-vc-options', JSON.stringify(all))
+    } catch { /* sans importance */ }
+  }
+  const restoreOptions = (toolId: string) => {
+    try {
+      const saved = (JSON.parse(localStorage.getItem('form-vc-options') ?? '{}') as Record<string, Record<string, number>>)[toolId]
+      if (!saved) return
+      for (const [k, v] of Object.entries(saved)) void vc.current.option(k, v, viewRef.current.zoom).then((out) => vcApply(out, 'move'))
+    } catch { /* sans importance */ }
+  }
+
   /** Applique la réponse du moteur : les tracés (provisoirement pendant un geste, pour de bon à la fin), les dessins par-dessus, le curseur et la sélection. */
   const vcApply = (out: VcOut | null, kind: string) => {
     if (!out || !engine) return
     setVcOverlays(out.overlays)
     setVcCursor(out.cursor)
     setVcTip(out.tip)
+    setVcOptions(out.options)
     const base = presentRef.current
     const next = applyVcPaths(kind === 'move' ? base : itemsRef.current, out.paths)
     const changed = next.length !== base.length || next.some((it, i) => it !== base[i])
@@ -337,13 +357,15 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (engine) {
       const present = presentRef.current
       if (s.loaded && vcItems.current === present) {
-        void s.setTool(engine, viewRef.current.zoom).then((out) => { setVcOverlays(out.overlays); setVcCursor(out.cursor); setVcTip(out.tip) })
+        void s.setTool(engine, viewRef.current.zoom).then((out) => { setVcOverlays(out.overlays); setVcCursor(out.cursor); setVcTip(out.tip); setVcOptions(out.options); restoreOptions(engine) })
       } else {
         vcItems.current = present
         void s.load(present.filter(isPathItem).map(itemToVcPath), [...selRef.current], engine, viewRef.current.zoom, paint).then((out) => {
           setVcOverlays(out.overlays)
           setVcCursor(out.cursor)
           setVcTip(out.tip)
+          setVcOptions(out.options)
+          restoreOptions(engine)
         })
       }
     } else if (s.loaded) {
@@ -1284,6 +1306,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button className={bar} onClick={() => void closeFloatingBoard(board.id).then(() => useApp.getState().setFloatingBoard(board.id, false))}>Fermer la fenêtre flottante et reprendre ici</button>
         </div>
       )}
+      {engine && <ToolOptionsPanel tool={engine} options={vcOptions} onChange={(key, value) => { rememberOption(engine, key, value); void vc.current.option(key, value, viewRef.current.zoom).then((out) => vcApply(out, 'move')) }} />}
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && !compact && (
