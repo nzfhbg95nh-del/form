@@ -104,7 +104,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
         data-ui
         data-panel-id={id}
         title={`${title} (clic : rouvrir, glisser : déplacer)`}
-        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
+        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
         style={place}
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
@@ -122,7 +122,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       data-ui
       data-panel-id={id}
       data-scroll
-      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
+      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
       style={place}
       onKeyDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
@@ -140,7 +140,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
           {!noCollapse ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}>«</button> : <span />}
           {onClose ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}>✕</button> : <span />}
         </div>
-        <span aria-hidden className="mx-auto my-1 h-1 w-8 rounded-full bg-[var(--border)]" />
+        <span aria-hidden className="mx-auto my-1 h-1 w-8 rounded-full bg-[color-mix(in_srgb,var(--accent)_35%,var(--border))]" />
         {!slim && (
           <div className="flex items-center gap-2 px-3 pb-1.5 pt-0.5">
             <span className="text-[var(--fg-muted)]">{icon}</span>

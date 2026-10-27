@@ -107,8 +107,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     try { const v = localStorage.getItem('form-text-tab'); return v === 'char' || v === 'para' ? v : null } catch { return null }
   })
   const setTextTab = (v: 'char' | 'para' | null) => { setTextTabState(v); try { localStorage.setItem('form-text-tab', v ?? 'none') } catch { /* sans importance */ } }
-  const stripBtn = (on: boolean) => 'flex h-9 w-9 items-center justify-center rounded-xl transition-colors ' + (on ? 'bg-[var(--bg)] text-[var(--accent)] shadow-[var(--shadow-soft)]' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')
-  const tabBtn = (on: boolean) => 'rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ' + (on ? 'bg-[var(--bg)] text-[var(--accent)] shadow-[var(--shadow-soft)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')
+  const stripBtn = (on: boolean) => 'flex h-9 w-9 items-center justify-center rounded-xl transition-colors ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')
+  const tabBtn = (on: boolean) => 'rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')
   // L'aide des outils (en bas à gauche) peut être réduite en un petit « ? » ; le choix est gardé.
   const [hintOpen, setHintOpen] = useState(() => { try { return localStorage.getItem('form-board-hint') !== 'closed' } catch { return true } })
   const toggleHint = (open: boolean) => { setHintOpen(open); try { localStorage.setItem('form-board-hint', open ? 'open' : 'closed') } catch { /* sans importance */ } }
