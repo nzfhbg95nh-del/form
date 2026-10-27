@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { SlidersHorizontal } from 'lucide-react'
+import { FloatPanel } from '@/components/FloatPanel'
 import { SplitSlider } from '@/components/SplitSlider'
 import type { VcToolOptions } from '@/lib/vectorEngine'
 
@@ -38,14 +40,7 @@ export function ToolOptionsPanel({ tool, options, onChange }: { tool: string; op
   const settings = TOOL_SETTINGS[tool]?.filter((s) => s.key !== 'angle' || (current.roundness ?? 100) < 100)
   if (!settings) return null
   return (
-    <div
-      data-ui
-      className="absolute bottom-16 left-1/2 z-30 flex w-72 -translate-x-1/2 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 shadow-[var(--shadow-lift)]"
-      // Ce qui se passe sur ce panneau ne doit pas partir vers la toile (déplacements de souris, flèches du clavier).
-      onPointerMove={(e) => e.stopPropagation()}
-      onKeyDown={(e) => e.stopPropagation()}
-    >
-      <div className="lib-count">Réglages</div>
+    <FloatPanel id="tool-options" title="Réglages" icon={<SlidersHorizontal size={14} />} anchor={{ x: 'center', y: 'bottom', dy: 64 }} className="w-72">
       {settings.map((s) => {
         const v = current[s.key]
         if (typeof v !== 'number') return null
@@ -65,6 +60,6 @@ export function ToolOptionsPanel({ tool, options, onChange }: { tool: string; op
           />
         )
       })}
-    </div>
+    </FloatPanel>
   )
 }

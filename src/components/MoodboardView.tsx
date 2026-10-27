@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -18,6 +18,7 @@ import { applyVcPaths, DEFAULT_PAINT, isEngineTool, isPathItem, itemToVcPath, Ve
 import { SHORTCUTS, VectorToolbar } from '@/components/VectorToolbar'
 import { VectorOverlay, vectorCursor } from '@/components/VectorOverlay'
 import { ToolOptionsPanel } from '@/components/ToolOptionsPanel'
+import { FloatPanel } from '@/components/FloatPanel'
 import { TOOL_HINTS } from '@/lib/vectorHints'
 import { cornerRadius, dashArray, DEFAULT_SHAPE_STYLE, pointsAttr, polygonPoints, restyleShape, shapeAt, shapeStyleOf, starPoints } from '@/lib/boardShapes'
 import { cssFont, FONTS, fitText, glyphSize, isPointText, layoutParas, lift, measureTextBox, paraStyleOf, scaleTexts, textStyleOf, TEXT_PAD, WEIGHTS, type Measure } from '@/lib/boardText'
@@ -1224,7 +1225,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const leadingPt = round1(st.size * st.lh)
         const boxes = (list: [boolean, React.ReactNode, string, () => void][]) => list.map(([on, text, title, fn]) => <button key={title} className={toggle(on)} onClick={fn} title={title} aria-label={title} aria-pressed={on}>{text}</button>)
         return (
-          <div data-ui data-scroll className="absolute bottom-3 right-3 z-40 flex max-h-[calc(100%-24px)] w-64 flex-col gap-2 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-[var(--shadow-lift)]">
+          <FloatPanel id="text" title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-64">
             <div className={head}>Caractère{textSel.length > 1 ? ` (${textSel.length} textes)` : ''}</div>
             <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
@@ -1275,7 +1276,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="checkbox" checked={ps.hyph} onChange={(e) => setTextProps({ hyph: e.target.checked })} />
               <span>Couper les mots</span>
             </label>
-          </div>
+          </FloatPanel>
         )
       })()}
 
@@ -1288,11 +1289,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button key={id} title={title} aria-pressed={alignRef === id} onClick={() => setAlignRef(id)} className={'rounded border px-2 py-1 text-[11px] ' + (alignRef === id ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)]')}>{text}</button>
         )
         return (
-          <div data-ui className="absolute left-[104px] top-14 z-30 flex w-52 flex-col gap-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-xs text-[var(--fg)] shadow-[var(--shadow-lift)]">
-            <div className="flex items-center">
-              <div className="flex-1 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">Aligner</div>
-              <button className="rounded px-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer le panneau Aligner" onClick={() => setAlignOpen(false)}>×</button>
-            </div>
+          <FloatPanel id="align" title="Aligner" icon={<AlignStartVertical size={14} />} anchor={{ x: 'left', y: 'top', dx: 104, dy: 56 }} className="w-52" onClose={() => setAlignOpen(false)}>
             <div className="text-[var(--fg-muted)]">Aligner sur</div>
             <div className={row}>
               {pick('selection', 'Sélection', 'Le cadre de la sélection')}
@@ -1320,7 +1317,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <span className="text-[var(--fg-muted)]">pt</span>
             </div>
             {n === 0 && <div className="text-[var(--fg-muted)]">Sélectionne des éléments (Maj+clic pour en ajouter).</div>}
-          </div>
+          </FloatPanel>
         )
       })()}
 
@@ -1362,9 +1359,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {flash && <div data-ui className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-md bg-[var(--fg)] px-3 py-1.5 text-sm text-[var(--bg)] shadow-lg">{flash}</div>}
 
       {paletteOpen && !compact && (
-        <div data-ui data-scroll style={{ top: 12, maxHeight: showTextPanel ? 'calc(100% - 350px)' : '80%' }} className="absolute right-3 w-52 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-[var(--fg)] shadow-[var(--shadow-lift)]">
-          <div className="mb-2 text-xs font-semibold uppercase text-[var(--fg-muted)]">Palette {selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}</div>
-          {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
+        <FloatPanel id="palette" title={`Palette ${selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}`} icon={<PaletteIcon size={14} />} anchor={{ x: 'right', y: 'top', dy: 56 }} className="w-52" onClose={() => setPaletteOpen(false)}>
+                    {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
           <div className="grid grid-cols-2 gap-2">
             {palette.map((c) => (
               <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded-lg border border-[var(--border)] text-left">
@@ -1379,7 +1375,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <button className={bar} onClick={() => void navigator.clipboard.writeText(palette.join(' ')).then(() => say('Palette copiée'))}>Copier toutes les couleurs</button>
             </div>
           )}
-        </div>
+        </FloatPanel>
       )}
 
       {/* Menu contextuel */}
