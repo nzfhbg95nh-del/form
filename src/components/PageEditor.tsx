@@ -1,4 +1,6 @@
 import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
+import { BookmarkBlock, EmbedBlock, PasteLinkMenu } from '@/components/LinkBlocks'
+import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { fr } from '@blocknote/core/locales'
@@ -18,10 +20,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import {
-  CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List,
-  ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon,
-} from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -256,6 +255,16 @@ const createSubpageBlock = createReactBlockSpec(
   { render: (props) => <SubpageLink pageId={props.block.props.pageId} /> },
 )
 
+// Blocs « Aperçu de lien web » (signet) et « Intégrer » (YouTube, Spotify, Figma…).
+const createBookmarkBlock = createReactBlockSpec(
+  { type: 'bookmark', propSchema: { url: { default: '' }, title: { default: '' }, description: { default: '' }, site: { default: '' }, image: { default: '' } }, content: 'none' },
+  { render: (props) => <BookmarkBlock props={props.block.props} update={(p) => props.editor.updateBlock(props.block, { props: p } as never)} /> },
+)
+const createEmbedBlock = createReactBlockSpec(
+  { type: 'embed', propSchema: { url: { default: '' }, src: { default: '' }, provider: { default: '' }, height: { default: 405 } }, content: 'none' },
+  { render: (props) => <EmbedBlock props={props.block.props} update={(p) => props.editor.updateBlock(props.block, { props: p } as never)} /> },
+)
+
 type Ed = BlockNoteEditor<never, never, never>
 
 // Bloc « Table des matières » : liste cliquable des titres de la page, mise à jour pendant la frappe.
@@ -323,7 +332,7 @@ const createMention = createReactInlineContentSpec(
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock() },
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -409,6 +418,8 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'c3', title: '3 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns3), onItemClick: put(columns(3)) },
     { key: 'c4', title: '4 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns4), onItemClick: put(columns(4)) },
     { key: 'c5', title: '5 colonnes', aliases: ['colonnes', 'colonne'], group: B, icon: ico(Columns4), onItemClick: put(columns(5)) },
+    { key: 'bookmark', title: 'Aperçu de lien web', aliases: ['lien', 'aperçu', 'apercu', 'signet', 'bookmark', 'site', 'url'], group: M, subtext: 'Une carte avec le titre, la description et l’image d’un site', icon: ico(Globe), onItemClick: put({ type: 'bookmark' }) },
+    { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
     { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
@@ -453,8 +464,24 @@ function mentionItems(editor: Ed, currentId: string | null, query: string): Slas
 export function PageEditor({ pageId, initial, onChange, editorRef, editable = true }: { pageId?: string; editable?: boolean; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
   const theme = useApp((s) => s.theme)
 
+  // Un lien collé seul sur une ligne vide : il reste un lien, et un petit menu propose l'aperçu ou l'intégration (comme dans Notion).
+  const [pasted, setPasted] = useState<{ url: string; blockId: string; x: number; y: number } | null>(null)
   const editor = useCreateBlockNote({
     schema,
+    pasteHandler: ({ event, editor: ed, defaultPasteHandler }) => {
+      const text = event.clipboardData?.getData('text/plain')?.trim() ?? ''
+      const block = ed.getTextCursorPosition().block as unknown as { id: string; type: string; content?: unknown }
+      if (isUrl(text) && block.type === 'paragraph' && Array.isArray(block.content) && block.content.length === 0 && !event.clipboardData?.types.includes('Files')) {
+        event.preventDefault()
+        ed.insertInlineContent([{ type: 'link', href: text, content: text } as never])
+        requestAnimationFrame(() => {
+          const r = window.getSelection()?.rangeCount ? window.getSelection()!.getRangeAt(0).getBoundingClientRect() : null
+          setPasted({ url: text, blockId: block.id, x: r?.left ?? 200, y: r?.bottom ?? 200 })
+        })
+        return true
+      }
+      return defaultPasteHandler()
+    },
     dictionary: { ...fr, multi_column: multiColumnLocales.fr, placeholders: { ...fr.placeholders, default: EMPTY_LINE_HINT } },
     dropCursor: multiColumnDropCursor,
     // Les images sont enregistrées directement dans la base : tout reste local et sauvegardé.
@@ -462,6 +489,14 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     initialContent: parseContent(initial) as never,
   })
   if (editorRef) editorRef.current = editor as unknown as BlockNoteEditor<never, never, never>
+
+  /** Remplace la ligne du lien collé par un bloc (aperçu ou intégration), en gardant une ligne libre dessous. */
+  const turnInto = (block: Record<string, unknown>) => {
+    if (!pasted || !editor.getBlock(pasted.blockId)) return
+    editor.replaceBlocks([pasted.blockId], [block as never])
+    const last = editor.document[editor.document.length - 1] as { type: string }
+    if (last.type !== 'paragraph') editor.insertBlocks([{ type: 'paragraph' } as never], last as never, 'after')
+  }
 
   // Comme dans Notion : Tab sur une ligne de texte passe à la ligne suivante (Maj+Tab : précédente) au lieu de décaler ;
   // Espace sur une ligne vide ouvre l'assistant. Dans les listes, tâches, tableaux et code, Tab garde son rôle.
@@ -514,6 +549,21 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         getItems={async (query) => mentionItems(editor as never, pageId ?? null, query) as never}
       />
     </BlockNoteView>
+    {pasted && (
+      <PasteLinkMenu
+        url={pasted.url}
+        x={pasted.x}
+        y={pasted.y}
+        onClose={() => setPasted(null)}
+        onKeep={() => setPasted(null)}
+        onPreview={() => { turnInto({ type: 'bookmark', props: { url: pasted.url } }); setPasted(null) }}
+        onEmbed={() => {
+          const info = embedFor(pasted.url)
+          if (info) turnInto({ type: 'embed', props: { url: pasted.url, src: info.src, provider: info.provider, height: info.height } })
+          setPasted(null)
+        }}
+      />
+    )}
     </div>
   )
 }

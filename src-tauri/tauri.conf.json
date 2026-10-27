@@ -14,7 +14,7 @@
       { "title": "Form", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 500, "dragDropEnabled": false }
     ],
     "security": {
-      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: http://asset.localhost; media-src 'self' asset: http://asset.localhost; frame-src 'self' blob:; object-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost",
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: http://asset.localhost; media-src 'self' asset: http://asset.localhost; frame-src 'self' blob: https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://www.loom.com https://www.figma.com https://www.google.com; object-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost asset: http://asset.localhost",
       "assetProtocol": { "enable": true, "scope": ["$LOCALDATA/**", "**"] }
     }
   },

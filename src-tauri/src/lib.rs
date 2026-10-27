@@ -1,5 +1,6 @@
 mod backup;
 mod biblio;
+mod linkpreview;
 mod gemini;
 mod secrets;
 mod vector;
@@ -171,6 +172,7 @@ pub fn run() {
             vector::vc_tool,
             vector::vc_pointer,
             vector::vc_key,
+            linkpreview::link_preview,
             vector::vc_option,
             vector::vc_close,
             gemini::gemini_generate,
