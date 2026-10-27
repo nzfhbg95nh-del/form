@@ -1,5 +1,6 @@
 import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
+import { EquationBlock } from '@/components/EquationBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useState } from 'react'
@@ -21,7 +22,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -271,6 +272,11 @@ const createPageCardBlock = createReactBlockSpec(
   { render: (props) => <PageCardBlock pageId={props.block.props.pageId} update={(id) => props.editor.updateBlock(props.block, { props: { pageId: id } } as never)} /> },
 )
 
+const createEquationBlock = createReactBlockSpec(
+  { type: 'equation', propSchema: { latex: { default: '' } }, content: 'none' },
+  { render: (props) => <EquationBlock latex={props.block.props.latex} update={(latex) => props.editor.updateBlock(props.block, { props: { latex } } as never)} /> },
+)
+
 type Ed = BlockNoteEditor<never, never, never>
 
 // Bloc « Table des matières » : liste cliquable des titres de la page, mise à jour pendant la frappe.
@@ -338,7 +344,7 @@ const createMention = createReactInlineContentSpec(
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock() },
+    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -439,6 +445,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'bookmark', title: 'Aperçu de lien web', aliases: ['lien', 'aperçu', 'apercu', 'signet', 'bookmark', 'site', 'url'], group: M, subtext: 'Une carte avec le titre, la description et l’image d’un site', icon: ico(Globe), onItemClick: put({ type: 'bookmark' }) },
     { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
     { key: 'pagecard', title: 'Carte de page', aliases: ['page', 'carte', 'aperçu', 'apercu', 'lien', 'lier'], group: 'Blocs avancés', subtext: 'Un aperçu d’une autre page (titre et début du texte)', icon: ico(FileText), onItemClick: put({ type: 'pagecard' }) },
+    { key: 'equation', title: 'Équation', aliases: ['équation', 'equation', 'formule', 'latex', 'maths', 'math'], group: 'Blocs avancés', subtext: 'Une formule de maths écrite en LaTeX', icon: ico(Sigma), onItemClick: put({ type: 'equation' }) },
     { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
