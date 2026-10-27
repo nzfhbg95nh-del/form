@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type } from 'lucide-react'
+import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type, ALargeSmall, Pilcrow } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -102,6 +102,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [vcTip, setVcTip] = useState<VcOut['tip']>(null)
   // Les réglages de l'outil de dessin actif (taille de la gomme et de la tache, fidélité du crayon).
   const [vcOptions, setVcOptions] = useState<VcOut['options']>(null)
+  // Les panneaux Caractère et Paragraphe s'ouvrent chacun à part (depuis le petit bloc « T »), et on s'en souvient.
+  const [textPanels, setTextPanelsState] = useState<{ char: boolean; para: boolean }>(() => {
+    try { const v = JSON.parse(localStorage.getItem('form-text-panels') ?? 'null'); return { char: !!v?.char, para: !!v?.para } } catch { return { char: false, para: false } }
+  })
+  const charOpen = textPanels.char
+  const paraOpen = textPanels.para
+  const setTextPanels = (v: { char: boolean; para: boolean }) => { setTextPanelsState(v); try { localStorage.setItem('form-text-panels', JSON.stringify(v)) } catch { /* sans importance */ } }
+  const dockBtn = (on: boolean) => 'flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-xs hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)] ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg)]')
   // L'aide des outils (en bas à gauche) peut être réduite en un petit « ? » ; le choix est gardé.
   const [hintOpen, setHintOpen] = useState(() => { try { return localStorage.getItem('form-board-hint') !== 'closed' } catch { return true } })
   const toggleHint = (open: boolean) => { setHintOpen(open); try { localStorage.setItem('form-board-hint', open ? 'open' : 'closed') } catch { /* sans importance */ } }
@@ -1211,7 +1219,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const toggle = (on: boolean) => bar + ' flex h-7 min-w-7 items-center justify-center !px-1.5 text-[11px] font-semibold' + (on ? ' !border-[var(--accent)] !text-[var(--accent)]' : '')
         const row = 'flex items-center gap-2'
         const label = 'w-24 shrink-0 text-[var(--fg-muted)]'
-        const head = 'text-[11px] font-semibold uppercase text-[var(--fg-muted)]'
         const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v))
         const round1 = (v: number) => Math.round(v * 10) / 10
         // Un champ chiffré (valeur en points, en % ou en ‰) : on tape, la valeur est bornée puis appliquée.
@@ -1225,8 +1232,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const leadingPt = round1(st.size * st.lh)
         const boxes = (list: [boolean, React.ReactNode, string, () => void][]) => list.map(([on, text, title, fn]) => <button key={title} className={toggle(on)} onClick={fn} title={title} aria-label={title} aria-pressed={on}>{text}</button>)
         return (
-          <FloatPanel id="text" title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-64">
-            <div className={head}>Caractère{textSel.length > 1 ? ` (${textSel.length} textes)` : ''}</div>
+          <>
+            {/* Un petit bloc « T » : en dessous, Caractère et Paragraphe, qui s'ouvrent chacun à part (et se déplacent chacun comme ils veulent). */}
+            <FloatPanel id="text-dock" title="Texte" icon={<Type size={14} />} anchor={{ x: 'right', y: 'bottom' }} className="w-36">
+              <button className={dockBtn(charOpen)} aria-pressed={charOpen} title="Caractère : police, taille, couleur…" onClick={() => setTextPanels({ char: !charOpen, para: paraOpen })}><ALargeSmall size={15} />Caractère</button>
+              <button className={dockBtn(paraOpen)} aria-pressed={paraOpen} title="Paragraphe : alignement, retraits, espaces…" onClick={() => setTextPanels({ char: charOpen, para: !paraOpen })}><Pilcrow size={15} />Paragraphe</button>
+            </FloatPanel>
+            {charOpen && (
+              <FloatPanel id="text-char" noCollapse title={`Caractère${textSel.length > 1 ? ` (${textSel.length} textes)` : ''}`} icon={<ALargeSmall size={14} />} anchor={{ x: 'right', y: 'bottom', dx: 168 }} className="w-64" onClose={() => setTextPanels({ char: false, para: paraOpen })}>
             <select className={field + ' w-full'} value={st.font} onChange={(e) => setTextProps({ font: e.target.value })} aria-label="Police">
               {FONTS.map((f) => <option key={f} value={f}>{f}</option>)}
             </select>
@@ -1258,7 +1271,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="color" className="h-7 w-10 cursor-pointer rounded-lg border border-[var(--border)] bg-transparent p-0" value={/^#[0-9a-f]{6}$/i.test(first.color ?? '') ? (first.color as string) : isDark ? '#ffffff' : '#111111'} onChange={(e) => setTextProps({ color: e.target.value })} aria-label="Couleur du texte" />
             </div>
 
-            <div className={head + ' mt-1 border-t border-[var(--border)] pt-2'}>Paragraphe</div>
+              </FloatPanel>
+            )}
+            {paraOpen && (
+              <FloatPanel id="text-para" noCollapse title="Paragraphe" icon={<Pilcrow size={14} />} anchor={{ x: 'right', y: 'bottom', dx: 444 }} className="w-64" onClose={() => setTextPanels({ char: charOpen, para: false })}>
             <div className="flex flex-wrap gap-1">
               <button className={toggle(ps.align === 'left')} onClick={() => setTextProps({ align: 'left' })} title="Aligné à gauche"><AlignLeft size={13} /></button>
               <button className={toggle(ps.align === 'center')} onClick={() => setTextProps({ align: 'center' })} title="Centré"><AlignCenter size={13} /></button>
@@ -1276,7 +1292,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <input type="checkbox" checked={ps.hyph} onChange={(e) => setTextProps({ hyph: e.target.checked })} />
               <span>Couper les mots</span>
             </label>
-          </FloatPanel>
+              </FloatPanel>
+            )}
+          </>
         )
       })()}
 

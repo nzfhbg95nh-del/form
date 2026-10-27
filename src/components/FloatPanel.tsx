@@ -17,8 +17,10 @@ const write = (id: string, v: Saved) => { try { localStorage.setItem(KEY(id), JS
  * Un panneau flottant du moodboard (Caractère, Aligner, Palette, Réglages…) : on le déplace en tirant sa barre de titre, on le réduit en une
  * petite icône (un clic sur l'icône le rouvre), et sa place est retenue d'une fois sur l'autre. Il reste toujours dans la toile.
  */
-export function FloatPanel({ id, title, icon, anchor, className = '', onClose, children }: {
+export function FloatPanel({ id, title, icon, anchor, className = '', onClose, noCollapse = false, children }: {
   id: string; title: string; icon: ReactNode; anchor: Anchor; className?: string; onClose?: () => void; children: ReactNode
+  /** Pas de bouton « réduire en icône » (quand le panneau a déjà son icône ailleurs). */
+  noCollapse?: boolean
 }) {
   const box = useRef<HTMLDivElement>(null)
   const [state, setState] = useState<Saved | null>(() => read(id))
@@ -118,7 +120,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, c
       >
         <span className="text-[var(--fg-muted)]">{icon}</span>
         <span className="lib-count flex-1 truncate">{title}</span>
-        <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}><ChevronsUpDown size={13} /></button>
+        {!noCollapse && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}><ChevronsUpDown size={13} /></button>}
         {onClose && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}><X size={13} /></button>}
       </div>
       <div data-scroll className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-3">{children}</div>
