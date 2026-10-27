@@ -170,8 +170,12 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         {filters.collection && (
           <button className="btn" onClick={onBack} aria-label="Retour aux collections"><ChevronLeft size={15} /> Collections</button>
         )}
-        {!filters.collection && <h1 className="text-base font-semibold">Tout</h1>}
-        {!filters.collection && <span className="lib-count">{nf.format(blocks.length)} blocs</span>}
+        {!filters.collection && (
+          <div className="flex items-baseline gap-3">
+            <h1 className="text-base font-semibold">Tout</h1>
+            <span className="lib-count">{nf.format(blocks.length)} blocs</span>
+          </div>
+        )}
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des vignettes" />
           <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>

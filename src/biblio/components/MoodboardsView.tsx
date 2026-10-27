@@ -167,8 +167,10 @@ export function MoodboardsView() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
-        <h1 className="text-base font-semibold">Moodboards</h1>
-        <span className="lib-count">{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
+        <div className="flex items-baseline gap-3">
+          <h1 className="text-base font-semibold">Moodboards</h1>
+          <span className="lib-count">{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
+        </div>
         <div className="ml-auto">
           {naming ? (
             <NameInput placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void create(name)} className="w-96" />

@@ -648,10 +648,12 @@ export function MapView() {
             <ChevronLeft size={15} /> Retour à l'image
           </button>
         )}
-        <h1 className="text-base font-semibold">Carte</h1>
-        <span className="lib-count">
-          {status === 'ready' && pts ? `${pts.ids.length.toLocaleString('fr-FR')} images${missing > 0 ? ` · ${missing.toLocaleString('fr-FR')} pas encore analysées par l'IA` : ''}` : ''}
-        </span>
+        <div className="flex min-w-0 items-baseline gap-3">
+          <h1 className="text-base font-semibold">Carte</h1>
+          <span className="lib-count truncate">
+            {status === 'ready' && pts ? `${pts.ids.length.toLocaleString('fr-FR')} images${missing > 0 ? ` · ${missing.toLocaleString('fr-FR')} pas encore analysées par l'IA` : ''}` : ''}
+          </span>
+        </div>
         <div className="ml-auto flex items-center gap-2">
           <button className="btn" onClick={fitAll} disabled={status !== 'ready'}><Expand size={15} /> Tout voir</button>
           <button className="btn" onClick={() => void compute()} disabled={status === 'computing' || status === 'loading'} title="Replacer toutes les images (utile après de nombreux ajouts)"><RefreshCw size={15} /> Recalculer</button>
