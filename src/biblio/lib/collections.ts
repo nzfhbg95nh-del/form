@@ -80,6 +80,13 @@ const UNSORTED_WHERE = `b.source <> 'instagram' AND b.trashed_at IS NULL AND NOT
   SELECT 1 FROM lib_block_collections bc JOIN lib_collections c ON c.id = bc.collection_id WHERE bc.block_id = b.id AND c.kind = 'manual'
 )`
 
+/** Combien d'images ne sont dans aucune de mes collections (celles de la collection « À trier »). */
+export async function countUnsorted(): Promise<number> {
+  const d = await getDb()
+  const [row] = await d.select<{ n: number }[]>(`SELECT COUNT(*) AS n FROM lib_blocks b WHERE ${UNSORTED_WHERE}`)
+  return row?.n ?? 0
+}
+
 /** La couverture choisie passe en premier (c'est la grande image de la carte) ; les autres aperçus suivent, sans doublon. */
 export const withCover = (cover: string | null, previews: readonly string[]): string[] =>
   (cover ? [cover, ...previews.filter((p) => p !== cover)] : [...previews]).slice(0, 4)

@@ -831,3 +831,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-10-27 — Version 0.47.3
 - Contenu : outils de dessin du moteur VectorCraft dans le Moodboard (barre d'outils, plume, formes, gomme, tache, crayon…, panneaux déplaçables Texte / Aligner / Palette / Réglages), style « Actuel amélioré » dans toute l'appli (boutons, champs, jauges, animations discrètes), bibliothèque retravaillée (filtres, détail d'image, Collections, Moodboards, Carte), ajout d'images à la main avec rangement par l'IA locale (« Mes ajouts »), nombreux correctifs.
+
+## 2026-10-27 — Nouveaux widgets de l'accueil
+- Idées validées par Victor (la 4 « palette du moment » et la 9 « objectif du mois » sont écartées) : **Image du jour** (au hasard, « Une autre »), **Moodboards récents** (4 aperçus), **À trier** (images dans aucune de mes collections + ajouts de la semaine, bouton « Trier »), **Il y a un an** (images de cette période les années passées), **Dépôt rapide** (glisser des images : elles vont dans « Mes ajouts », jamais dans un moodboard), **Recette du jour** (au hasard), **Factures en retard** (les 5 plus en retard, clic = ouvrir la facture).
+- Ils s'ajoutent par « Personnaliser » > « Ajouter un widget » ; la disposition actuelle de l'accueil n'est pas touchée. Code : `src/components/HomeWidgets.tsx`, données de la bibliothèque dans `src/biblio/lib/homeData.ts` (tests), types dans `src/lib/home.ts` (test).
+- Tab / comportement « comme Notion » dans l'éditeur : Victor fera une vidéo pour montrer ce qu'il attend.

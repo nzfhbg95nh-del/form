@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowDown, ArrowUp, CalendarDays, CheckSquare, ChevronLeft, ChevronRight, Clock, Database, Columns2, GripVertical, Maximize2, Plus, SlidersHorizontal, Star, StickyNote, Wallet, X } from 'lucide-react'
+import { AlertCircle, ArrowDown, ArrowUp, CalendarDays, ChefHat, History, ImagePlus, Images, Inbox, Sparkles, CheckSquare, ChevronLeft, ChevronRight, Clock, Database, Columns2, GripVertical, Maximize2, Plus, SlidersHorizontal, Star, StickyNote, Wallet, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
+import { InspirationWidget, LateInvoicesWidget, MemoriesWidget, QuickDropWidget, RecentBoardsWidget, RecipeOfDayWidget, TriageWidget } from '@/components/HomeWidgets'
 import { todayISO } from '@/lib/backup'
 import { formatEuros } from '@/lib/business'
 import { collectedForMonth, collectedForYear, pendingQuotes, yearMonthOf } from '@/lib/dashboard'
@@ -29,6 +30,13 @@ const WIDGET_ICON: Record<WidgetType, React.ReactNode> = {
   note: <StickyNote size={14} />,
   database: <Database size={14} />,
   calendar: <CalendarDays size={14} />,
+  inspiration: <Sparkles size={14} />,
+  boards: <Images size={14} />,
+  triage: <Inbox size={14} />,
+  memories: <History size={14} />,
+  drop: <ImagePlus size={14} />,
+  recipe: <ChefHat size={14} />,
+  late: <AlertCircle size={14} />,
 }
 
 function PageCard({ page }: { page: ObjectRow }) {
@@ -292,6 +300,13 @@ function WidgetBody({ widget }: { widget: Widget }) {
       )
   }
   if (widget.type === 'note') return <QuickNote id={widget.id} />
+  if (widget.type === 'inspiration') return <InspirationWidget />
+  if (widget.type === 'boards') return <RecentBoardsWidget />
+  if (widget.type === 'triage') return <TriageWidget />
+  if (widget.type === 'memories') return <MemoriesWidget />
+  if (widget.type === 'drop') return <QuickDropWidget />
+  if (widget.type === 'recipe') return <RecipeOfDayWidget />
+  if (widget.type === 'late') return <LateInvoicesWidget />
   if (widget.type === 'calendar') return <CalendarWidget />
   // Base de données épinglée
   const db = objects.find((o) => o.id === widget.dbId && o.type === 'database' && !o.deleted_at)

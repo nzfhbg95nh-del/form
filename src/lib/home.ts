@@ -1,7 +1,7 @@
 import { isSystemDatabase } from './database'
 import type { ObjectRow } from './types'
 
-export type WidgetType = 'recents' | 'favorites' | 'summary' | 'tasks' | 'note' | 'database' | 'calendar'
+export type WidgetType = 'recents' | 'favorites' | 'summary' | 'tasks' | 'note' | 'database' | 'calendar' | 'inspiration' | 'boards' | 'triage' | 'memories' | 'drop' | 'recipe' | 'late'
 
 /** Un bloc de la page d'accueil. `dbId` : la base affichée par un widget « Base de données ». */
 export interface Widget {
@@ -20,6 +20,13 @@ export const WIDGET_TYPES: { type: WidgetType; label: string; help: string }[] =
   { type: 'tasks', label: 'Tâches du jour', help: 'Les tâches à faire aujourd’hui ou en retard' },
   { type: 'note', label: 'Bloc-notes', help: 'Un petit texte libre' },
   { type: 'database', label: 'Base de données épinglée', help: 'Les premières lignes d’une de tes bases' },
+  { type: 'inspiration', label: 'Image du jour', help: 'Une image de ta bibliothèque, tirée au hasard' },
+  { type: 'boards', label: 'Moodboards récents', help: 'Tes derniers moodboards, avec leur aperçu' },
+  { type: 'triage', label: 'À trier', help: 'Les images qu’il reste à ranger, et tes ajouts de la semaine' },
+  { type: 'memories', label: 'Il y a un an', help: 'Les images enregistrées à cette période les années passées' },
+  { type: 'drop', label: 'Dépôt rapide', help: 'Dépose des images : elles vont dans « Mes ajouts »' },
+  { type: 'recipe', label: 'Recette du jour', help: 'Une recette au hasard' },
+  { type: 'late', label: 'Factures en retard', help: 'Les impayés dont l’échéance est dépassée' },
 ]
 
 export const DEFAULT_WIDGETS: Widget[] = [

@@ -82,4 +82,12 @@ describe('widgets de la page d’accueil', () => {
     ]
     expect(databaseRows(objects, 'db').map((o) => o.id)).toEqual(['l2', 'l1'])
   })
+
+  it('reconnaît les widgets de la bibliothèque, des recettes et des factures', () => {
+    const raw = JSON.stringify([{ id: 'a', type: 'inspiration' }, { id: 'b', type: 'boards', half: true }, { id: 'c', type: 'triage' }, { id: 'd', type: 'memories' }, { id: 'e', type: 'drop' }, { id: 'f', type: 'recipe' }, { id: 'g', type: 'late' }, { id: 'h', type: 'inconnu' }])
+    const list = parseWidgets(raw)
+    expect(list.map((w) => w.type)).toEqual(['inspiration', 'boards', 'triage', 'memories', 'drop', 'recipe', 'late'])
+    expect(list[1].half).toBe(true)
+    expect(addWidget(list, 'late').at(-1)?.type).toBe('late')
+  })
 })

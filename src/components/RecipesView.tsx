@@ -20,7 +20,7 @@ import { askConfirm } from '@/lib/confirm'
 const button = 'rounded-lg px-2.5 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
-function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
+export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
   const select = useApp((s) => s.select)
   const v = parseValues(row.properties)
   const stars = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? ''))
