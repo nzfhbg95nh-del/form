@@ -1,3 +1,4 @@
+import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
 import { useEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { fr } from '@blocknote/core/locales'
@@ -454,7 +455,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
 
   const editor = useCreateBlockNote({
     schema,
-    dictionary: { ...fr, multi_column: multiColumnLocales.fr },
+    dictionary: { ...fr, multi_column: multiColumnLocales.fr, placeholders: { ...fr.placeholders, default: EMPTY_LINE_HINT } },
     dropCursor: multiColumnDropCursor,
     // Les images sont enregistrées directement dans la base : tout reste local et sauvegardé.
     uploadFile: readFileAsDataUrl,
@@ -462,7 +463,37 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   })
   if (editorRef) editorRef.current = editor as unknown as BlockNoteEditor<never, never, never>
 
+  // Comme dans Notion : Tab sur une ligne de texte passe à la ligne suivante (Maj+Tab : précédente) au lieu de décaler ;
+  // Espace sur une ligne vide ouvre l'assistant. Dans les listes, tâches, tableaux et code, Tab garde son rôle.
+  const onKeyDownCapture = (e: React.KeyboardEvent) => {
+    if (!editable || e.nativeEvent.isComposing) return
+    const el = e.target as HTMLElement
+    if (!el.closest('.bn-editor') || el.closest('input, textarea, select, [role="menu"], [role="listbox"]')) return
+    try {
+      const pos = editor.getTextCursorPosition()
+      const block = pos.block as { id: string; type: string; content?: unknown }
+      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
+        const action = tabAction(block.type, e.shiftKey)
+        if (action === 'default') return
+        e.preventDefault()
+        e.stopPropagation()
+        // On saute les blocs qui n'ont pas de texte (image, moodboard…) : le curseur va à la prochaine ligne de texte.
+        let target = action === 'next' ? editor.getNextBlock(block.id) : editor.getPrevBlock(block.id)
+        while (target && !Array.isArray((target as { content?: unknown }).content)) target = action === 'next' ? editor.getNextBlock(target.id) : editor.getPrevBlock(target.id)
+        if (target) editor.setTextCursorPosition(target.id, action === 'next' ? 'start' : 'end')
+        return
+      }
+      const empty = Array.isArray(block.content) && block.content.length === 0
+      if (spaceOpensAssistant(block.type, empty, e.key, { ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey })) {
+        e.preventDefault()
+        e.stopPropagation()
+        useApp.getState().setAssistant('recipe')
+      }
+    } catch { /* pas de curseur dans l'éditeur : la touche garde son rôle */ }
+  }
+
   return (
+    <div className="contents" onKeyDownCapture={onKeyDownCapture}>
     <BlockNoteView
       editor={editor}
       theme={theme}
@@ -483,5 +514,6 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         getItems={async (query) => mentionItems(editor as never, pageId ?? null, query) as never}
       />
     </BlockNoteView>
+    </div>
   )
 }
