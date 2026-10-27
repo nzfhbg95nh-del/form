@@ -184,3 +184,6 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; }
 @keyframes form-wiggle { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-12deg) scale(1.15); } 45% { transform: rotate(10deg) scale(1.15); } 70% { transform: rotate(-5deg) scale(1.05); } }
 @media (prefers-reduced-motion: reduce) { .btn svg.lucide-plus, button.group:hover > svg:first-child, .form-toast { animation: none !important; transition: none !important; } }
+
+/* L'éditeur de pages est une zone de saisie : le curseur suffit à montrer où l'on écrit. Sans cette règle, le navigateur dessine un grand cadre bleu autour de tout l'éditeur (il compte toute zone de saisie comme « focus clavier »). */
+.bn-editor:focus-visible, .ProseMirror:focus-visible, [contenteditable="true"]:focus-visible, .bn-container:focus-visible, .bn-container *:focus-visible:not(button):not(input):not(select):not(textarea):not(a) { outline: none; }
