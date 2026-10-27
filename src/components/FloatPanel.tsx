@@ -104,7 +104,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
         data-ui
         data-panel-id={id}
         title={`${title} (clic : rouvrir, glisser : déplacer)`}
-        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
+        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
         style={place}
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
@@ -122,7 +122,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       data-ui
       data-panel-id={id}
       data-scroll
-      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
+      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
       style={place}
       onKeyDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
