@@ -107,8 +107,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     try { const v = localStorage.getItem('form-text-tab'); return v === 'char' || v === 'para' ? v : null } catch { return null }
   })
   const setTextTab = (v: 'char' | 'para' | null) => { setTextTabState(v); try { localStorage.setItem('form-text-tab', v ?? 'none') } catch { /* sans importance */ } }
-  const stripBtn = (on: boolean) => 'flex h-9 w-9 items-center justify-center rounded-lg ' + (on ? 'bg-[color-mix(in_srgb,var(--accent)_14%,transparent)] text-[var(--accent)]' : 'text-[var(--fg)] hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)]')
-  const tabBtn = (on: boolean) => 'border-b-2 px-0.5 pb-1 pt-1 text-[11px] font-semibold ' + (on ? 'border-[var(--accent)] text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')
+  const stripBtn = (on: boolean) => 'flex h-9 w-9 items-center justify-center rounded-xl transition-colors ' + (on ? 'bg-[var(--bg)] text-[var(--accent)] shadow-[var(--shadow-soft)]' : 'text-[var(--fg)] hover:bg-[var(--bg-hover)]')
+  const tabBtn = (on: boolean) => 'rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-colors ' + (on ? 'bg-[var(--bg)] text-[var(--accent)] shadow-[var(--shadow-soft)]' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')
   // L'aide des outils (en bas à gauche) peut être réduite en un petit « ? » ; le choix est gardé.
   const [hintOpen, setHintOpen] = useState(() => { try { return localStorage.getItem('form-board-hint') !== 'closed' } catch { return true } })
   const toggleHint = (open: boolean) => { setHintOpen(open); try { localStorage.setItem('form-board-hint', open ? 'open' : 'closed') } catch { /* sans importance */ } }
@@ -1248,7 +1248,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 className="w-64"
                 onClose={() => setTextTab(null)}
                 headerContent={(
-                  <div className="flex flex-1 items-end gap-3" role="tablist">
+                  <div className="flex flex-1 items-center gap-0.5 rounded-xl bg-[color-mix(in_srgb,var(--fg)_7%,transparent)] p-0.5" role="tablist">
                     <button data-nodrag role="tab" aria-selected={textTab === 'char'} className={tabBtn(textTab === 'char')} onClick={() => setTextTab('char')}>{`Caractère${textSel.length > 1 ? ` (${textSel.length})` : ''}`}</button>
                     <button data-nodrag role="tab" aria-selected={textTab === 'para'} className={tabBtn(textTab === 'para')} onClick={() => setTextTab('para')}>Paragraphe</button>
                   </div>

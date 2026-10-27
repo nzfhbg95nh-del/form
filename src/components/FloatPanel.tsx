@@ -1,5 +1,4 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronsUpDown, X } from 'lucide-react'
 
 interface Anchor { x: 'left' | 'right' | 'center'; y: 'top' | 'bottom'; dx?: number; dy?: number }
 interface Saved { x: number; y: number; collapsed: boolean }
@@ -105,7 +104,7 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
         data-ui
         data-panel-id={id}
         title={`${title} (clic : rouvrir, glisser : déplacer)`}
-        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
+        className="absolute z-30 flex h-9 w-9 cursor-grab touch-none items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-[var(--fg)] shadow-[var(--shadow-lift)] active:cursor-grabbing"
         style={place}
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
@@ -123,22 +122,31 @@ export function FloatPanel({ id, title, icon, anchor, className = '', onClose, n
       data-ui
       data-panel-id={id}
       data-scroll
-      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
+      className={'absolute z-30 flex max-h-[calc(100%-16px)] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-side)] text-xs text-[var(--fg)] shadow-[var(--shadow-lift)] ' + className}
       style={place}
       onKeyDown={(e) => e.stopPropagation()}
       onPointerMove={(e) => e.stopPropagation()}
     >
+      {/* La barre, comme celle de la barre d'outils : « (réduire en icône) et × (fermer) tout en haut, la petite poignée arrondie dessous, puis le titre ou les onglets */}
       <div
-        className={'flex shrink-0 cursor-grab touch-none select-none items-center gap-2 border-b border-[var(--border)] active:cursor-grabbing ' + (slim ? 'justify-center px-1 py-1' : headerContent ? 'px-3 pb-0 pt-1.5' : 'px-3 py-1.5')}
+        className="flex shrink-0 cursor-grab touch-none select-none flex-col active:cursor-grabbing"
         title="Tire pour déplacer le panneau"
         onPointerDown={startDrag}
         onPointerMove={moveDrag}
         onPointerUp={() => endDrag(false)}
         onPointerCancel={() => endDrag(false)}
       >
-        {slim ? <span className="mx-auto text-[var(--fg-muted)]">{icon}</span> : <><span className="text-[var(--fg-muted)]">{icon}</span>{headerContent ?? <span className="lib-count flex-1 truncate">{title}</span>}</>}
-        {!noCollapse && !slim && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}><ChevronsUpDown size={13} /></button>}
-        {onClose && <button data-nodrag className="rounded-md p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}><X size={13} /></button>}
+        <div className="flex items-center justify-between px-2 pt-1 text-[11px] text-[var(--fg-muted)]">
+          {!noCollapse ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Réduire en icône" aria-label={`Réduire le panneau ${title}`} onClick={() => { const next = { ...state!, collapsed: true }; setState(next); write(id, next) }}>«</button> : <span />}
+          {onClose ? <button data-nodrag className="rounded px-0.5 hover:bg-[var(--bg-hover)]" title="Fermer" aria-label={`Fermer le panneau ${title}`} onClick={onClose}>✕</button> : <span />}
+        </div>
+        <span aria-hidden className="mx-auto my-1 h-1 w-8 rounded-full bg-[var(--border)]" />
+        {!slim && (
+          <div className="flex items-center gap-2 px-3 pb-1.5 pt-0.5">
+            <span className="text-[var(--fg-muted)]">{icon}</span>
+            {headerContent ?? <span className="lib-count flex-1 truncate">{title}</span>}
+          </div>
+        )}
       </div>
       <div data-scroll className={'flex min-h-0 flex-1 flex-col overflow-y-auto ' + (slim ? 'items-center gap-1 p-1' : 'gap-2 p-3')}>{children}</div>
     </div>
