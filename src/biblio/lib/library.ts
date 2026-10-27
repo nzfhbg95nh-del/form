@@ -81,6 +81,9 @@ export async function syncLibrary(root: string, onProgress?: (label: string, don
     )
   }
 
+  // Une image ajoutée à la main est datée du jour de son ajout (et non de la date de l'original) : c'est ce que le filtre « Date » doit voir.
+  await d.execute("UPDATE lib_blocks SET published_at = substr(imported_at, 1, 10) WHERE source = 'manual' AND (published_at IS NULL OR published_at <> substr(imported_at, 1, 10))")
+
   if (diff.missing.length > 0) {
     await inChunks(diff.missing, (marks, chunk) => d.execute(`UPDATE lib_files SET missing = 1 WHERE path_rel IN (${marks})`, chunk))
   }

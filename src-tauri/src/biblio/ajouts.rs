@@ -112,7 +112,13 @@ pub fn add_into(dest: &Path, paths: &[String]) -> Vec<AddOutcome> {
                 return outcome(&name, "duplicate", Some(rel), None);
             }
             match std::fs::copy(&src, &target) {
-                Ok(_) => outcome(&name, "added", Some(rel), None),
+                Ok(_) => {
+                    // La copie garde la date de l'original ; ce qui compte pour la bibliothèque (filtre « Date »), c'est le jour de l'ajout.
+                    if let Ok(f) = std::fs::OpenOptions::new().write(true).open(&target) {
+                        let _ = f.set_modified(std::time::SystemTime::now());
+                    }
+                    outcome(&name, "added", Some(rel), None)
+                }
                 Err(e) => outcome(&name, "error", None, Some(format!("Copie impossible : {e}"))),
             }
         })
