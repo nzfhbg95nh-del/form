@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline } from 'lucide-react'
+import { ExternalLink, AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline } from 'lucide-react'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -58,6 +58,20 @@ const item = 'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-[var
 let internalClip: { stamp: string; items: BoardItem[] } | null = null
 
 /** `compact` : version allégée pour le cadre d'une page (juste Images et Ajuster, sans barre du bas ni palette). */
+/** Découpe l'aide d'un outil en une ligne par conseil (le texte original les sépare par « | »). */
+function hintLines(segments: readonly (readonly [string, boolean])[]): React.ReactNode[][] {
+  const lines: React.ReactNode[][] = [[]]
+  segments.forEach(([text, bold], i) => {
+    if (bold) { lines[lines.length - 1].push(<b key={`b${i}`} className="font-semibold text-[var(--fg)]">{text}</b>); return }
+    text.split('|').forEach((part, n) => {
+      if (n > 0) lines.push([])
+      const t = n > 0 ? part.trimStart() : part
+      if (t.trim() !== '') lines[lines.length - 1].push(<span key={`s${i}-${n}`}>{t}</span>)
+    })
+  })
+  return lines.filter((l) => l.length > 0)
+}
+
 export function MoodboardView({ board, compact = false }: { board: ObjectRow; compact?: boolean }) {
   const initial = useMemo(() => parseBoard(board.content), [board.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const repo = useApp((s) => s.repo)
@@ -1146,10 +1160,11 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           <button className={item} title="Fond de la toile : petits points ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
         </div>
 
-        {/* Fenêtre : à droite, seulement des icônes */}
+        {/* Fenêtre : à droite. Épingler = reste devant les autres fenêtres ; Fenêtre flottante = la page s'ouvre aussi dans une petite fenêtre à part ; Réduire = pareil, et la page se ferme derrière. */}
         <div className={group + ' ml-auto'}>
-          <button className={item + ' !px-2'} title="Réduire ce moodboard en petite fenêtre flottante, toujours devant (comme PureRef) ; la page se ferme derrière" aria-label="Réduire en fenêtre flottante" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={15} /></button>
-          <button className={item + ' !px-2'} title={onTop ? 'Ne plus rester au premier plan' : 'Toujours au premier plan'} aria-label="Toujours au premier plan" aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={15} /> : <Pin size={15} />}</button>
+          <button className={item} title={onTop ? 'Ne plus rester devant les autres fenêtres' : 'Rester devant les autres fenêtres (la fenêtre de Form reste au premier plan)'} aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}Épingler</button>
+          <button className={item} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre à part, toujours devant (comme PureRef) ; la page reste ouverte" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.') })}><ExternalLink size={14} />Fenêtre flottante</button>
+          <button className={item} title="Réduire : ouvre ce moodboard dans une petite fenêtre à part et ferme la page derrière" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={14} />Réduire</button>
         </div>
       </div>
       )}
@@ -1321,9 +1336,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       </div>
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
-      {!compact && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
-        <div data-ui className="pointer-events-none absolute bottom-10 left-1/2 max-w-[80%] -translate-x-1/2 truncate rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-1 text-xs text-[var(--fg-muted)] shadow-sm">
-          {TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool].map(([text, bold], i) => (bold ? <b key={i} className="font-semibold text-[var(--fg)]">{text}</b> : <span key={i}>{text}</span>))}
+      {!compact && !showTextPanel && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
+        <div data-ui className="pointer-events-none absolute bottom-12 right-3 flex w-64 flex-col gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--bg)]/90 px-3 py-2 text-[11px] leading-snug text-[var(--fg-muted)] shadow-sm">
+          {hintLines(TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool]).map((line, i) => <div key={i}>{line}</div>)}
         </div>
       )}
       {isFloatingElsewhere && (
