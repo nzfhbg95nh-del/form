@@ -14,7 +14,7 @@ function Mosaic({ thumbs }: { thumbs: string[] }) {
   const [a, b, c] = thumbs
   const img = (src: string) => <img src={src} alt="" draggable={false} decoding="async" className="h-full w-full object-cover" />
   return (
-    <div className="grid aspect-[4/3] w-full gap-0.5 overflow-hidden rounded-2xl shadow-[var(--shadow-soft)]" style={{ background: 'var(--bg-hover)', gridTemplateColumns: b ? '2fr 1fr' : '1fr', gridTemplateRows: c ? '1fr 1fr' : '1fr' }}>
+    <div className="grid aspect-[4/3] w-full gap-0.5 relative overflow-hidden rounded-2xl shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[''] group-hover:after:bg-black/25" style={{ background: 'var(--bg-hover)', gridTemplateColumns: b ? '2fr 1fr' : '1fr', gridTemplateRows: c ? '1fr 1fr' : '1fr' }}>
       {a ? <div className={c ? 'row-span-2' : ''}>{img(a)}</div> : <div className="flex items-center justify-center" style={{ color: 'var(--fg-muted)' }}><Images size={32} /></div>}
       {b && <div>{img(b)}</div>}
       {c && <div>{img(c)}</div>}
