@@ -645,6 +645,33 @@ mod tests {
     }
 
     #[test]
+    fn la_taille_de_la_gomme_change_ce_qui_est_efface() {
+        // Un grand rectangle plein ; la gomme passe en son milieu : plus elle est grosse, plus la bande effacée est large.
+        let aire = |size: f64| {
+            let mut v = Vector::default();
+            let rect = pio("r", true, &[(100.0, 100.0), (500.0, 100.0), (500.0, 400.0), (100.0, 400.0)]);
+            v.start(&[rect], &[], "eraser", 1.0, &StyleIo { fill: None, stroke: Some("#000000".into()), sw: 1.0 }).unwrap();
+            v.set_option("size", &json!(size), 1.0).unwrap();
+            ptr(&mut v, "down", 80.0, 250.0);
+            ptr(&mut v, "drag", 300.0, 250.0);
+            ptr(&mut v, "drag", 520.0, 250.0);
+            let o = ptr(&mut v, "up", 520.0, 250.0);
+            // la hauteur totale occupée par ce qui reste (toutes les pièces)
+            let mut ys = vec![];
+            for p in &o.paths {
+                for q in p.points.iter().chain(p.subs.iter().flat_map(|e| e.points.iter())) {
+                    ys.push(q.y);
+                }
+            }
+            ys.sort_by(|a, b| a.partial_cmp(b).unwrap());
+            ys.iter().map(|y| y.round() as i64).collect::<Vec<_>>()
+        };
+        let (petit, grand) = (aire(10.0), aire(120.0));
+        eprintln!("GOMME petit={petit:?} grand={grand:?}");
+        assert_ne!(petit, grand, "la taille de la gomme doit changer le résultat");
+    }
+
+    #[test]
     fn le_crayon_donne_un_tracé_lissé() {
         let mut v = started("pencil");
         ptr(&mut v, "down", 0.0, 0.0);
