@@ -1,6 +1,8 @@
 import { SplitSlider } from '@/components/SplitSlider'
 import { useEffect, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
+import { invoke } from '@tauri-apps/api/core'
+import { desktopDir, documentDir } from '@tauri-apps/api/path'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
 import { SettingsHeader, SettingsSection, SubNav, type SubNavItem } from '@/components/SettingsUi'
@@ -198,11 +200,32 @@ export function LibrarySettings() {
   const [trashOpen, setTrashOpen] = useState(false)
   const [dupesOpen, setDupesOpen] = useState(false)
   const [note, setNote] = useState<string | null>(null)
+  const [candidate, setCandidate] = useState<string | null>(null)
   const busy = phase !== 'idle'
+  const missingFolder = !!layout && !layout.exists
+  const noFolder = root.trim() === ''
   useEffect(() => {
     void useLibrary.getState().init()
     void useAi.getState().init(false)
   }, [])
+
+  // Dossier introuvable (autre ordinateur, autre profil Windows) : on cherche un dossier « Bibliotheque » sur le Bureau ou dans Documents de CET ordinateur.
+  useEffect(() => {
+    if (!missingFolder && !noFolder) return
+    let cancelled = false
+    void (async () => {
+      for (const base of [await desktopDir().catch(() => ''), await documentDir().catch(() => '')]) {
+        if (!base) continue
+        const path = `${base.replace(/[\\/]+$/, '')}\\Bibliotheque`
+        if (path !== root && (await invoke<boolean>('library_dir_exists', { path }).catch(() => false))) {
+          if (!cancelled) setCandidate(path)
+          return
+        }
+      }
+      if (!cancelled) setCandidate(null)
+    })()
+    return () => { cancelled = true }
+  }, [missingFolder, noFolder, root])
 
   const choose = async () => {
     const picked = await open({ directory: true, defaultPath: root || undefined, title: 'Dossier « Bibliotheque »' })
@@ -222,8 +245,6 @@ export function LibrarySettings() {
   if (dupesOpen) return <DuplicatesView onBack={() => setDupesOpen(false)} />
 
   const muted = { color: 'var(--fg-muted)' }
-  const missingFolder = !!layout && !layout.exists
-  const noFolder = root.trim() === ''
   const parts: SubNavItem<Part>[] = [
     { id: 'folder', label: 'Dossier', badge: missingFolder || noFolder ? '!' : undefined },
     { id: 'update', label: 'Mise à jour' },
@@ -242,7 +263,8 @@ export function LibrarySettings() {
           <span className="min-w-0 flex-1">
             {noFolder ? 'Aucun dossier choisi : Form ne sait pas où est ta bibliothèque.' : 'Le dossier de la bibliothèque est introuvable (disque débranché ou dossier déplacé ?).'}
           </span>
-          <button className="btn btn-primary" onClick={() => void choose()}><FolderOpen size={16} /> Choisir le dossier</button>
+          {candidate && <button className="btn btn-primary" onClick={() => void setRoot(candidate)} title={candidate}><FolderOpen size={16} /> Utiliser « {candidate} »</button>}
+          <button className={'btn' + (candidate ? '' : ' btn-primary')} onClick={() => void choose()}><FolderOpen size={16} /> Choisir le dossier</button>
         </div>
       )}
 

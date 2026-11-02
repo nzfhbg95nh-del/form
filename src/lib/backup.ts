@@ -15,17 +15,32 @@ export function joinPath(dir: string, file: string): string {
 }
 
 /** Sauvegarde quotidienne : au plus une fois par jour, seulement si un dossier est choisi. */
-export async function runDailyBackup(repo: Repo): Promise<string | null> {
+export async function runDailyBackup(
+  repo: Repo,
+  /** Le dossier de sauvegarde par défaut (« Documents\Form sauvegardes » de cet ordinateur), s'il y en a un. */
+  defaultDir: (() => Promise<string>) | null = isTauri() ? () => invoke<string>('default_backup_dir') : null,
+): Promise<string | null> {
   let dir = await repo.getSetting('backup_dir')
-  if (!dir && isTauri()) {
+  if (!dir && defaultDir) {
     // Aucun dossier choisi : on sauvegarde quand même, dans « Documents\Form sauvegardes » (modifiable dans les Réglages).
-    dir = await invoke<string>('default_backup_dir')
+    dir = await defaultDir()
     await repo.setSetting('backup_dir', dir)
   }
   if (!dir) return null
   const today = todayISO()
   if ((await repo.getSetting('last_backup_date')) === today) return null
-  await repo.backupTo(joinPath(dir, backupFileName(today)))
+  try {
+    await repo.backupTo(joinPath(dir, backupFileName(today)))
+  } catch (e) {
+    // Le dossier retenu n'existe pas sur cet ordinateur (autre profil Windows, disque débranché, dossier effacé) :
+    // on se rabat sur le dossier par défaut au lieu de ne plus rien sauvegarder, et on le retient.
+    if (!defaultDir) throw e
+    const fallback = await defaultDir()
+    if (fallback === dir) throw e
+    await repo.backupTo(joinPath(fallback, backupFileName(today)))
+    await repo.setSetting('backup_dir', fallback)
+    dir = fallback
+  }
   await repo.setSetting('last_backup_date', today)
   // Ménage : on ne garde que les plus récentes (une erreur de ménage ne doit jamais faire échouer la sauvegarde).
   try {

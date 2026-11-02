@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { SettingsHeader, SettingsSection } from '@/components/SettingsUi'
+import { SystemCheck } from '@/components/SystemCheck'
 import { backupFileName, DEFAULT_KEEP, joinPath, parseKeep, restoreBackup, todayISO } from '@/lib/backup'
 import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
@@ -109,6 +110,10 @@ export function GeneralSettings() {
           {available && <span className={muted}> — la version {available.version} est disponible</span>}
         </p>
         <button className="btn disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>Rechercher une mise à jour</button>
+      </SettingsSection>
+
+      <SettingsSection title="Cet ordinateur" description="Ce qui marche et ce qui manque ici (dossiers, disque, vidéos, programmes), avec quoi faire. Utile quand tu installes Form sur un autre ordinateur.">
+        <SystemCheck />
       </SettingsSection>
 
       <SettingsSection

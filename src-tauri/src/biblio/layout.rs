@@ -191,6 +191,31 @@ pub fn library_read_text(root: String, rel: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("Lecture impossible : {e}"))
 }
 
+/// Ce dossier existe-t-il sur cet ordinateur ? Sert à repérer un chemin retenu sur un autre profil Windows ou un disque débranché.
+#[tauri::command]
+pub fn library_dir_exists(path: String) -> bool {
+    !path.trim().is_empty() && Path::new(&path).is_dir()
+}
+
+/// Place libre (en octets) sur le disque qui contient ce chemin.
+#[tauri::command]
+pub fn library_disk_free(path: String) -> Option<u64> {
+    super::relocate::free_space(Path::new(&path))
+}
+
+/// `ffmpeg` est-il installé ? C'est facultatif : Form s'en passe pour les miniatures ; seule la lecture du texte écrit dans les vidéos en a besoin.
+#[tauri::command]
+pub fn system_ffmpeg() -> bool {
+    let mut cmd = std::process::Command::new("ffmpeg");
+    cmd.arg("-version").stdout(std::process::Stdio::null()).stderr(std::process::Stdio::null());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        cmd.creation_flags(0x0800_0000); // pas de fenêtre noire
+    }
+    cmd.status().is_ok_and(|s| s.success())
+}
+
 /// Vrai pour un nom de miniature fait par Form : « 3f/3fa9…c2.jpg » (2 caractères, puis 16 chiffres hexadécimaux qui commencent par les mêmes 2, puis .jpg).
 pub fn is_thumb_name(rel: &str) -> bool {
     let b = rel.as_bytes();
@@ -249,6 +274,26 @@ mod tests {
         assert_eq!(std::fs::read(&file).unwrap(), b"{\"a\":2}");
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "aucun fichier provisoire ne reste");
         let _ = std::fs::remove_dir_all(dir.parent().unwrap().parent().unwrap());
+    }
+
+    #[test]
+    fn a_folder_that_does_not_exist_here_is_reported() {
+        let dir = temp("exists");
+        assert!(library_dir_exists(dir.to_string_lossy().into_owned()));
+        assert!(!library_dir_exists(dir.join("pas-la").to_string_lossy().into_owned()));
+        assert!(!library_dir_exists("C:\\Users\\ancien-profil\\Documents".into()));
+        assert!(!library_dir_exists("".into()));
+        assert!(!library_dir_exists("   ".into()));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn free_disk_space_is_known_for_an_existing_folder_and_unknown_for_nothing() {
+        let dir = temp("free-space");
+        assert!(library_disk_free(dir.to_string_lossy().into_owned()).is_some_and(|n| n > 0));
+        assert_eq!(library_disk_free("".into()), None);
+        let _ = std::fs::remove_dir_all(&dir);
     }
 
     #[test]
