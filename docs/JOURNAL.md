@@ -981,3 +981,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-02 — Interface : barres de choix
 - Thème, taille du texte (Petit 85 % / Normal / Grand 115 % / Très grand 130 %) et animations (Normales / Aucune) se choisissent avec une barre dans le style des onglets (`SegmentedBar`). Animations : classe `motion-none` sur la page, les indicateurs de chargement (`.spin`) tournent toujours. Réglage retenu sous `form-motion`.
 - Réglages > Général : sauvegarde présentée en bandeau d'état + 4 cartes d'action.
+
+- Cartes cliquables de l'accueil (`data-lift`) : soulèvement au survol adouci (1 px au lieu de 2, ombre plus légère) et fond gris à peine teinté.

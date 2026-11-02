@@ -120,7 +120,8 @@ button, a, [role="menuitem"], input, select, textarea {
 .btn:active:not(:disabled) { transform: scale(1.02, 0.95); }
 .btn-primary { box-shadow: 0 1px 2px rgba(35, 131, 226, 0.35); }
 /* Les cartes cliquables se soulèvent au survol (pages récentes, chiffres de l'accueil…). */
-button[data-lift]:not(:disabled):hover { box-shadow: var(--shadow-lift); transform: translateY(-2px); }
+/* Un soulèvement discret : à peine 1 px et une ombre douce, sans fond gris (le fond ne change que très légèrement). */
+button[data-lift]:not(:disabled):hover { box-shadow: 0 2px 3px rgba(0, 0, 0, 0.04), 0 8px 18px -12px rgba(0, 0, 0, 0.2); transform: translateY(-1px); background-color: color-mix(in srgb, var(--bg-hover) 35%, transparent); }
 button[data-lift]:not(:disabled):active { transform: translateY(0); }
 /* Menus et fenêtres : ils s'ouvrent en douceur au lieu d'apparaître d'un coup. */
 [role="menu"], [role="dialog"], [data-popup] { box-shadow: var(--shadow-lift); }
