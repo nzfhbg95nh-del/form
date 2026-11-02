@@ -16,8 +16,6 @@ export function GeneralSettings() {
   const [msg, setMsg] = useState<string | null>(null)
   const [reminders, setReminders] = useState(true)
   const [keep, setKeep] = useState(DEFAULT_KEEP)
-  const keepPagesOpen = useApp((s) => s.keepPagesOpen)
-  const setKeepPagesOpen = useApp((s) => s.setKeepPagesOpen)
   const desktop = isTauri()
 
   useEffect(() => {
@@ -92,16 +90,6 @@ export function GeneralSettings() {
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
       <SettingsHeader title="Général" />
-
-      <SettingsSection title="Mes pages" description="Quand tu ouvres une page, que devient celle que tu quittes ?">
-        <label className="flex items-start gap-2 text-sm">
-          <input type="checkbox" className="mt-0.5" checked={keepPagesOpen} onChange={(e) => setKeepPagesOpen(e.target.checked)} />
-          <span>
-            Garder ouverte la page que je quitte
-            <span className={'block text-xs ' + muted}>Chaque page s'ouvre dans son propre onglet (en haut de la fenêtre) : celle que tu quittes reste là, et tu peux la fermer quand tu veux. Décoché, une page prend la place de l'onglet actif, comme dans un navigateur.</span>
-          </span>
-        </label>
-      </SettingsSection>
 
       <SettingsSection title="Cet ordinateur" description="Ce qui marche et ce qui manque ici (dossiers, disque, vidéos, programmes), avec quoi faire. Utile quand tu installes Form sur un autre ordinateur.">
         <SystemCheck />

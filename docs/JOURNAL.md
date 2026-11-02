@@ -962,3 +962,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Téléchargement des enregistrements : arrêt automatique dès que 30 fichiers déjà présents sont rencontrés d'affilée (`skip: abort:30` de gallery-dl, constante `STOP_AFTER_KNOWN` dans saver.rs ; les enregistrements arrivent du plus récent au plus ancien). Le téléchargement ne parcourt plus toute la liste ; test mis à jour.
 
 - Correctif : les miniatures n'apparaissaient plus (images cassées) quand l'Accueil chargeait la grille avant que la bibliothèque soit branchée : le dossier des miniatures était alors demandé à l'ancien emplacement et gardé en mémoire. `grid.load` et `homeData.thumbUrl` branchent maintenant la bibliothèque d'abord et relisent l'emplacement.
+
+- Réglage « Garder ouverte la page que je quitte » retiré (inutile) : chaque page s'ouvre toujours dans son propre onglet.
