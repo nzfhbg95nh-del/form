@@ -1,15 +1,48 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Briefcase, Database, FilePlus2, FileText, Images, Rows3, Search, Users } from 'lucide-react'
+import { Banknote, Briefcase, ChefHat, Database, FilePlus2, FileSignature, FileText, FolderOpen, Home, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, Receipt, Rows3, Search, Settings, Trash2, Users } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 import { searchBusiness } from '@/lib/business'
 import { coverStyle } from '@/components/PagePickers'
 import { extractText, groupByRecency, searchObjects, type SearchHit } from '@/lib/search'
 import { parseBlockLink } from '@/lib/blocks'
 import { parsePageLink } from '@/lib/windowActions'
-import { useApp } from '@/store/app'
+import { useApp, type View } from '@/store/app'
+import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import type { ObjectRow } from '@/lib/types'
 import { Icon } from '@/components/Icon'
 
+/** Les écrans de base de l'appli : toujours proposés en tête de la recherche, avec les Réglages. */
+interface Screen {
+  id: string
+  title: string
+  icon: LucideIcon
+  view?: View
+  lib?: LibraryPageId
+  /** La base « Recettes » (une page, pas un écran). */
+  recipes?: boolean
+}
+
+const SCREENS: Screen[] = [
+  { id: 'home', title: 'Accueil', icon: Home, view: 'home' },
+  { id: 'recipes', title: 'Recettes', icon: ChefHat, recipes: true },
+  { id: 'dashboard', title: 'Tableau de bord', icon: LayoutDashboard, view: 'dashboard' },
+  { id: 'clients', title: 'Clients', icon: Users, view: 'clients' },
+  { id: 'services', title: 'Tarifs', icon: Briefcase, view: 'services' },
+  { id: 'quotes', title: 'Devis', icon: FileSignature, view: 'quotes' },
+  { id: 'invoices', title: 'Factures', icon: Receipt, view: 'invoices' },
+  { id: 'payments', title: 'Paiements', icon: Banknote, view: 'payments' },
+  { id: 'lib-all', title: 'Tout (bibliothèque)', icon: LayoutGrid, view: 'library', lib: 'all' },
+  { id: 'lib-collections', title: 'Collections', icon: FolderOpen, view: 'library', lib: 'collections' },
+  { id: 'lib-moodboards', title: 'Moodboards', icon: Images, view: 'library', lib: 'moodboards' },
+  { id: 'lib-map', title: 'Carte', icon: MapIcon, view: 'library', lib: 'map' },
+  { id: 'trash', title: 'Corbeille', icon: Trash2, view: 'trash' },
+  { id: 'settings', title: 'Réglages', icon: Settings, view: 'settings' },
+]
+
+const fold = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+
 type Entry =
+  | { type: 'screen'; id: string; title: string; screen: Screen }
   | { type: 'new'; id: 'new-page'; title: string }
   | { type: 'page'; id: string; title: string; object: ObjectRow; path: string }
   | { type: 'client'; id: string; title: string; subtitle: string }
@@ -18,7 +51,8 @@ type Entry =
 const kbd = 'rounded-lg border border-[var(--border)] px-1 text-[11px]'
 
 function PageGlyph({ o }: { o: ObjectRow }) {
-  if (o.icon) return <Icon value={o.icon} size={18} />
+  // L'icône de poêle à frire, mise par défaut sur les recettes, n'est plus montrée.
+  if (o.icon && o.icon !== '🍳') return <Icon value={o.icon} size={18} />
   if (o.type === 'database') return <Database size={16} />
   if (o.type === 'moodboard') return <Images size={16} />
   if (o.type === 'row') return <Rows3 size={16} />
@@ -26,7 +60,7 @@ function PageGlyph({ o }: { o: ObjectRow }) {
 }
 
 export function SearchPalette() {
-  const { objects, clients, services, select, show, setEditing, setSearch, searchNewTab, createPage } = useApp()
+  const { objects, clients, services, select, show, setEditing, setSearch, searchNewTab, createPage, openViewTab, openRecipes } = useApp()
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
   const list = useRef<HTMLDivElement>(null)
@@ -45,10 +79,16 @@ export function SearchPalette() {
   const toEntry = (h: SearchHit): Entry => ({ type: 'page', id: h.object.id, title: h.object.title || 'Nouvelle page', object: h.object, path: h.path.join(' / ') })
 
   // Affichage : sans recherche, « Nouvelle page » puis les pages récentes par date ; avec recherche, les résultats.
+  const screenEntries = useMemo<Entry[]>(() => {
+    const q = fold(query.trim())
+    const list = q === '' ? SCREENS : SCREENS.filter((s) => fold(s.title).includes(q))
+    return list.map((s) => ({ type: 'screen', id: s.id, title: s.title, screen: s }) as Entry)
+  }, [query])
   const sections = useMemo(() => {
-    if (query.trim() === '') return groupByRecency(hits, new Date()).map((g) => ({ label: g.label, entries: g.hits.map(toEntry) }))
-    return [{ label: '', entries: [...hits.map(toEntry), ...business] }]
-  }, [hits, business, query])
+    // Sans recherche : les pages de base et les Réglages d'abord, puis les pages récentes par date.
+    if (query.trim() === '') return [{ label: 'Pages de base', entries: screenEntries }, ...groupByRecency(hits, new Date()).map((g) => ({ label: g.label, entries: g.hits.map(toEntry) }))]
+    return [{ label: '', entries: [...screenEntries, ...hits.map(toEntry), ...business] }]
+  }, [hits, business, query, screenEntries])
   const actions: Entry[] = query.trim() === '' ? [{ type: 'new', id: 'new-page', title: 'Nouvelle page' }] : []
   const flat = useMemo(() => [...actions, ...sections.flatMap((s) => s.entries)], [sections, query]) // eslint-disable-line react-hooks/exhaustive-deps
   const active = flat[index]
@@ -62,6 +102,15 @@ export function SearchPalette() {
     if (!entry) return
     setSearch(false)
     if (entry.type === 'new') void createPage(null, newTab)
+    else if (entry.type === 'screen') {
+      const s = entry.screen
+      if (s.recipes) void openRecipes()
+      else if (s.view && newTab) openViewTab(s.view, s.lib)
+      else if (s.view) {
+        if (s.lib) useLibraryNav.getState().go(s.lib)
+        show(s.view)
+      }
+    }
     else if (entry.type === 'page') {
       select(entry.id, { newTab })
       // Lien vers un bloc précis : on fait défiler jusqu'à lui.
@@ -86,7 +135,7 @@ export function SearchPalette() {
       className={'flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm ' + (i === index ? 'bg-[var(--bg-hover)]' : '')}
     >
       <span className="flex w-5 shrink-0 justify-center text-base">
-        {e.type === 'new' ? <FilePlus2 size={16} /> : e.type === 'client' ? <Users size={16} /> : e.type === 'service' ? <Briefcase size={16} /> : <PageGlyph o={e.object} />}
+        {e.type === 'screen' ? <e.screen.icon size={16} /> : e.type === 'new' ? <FilePlus2 size={16} /> : e.type === 'client' ? <Users size={16} /> : e.type === 'service' ? <Briefcase size={16} /> : <PageGlyph o={e.object} />}
       </span>
       <span className="min-w-0 flex-1 truncate">
         <span className="font-medium">{e.title}</span>
@@ -99,6 +148,7 @@ export function SearchPalette() {
   const preview = () => {
     if (!active) return <div className="p-6 text-sm text-[var(--fg-muted)]">Aucun résultat.</div>
     if (active.type === 'new') return <div className="p-6 text-sm text-[var(--fg-muted)]">Crée une page vide{searchNewTab ? ' dans un nouvel onglet' : ''}.</div>
+    if (active.type === 'screen') return <div className="p-6"><div className="mb-1 text-xl font-semibold">{active.title}</div><div className="text-sm text-[var(--fg-muted)]">Ouvre cet écran{searchNewTab ? ' dans un nouvel onglet' : ''}.</div></div>
     if (active.type === 'client' || active.type === 'service') {
       return <div className="p-6"><div className="mb-1 text-xl font-semibold">{active.title}</div><div className="text-sm text-[var(--fg-muted)]">{active.subtitle}</div></div>
     }
