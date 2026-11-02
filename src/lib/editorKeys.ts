@@ -14,5 +14,5 @@ export function tabAction(blockType: string, shift: boolean): TabAction {
   return shift ? 'prev' : 'next'
 }
 
-/** La phrase d'aide d'une ligne vide, celle de Notion. */
-export const EMPTY_LINE_HINT = 'Tapez « / » pour afficher les commandes'
+/** La phrase d'aide d'une ligne vide : elle dit qu'on peut écrire ici. */
+export const EMPTY_LINE_HINT = 'Écris tes notes ici…'

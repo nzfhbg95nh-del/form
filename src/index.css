@@ -57,7 +57,7 @@ body {
 
 /* Encadré vide : texte d'aide, comme dans Notion. */
 .bn-block-content[data-content-type='callout'] [data-node-view-wrapper]:has(> .ProseMirror-trailingBreak:only-child)::before {
-  content: 'Tapez « / » pour afficher les commandes';
+  content: 'Écris tes notes ici…';
   float: left;
   height: 0;
   white-space: nowrap;

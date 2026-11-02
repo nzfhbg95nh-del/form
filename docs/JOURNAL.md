@@ -1034,3 +1034,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Filtres de la bibliothèque : phrases d'aide retirées (« Glisse sur les barres… » ; « Les blocs Pinterest n'ont pas de date… »). La ligne « couleur choisie / Aucune » n'apparaît que quand une couleur est choisie.
 
 - Fiches de recettes : le titre est dans son propre petit cadre arrondi, sous la photo (séparé d'elle).
+
+- Ligne vide d'une page (et encadré vide) : le texte d'aide devient « Écris tes notes ici… » au lieu de « Tapez / pour afficher les commandes » (le menu « / » marche toujours).

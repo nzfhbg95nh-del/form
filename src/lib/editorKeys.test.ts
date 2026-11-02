@@ -14,6 +14,6 @@ describe('touches de l’éditeur comme dans Notion', () => {
     }
   })
   it('l’aide d’une ligne vide parle des commandes « / », plus de l’IA', () => {
-    expect(EMPTY_LINE_HINT).toBe('Tapez « / » pour afficher les commandes')
+    expect(EMPTY_LINE_HINT).toBe('Écris tes notes ici…')
   })
 })
