@@ -183,6 +183,7 @@ function QuickNotes({ db }: { db: ObjectRow }) {
       <h2 className="mb-1 text-sm font-medium text-[var(--fg-muted)]">Notes rapides</h2>
       <div className="-mx-6">
         <PageEditor
+          plain
           key={db.id}
           pageId={db.id}
           initial={db.content}

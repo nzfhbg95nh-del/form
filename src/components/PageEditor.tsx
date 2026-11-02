@@ -512,7 +512,7 @@ function mentionItems(editor: Ed, currentId: string | null, query: string): Slas
     }))
 }
 
-export function PageEditor({ pageId, initial, onChange, editorRef, editable = true }: { pageId?: string; editable?: boolean; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
+export function PageEditor({ pageId, initial, onChange, editorRef, editable = true, plain = false }: { pageId?: string; editable?: boolean; /** Sans le « + » ni la poignée à gauche des blocs : juste du texte, comme dans Notion (notes rapides). */ plain?: boolean; initial: string | null; onChange: (json: string) => void; editorRef?: React.MutableRefObject<BlockNoteEditor<never, never, never> | null> }) {
   const theme = useApp((s) => s.theme)
 
   // Un lien collé seul sur une ligne vide : il reste un lien, et un petit menu propose l'aperçu ou l'intégration (comme dans Notion).
@@ -583,7 +583,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       editable={editable}
       onChange={() => onChange(JSON.stringify(editor.document))}
     >
-      <SideMenuController sideMenu={(sideProps) => <SideMenu {...sideProps} dragHandleMenu={BlockMenu} />} />
+      {!plain && <SideMenuController sideMenu={(sideProps) => <SideMenu {...sideProps} dragHandleMenu={BlockMenu} />} />}
       <SuggestionMenuController
         triggerCharacter="/"
         suggestionMenuComponent={SlashMenu as never}
