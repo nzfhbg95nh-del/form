@@ -42,12 +42,16 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
       ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
       : undefined
   return (
-    <button onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
-      <div className={'flex items-center justify-center bg-[var(--bg-side)] ' + (tall ? 'h-44' : 'h-32')} style={style}>
+    <button onClick={() => select(row.id)} className="group text-left">
+      {/* Seule la photo a un cadre : le texte est posé dessous, sans encadré. */}
+      <div
+        className={'relative flex items-center justify-center overflow-hidden rounded-xl bg-[var(--bg-side)] shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}
+        style={style}
+      >
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
-      <div className="h-[3.25rem] p-2">
+      <div className="h-[3.25rem] px-0.5 pt-2">
         <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
         <div className="mt-0.5 h-4 truncate text-xs text-[var(--fg-muted)]">{info}</div>
       </div>

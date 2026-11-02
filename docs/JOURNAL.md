@@ -1024,3 +1024,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Jauge de la grille : l'amincissement commence exactement quand la poignée touche un texte (largeurs mesurées), plus à un pourcentage fixe.
 
 - L'amincissement de la jauge (barre fine, texte au-dessus) s'applique à toutes les jauges de ce style (taille des vignettes, confiance min., réglages des outils du moodboard), sauf la transparence de la fenêtre flottante du moodboard (morph={false}).
+
+- Fiches de recettes : seule la photo a un cadre arrondi (voile léger au survol) ; le titre et la difficulté sont posés dessous, sans encadré. Même hauteur pour toutes les fiches.
