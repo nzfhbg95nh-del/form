@@ -24,8 +24,8 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
     onChange(Math.max(min, Math.min(max, snapped)))
   }
   const spring = 'height 0.34s cubic-bezier(0.34, 1.3, 0.64, 1), border-radius 0.3s'
-  const mono = small ? 'font-mono text-[10px] uppercase tracking-wider' : 'font-mono text-[11px] uppercase tracking-wider'
-  const padX = small ? 8 : 10
+  const mono = small ? 'font-mono text-[11px] uppercase tracking-wider' : 'font-mono text-[11px] uppercase tracking-wider'
+  const padX = small ? 14 : 10
   return (
     <div
       ref={track}
@@ -35,7 +35,7 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
       aria-valuemin={min}
       aria-valuemax={max}
       aria-valuenow={value}
-      className={'group relative ' + (small ? 'h-6' : 'h-9') + ' cursor-ew-resize touch-none select-none ' + className}
+      className={'group relative ' + (small ? 'h-[34px]' : 'h-9') + ' cursor-ew-resize touch-none select-none ' + className}
       onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); set(e.clientX) }}
       onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) set(e.clientX) }}
       onKeyDown={(e) => {
@@ -45,9 +45,9 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
       }}
     >
       <div className="grid h-full items-end gap-1.5" style={{ gridTemplateColumns: `minmax(0, ${pct}fr) 4px minmax(0, ${100 - pct}fr)` }}>
-        <div className="min-w-0" style={{ height: thin ? 8 : '100%', transition: spring, borderRadius: thin ? 999 : 8, background: 'color-mix(in srgb, var(--accent) 18%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent)' }} />
+        <div className="min-w-0" style={{ height: thin ? 8 : '100%', transition: spring, borderRadius: thin || small ? 999 : 8, background: 'color-mix(in srgb, var(--accent) 18%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent)' }} />
         <div className="rounded-full bg-[var(--fg)]" style={{ width: 4, height: thin ? 20 : '100%', transition: spring, boxShadow: '0 0 0 2px var(--bg)' }} />
-        <div className="min-w-0" style={{ height: thin ? 8 : '100%', transition: spring, borderRadius: thin ? 999 : 8, background: 'color-mix(in srgb, var(--fg) 8%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent)' }} />
+        <div className="min-w-0" style={{ height: thin ? 8 : '100%', transition: spring, borderRadius: thin || small ? 999 : 8, background: 'color-mix(in srgb, var(--fg) 8%, transparent)', boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent)' }} />
       </div>
       {/* Les libellés flottent par-dessus : au milieu de la barre, ou au-dessus d'elle quand elle s'amincit. */}
       <div

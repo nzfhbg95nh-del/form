@@ -1012,3 +1012,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Boutons de l'appli (classe `.btn`) : forme en pilule, un peu plus de marge, texte légèrement plus marqué ; mêmes couleurs (fond teinté, accent pour le bouton principal et les choix actifs), à la manière des références.
 
 - Boutons (`.btn`), barre de recherche de la bibliothèque et champ de recherche : hauteur commune de 34 px.
+
+- Jauge (version compacte : taille des vignettes, confiance min.) : même hauteur que les boutons (34 px) et extrémités en pilule.
