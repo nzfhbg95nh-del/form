@@ -10,7 +10,7 @@ export function SearchInput({ value, onChange, placeholder, label, className = '
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
         aria-label={label ?? placeholder}
-        className="lib-input w-full rounded-full border py-1.5 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--fg-muted)]"
+        className="lib-input w-full box-border h-[34px] rounded-full border py-0 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--fg-muted)]"
       />
     </label>
   )
