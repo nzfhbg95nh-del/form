@@ -1050,3 +1050,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Notes rapides : texte aligné à gauche, sur le titre.
 
 - Fiches de recettes : bloc de texte plus bas (40 px), titre centré ; la ligne de difficulté n'est affichée que s'il y en a une.
+
+- Recettes : la photo devient la vraie image de couverture (bandeau de 256 px tout en haut de la fiche, modifiable dans « Ajouter / Changer l'image de couverture »). À l'ouverture d'une recette sans couverture, sa première photo est enregistrée comme couverture et celle qui ouvrait le corps de la page est masquée (elle reste dans le contenu). `coverStyle` sait afficher les images de la bibliothèque (`form-lib:`) et d'un site (`https:`).
+- Icône de poêle à frire (🍳, mise par défaut) retirée : plus de défaut pour les nouvelles recettes, et elle n'est plus montrée sur les recettes existantes (page, fil d'Ariane, fiches).

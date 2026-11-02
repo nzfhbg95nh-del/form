@@ -7,7 +7,7 @@ import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
 import { PageEditor } from '@/components/PageEditor'
 import { recipesWithoutTime } from '@/lib/recipeTimes'
-import { IconPicker } from '@/components/PagePickers'
+import { coverStyle, IconPicker } from '@/components/PagePickers'
 import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { firstImageUrl } from '@/lib/content'
@@ -35,9 +35,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
   useLibrary((s) => s.root + s.ready)
   const photo = row.cover ? null : displayUrl(firstImageUrl(row.content, `${row.id}:${row.updated_at}`))
   const style = row.cover
-    ? row.cover.startsWith('data:')
-      ? { backgroundImage: `url("${row.cover}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
-      : { background: row.cover }
+    ? coverStyle(row.cover)
     : photo
       ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
       : undefined
@@ -48,7 +46,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
         className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}
         style={style}
       >
-        {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
+        {!row.cover && !photo && row.icon && row.icon !== '🍳' && <Icon value={row.icon} size={40} />}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
       <div className="flex h-10 flex-col justify-center px-3">

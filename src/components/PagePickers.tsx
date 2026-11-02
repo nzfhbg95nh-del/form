@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker.tsx'
 import { Image as ImageIcon, Smile } from 'lucide-react'
 import { Icon } from '@/components/Icon'
+import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
 import { readFileAsDataUrl } from '@/lib/content'
 import {
   CALLOUT_EMOJIS, GROUPS, groupEmojis, loadEmojiData, loadRecents, pushRecent, randomEmoji, saveRecents, searchEmojis, SKIN_TONES, withSkin,
@@ -20,9 +21,14 @@ export const COVERS = [
 ]
 
 export function coverStyle(cover: string): React.CSSProperties {
-  return cover.startsWith('data:')
-    ? { backgroundImage: `url(${cover})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: cover }
+  // Une image (collée, d'un site, ou rangée dans la bibliothèque) ou une couleur / un dégradé.
+  if (/^(data:|https?:|form-lib:)/.test(cover)) {
+    const url = displayUrl(cover)
+    return url
+      ? { backgroundImage: `url("${url}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : { background: 'var(--bg-hover)' }
+  }
+  return { background: cover }
 }
 
 const pop = 'absolute z-20 mt-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-lg'

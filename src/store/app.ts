@@ -250,7 +250,7 @@ async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: st
   const people = Math.max(1, parseInt((await repo.getSetting('recipe_people')) ?? '', 10) || 4)
   const values = input.content ? (input.values ?? {}) : { [RECIPE.servings]: people, ...(input.values ?? {}) }
   const row = await repo.createPage(db.id, 'row', JSON.stringify(values))
-  const patch = { title: input.title ?? 'Nouvelle recette', icon: '🍳', content: JSON.stringify(input.content ?? emptyRecipeBlocks(people)), ...(input.cover ? { cover: input.cover } : {}) }
+  const patch = { title: input.title ?? 'Nouvelle recette', icon: null, content: JSON.stringify(input.content ?? emptyRecipeBlocks(people)), ...(input.cover ? { cover: input.cover } : {}) }
   await repo.updateObject(row.id, patch)
   set((s) => ({ objects: [...s.objects, { ...row, ...patch }] }))
   get().select(row.id)
@@ -272,7 +272,7 @@ async function importRecipeRowsInto(
     if (!key || known.has(key)) continue
     known.add(key)
     const row = await repo.createPage(db.id, 'row', JSON.stringify(it.values))
-    const patch = { title: it.title, icon: it.icon ?? '🍳', content: JSON.stringify(it.content), ...(it.cover ? { cover: it.cover } : {}) }
+    const patch = { title: it.title, icon: it.icon === '🍳' ? null : (it.icon ?? null), content: JSON.stringify(it.content), ...(it.cover ? { cover: it.cover } : {}) }
     await repo.updateObject(row.id, patch)
     added.push({ ...row, ...patch })
   }

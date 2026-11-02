@@ -203,3 +203,6 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 
 /* Notes rapides (page Recettes) : le texte est collé à gauche, aligné sur le titre (pas de place pour le « + » et la poignée). */
 .quick-notes .bn-editor { padding-inline: 0 !important; }
+
+/* Recette : sa photo est déjà en bandeau de couverture, on masque celle qui ouvre le corps de la page. */
+.recipe-cover-on .bn-editor > .bn-block-group > .bn-block-outer:first-child:has(> .bn-block > .bn-block-content[data-content-type='image']) { display: none; }

@@ -12,8 +12,13 @@ import { Icon } from '@/components/Icon'
 import { displayTitle, lastEditText } from '@/lib/lastEdit'
 import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
 import { parsePageStyle } from '@/lib/pageStyle'
+import { firstImageUrl } from '@/lib/content'
+import { useLibrary } from '@/biblio/store/library.ts'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
+
+/** L'icône que les recettes recevaient par défaut : elle n'est plus montrée. */
+const OLD_RECIPE_ICON = '🍳'
 
 export function PageView({ pageId }: { pageId?: string }) {
   const { objects, selectedId, update, trash, createPage, select, setCell, saveSchema, pinned, togglePin } = useApp()
@@ -27,6 +32,8 @@ export function PageView({ pageId }: { pageId?: string }) {
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
   const [lit, setLit] = useState<{ left: number; top: number; width: number; height: number }[]>([])
   const pending = useRef<{ id: string; patch: Patch } | null>(null)
+  // Les photos rangées dans la bibliothèque n'ont d'adresse qu'une fois son dossier connu : la page se met à jour à ce moment-là.
+  useLibrary((s) => s.root + s.ready)
 
   // On ne recharge le titre que lorsqu'on change de page, pas à chaque frappe.
   useEffect(() => {
@@ -55,6 +62,21 @@ export function PageView({ pageId }: { pageId?: string }) {
     return () => observer.disconnect()
   }, [title, page?.id])
 
+  // La base « Recettes » de cette page (si c'est une recette).
+  function recipeDbOf(p: typeof page) {
+    const db = p && p.type === 'row' ? objects.find((o) => o.id === p.parent_id) : undefined
+    return db && parseSchema(db.properties).kind === 'recipes' ? db : null
+  }
+
+  // Une recette sans couverture prend sa photo comme couverture (une fois, à l'ouverture) : elle se change ensuite dans « Image de couverture ».
+  const needsCover = !!page && !page.cover && recipeDbOf(page) !== null
+  useEffect(() => {
+    if (!page || !needsCover) return
+    const url = firstImageUrl(page.content, `${page.id}:${page.updated_at}`)
+    if (url) void update(page.id, { cover: url })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page?.id, needsCover])
+
   if (!page) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 text-[var(--fg-muted)]">
@@ -79,6 +101,12 @@ export function PageView({ pageId }: { pageId?: string }) {
   }
 
   const ui = page.type === 'row' ? parsePageStyle(null) : parsePageStyle(page.properties)
+
+  // Recette : sa photo est sa couverture (bandeau tout en haut) ; la photo qui ouvrait le corps de la page est alors masquée (elle reste dans le contenu).
+  // L'icône de poêle à frire, mise par défaut, n'est plus montrée.
+  const isRecipe = recipeDbOf(page) !== null
+  const photoInBody = isRecipe && !!page.cover && page.cover === firstImageUrl(page.content, `${page.id}:${page.updated_at}`)
+  const shownIcon = isRecipe && page.icon === OLD_RECIPE_ICON ? null : page.icon
 
   // Chemin de la page : Parent › Sous-parent
   const trail: string[] = []
@@ -170,7 +198,7 @@ export function PageView({ pageId }: { pageId?: string }) {
               </span>
             )
           })}
-          <span className="flex min-w-0 items-center gap-1 text-[var(--fg)]"><Icon value={page.icon} size={14} /><span className="truncate">{displayTitle(page.title)}</span></span>
+          <span className="flex min-w-0 items-center gap-1 text-[var(--fg)]"><Icon value={shownIcon} size={14} /><span className="truncate">{displayTitle(page.title)}</span></span>
           {ui.locked && <span className="ml-2 shrink-0 text-xs">🔒 Verrouillée</span>}
         </div>
         <span className="hidden shrink-0 text-xs text-[var(--fg-muted)] sm:inline">Dernière modification : {lastEditText(page.updated_at)}</span>
@@ -187,9 +215,9 @@ export function PageView({ pageId }: { pageId?: string }) {
           </button>
         </div>
       </div>
-      {page.cover && <div className="h-48 w-full" style={coverStyle(page.cover)} />}
+      {page.cover && <div className={(isRecipe ? 'h-64' : 'h-48') + ' w-full'} style={coverStyle(page.cover)} />}
       <div
-        className={'mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '')}
+        className={'mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '') + (photoInBody ? ' recipe-cover-on' : '')}
         style={{ '--bn-font-family': pageFontFamily(ui.font), fontFamily: pageFontFamily(ui.font) } as React.CSSProperties}
       >
         <div className="group">
@@ -197,7 +225,7 @@ export function PageView({ pageId }: { pageId?: string }) {
             {!ui.locked && <IconPicker value={page.icon} onChange={(icon) => void update(page.id, { icon })} />}
             {!ui.locked && <CoverPicker value={page.cover} onChange={(cover) => void update(page.id, { cover })} />}
           </div>
-          {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
+          {shownIcon && <div className="mb-2"><Icon value={shownIcon} size={64} /></div>}
         {/* Le titre passe à la ligne (un long titre n'est plus coupé) et le champ grandit avec ; pas de vrai retour à la ligne dans un titre. */}
         <textarea
           ref={titleRef}
