@@ -995,3 +995,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fenêtre « Créer un moodboard » : photo de couverture au choix (clic sur la grande case de l'aperçu ; Changer / Retirer ; facultative). La photo est posée sur la toile et choisie comme couverture (createBoardWithCover, formBoards.ts). Pastille teintée et boutons arrondis comme le reste de l'appli.
 
 - Moodboards : le menu d'une carte devient « Modifier… » (icône crayon) et « Mettre à la corbeille… » (icône rouge). « Modifier… » rouvre la fenêtre de création en mode modification (nom, photo de couverture, ou choix parmi les images du moodboard) ; l'emplacement de la photo est un carré en pointillés. setBoardCoverFromFile dans formBoards.ts.
+
+- La photo de couverture choisie à la création ou dans « Modifier… » n'est plus posée sur la toile du moodboard : elle est seulement gardée avec lui comme couverture.
