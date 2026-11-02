@@ -1050,3 +1050,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Notes rapides : texte aligné à gauche, sur le titre.
 
 - Fiches de recettes : bloc de texte plus bas (40 px), titre centré ; la ligne de difficulté n'est affichée que s'il y en a une.
+
+- Recettes : même jauge « Taille » que la grille de la bibliothèque (160 à 420 px, retenue sur cet ordinateur sous `form-recipes-size`) ; la photo des fiches garde sa proportion 3:2 quand la taille change. Écart horizontal entre fiches : 20 px.
