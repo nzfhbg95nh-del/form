@@ -1,11 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { EmptyState } from '@/components/States'
-import { Images, MoreHorizontal, Plus, Trash2, X } from 'lucide-react'
+import { Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { getDb } from '@/biblio/lib/db.ts'
-import { createBoard, createBoardWithCover } from '@/biblio/lib/formBoards.ts'
+import { createBoard, createBoardWithCover, setBoardCoverFromFile } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
 import { useApp } from '@/store/app'
-import { NameInput } from './NameInput.tsx'
 import { NewMoodboardDialog } from './NewMoodboardDialog.tsx'
 
 const nf = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
@@ -81,13 +80,32 @@ function CoverChooser({ card, onClose }: { card: BoardCard; onClose: () => void 
   )
 }
 
-/** Renommer / choisir l'image de couverture / mettre à la corbeille un moodboard depuis sa carte. */
-function CardMenu({ card }: { card: BoardCard }) {
+/** Une ligne du menu d'un moodboard : une petite icône teintée, puis le texte. */
+function MenuItem({ icon, children, danger = false, onClick }: { icon: ReactNode; children: ReactNode; danger?: boolean; onClick: () => void }) {
+  const tint = danger ? '#d44c47' : 'var(--fg)'
+  return (
+    <button className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]" onClick={onClick} style={danger ? { color: '#d44c47' } : undefined}>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: `color-mix(in srgb, ${tint} ${danger ? 14 : 8}%, transparent)`, color: tint }}>{icon}</span>
+      {children}
+    </button>
+  )
+}
+
+/** Modifier (nom et photo de couverture) ou mettre à la corbeille un moodboard depuis sa carte. */
+function CardMenu({ card, coverSrc }: { card: BoardCard; coverSrc: string | null }) {
   const update = useApp((s) => s.update)
   const trash = useApp((s) => s.trash)
-  const [mode, setMode] = useState<'closed' | 'menu' | 'rename' | 'delete' | 'cover'>('closed')
+  const [mode, setMode] = useState<'closed' | 'menu' | 'edit' | 'delete' | 'cover'>('closed')
   const close = () => setMode('closed')
-  const item = 'block w-full rounded-md px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
+  const save = async (name: string, file: File | null, coverRemoved: boolean) => {
+    if (name !== card.name) await update(card.id, { title: name })
+    if (file) await setBoardCoverFromFile(card.id, file)
+    else if (coverRemoved) {
+      const current = useApp.getState().objects.find((o) => o.id === card.id)
+      await update(card.id, { properties: withCoverAsset(current?.properties ?? null, null) })
+    }
+    close()
+  }
   return (
     <div className="pointer-events-auto absolute bottom-2 right-2 z-10" onClick={(e) => e.stopPropagation()}>
       <button
@@ -99,18 +117,24 @@ function CardMenu({ card }: { card: BoardCard }) {
         <MoreHorizontal size={16} />
       </button>
       {mode === 'cover' && <CoverChooser card={card} onClose={close} />}
-      {mode !== 'closed' && mode !== 'cover' && (
+      {mode === 'edit' && (
+        <NewMoodboardDialog
+          edit={{ name: card.name, coverSrc }}
+          onCreate={(name, file, coverRemoved) => void save(name, file, coverRemoved)}
+          onPickFromBoard={() => setMode('cover')}
+          onClose={close}
+        />
+      )}
+      {mode !== 'closed' && mode !== 'cover' && mode !== 'edit' && (
         <>
           <div className="fixed inset-0 z-10" onMouseDown={close} />
           <div className={'absolute bottom-8 right-0 z-20 rounded-xl border p-1.5 shadow-lg ' + (mode === 'delete' ? 'w-80' : 'w-64')} style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
             {mode === 'menu' && (
               <>
-                <button className={item} onClick={() => setMode('rename')}>Renommer</button>
-                <button className={item} onClick={() => setMode('cover')}>Choisir l'image de couverture…</button>
-                <button className={item} onClick={() => setMode('delete')}>Mettre à la corbeille…</button>
+                <MenuItem icon={<Pencil size={14} />} onClick={() => setMode('edit')}>Modifier…</MenuItem>
+                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => setMode('delete')}>Mettre à la corbeille…</MenuItem>
               </>
             )}
-            {mode === 'rename' && <NameInput initial={card.name} placeholder="Nouveau nom" onCancel={close} onSubmit={(name) => void update(card.id, { title: name }).then(close)} />}
             {mode === 'delete' && (
               <div className="p-1.5">
                 <div className="flex items-start gap-2.5">
@@ -214,7 +238,7 @@ export function MoodboardsView() {
                   </div>
                 </button>
                 {/* Les trois petits points : en bas à droite de l'image (le calque a la même forme que l'aperçu, 4/3). */}
-                <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]"><CardMenu card={b} /></div>
+                <div className="pointer-events-none absolute inset-x-0 top-0 aspect-[4/3]"><CardMenu card={b} coverSrc={b.coverAsset ? (thumbs[b.id]?.[0] ?? null) : null} /></div>
               </div>
             ))}
           </div>

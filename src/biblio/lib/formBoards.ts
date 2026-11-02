@@ -32,27 +32,33 @@ export async function createBoard(name: string): Promise<string> {
 }
 
 /**
- * Crée un moodboard avec une photo de couverture : la photo est posée sur sa toile (comme une image ajoutée) et choisie comme couverture.
- * Si la photo est illisible, le moodboard est quand même créé (sans couverture) et `coverFailed` le dit.
+ * Pose une photo sur la toile d'un moodboard (comme une image ajoutée) et la choisit comme couverture.
+ * Rend faux si la photo est illisible : le moodboard reste alors tel quel.
  */
-export async function createBoardWithCover(name: string, cover: Blob & { name?: string }): Promise<{ id: string; coverFailed: boolean }> {
-  const id = await createBoard(name)
+export async function setBoardCoverFromFile(boardId: string, cover: Blob & { name?: string }): Promise<boolean> {
   const repo = useApp.getState().repo
-  const board = useApp.getState().objects.find((o) => o.id === id)
+  const board = useApp.getState().objects.find((o) => o.id === boardId)
   const prepared = await processImage(cover).catch(() => null)
-  if (!repo || !board || !prepared) return { id, coverFailed: true }
+  if (!repo || !board || !prepared) return false
   const item = makeImage(crypto.randomUUID(), prepared.width, prepared.height, { x: 0, y: 0 })
   await repo.saveBoardAsset({
-    board_id: id, id: item.assetId!, name: cover.name || 'couverture',
+    board_id: boardId, id: item.assetId!, name: cover.name || 'couverture',
     width: prepared.width, height: prepared.height, data_url: prepared.dataUrl, thumb_url: prepared.thumbUrl, created_at: new Date().toISOString(),
   })
-  const content = serializeBoard({ ...parseBoard(board.content), items: placeNewItems([], [item]) })
+  const content = serializeBoard({ ...parseBoard(board.content), items: placeNewItems(parseBoard(board.content).items, [item]) })
   const properties = withCoverAsset(board.properties ?? null, item.assetId!)
-  await repo.updateObject(id, { content, properties })
-  useApp.setState((s) => ({ objects: s.objects.map((o) => (o.id === id ? { ...o, content, properties } : o)) }))
-  return { id, coverFailed: false }
+  await repo.updateObject(boardId, { content, properties })
+  useApp.setState((s) => ({ objects: s.objects.map((o) => (o.id === boardId ? { ...o, content, properties } : o)) }))
+  // Si ce moodboard est ouvert, sa toile est rechargée pour montrer la photo.
+  useBoardReload.getState().bump(boardId)
+  return true
 }
 
+/** Crée un moodboard avec une photo de couverture ; si la photo est illisible, il est quand même créé (sans couverture). */
+export async function createBoardWithCover(name: string, cover: Blob & { name?: string }): Promise<{ id: string; coverFailed: boolean }> {
+  const id = await createBoard(name)
+  return { id, coverFailed: !(await setBoardCoverFromFile(id, cover)) }
+}
 /** Les moodboards qui contiennent déjà une image de ce bloc. */
 export async function boardsContaining(blockId: string): Promise<string[]> {
   const db = await getDb()
