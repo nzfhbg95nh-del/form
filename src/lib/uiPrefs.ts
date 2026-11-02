@@ -8,7 +8,7 @@ export const TEXT_SCALE_STEP = 5
 export const TEXT_SCALE_DEFAULT = 100
 
 const SCALE_KEY = 'form-text-scale'
-const MOTION_KEY = 'form-reduce-motion'
+const MOTION_KEY = 'form-motion'
 
 /** Les quatre tailles proposées dans les Réglages. */
 export const TEXT_SIZES = [
@@ -21,6 +21,19 @@ export const TEXT_SIZES = [
 /** La taille proposée la plus proche d'un pourcentage retenu (par exemple 110 → 115). */
 export function nearestTextSize(scale: number): number {
   return TEXT_SIZES.reduce((best, s) => (Math.abs(s.scale - scale) < Math.abs(best - scale) ? s.scale : best), 100 as number)
+}
+
+/** Le niveau d'animations : normales, réduites (plus courtes) ou aucune. */
+export type Motion = 'normal' | 'reduced' | 'none'
+
+export const MOTIONS: { id: Motion; label: string }[] = [
+  { id: 'normal', label: 'Normales' },
+  { id: 'reduced', label: 'Réduites' },
+  { id: 'none', label: 'Aucune' },
+]
+
+export function parseMotion(raw: string | null | undefined): Motion {
+  return MOTIONS.some((m) => m.id === raw) ? (raw as Motion) : 'normal'
 }
 
 /** Un pourcentage valide (entre 80 et 140, arrondi au pas de 5), sinon 100. */
@@ -42,15 +55,17 @@ const write = (key: string, value: string) => {
 }
 
 export const loadTextScale = () => parseTextScale(read(SCALE_KEY))
-export const loadReduceMotion = () => read(MOTION_KEY) === '1'
+export const loadMotion = () => parseMotion(read(MOTION_KEY))
 
 /** La taille de base change celle de tout ce qui est écrit en rem (c'est le cas de toute l'interface). */
 export function applyTextScale(scale: number) {
   document.documentElement.style.fontSize = `${textScaleToPx(scale)}px`
 }
 
-export function applyReduceMotion(on: boolean) {
-  document.documentElement.classList.toggle('reduce-motion', on)
+export function applyMotion(level: Motion) {
+  const root = document.documentElement.classList
+  root.toggle('motion-reduced', level === 'reduced')
+  root.toggle('motion-none', level === 'none')
 }
 
 export function setTextScale(scale: number) {
@@ -59,13 +74,13 @@ export function setTextScale(scale: number) {
   applyTextScale(s)
 }
 
-export function setReduceMotion(on: boolean) {
-  write(MOTION_KEY, on ? '1' : '0')
-  applyReduceMotion(on)
+export function setMotion(level: Motion) {
+  write(MOTION_KEY, level)
+  applyMotion(level)
 }
 
 /** À appeler une fois au démarrage. */
 export function applyUiPrefs() {
   applyTextScale(loadTextScale())
-  applyReduceMotion(loadReduceMotion())
+  applyMotion(loadMotion())
 }

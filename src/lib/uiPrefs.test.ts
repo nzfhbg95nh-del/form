@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest'
-import { nearestTextSize, parseTextScale, textScaleToPx } from './uiPrefs'
+import { nearestTextSize, parseMotion, parseTextScale, textScaleToPx } from './uiPrefs'
+
+describe('animations', () => {
+  it('connaît normales, réduites et aucune, sinon normales', () => {
+    expect(parseMotion('reduced')).toBe('reduced')
+    expect(parseMotion('none')).toBe('none')
+    expect(parseMotion('normal')).toBe('normal')
+    expect(parseMotion(null)).toBe('normal')
+    expect(parseMotion('1')).toBe('normal')
+  })
+})
 
 describe('tailles proposées', () => {
   it('rattache un pourcentage retenu à la taille proposée la plus proche', () => {

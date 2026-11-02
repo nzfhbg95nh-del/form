@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { SegmentedBar, SettingsHeader, SettingsSection } from '@/components/SettingsUi'
-import { loadReduceMotion, loadTextScale, nearestTextSize, setReduceMotion, setTextScale, TEXT_SIZES } from '@/lib/uiPrefs'
+import { loadMotion, loadTextScale, MOTIONS, nearestTextSize, setMotion, setTextScale, TEXT_SIZES } from '@/lib/uiPrefs'
 import { useApp, type Theme } from '@/store/app'
 
 const THEMES: { id: Theme; label: string }[] = [
@@ -15,7 +15,7 @@ export function InterfaceSettings() {
   const theme = useApp((s) => s.theme)
   const toggleTheme = useApp((s) => s.toggleTheme)
   const [scale, setScale] = useState(() => nearestTextSize(loadTextScale()))
-  const [calm, setCalm] = useState(loadReduceMotion)
+  const [motion, setMotionState] = useState(loadMotion)
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
@@ -29,11 +29,8 @@ export function InterfaceSettings() {
         <SegmentedBar items={SIZE_ITEMS} value={String(scale)} label="Taille du texte" onChange={(id) => { setScale(Number(id)); setTextScale(Number(id)) }} />
       </SettingsSection>
 
-      <SettingsSection title="Animations" description="Pour une interface plus posée, ou si les mouvements te fatiguent.">
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={calm} onChange={(e) => { setCalm(e.target.checked); setReduceMotion(e.target.checked) }} />
-          Réduire les animations
-        </label>
+      <SettingsSection title="Animations" description="Pour une interface plus posée, ou si les mouvements te fatiguent. Les indicateurs de chargement continuent de tourner.">
+        <SegmentedBar items={MOTIONS} value={motion} label="Animations" onChange={(id) => { setMotionState(id); setMotion(id) }} />
       </SettingsSection>
     </div>
   )
