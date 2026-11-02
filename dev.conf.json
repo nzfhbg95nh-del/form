@@ -1,0 +1,13 @@
+{
+  "productName": "Form Travail (direct)",
+  "identifier": "fr.victor.form.travail",
+  "app": {
+    "windows": [
+      { "title": "Form Travail (direct)", "width": 1200, "height": 780, "minWidth": 800, "minHeight": 500, "dragDropEnabled": false }
+    ]
+  },
+  "bundle": { "createUpdaterArtifacts": false },
+  "plugins": {
+    "updater": { "endpoints": ["https://localhost.invalid/latest.json"] }
+  }
+}
