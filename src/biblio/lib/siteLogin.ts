@@ -3,6 +3,7 @@
 
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
+import { parseDownloadFrequency } from './autoUpdate.ts'
 import { getSetting, setSetting } from './library.ts'
 import { buildJobs, loadSaverSettings, saveSaverSettings } from './saver.ts'
 
@@ -39,10 +40,13 @@ export async function adoptCookies(site: Site, file: string) {
 }
 
 export const ALERT_KEY = 'saver_login_alert'
-export const AUTO_DOWNLOAD_KEY = 'library_auto_download'
+export const DOWNLOAD_FREQUENCY_KEY = 'library_download_frequency'
+export const DOWNLOAD_LAST_DAY_KEY = 'library_download_last_day'
+/** Ancienne case à cocher (avant le choix d'un rythme). */
+const LEGACY_DOWNLOAD_KEY = 'library_auto_download'
 
-/** Faut-il télécharger aussi les enregistrements quand la mise à jour automatique se lance ? (désactivé par défaut) */
-export const autoDownloadEnabled = async () => (await getSetting(AUTO_DOWNLOAD_KEY)) === '1'
+/** Le rythme du téléchargement automatique des nouveaux enregistrements (jamais par défaut). */
+export const downloadFrequency = async () => parseDownloadFrequency(await getSetting(DOWNLOAD_FREQUENCY_KEY), await getSetting(LEGACY_DOWNLOAD_KEY))
 
 /** Garde (ou efface) le message « connexion à refaire » que les Réglages affichent. */
 export const setAlert = (message: string | null) => setSetting(ALERT_KEY, message ?? '')

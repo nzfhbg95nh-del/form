@@ -5,7 +5,8 @@ import { open } from '@tauri-apps/plugin-dialog'
 import { Download, Square } from 'lucide-react'
 import { buildJobs, cookieAge, cookieNote, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
-import { adoptCookies, ALERT_KEY, AUTO_DOWNLOAD_KEY, autoDownloadEnabled, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
+import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
+import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -79,26 +80,33 @@ function LoginRow({ site, disabled, onFile }: { site: Site; disabled: boolean; o
   )
 }
 
-/** Tourne tant que le téléchargement automatique est activé : lit/écrit le réglage et affiche l'alerte « connexion à refaire ». */
+/** Le rythme du téléchargement automatique, et l'alerte « connexion à refaire » laissée par le dernier essai. */
 function AutoDownloadOption() {
-  const [on, setOn] = useState<boolean | null>(null)
+  const [frequency, setFrequency] = useState<AutoFrequency | null>(null)
+  const [last, setLast] = useState('')
   const [alert, setAlertText] = useState('')
   useEffect(() => {
-    void Promise.all([autoDownloadEnabled(), getSetting(ALERT_KEY)]).then(([enabled, a]) => {
-      setOn(enabled)
+    void Promise.all([downloadFrequency(), getSetting(DOWNLOAD_LAST_DAY_KEY), getSetting(ALERT_KEY)]).then(([f, day, a]) => {
+      setFrequency(f)
+      setLast(day ?? '')
       setAlertText(a ?? '')
     })
   }, [])
-  if (on === null) return null
+  if (frequency === null) return null
   return (
     <div className="mt-5 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
-      <label className="flex items-center gap-2 font-medium">
-        <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); void setSetting(AUTO_DOWNLOAD_KEY, e.target.checked ? '1' : '0') }} />
-        Télécharger aussi mes nouveaux enregistrements quand la bibliothèque se met à jour toute seule
+      <label className="flex flex-wrap items-center gap-2 font-medium">
+        Télécharger mes nouveaux enregistrements automatiquement :
+        <select className="lib-input" value={frequency} onChange={(e) => { const f = e.target.value as AutoFrequency; setFrequency(f); void setSetting(DOWNLOAD_FREQUENCY_KEY, f) }} aria-label="Fréquence du téléchargement automatique">
+          {DOWNLOAD_FREQUENCIES.map((f) => (
+            <option key={f.id} value={f.id}>{f.label}</option>
+          ))}
+        </select>
       </label>
       <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>
-        Au rythme choisi dans « Ma bibliothèque » (par exemple une fois par semaine), à l'ouverture de Form. Il faut être connecté ci-dessus ; si la connexion a expiré, Form te le dit ici et saute ce site.
-        Les pauses entre fichiers limitent le risque pour ton compte, mais Instagram n'aime pas les téléchargements automatiques : un rythme d'une fois par semaine est raisonnable.
+        Quelques secondes après l'ouverture de Form, quand c'est le moment, avec les mêmes règles que le bouton ci-dessous (seulement les nouveautés). Il faut être connecté ci-dessus ; si la connexion a expiré, Form te le dit ici et saute ce site.
+        Les pauses entre fichiers limitent le risque pour ton compte, mais Instagram n'aime pas les téléchargements automatiques : une fois par semaine est raisonnable.
+        {frequency !== 'never' && (last ? ` Dernier téléchargement automatique : ${last.split('-').reverse().join('/')}.` : ' Aucun téléchargement automatique fait pour le moment.')}
       </p>
       {alert && <p className="mt-2" style={{ color: '#d9730d' }}>{alert}</p>}
     </div>

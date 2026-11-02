@@ -38,96 +38,64 @@ function ProgressBar({ done, total }: { done: number; total: number }) {
   )
 }
 
-/** IA locale : modèle d'images (téléchargé une fois, sur demande) et empreintes de toutes les images. */
+/**
+ * IA locale : seulement le classement par type. Les empreintes, les couleurs et le texte des vidéos se calculent tout seuls après
+ * chaque mise à jour ; les boutons de téléchargement des modèles n'apparaissent que si un modèle manque encore.
+ */
 function AiSection() {
-  const { status, dlDone, dlTotal, embedDone, embedTotal, embedded, pending, provider, failed, lastRun, error, download, embed, classifying, classDone, classTotal, lastClassify, clearAuto, classify, threshold, setThreshold, text, textDone, downloadText } = useAi()
+  const { status, dlDone, dlTotal, error, download, classifying, classDone, classTotal, lastClassify, clearAuto, classify, threshold, setThreshold, text, textDone, downloadText } = useAi()
   const [cleared, setCleared] = useState<number | null>(null)
   if (!status) return null
+  const muted = { color: 'var(--fg-muted)' }
   const downloading = status.downloading
-  const embedding = status.embedding
   const partial = !status.model_ready && status.downloaded > 0
+  const fr = new Intl.NumberFormat('fr-FR')
 
   return (
-    <SettingsSection title="IA locale" icon={<Sparkles size={16} />} description="Un modèle d'images (CLIP) tourne sur ton PC, sur la carte graphique si possible : aucune image ne quitte l'ordinateur. Il sert à classer par type et à retrouver des images qui se ressemblent.">
-      {!status.model_ready ? (
-        <div className="mt-4">
+    <SettingsSection title="Classement automatique par type" icon={<Sparkles size={16} />} description="Un modèle d'images tourne sur ton PC : aucune image ne quitte l'ordinateur. Les empreintes, les couleurs et le texte des vidéos se calculent tout seuls après chaque mise à jour.">
+      {!status.model_ready && (
+        <div className="mb-5">
           <button className="btn btn-primary" onClick={() => void download()} disabled={downloading}>
             <Download size={16} /> {partial ? 'Reprendre le téléchargement' : 'Télécharger le modèle'} ({formatBytes(status.model_size)})
           </button>
-          <span className="ml-3 text-xs" style={{ color: 'var(--fg-muted)' }}>Une seule fois, depuis Hugging Face. Le fichier est vérifié à l'arrivée.</span>
+          <span className="ml-3 text-xs" style={muted}>Une seule fois, depuis Hugging Face. Le classement en a besoin.</span>
           {(downloading || partial) && (
             <div className="mt-3">
-              <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-                {formatBytes(downloading ? dlDone : status.downloaded)} / {formatBytes(status.model_size)}
-              </div>
+              <div className="text-xs" style={muted}>{formatBytes(downloading ? dlDone : status.downloaded)} / {formatBytes(status.model_size)}</div>
               <ProgressBar done={downloading ? dlDone : status.downloaded} total={dlTotal || status.model_size} />
             </div>
           )}
         </div>
-      ) : (
-        <div className="mt-4">
-          <div className="flex items-center gap-3">
-            <button className="btn" onClick={() => void embed()} disabled={embedding || pending === 0}>
-              <RefreshCw size={16} className={embedding ? 'spin' : ''} /> Calculer les empreintes
-            </button>
-            <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-              {new Intl.NumberFormat('fr-FR').format(embedded + (embedding ? embedDone : 0))} faites · {new Intl.NumberFormat('fr-FR').format(Math.max(0, pending - (embedding ? embedDone : 0)))} à faire
-              {provider ? ` · ${provider}` : ''}
-            </span>
-          </div>
-          {embedding && (
+      )}
+      {status.model_ready && !text?.ready && (
+        <div className="mb-5">
+          <button className="btn btn-primary" onClick={() => void downloadText()} disabled={!text || text.downloading}>
+            <Download size={16} /> {text && text.downloaded > 0 ? 'Reprendre le téléchargement' : 'Télécharger le modèle de texte'} ({formatBytes(text?.total ?? 0)})
+          </button>
+          <span className="ml-3 text-xs" style={muted}>Une seule fois : il permet de repérer Typo et Recette par description.</span>
+          {text && (text.downloading || text.downloaded > 0) && (
             <div className="mt-3 max-w-md">
-              <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>{embedDone} / {embedTotal}</div>
-              <ProgressBar done={embedDone} total={embedTotal} />
+              <div className="text-xs" style={muted}>{formatBytes(text.downloading ? textDone : text.downloaded)} / {formatBytes(text.total)}</div>
+              <ProgressBar done={text.downloading ? textDone : text.downloaded} total={text.total} />
             </div>
-          )}
-          <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-            <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Descriptions en mots (Typo, Recette, astuces)</div>
-            {text?.ready ? (
-              <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>Modèle de texte prêt.</p>
-            ) : (
-              <div className="mt-2">
-                <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>Un deuxième modèle comprend des descriptions écrites (« un plat cuisiné », « une affiche typographique ») : il permet de trouver les images de ces types.</p>
-                <div className="mt-3">
-                  <button className="btn btn-primary" onClick={() => void downloadText()} disabled={!text || text.downloading}>
-                    <Download size={16} /> {text && text.downloaded > 0 ? 'Reprendre le téléchargement' : 'Télécharger le modèle de texte'} ({formatBytes(text?.total ?? 0)})
-                  </button>
-                </div>
-                {text && (text.downloading || text.downloaded > 0) && (
-                  <div className="mt-3 max-w-md">
-                    <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>{formatBytes(text.downloading ? textDone : text.downloaded)} / {formatBytes(text.total)}</div>
-                    <ProgressBar done={text.downloading ? textDone : text.downloaded} total={text.total} />
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="mt-6 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-            <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Classement automatique par type</div>
-            <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
-              Les images de tes tableaux gardent le type de leur tableau. Pour les autres, l'IA donne un type seulement si elle est assez sûre (en comparant avec ce que tu as rangé) ; elle repère aussi par description Typo, Recette et les astuces. Le reste, intriable, va dans « Autres ». Tu peux corriger image par image dans la vue détail.
-            </p>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button className="btn" onClick={() => void classify()} disabled={classifying}>
-                <RefreshCw size={16} className={classifying ? 'spin' : ''} /> Refaire le classement
-              </button>
-              <button className="btn" onClick={() => void clearAuto().then((n) => setCleared(n))} disabled={classifying}>Annuler le classement automatique</button>
-              <SplitSlider small className="w-64" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(v) => void setThreshold(v / 100)} label="Confiance min." valueLabel={`${Math.round(threshold * 100)} %`} ariaLabel="Confiance minimale" />
-            </div>
-            {classifying && <div className="mt-3 max-w-md"><div className="text-xs" style={{ color: 'var(--fg-muted)' }}>Comparaison avec tes images rangées… {classDone} / {classTotal}</div><ProgressBar done={classDone} total={classTotal} /></div>}
-            <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {lastClassify ? `Dernier classement : ${formatSeconds(lastClassify.seconds)}. ${new Intl.NumberFormat('fr-FR').format(lastClassify.byNeighbours)} images hors tableau rangées par comparaison avec les ${new Intl.NumberFormat('fr-FR').format(lastClassify.examples)} que tu as rangées ; ${new Intl.NumberFormat('fr-FR').format(lastClassify.fallback)} dans « Autres » faute d'être sûre.${Object.keys(lastClassify.semantic).length > 0 ? ` Par description : ${Object.entries(lastClassify.semantic).map(([id, n]) => `${id} ${new Intl.NumberFormat('fr-FR').format(n)}`).join(', ')}.` : ''}` : ''}
-              {cleared !== null ? ` Classement automatique annulé pour ${new Intl.NumberFormat('fr-FR').format(cleared)} images.` : ''}
-            </p>
-          </div>
-          {!embedding && lastRun && (
-            <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-              Dernier calcul : {formatSeconds(lastRun.seconds)}{lastRun.provider ? `, sur ${lastRun.provider.toLowerCase()}` : ''}.
-              {failed > 0 ? ` ${failed} image(s) illisible(s) ignorée(s).` : ''}
-            </p>
           )}
         </div>
       )}
+      <p className="text-sm" style={muted}>
+        Les images de tes tableaux gardent le type de leur tableau. Pour les autres, l'IA donne un type seulement si elle est assez sûre (en comparant avec ce que tu as rangé) ; elle repère aussi par description Typo, Recette et les astuces. Le reste, intriable, va dans « Autres ». Tu peux corriger image par image dans la vue détail.
+      </p>
+      <div className="mt-3 flex flex-wrap items-center gap-3">
+        <button className="btn" onClick={() => void classify()} disabled={classifying}>
+          <RefreshCw size={16} className={classifying ? 'spin' : ''} /> Refaire le classement
+        </button>
+        <button className="btn" onClick={() => void clearAuto().then((n) => setCleared(n))} disabled={classifying}>Annuler le classement automatique</button>
+        <SplitSlider small className="w-64" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(v) => void setThreshold(v / 100)} label="Confiance min." valueLabel={`${Math.round(threshold * 100)} %`} ariaLabel="Confiance minimale" />
+      </div>
+      {classifying && <div className="mt-3 max-w-md"><div className="text-xs" style={muted}>Comparaison avec tes images rangées… {classDone} / {classTotal}</div><ProgressBar done={classDone} total={classTotal} /></div>}
+      <p className="mt-2 text-xs" style={muted}>
+        {lastClassify ? `Dernier classement : ${formatSeconds(lastClassify.seconds)}. ${fr.format(lastClassify.byNeighbours)} images hors tableau rangées par comparaison avec les ${fr.format(lastClassify.examples)} que tu as rangées ; ${fr.format(lastClassify.fallback)} dans « Autres » faute d'être sûre.${Object.keys(lastClassify.semantic).length > 0 ? ` Par description : ${Object.entries(lastClassify.semantic).map(([id, n]) => `${id} ${fr.format(n)}`).join(', ')}.` : ''}` : ''}
+        {cleared !== null ? ` Classement automatique annulé pour ${fr.format(cleared)} images.` : ''}
+      </p>
       {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
     </SettingsSection>
   )

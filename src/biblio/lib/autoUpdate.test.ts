@@ -1,7 +1,26 @@
 import { describe, expect, it } from 'vitest'
-import { dayKey, parseFrequency, shouldAutoUpdate } from './autoUpdate'
+import { DOWNLOAD_FREQUENCIES, dayKey, parseDownloadFrequency, parseFrequency, shouldAutoUpdate } from './autoUpdate'
 
 const at = (iso: string) => new Date(`${iso}T09:30:00`)
+
+describe('rythme du téléchargement automatique', () => {
+  it('propose jamais, par jour, par semaine, par mois (pas à chaque démarrage)', () => {
+    expect(DOWNLOAD_FREQUENCIES.map((f) => f.id)).toEqual(['never', 'daily', 'weekly', 'monthly'])
+  })
+
+  it('reprend le rythme choisi, sinon l\'ancienne case (cochée = chaque semaine), sinon jamais', () => {
+    expect(parseDownloadFrequency('monthly', null)).toBe('monthly')
+    expect(parseDownloadFrequency('startup', '1')).toBe('weekly')
+    expect(parseDownloadFrequency(null, '1')).toBe('weekly')
+    expect(parseDownloadFrequency(null, '0')).toBe('never')
+    expect(parseDownloadFrequency(null, null)).toBe('never')
+  })
+
+  it('se déclenche une semaine après le dernier téléchargement', () => {
+    expect(shouldAutoUpdate('weekly', '2026-11-02', at('2026-11-08'))).toBe(false)
+    expect(shouldAutoUpdate('weekly', '2026-11-02', at('2026-11-09'))).toBe(true)
+  })
+})
 
 describe('lecture du réglage', () => {
   it('reprend le nouveau réglage s\'il est valide', () => {

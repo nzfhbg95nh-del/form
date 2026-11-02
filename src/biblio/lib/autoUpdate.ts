@@ -12,6 +12,15 @@ export const AUTO_FREQUENCIES: { id: AutoFrequency; label: string }[] = [
   { id: 'monthly', label: 'Une fois par mois' },
 ]
 
+/** Le téléchargement des nouveaux enregistrements a son propre rythme : jamais, par jour, par semaine ou par mois (pas « à chaque démarrage »). */
+export const DOWNLOAD_FREQUENCIES = AUTO_FREQUENCIES.filter((f) => f.id !== 'startup')
+
+/** Lit le rythme enregistré ; l'ancienne case « télécharger aussi » cochée vaut « une fois par semaine ». Sans rien : jamais. */
+export function parseDownloadFrequency(frequency: string | null | undefined, legacySwitch: string | null | undefined): AutoFrequency {
+  if (DOWNLOAD_FREQUENCIES.some((f) => f.id === frequency)) return frequency as AutoFrequency
+  return legacySwitch === '1' ? 'weekly' : 'never'
+}
+
 /** Jours qui doivent s'écouler depuis la dernière mise à jour automatique. */
 const MIN_DAYS: Record<'daily' | 'weekly' | 'monthly', number> = { daily: 1, weekly: 7, monthly: 30 }
 

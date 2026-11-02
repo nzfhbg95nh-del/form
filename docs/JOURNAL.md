@@ -964,3 +964,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Correctif : les miniatures n'apparaissaient plus (images cassées) quand l'Accueil chargeait la grille avant que la bibliothèque soit branchée : le dossier des miniatures était alors demandé à l'ancien emplacement et gardé en mémoire. `grid.load` et `homeData.thumbUrl` branchent maintenant la bibliothèque d'abord et relisent l'emplacement.
 
 - Réglage « Garder ouverte la page que je quitte » retiré (inutile) : chaque page s'ouvre toujours dans son propre onglet.
+
+## 2026-11-02 — Réglages réorganisés en 5 pages
+- Pages : Général (cet ordinateur, sauvegarde, notifications), Interface (nouveau : thème clair/sombre, taille du texte en 4 crans, réduire les animations ; `src/lib/uiPrefs.ts`, appliqué dès le démarrage), Bibliothèque, Mon entreprise (les conditions de vente en font partie, 5e onglet ; la date des CGV passe à celle du jour quand le texte est modifié), Import Notion.
+- Bibliothèque : « Ma bibliothèque » (dossier, mise à jour + rythme, déplacement), « Téléchargement » (connexion Instagram/Pinterest + rythme propre : jamais / jour / semaine / mois, réglage `library_download_frequency`, indépendant du rythme de la mise à jour), Recettes et Nettoyage inchangés, « IA locale » réduite au classement automatique par type (les empreintes, couleurs et textes se calculent tout seuls ; les boutons de téléchargement des modèles n'apparaissent que si un modèle manque).
+- `startup.ts` : téléchargement et mise à jour ont chacun leur échéance ; le jour du téléchargement n'est noté que si aucune connexion n'est à refaire.
+- Tests : 685 (rythme de téléchargement, tailles de texte).

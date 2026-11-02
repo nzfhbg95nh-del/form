@@ -15,13 +15,14 @@ const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none
 const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
 const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
-type Panel = 'identity' | 'billing' | 'taxes' | 'reminders'
+type Panel = 'identity' | 'billing' | 'taxes' | 'reminders' | 'cgv'
 
 const PANELS: SubNavItem<Panel>[] = [
   { id: 'identity', label: 'Identité et logo' },
   { id: 'billing', label: 'Factures et TVA' },
   { id: 'taxes', label: 'Plafonds et cotisations' },
   { id: 'reminders', label: 'Relances' },
+  { id: 'cgv', label: 'Conditions de vente' },
 ]
 
 /** Champ de montant en euros, enregistré en centimes. */
@@ -50,8 +51,11 @@ function useCompany() {
 
   const save = async (next: Company) => {
     if (!repo) return
+    // Un texte de conditions de vente modifié à la main prend la date du jour (sauf si la date vient d'être rétablie avec le texte d'origine).
+    if (saved && next.cgv !== saved.cgv && next.cgvDate === saved.cgvDate) next = { ...next, cgvDate: todayISO() }
     await saveCompany(repo, next)
     useApp.getState().setCompany(next)
+    setCompany(next)
     setSaved(next)
     setMessage('Modifications enregistrées.')
     window.setTimeout(() => setMessage(null), 2500)
@@ -95,7 +99,7 @@ export function CompanySettings() {
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <SettingsHeader title="Entreprise" subtitle="Ces informations sont reprises automatiquement sur tous tes devis et factures." />
+      <SettingsHeader title="Mon entreprise" subtitle="Ces informations sont reprises automatiquement sur tous tes devis et factures." />
 
       {missing.length > 0 ? (
         <div className="mb-3 rounded border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">
@@ -273,44 +277,32 @@ export function CompanySettings() {
       </>
       )}
 
+      {panel === 'cgv' && (
+      <>
+      <h2 className="mb-2 text-lg font-semibold">Conditions générales de vente</h2>
+      <p className="mb-2 text-xs text-[var(--fg-muted)]">
+        Ce texte est joint en dernière page de chaque devis. Dernière mise à jour : {company.cgvDate.split('-').reverse().join('/')}.
+        Chaque article commence par « ARTICLE n - TITRE », les points par « * » et les sous-points par « - ».
+      </p>
+      <textarea className={field + ' h-[55vh] font-mono text-xs leading-relaxed'} value={company.cgv} onChange={(e) => set('cgv', e.target.value)} />
+      <button
+        className={secondary + ' mt-3'}
+        onClick={async () => {
+          if (await askConfirm("Remettre le texte d'origine (version du 20/11/2025) ? Tes modifications seront perdues.")) {
+            setCompany({ ...defaultCompany(), ...company, cgv: DEFAULT_CGV, cgvDate: DEFAULT_CGV_DATE })
+          }
+        }}
+      >
+        Rétablir le texte d'origine
+      </button>
+      </>
+      )}
+
       <div className="sticky bottom-0 -mx-12 mt-6 flex items-center gap-3 border-t border-[var(--border)] bg-[var(--bg)] px-12 py-3">
         <button className={primary} disabled={!dirty} onClick={() => void save(company)}>Enregistrer</button>
         <button className={secondary} disabled={!dirty} onClick={() => window.location.reload()}>Annuler les modifications</button>
         {message && <span className="text-sm text-green-600">{message}</span>}
         {dirty && !message && <span className="text-sm text-[var(--fg-muted)]">Modifications non enregistrées</span>}
-      </div>
-    </div>
-  )
-}
-
-export function CgvSettings() {
-  const { company, setCompany, save, dirty, message } = useCompany()
-  if (!company) return <div className="px-12 py-10 text-[var(--fg-muted)]">Chargement…</div>
-
-  return (
-    <div className="mx-auto max-w-3xl px-12 py-10">
-      <SettingsHeader title="Conditions générales de vente" subtitle={<>
-        Ce texte sera joint en dernière page de chaque devis. Dernière mise à jour : {company.cgvDate.split('-').reverse().join('/')}.
-        Chaque article commence par « ARTICLE n - TITRE », les points par « * » et les sous-points par « - ».
-      </>} />
-      <textarea
-        className={field + ' h-[60vh] font-mono text-xs leading-relaxed'}
-        value={company.cgv}
-        onChange={(e) => setCompany({ ...company, cgv: e.target.value })}
-      />
-      <div className="mt-3 flex items-center gap-3">
-        <button className={primary} disabled={!dirty} onClick={() => void save({ ...company, cgvDate: todayISO() })}>Enregistrer</button>
-        <button
-          className={secondary}
-          onClick={async () => {
-            if (await askConfirm("Remettre le texte d'origine (version du 20/11/2025) ? Tes modifications seront perdues.")) {
-              setCompany({ ...defaultCompany(), ...company, cgv: DEFAULT_CGV, cgvDate: DEFAULT_CGV_DATE })
-            }
-          }}
-        >
-          Rétablir le texte d'origine
-        </button>
-        {message && <span className="text-sm text-green-600">{message}</span>}
       </div>
     </div>
   )
