@@ -97,14 +97,16 @@ export function GeneralSettings() {
 
       <SettingsSection
         title="Sauvegarde de mes données"
-        description="Une copie de ta base (recettes, pages, devis, factures, réglages) est faite automatiquement une fois par jour. Tes images et tes vidéos ne sont pas dedans : elles sont dans ta bibliothèque."
+        description="Une copie de ta base (recettes, pages, devis, factures, réglages) est faite toute seule une fois par jour : tu n'as rien à faire. Tes images et tes vidéos sont dans ta bibliothèque."
       >
         {!desktop && <p className={'mb-3 text-sm ' + muted}>La sauvegarde n'est disponible que dans l'application Windows.</p>}
         <p className="mb-3 text-sm">
           Dossier : <strong className="break-all">{dir ?? 'aucun dossier choisi'}</strong>
           {last && <span className={muted}> — dernière sauvegarde automatique : {last.split('-').reverse().join('/')}</span>}
         </p>
-        <div className="flex flex-wrap gap-2">
+        <details>
+        <summary className="cursor-pointer text-sm font-medium">Options de la sauvegarde</summary>
+        <div className="mt-3 flex flex-wrap gap-2">
           <button className="btn" disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
           <button className="btn" disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
           <button className="btn" disabled={!desktop} onClick={exportAll}>Enregistrer une copie…</button>
@@ -128,6 +130,7 @@ export function GeneralSettings() {
           />
           dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
         </label>
+        </details>
         {msg && <p className="mt-3 text-sm">{msg}</p>}
       </SettingsSection>
 
