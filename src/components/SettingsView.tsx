@@ -18,8 +18,6 @@ export function GeneralSettings() {
   const [keep, setKeep] = useState(DEFAULT_KEEP)
   const keepPagesOpen = useApp((s) => s.keepPagesOpen)
   const setKeepPagesOpen = useApp((s) => s.setKeepPagesOpen)
-  const checkUpdates = useApp((s) => s.checkUpdates)
-  const available = useApp((s) => s.availableUpdate)
   const desktop = isTauri()
 
   useEffect(() => {
@@ -72,14 +70,6 @@ export function GeneralSettings() {
       }
     })
 
-  const searchUpdate = () =>
-    run(async () => {
-      const result = await checkUpdates()
-      if (result === 'found') return 'Une nouvelle version est disponible : un bandeau en haut de la fenêtre te propose de l’installer.'
-      if (result === 'none') return 'Form est à jour.'
-      return `Impossible de vérifier : ${result.error}`
-    })
-
   const restore = () =>
     run(async () => {
       const chosen = await open({
@@ -102,17 +92,6 @@ export function GeneralSettings() {
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
       <SettingsHeader title="Général" />
-
-      <SettingsSection
-        title="Version"
-        description="Form cherche tout seul une nouvelle version au démarrage, puis toutes les 6 heures. Rien n'est installé sans ton clic."
-      >
-        <p className="mb-3 text-sm">
-          Version installée : <strong>{__APP_VERSION__}</strong>
-          {available && <span className={muted}> — la version {available.version} est disponible</span>}
-        </p>
-        <button className="btn disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>Rechercher une mise à jour</button>
-      </SettingsSection>
 
       <SettingsSection title="Mes pages" description="Quand tu ouvres une page, que devient celle que tu quittes ?">
         <label className="flex items-start gap-2 text-sm">

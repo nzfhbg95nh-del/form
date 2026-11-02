@@ -182,7 +182,7 @@ function AutoUpdate() {
   )
 }
 
-type Part = 'folder' | 'update' | 'download' | 'recipes' | 'ai' | 'clean'
+type Part = 'folder' | 'download' | 'recipes' | 'ai' | 'clean'
 
 /** Les dossiers de la bibliothèque et à quoi ils servent. */
 const FOLDERS = [
@@ -246,8 +246,7 @@ export function LibrarySettings() {
 
   const muted = { color: 'var(--fg-muted)' }
   const parts: SubNavItem<Part>[] = [
-    { id: 'folder', label: 'Dossier', badge: missingFolder || noFolder ? '!' : undefined },
-    { id: 'update', label: 'Mise à jour' },
+    { id: 'folder', label: 'Ma bibliothèque', badge: missingFolder || noFolder ? '!' : undefined },
     { id: 'download', label: 'Téléchargement' },
     { id: 'recipes', label: 'Recettes' },
     { id: 'ai', label: 'IA locale' },
@@ -295,12 +294,6 @@ export function LibrarySettings() {
               )}
               <p className="mt-2 text-xs" style={muted}>Form lit tes enregistrements sans les modifier. Seule exception, « Supprimer définitivement » : le fichier part dans la Corbeille Windows.</p>
             </SettingsSection>
-            <MoveLibrary disabled={busy} />
-          </>
-        )}
-
-        {part === 'update' && (
-          <>
             <SettingsSection title="Mettre à jour" description="Form cherche les nouveaux fichiers de ta bibliothèque, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau.">
               <div className="flex items-center gap-3">
                 <button className="btn btn-primary" onClick={() => void update()} disabled={busy || noFolder}>
@@ -345,6 +338,7 @@ export function LibrarySettings() {
                 </div>
               </SettingsSection>
             )}
+            <MoveLibrary disabled={busy} />
           </>
         )}
 
