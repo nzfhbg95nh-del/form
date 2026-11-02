@@ -1,0 +1,71 @@
+name: Fabriquer la bêta « Form Travail »
+
+# Se lance quand on pose une étiquette beta-..., par exemple beta-1.
+# « Form Travail » s'installe À CÔTÉ de la vraie Form : autre nom, autre dossier de données, pas de mise à jour automatique,
+# rien n'est publié dans le dépôt public des mises à jour. La vraie Form n'est jamais touchée.
+on:
+  push:
+    tags:
+      - 'beta-*'
+
+permissions:
+  contents: write
+
+jobs:
+  build-beta:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - run: npm test
+
+      # gallery-dl : le programme libre qui télécharge les enregistrements Instagram et Pinterest (version officielle fixée, empreinte vérifiée).
+      - name: Télécharger gallery-dl
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/gdl-org/builds/releases/download/2026.10.26/gallery-dl_windows.exe" -OutFile src-tauri/resources/gallery-dl.exe
+          $hash = (Get-FileHash src-tauri/resources/gallery-dl.exe -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne '73ab3f3d09a9b0e65f73d843fae75cdaf7928d069a219ae360b636e0803119d0') { throw "gallery-dl : empreinte inattendue ($hash)" }
+
+      # Réglages propres à la bêta, ajoutés par-dessus tauri.conf.json : nom, identifiant (donc dossier de données et programme d'installation distincts),
+      # numéro de version « 0.47.5-N » (N = numéro de fabrication), pas d'archive de mise à jour, et une adresse de mise à jour qui ne mène nulle part.
+      - name: Réglages de la bêta
+        shell: pwsh
+        run: |
+          $base = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
+          $version = "$base-$env:GITHUB_RUN_NUMBER"
+          $beta = [ordered]@{
+            productName = 'Form Travail'
+            version     = $version
+            identifier  = 'fr.victor.form.travail'
+            app         = [ordered]@{ windows = @([ordered]@{ title = 'Form Travail'; width = 1200; height = 780; minWidth = 800; minHeight = 500; dragDropEnabled = $false }) }
+            bundle      = [ordered]@{ createUpdaterArtifacts = $false }
+            plugins     = [ordered]@{ updater = [ordered]@{ endpoints = @('https://localhost.invalid/latest.json') } }
+          }
+          $beta | ConvertTo-Json -Depth 8 | Set-Content -Path beta.conf.json -Encoding utf8
+          Get-Content beta.conf.json
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: 'Form Travail ${{ github.ref_name }}'
+          releaseBody: "Bêta « Form Travail » : s'installe à côté de la vraie Form, avec ses propres données. Télécharge le fichier .msi ci-dessous, puis double-clique dessus."
+          releaseDraft: false
+          prerelease: true
+          args: --config beta.conf.json
