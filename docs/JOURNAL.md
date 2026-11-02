@@ -1032,3 +1032,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fiches de recettes : espace vertical entre les cartes réduit (bloc de texte plus bas, écart de lignes 8 px).
 
 - Filtres de la bibliothèque : phrases d'aide retirées (« Glisse sur les barres… » ; « Les blocs Pinterest n'ont pas de date… »). La ligne « couleur choisie / Aucune » n'apparaît que quand une couleur est choisie.
+
+- Fiches de recettes : le titre est dans son propre petit cadre arrondi, sous la photo (séparé d'elle).

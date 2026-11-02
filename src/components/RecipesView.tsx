@@ -44,7 +44,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
       : undefined
   return (
     <button onClick={() => select(row.id)} className="group text-left">
-      {/* Seule la photo a un cadre : le texte est posé dessous, sans encadré. */}
+      {/* La photo a son cadre ; le texte a son propre petit cadre, dessous. */}
       <div
         className={'relative flex items-center justify-center overflow-hidden rounded-xl bg-[var(--bg-side)] shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}
         style={style}
@@ -52,7 +52,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
-      <div className="h-[2.6rem] px-0.5 pt-1.5">
+      <div className="mt-1.5 flex h-[2.9rem] flex-col justify-center rounded-xl border border-[var(--border)] px-3 transition-colors group-hover:bg-[var(--bg-hover)]">
         <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
         <div className="mt-0.5 h-4 truncate text-xs text-[var(--fg-muted)]">{info}</div>
       </div>
