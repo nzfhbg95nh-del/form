@@ -24,15 +24,15 @@ function Bar({ label, x, background, knob, onX }: { label: string; x: number; ba
     <div className="flex items-center gap-3">
       <span className="lib-count w-14 shrink-0">{label}</span>
       {/* La marge de chaque côté laisse la place de la poignée aux deux extrémités. */}
-      <div className="min-w-0 flex-1 px-3">
+      <div className="min-w-0 flex-1 px-2">
         <div
-          className="relative h-[18px] cursor-ew-resize touch-none rounded-full"
+          className="relative h-2.5 cursor-ew-resize touch-none rounded-full"
           style={{ background, boxShadow: 'inset 0 0 0 1px color-mix(in srgb, var(--fg) 10%, transparent)' }}
           onPointerDown={(e) => { e.currentTarget.setPointerCapture(e.pointerId); pick(e) }}
           onPointerMove={(e) => { if (e.currentTarget.hasPointerCapture(e.pointerId)) pick(e) }}
         >
           <span
-            className="pointer-events-none absolute top-1/2 h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full"
+            className="pointer-events-none absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{ left: `${x * 100}%`, background: knob, border: '1px solid rgba(255,255,255,.55)', boxShadow: '0 1px 6px rgba(0,0,0,.28)', backdropFilter: 'blur(2px)' }}
           />
         </div>
@@ -57,7 +57,7 @@ export function ColorBar({ value, onChange }: { value: string; onChange: (hex: s
     return hsvToHex(hh, ss, v)
   })
   return (
-    <div className="flex select-none flex-col gap-4 py-1">
+    <div className="flex select-none flex-col gap-3 py-1">
       <Bar
         label="Teinte"
         x={toX(h, s)}

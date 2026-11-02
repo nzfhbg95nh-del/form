@@ -1018,3 +1018,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Jauge (toutes les versions) : toujours 34 px de haut, bouts en pilule, plus d'amincissement aux extrémités. Texte des boutons ramené à 13 px (comme le champ de recherche).
 
 - Jauge : l'animation d'amincissement aux extrémités (barre fine, libellés qui remontent) est rétablie pour la jauge de la grille ; formes en pilule et 34 px conservés.
+
+- Barres de couleur du filtre « Couleur » : plus fines (10 px au lieu de 18) avec une poignée plus petite (16 px au lieu de 24).
