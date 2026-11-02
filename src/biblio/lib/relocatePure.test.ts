@@ -5,16 +5,16 @@ const result = (over: Partial<MoveResult> = {}): MoveResult => ({ copied: 0, ski
 const progress = (over: Partial<MoveProgress> = {}): MoveProgress => ({ done_files: 0, total_files: 0, done_bytes: 0, total_bytes: 0, current: '', ...over })
 
 describe('destination du déplacement', () => {
-  it('ajoute « Bibliothèque Form » au dossier choisi', () => {
-    expect(destinationFor('D:\\Mes images')).toBe('D:\\Mes images\\Bibliothèque Form')
-    expect(destinationFor('D:\\Mes images\\')).toBe('D:\\Mes images\\Bibliothèque Form')
-    expect(destinationFor('D:\\')).toBe('D:\\Bibliothèque Form')
-    expect(destinationFor('D:/Mes images')).toBe('D:/Mes images\\Bibliothèque Form')
+  it('ajoute « Bibliotheque » au dossier choisi', () => {
+    expect(destinationFor('D:\\Mes images')).toBe('D:\\Mes images\\Bibliotheque')
+    expect(destinationFor('D:\\Mes images\\')).toBe('D:\\Mes images\\Bibliotheque')
+    expect(destinationFor('D:\\')).toBe('D:\\Bibliotheque')
+    expect(destinationFor('D:/Mes images')).toBe('D:/Mes images\\Bibliotheque')
   })
 
   it('garde le dossier tel quel s\'il porte déjà ce nom (majuscules ignorées)', () => {
-    expect(destinationFor('F:\\Bibliothèque Form')).toBe('F:\\Bibliothèque Form')
-    expect(destinationFor('F:\\bibliothèque form\\')).toBe('F:\\bibliothèque form')
+    expect(destinationFor('F:\\Bibliotheque')).toBe('F:\\Bibliotheque')
+    expect(destinationFor('F:\\bibliotheque\\')).toBe('F:\\bibliotheque')
   })
 })
 

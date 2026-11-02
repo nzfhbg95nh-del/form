@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { countDataImages, isLibraryUrl, libraryRel, moveImagesToLibrary, parseDataImage, toLibraryUrl } from './libraryImages'
+import { countDataImages, isLibraryUrl, libraryRel, parseDataImage, toLibraryUrl } from './libraryImages'
 
 const PNG = 'data:image/png;base64,iVBORw0KGgo='
 const JPG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg=='
@@ -47,49 +47,5 @@ describe('images intégrées à une page', () => {
     const r = countDataImages(blocks)
     expect(r.count).toBe(2)
     expect(r.bytes).toBe(8 + 10)
-  })
-})
-
-describe('ranger les photos dans le dossier', () => {
-  const blocks = () => [
-    { type: 'portions', props: { servings: 4 } },
-    { type: 'image', props: { url: PNG, caption: 'ma photo' } },
-    { type: 'paragraph', children: [{ type: 'image', props: { url: JPG } }] },
-    { type: 'image', props: { url: 'https://x.fr/a.png' } },
-  ]
-
-  it('remplace chaque photo par son adresse form-lib, sans modifier les blocs reçus', async () => {
-    const input = blocks()
-    const seen: string[] = []
-    const r = await moveImagesToLibrary(input, async (img) => {
-      seen.push(img.ext)
-      return `recettes/${img.ext}-${seen.length}.${img.ext}`
-    })
-    expect(r.moved).toBe(2)
-    expect(r.failed).toBe(0)
-    expect(seen).toEqual(['png', 'jpg'])
-    const out = r.blocks as { props?: { url?: string; caption?: string }; children?: { props: { url: string } }[] }[]
-    expect(out[1].props).toEqual({ url: 'form-lib:recettes/png-1.png', caption: 'ma photo' })
-    expect(out[2].children![0].props.url).toBe('form-lib:recettes/jpg-2.jpg')
-    expect(out[3].props!.url).toBe('https://x.fr/a.png')
-    expect(input).toEqual(blocks())
-  })
-
-  it('garde la photo telle quelle quand son rangement échoue, et continue', async () => {
-    let n = 0
-    const r = await moveImagesToLibrary(blocks(), async () => {
-      n++
-      if (n === 1) throw new Error('disque plein')
-      return 'recettes/ok.jpg'
-    })
-    expect(r.moved).toBe(1)
-    expect(r.failed).toBe(1)
-    const out = r.blocks as { props?: { url?: string } }[]
-    expect(out[1].props!.url).toBe(PNG)
-  })
-
-  it('ne fait rien sans photo', async () => {
-    const r = await moveImagesToLibrary([{ type: 'paragraph', content: 'texte' }], async () => 'x')
-    expect(r).toEqual({ blocks: [{ type: 'paragraph', content: 'texte' }], moved: 0, failed: 0, bytes: 0 })
   })
 })

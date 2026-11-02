@@ -1,6 +1,6 @@
-// Le dossier « Bibliothèque Form » : un seul dossier, déplaçable où l'on veut, dont l'appli ne retient que le chemin.
+// Le dossier « Bibliotheque » : un seul dossier, déplaçable où l'on veut, dont l'appli ne retient que le chemin.
 //
-//   Bibliothèque Form\
+//   Bibliotheque\
 //     instagram\            enregistrements Instagram (Form / gallery-dl)
 //     pinterest\            enregistrements Pinterest
 //     images ajoutées\      images ajoutées à la main (anciennement « images ajoutées »)
@@ -130,50 +130,76 @@ pub fn library_set_root(root: String) -> LayoutInfo {
     apply_root(&root)
 }
 
-const IMAGE_EXT: &[&str] = &["jpg", "jpeg", "png", "webp", "gif", "avif", "bmp"];
+// ───────────────────────── Dossier « recette » ─────────────────────────
+// Chaque recette a son dossier dans « recette » (recette.json, recette.md, photos). Seul ce dossier est accessible par ces commandes.
 
-/// Range une image dans `dir` sous le nom de son empreinte (la même image deux fois ne fait qu'un fichier) et renvoie ce nom.
-/// L'écriture passe par un fichier provisoire, vérifié (même taille) avant de prendre sa place.
-pub fn store_image_into(dir: &Path, bytes: &[u8], ext: &str) -> Result<String, String> {
-    use sha2::{Digest, Sha256};
-    let sum: String = Sha256::digest(bytes)[..12].iter().map(|b| format!("{b:02x}")).collect();
-    let name = format!("{sum}.{ext}");
-    std::fs::create_dir_all(dir).map_err(|e| format!("Dossier impossible à créer : {e}"))?;
-    let target = dir.join(&name);
-    if std::fs::metadata(&target).is_ok_and(|m| m.len() == bytes.len() as u64) {
-        return Ok(name);
-    }
-    let tmp = dir.join(format!("{name}.form-tmp"));
-    std::fs::write(&tmp, bytes).map_err(|e| format!("Écriture impossible : {e}"))?;
-    if std::fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0) != bytes.len() as u64 {
-        let _ = std::fs::remove_file(&tmp);
-        return Err("L'image écrite n'a pas la bonne taille.".into());
-    }
-    std::fs::rename(&tmp, &target).map_err(|e| {
-        let _ = std::fs::remove_file(&tmp);
-        format!("Écriture impossible : {e}")
-    })?;
-    Ok(name)
-}
-
-/// Range une photo de recette (reçue en base64) dans « recette » de la bibliothèque. Renvoie son chemin dans la bibliothèque
-/// (« recette/3fa9…c2.jpg »), celui que la base retient : il ne change pas quand on déplace le dossier.
-#[tauri::command]
-pub fn library_store_image(root: String, data: String, ext: String) -> Result<String, String> {
-    use base64::Engine;
+/// Le chemin complet d'un fichier (ou dossier) de « recette ». Refuse tout ce qui sortirait de « recette » ou viserait un autre dossier.
+fn recipe_path(root: &str, rel: &str, allow_folder_itself: bool) -> Result<PathBuf, String> {
     let root = PathBuf::from(root);
     if !root.is_dir() {
         return Err("Le dossier de la bibliothèque est introuvable.".into());
     }
-    let ext = ext.to_lowercase();
-    if !IMAGE_EXT.contains(&ext.as_str()) {
-        return Err("Format d'image non pris en charge.".into());
+    let inside = rel.strip_prefix(RECIPES).map(|r| r.strip_prefix('/'));
+    let allowed = match inside {
+        Some(Some(rest)) => !rest.is_empty(),
+        Some(None) => allow_folder_itself && rel == RECIPES,
+        None => false,
+    };
+    if !allowed {
+        return Err("Chemin refusé : seul le dossier « recette » est accessible.".into());
     }
-    let bytes = base64::engine::general_purpose::STANDARD.decode(data.trim()).map_err(|e| format!("Image illisible : {e}"))?;
-    let name = store_image_into(&root.join(RECIPES), &bytes, &ext)?;
-    Ok(format!("{RECIPES}/{name}"))
+    super::trash::safe_path(&root, rel).ok_or_else(|| "Chemin refusé.".to_string())
 }
 
+/// Écrit un fichier seulement s'il est différent de l'existant. Passe par un fichier provisoire vérifié (même taille) avant de
+/// prendre sa place. `true` : écrit ; `false` : déjà identique.
+pub fn write_if_changed(path: &Path, bytes: &[u8]) -> Result<bool, String> {
+    if std::fs::read(path).is_ok_and(|existing| existing == bytes) {
+        return Ok(false);
+    }
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Dossier impossible à créer : {e}"))?;
+    }
+    let mut name = path.file_name().map(|n| n.to_os_string()).unwrap_or_default();
+    name.push(".form-tmp");
+    let tmp = path.with_file_name(name);
+    std::fs::write(&tmp, bytes).map_err(|e| format!("Écriture impossible : {e}"))?;
+    if std::fs::metadata(&tmp).map(|m| m.len()).unwrap_or(0) != bytes.len() as u64 {
+        let _ = std::fs::remove_file(&tmp);
+        return Err("Le fichier écrit n'a pas la bonne taille.".into());
+    }
+    std::fs::rename(&tmp, path).map_err(|e| {
+        let _ = std::fs::remove_file(&tmp);
+        format!("Écriture impossible : {e}")
+    })?;
+    Ok(true)
+}
+
+/// Écrit un fichier (reçu en base64) dans « recette », par exemple `recette/Acuka-1a2b3c4d/photo-1.jpg`. Renvoie `true` s'il a été écrit.
+#[tauri::command]
+pub fn library_write_file(root: String, rel: String, data: String) -> Result<bool, String> {
+    use base64::Engine;
+    let path = recipe_path(&root, &rel, false)?;
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data.trim()).map_err(|e| format!("Contenu illisible : {e}"))?;
+    write_if_changed(&path, &bytes)
+}
+
+/// Lit un fichier texte de « recette ».
+#[tauri::command]
+pub fn library_read_text(root: String, rel: String) -> Result<String, String> {
+    let path = recipe_path(&root, &rel, false)?;
+    std::fs::read_to_string(&path).map_err(|e| format!("Lecture impossible : {e}"))
+}
+
+/// Les sous-dossiers d'un dossier de « recette » (rel = « recette » pour la liste des recettes), triés par nom. Vide si le dossier n'existe pas encore.
+#[tauri::command]
+pub fn library_list_dir(root: String, rel: String) -> Result<Vec<String>, String> {
+    let path = recipe_path(&root, &rel, true)?;
+    let Ok(entries) = std::fs::read_dir(&path) else { return Ok(Vec::new()) };
+    let mut names: Vec<String> = entries.flatten().filter(|e| e.file_type().is_ok_and(|t| t.is_dir())).map(|e| e.file_name().to_string_lossy().into_owned()).collect();
+    names.sort();
+    Ok(names)
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -195,29 +221,48 @@ mod tests {
     }
 
     #[test]
-    fn an_image_is_stored_under_its_fingerprint_once() {
-        let dir = temp("store").join("recettes");
-        let a = store_image_into(&dir, b"photo-1", "jpg").unwrap();
-        let b = store_image_into(&dir, b"photo-1", "jpg").unwrap();
-        let c = store_image_into(&dir, b"photo-2", "jpg").unwrap();
-        assert_eq!(a, b, "la même image donne le même fichier");
-        assert_ne!(a, c);
-        assert!(a.ends_with(".jpg") && a.len() == 24 + 4);
-        assert_eq!(std::fs::read(dir.join(&a)).unwrap(), b"photo-1");
-        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 2, "aucun fichier provisoire ne reste");
-        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+    fn a_file_is_written_only_when_it_changes() {
+        let dir = temp("write").join("recette").join("Acuka-1a2b3c4d");
+        let file = dir.join("recette.json");
+        assert!(write_if_changed(&file, b"{\"a\":1}").unwrap(), "nouveau fichier");
+        assert!(!write_if_changed(&file, b"{\"a\":1}").unwrap(), "identique : rien d'écrit");
+        assert!(write_if_changed(&file, b"{\"a\":2}").unwrap(), "différent : réécrit");
+        assert_eq!(std::fs::read(&file).unwrap(), b"{\"a\":2}");
+        assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "aucun fichier provisoire ne reste");
+        let _ = std::fs::remove_dir_all(dir.parent().unwrap().parent().unwrap());
     }
 
     #[test]
-    fn a_truncated_copy_is_repaired() {
-        let dir = temp("repair").join("recettes");
-        let name = store_image_into(&dir, b"0123456789", "png").unwrap();
-        std::fs::write(dir.join(&name), b"0123").unwrap();
-        assert_eq!(store_image_into(&dir, b"0123456789", "png").unwrap(), name);
-        assert_eq!(std::fs::read(dir.join(&name)).unwrap(), b"0123456789");
-        let _ = std::fs::remove_dir_all(dir.parent().unwrap());
+    fn only_the_recipe_folder_is_reachable() {
+        let root = temp("reach");
+        let r = root.to_string_lossy().into_owned();
+        assert!(recipe_path(&r, "recette/Acuka/recette.json", false).is_ok());
+        assert!(recipe_path(&r, "recette", true).is_ok());
+        for bad in ["recette", "recette/", "instagram/x.jpg", "cache/thumbs/a.jpg", "ajouts/a.jpg", "recette/../instagram/x.jpg", "recette/../../x", "recettes/x", "C:/Windows/x.dll", "/recette/x", ""] {
+            assert!(recipe_path(&r, bad, false).is_err(), "{bad} devrait être refusé");
+        }
+        assert!(recipe_path("Z:/n-existe-pas", "recette/x", false).is_err());
+        let _ = std::fs::remove_dir_all(&root);
     }
 
+    #[test]
+    fn recipe_files_are_written_read_and_listed() {
+        let root = temp("roundtrip");
+        let r = root.to_string_lossy().into_owned();
+        let b64 = |s: &[u8]| {
+            use base64::Engine;
+            base64::engine::general_purpose::STANDARD.encode(s)
+        };
+        assert_eq!(library_list_dir(r.clone(), "recette".into()).unwrap(), Vec::<String>::new(), "pas encore de dossier : liste vide");
+        assert!(library_write_file(r.clone(), "recette/B-recette/recette.json".into(), b64("{\"titre\":\"Crêpes\"}".as_bytes())).unwrap());
+        assert!(library_write_file(r.clone(), "recette/A-recette/photo-1.jpg".into(), b64(b"\xff\xd8\xff")).unwrap());
+        assert!(!library_write_file(r.clone(), "recette/A-recette/photo-1.jpg".into(), b64(b"\xff\xd8\xff")).unwrap());
+        assert_eq!(library_list_dir(r.clone(), "recette".into()).unwrap(), vec!["A-recette".to_string(), "B-recette".to_string()]);
+        assert_eq!(library_read_text(r.clone(), "recette/B-recette/recette.json".into()).unwrap(), "{\"titre\":\"Crêpes\"}");
+        assert!(library_read_text(r.clone(), "instagram/x.txt".into()).is_err());
+        assert!(library_write_file(r.clone(), "recette/x/y.bin".into(), "***pas du base64***".into()).is_err());
+        let _ = std::fs::remove_dir_all(&root);
+    }
     #[test]
     fn ensure_folders_creates_the_five_folders_and_keeps_existing_files() {
         let root = temp("ensure");

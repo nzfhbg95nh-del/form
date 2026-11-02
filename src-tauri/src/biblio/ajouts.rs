@@ -1,5 +1,5 @@
 // « Images ajoutées » : les images que Victor ajoute à la main dans la bibliothèque. Elles sont COPIÉES dans un dossier à elles,
-// « images ajoutées » dans la Bibliothèque Form (avant : Documents\Form\images ajoutées) : le dossier de la bibliothèque n'est jamais touché.
+// « images ajoutées » dans la Bibliotheque (avant : Documents\Form\Mes ajouts) : le dossier de la bibliothèque n'est jamais touché.
 // Le nom d'un fichier copié est l'empreinte de son contenu, donc la même image ajoutée deux fois ne crée jamais de doublon.
 
 use serde::Serialize;

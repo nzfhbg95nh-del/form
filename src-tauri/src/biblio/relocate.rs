@@ -90,7 +90,7 @@ fn gb(bytes: u64) -> String {
 /// vide ou inexistant, sauf s'il porte la marque d'un déplacement interrompu (on peut alors reprendre).
 pub fn check_target(from: &Path, to: &Path) -> Result<(), String> {
     if to.as_os_str().is_empty() || !to.is_absolute() {
-        return Err("Choisis un dossier complet (par exemple D:\\Bibliothèque Form).".into());
+        return Err("Choisis un dossier complet (par exemple D:\\Bibliotheque).".into());
     }
     if !from.is_dir() {
         return Err("L'ancien dossier de la bibliothèque est introuvable.".into());
@@ -390,7 +390,7 @@ mod tests {
     #[test]
     fn old_places_are_added_only_when_outside_the_old_folder() {
         let from = Path::new("C:/Social Saver/Save images");
-        let to = Path::new("D:/Bibliothèque Form");
+        let to = Path::new("D:/Bibliotheque");
         let outside = sources(from, to, Some("C:/Docs/Mes ajouts".into()), Some("C:/Local/thumbs".into()), Some("C:/Local/models".into()));
         assert_eq!(outside.len(), 4);
         assert_eq!(outside[1].1, to.join(layout::ADDED));
@@ -403,7 +403,7 @@ mod tests {
     #[test]
     fn copies_everything_checks_it_and_leaves_the_source_alone() {
         let from = temp("copy-from");
-        let to = temp("copy-to").join("Bibliothèque Form");
+        let to = temp("copy-to").join("Bibliotheque");
         write(&from.join("instagram/auteur/a.jpg"), b"12345");
         write(&from.join("pinterest/tableau/b.mp4"), b"1234567890");
         write(&from.join("_archive.sqlite3"), b"abc");

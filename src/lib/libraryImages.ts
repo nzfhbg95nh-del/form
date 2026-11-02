@@ -68,34 +68,3 @@ export function countDataImages(blocks: unknown): { count: number; bytes: number
   })
   return { count, bytes }
 }
-
-/** Range une image et renvoie son chemin dans la bibliothèque (« recette/… »). */
-export type StoreImage = (image: DataImage) => Promise<string>
-
-/**
- * Remplace chaque photo intégrée par son adresse « form-lib:… » après l'avoir rangée. Les blocs reçus ne sont pas modifiés ;
- * si le rangement d'une photo échoue, elle reste telle quelle (rien n'est perdu) et l'erreur est comptée.
- */
-export async function moveImagesToLibrary(blocks: unknown[], store: StoreImage): Promise<{ blocks: unknown[]; moved: number; failed: number; bytes: number }> {
-  const copy = structuredClone(blocks)
-  const targets: { block: BlockLike; image: DataImage }[] = []
-  walk(copy, (b) => {
-    if (b.type !== 'image') return
-    const image = parseDataImage(b.props?.url)
-    if (image) targets.push({ block: b, image })
-  })
-  let moved = 0
-  let failed = 0
-  let bytes = 0
-  for (const { block, image } of targets) {
-    try {
-      const rel = await store(image)
-      block.props = { ...block.props, url: toLibraryUrl(rel) }
-      moved++
-      bytes += base64Bytes(image.base64)
-    } catch {
-      failed++
-    }
-  }
-  return { blocks: copy, moved, failed, bytes }
-}

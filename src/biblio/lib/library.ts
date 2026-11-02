@@ -6,7 +6,7 @@ import { getDb, inChunks, multiInsert } from './db.ts'
 import { loadForgotten } from './trash.ts'
 import { buildBlocks, diffFiles, type ScannedFile, dropForgotten } from './scan.ts'
 
-/** Aucun dossier tant que Victor n'a pas choisi sa « Bibliothèque Form » (Réglages > Bibliothèque). */
+/** Aucun dossier tant que Victor n'a pas choisi sa « Bibliotheque » (Réglages > Bibliothèque). */
 export const DEFAULT_ROOT = ''
 
 export interface LibraryStats {

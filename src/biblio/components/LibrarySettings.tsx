@@ -10,7 +10,7 @@ import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { DuplicatesView } from './DuplicatesView.tsx'
 import { MoveLibrary } from './MoveLibrary.tsx'
-import { RecipePhotos } from './RecipePhotos.tsx'
+import { RecipeFolder } from './RecipeFolder.tsx'
 import { SaverSection } from './SaverSection.tsx'
 import { TrashView } from './TrashView.tsx'
 
@@ -203,7 +203,7 @@ export function LibrarySettings() {
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
 
   const choose = async () => {
-    const picked = await open({ directory: true, defaultPath: root || undefined, title: 'Dossier « Bibliothèque Form »' })
+    const picked = await open({ directory: true, defaultPath: root || undefined, title: 'Dossier « Bibliotheque »' })
     if (typeof picked === 'string') await setRoot(picked)
   }
 
@@ -218,7 +218,7 @@ export function LibrarySettings() {
       </p>
 
       <section className="mt-6">
-        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Dossier « Bibliothèque Form »</div>
+        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Dossier « Bibliotheque »</div>
         <div className="mt-2 flex items-center gap-2">
           <div className="min-w-0 flex-1 truncate rounded-md border px-3 py-2 text-sm" style={{ borderColor: 'var(--border)' }} title={root}>{root}</div>
           <button className="btn" onClick={choose} disabled={busy}><FolderOpen size={16} /> Choisir…</button>
@@ -270,7 +270,7 @@ export function LibrarySettings() {
       )}
 
       <AutoUpdate />
-      <RecipePhotos disabled={busy} />
+      <RecipeFolder disabled={busy} />
       <AiSection />
       <section className="mt-10">
         <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Doublons</div>

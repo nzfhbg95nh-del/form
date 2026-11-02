@@ -118,7 +118,7 @@ export function SaverSection() {
     <div className="py-4">
       <h2 className="text-base font-semibold">Télécharger mes enregistrements</h2>
       <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Form télécharge tes enregistrés Instagram et tes épingles Pinterest dans ton dossier « Bibliothèque Form » ({root || 'dossier non choisi'}), rangés dans « instagram » et « pinterest ».
+        Form télécharge tes enregistrés Instagram et tes épingles Pinterest dans ton dossier « Bibliotheque » ({root || 'dossier non choisi'}), rangés dans « instagram » et « pinterest ».
         Seules les nouveautés sont téléchargées. Il utilise tes fichiers <b>cookies.txt</b> (jamais ton mot de passe) et fait des pauses entre les fichiers pour ne pas gêner ton compte.
         Les cookies expirent vite : refais l'export depuis Chrome avant une session.
       </p>

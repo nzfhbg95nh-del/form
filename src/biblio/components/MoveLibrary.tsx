@@ -28,7 +28,7 @@ export function MoveLibrary({ disabled }: { disabled: boolean }) {
 
   const pick = async () => {
     setError(null)
-    const picked = await open({ directory: true, title: 'Où ranger la Bibliothèque Form ? (un dossier « Bibliothèque Form » y sera créé)' })
+    const picked = await open({ directory: true, title: 'Où ranger la Bibliotheque ? (un dossier « Bibliotheque » y sera créé)' })
     if (typeof picked !== 'string') return
     const to = destinationFor(picked)
     setStep({ kind: 'checking' })

@@ -1,7 +1,7 @@
 import { formatBytes } from './vectors.ts'
 
 /** Nom du dossier qui contient toute la bibliothèque (instagram, pinterest, images ajoutées, recette, cache). */
-export const LIBRARY_FOLDER_NAME = 'Bibliothèque Form'
+export const LIBRARY_FOLDER_NAME = 'Bibliotheque'
 
 export interface MovePreview {
   files: number
@@ -39,7 +39,7 @@ export interface LayoutInfo {
 
 const nf = new Intl.NumberFormat('fr-FR')
 
-/** Le dossier choisi dans la fenêtre devient « <dossier>\Bibliothèque Form », sauf s'il porte déjà ce nom. */
+/** Le dossier choisi dans la fenêtre devient « <dossier>\Bibliotheque », sauf s'il porte déjà ce nom. */
 export function destinationFor(picked: string): string {
   const clean = picked.replace(/[\\/]+$/, '')
   const last = clean.split(/[\\/]/).pop() ?? ''

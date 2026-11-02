@@ -165,6 +165,8 @@ interface AppState {
   setAssistant(mode: AiMode | null): void
   /** Range la recette lue par l'assistant dans la base « Recettes » et l'ouvre. */
   createRecipePage(recipe: Recipe, categoryId?: string): Promise<void>
+  /** Ajoute des recettes lues dans le dossier « recette » (celles dont le titre existe déjà sont laissées telles quelles). */
+  importRecipeRows(items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[]): Promise<{ created: number; skipped: number }>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
   openRecipes(): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
@@ -259,6 +261,30 @@ async function addRecipeRow(get: () => AppState, set: SetFn, input: { title?: st
   await repo.updateObject(row.id, patch)
   set((s) => ({ objects: [...s.objects, { ...row, ...patch }] }))
   get().select(row.id)
+}
+
+/** Ajoute des recettes lues dans le dossier « recette » : celles dont le titre existe déjà ne sont jamais réimportées ni écrasées. Aucune n'est ouverte. */
+async function importRecipeRowsInto(
+  get: () => AppState,
+  set: SetFn,
+  items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[],
+): Promise<{ created: number; skipped: number }> {
+  const repo = get().repo
+  const db = await ensureRecipesDb(get, set)
+  if (!repo || !db) return { created: 0, skipped: items.length }
+  const known = new Set(get().objects.filter((o) => o.parent_id === db.id && o.type === 'row' && !o.deleted_at).map((o) => (o.title ?? '').trim().toLowerCase()))
+  const added: ObjectRow[] = []
+  for (const it of items) {
+    const key = it.title.trim().toLowerCase()
+    if (!key || known.has(key)) continue
+    known.add(key)
+    const row = await repo.createPage(db.id, 'row', JSON.stringify(it.values))
+    const patch = { title: it.title, icon: it.icon ?? '🍳', content: JSON.stringify(it.content), ...(it.cover ? { cover: it.cover } : {}) }
+    await repo.updateObject(row.id, patch)
+    added.push({ ...row, ...patch })
+  }
+  if (added.length > 0) set((s) => ({ objects: [...s.objects, ...added] }))
+  return { created: added.length, skipped: items.length - added.length }
 }
 
 export const useApp = create<AppState>((set, get) => ({
@@ -785,6 +811,10 @@ export const useApp = create<AppState>((set, get) => ({
 
   async addRecipe(values, cover) {
     await addRecipeRow(get, set, { values, cover })
+  },
+
+  async importRecipeRows(items) {
+    return importRecipeRowsInto(get, set, items)
   },
 
   async createRecipePage(recipe, categoryId) {
