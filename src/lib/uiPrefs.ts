@@ -10,6 +10,19 @@ export const TEXT_SCALE_DEFAULT = 100
 const SCALE_KEY = 'form-text-scale'
 const MOTION_KEY = 'form-reduce-motion'
 
+/** Les quatre tailles proposées dans les Réglages. */
+export const TEXT_SIZES = [
+  { scale: 85, label: 'Petit' },
+  { scale: 100, label: 'Normal' },
+  { scale: 115, label: 'Grand' },
+  { scale: 130, label: 'Très grand' },
+] as const
+
+/** La taille proposée la plus proche d'un pourcentage retenu (par exemple 110 → 115). */
+export function nearestTextSize(scale: number): number {
+  return TEXT_SIZES.reduce((best, s) => (Math.abs(s.scale - scale) < Math.abs(best - scale) ? s.scale : best), 100 as number)
+}
+
 /** Un pourcentage valide (entre 80 et 140, arrondi au pas de 5), sinon 100. */
 export function parseTextScale(raw: string | number | null | undefined): number {
   const n = Number(raw)

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { parseTextScale, textScaleToPx } from './uiPrefs'
+import { nearestTextSize, parseTextScale, textScaleToPx } from './uiPrefs'
+
+describe('tailles proposées', () => {
+  it('rattache un pourcentage retenu à la taille proposée la plus proche', () => {
+    expect(nearestTextSize(100)).toBe(100)
+    expect(nearestTextSize(80)).toBe(85)
+    expect(nearestTextSize(110)).toBe(115)
+    expect(nearestTextSize(140)).toBe(130)
+  })
+})
 
 describe('taille du texte', () => {
   it('garde un pourcentage entre 80 et 140, arrondi au pas de 5', () => {
