@@ -200,3 +200,6 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   transition-duration: 0.01ms !important;
   scroll-behavior: auto !important;
 }
+
+/* Notes rapides (page Recettes) : le texte est collé à gauche, aligné sur le titre (pas de place pour le « + » et la poignée). */
+.quick-notes .bn-editor { padding-inline: 0 !important; }

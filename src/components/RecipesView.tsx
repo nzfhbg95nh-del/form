@@ -181,7 +181,7 @@ function QuickNotes({ db }: { db: ObjectRow }) {
   return (
     <section className="mb-6 border-b border-[var(--border)] pb-4" aria-label="Notes rapides">
       <h2 className="mb-1 text-sm font-medium text-[var(--fg-muted)]">Notes rapides</h2>
-      <div className="-mx-6">
+      <div className="quick-notes">
         <PageEditor
           plain
           key={db.id}

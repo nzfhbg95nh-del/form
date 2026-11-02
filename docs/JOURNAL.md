@@ -1046,3 +1046,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Correctif : la bibliothèque est branchée (dossier connu) dès le démarrage et à l'ouverture des Recettes ; sans cela, les photos rangées dans la bibliothèque (`form-lib:`) ne s'affichaient pas tant qu'on n'avait pas ouvert la bibliothèque (icône de poêle à la place).
 
 - Notes rapides (page Recettes) : plus de « + » ni de poignée à gauche, juste du texte (`PageEditor` option `plain`).
+
+- Notes rapides : texte aligné à gauche, sur le titre.
