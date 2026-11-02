@@ -114,12 +114,11 @@ export const useGrid = create<GridState>((set, get) => {
     organize: false,
 
     async load() {
-      const [blocks, typeIndex, colors, thumbsDir] = await Promise.all([
-        loadBlocks(),
-        loadTypeIndex(),
-        loadColorIndex(),
-        get().thumbsDir ? Promise.resolve(get().thumbsDir) : invoke<string>('thumbs_dir'),
-      ])
+      // Le dossier des miniatures dépend de la bibliothèque choisie : on la branche d'abord (l'Accueil peut charger la grille avant),
+      // et on relit toujours l'emplacement, sinon les miniatures seraient cherchées dans l'ancien dossier.
+      const { useLibrary } = await import('@/biblio/store/library.ts')
+      await useLibrary.getState().init()
+      const [blocks, typeIndex, colors, thumbsDir] = await Promise.all([loadBlocks(), loadTypeIndex(), loadColorIndex(), invoke<string>('thumbs_dir')])
       recompute({ blocks, typeIndex, colors, thumbsDir, loaded: true })
     },
     async loadTypes() {

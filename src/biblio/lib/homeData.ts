@@ -9,7 +9,12 @@ let thumbsDir = ''
 /** L'adresse (utilisable dans <img>) de la miniature d'un fichier. */
 export async function thumbUrl(thumb: string | null): Promise<string | null> {
   if (!thumb) return null
-  if (!thumbsDir) thumbsDir = await invoke<string>('thumbs_dir')
+  if (!thumbsDir) {
+    // Le dossier des miniatures suit la bibliothèque : on la branche avant de le demander.
+    const { useLibrary } = await import('@/biblio/store/library.ts')
+    await useLibrary.getState().init()
+    thumbsDir = await invoke<string>('thumbs_dir')
+  }
   return fileUrl(thumbPath(thumbsDir, thumb))
 }
 
