@@ -142,6 +142,9 @@ interface AppState {
   cycleTab(delta: 1 | -1): void
   sidebarHidden: boolean
   toggleSidebar(): void
+  /** Vrai (au départ) : la page qu'on quitte reste ouverte dans son onglet et chaque page s'ouvre dans un autre onglet ; faux : une page remplace l'onglet actif, comme dans un navigateur. */
+  keepPagesOpen: boolean
+  setKeepPagesOpen(keep: boolean): void
   zoom: number
   setZoom(zoom: number): void
   closeTabAt(index: number): void
@@ -307,6 +310,7 @@ export const useApp = create<AppState>((set, get) => ({
   navForward: [],
   closedTabs: [],
   sidebarHidden: localStorage.getItem('form-sidebar-hidden') === '1',
+  keepPagesOpen: localStorage.getItem('form-keep-pages') !== '0',
   zoom: Number(localStorage.getItem('form-zoom') ?? '1') || 1,
   searchOpen: false,
   searchNewTab: false,
@@ -414,7 +418,9 @@ export const useApp = create<AppState>((set, get) => ({
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
     const previous = get().selectedId
-    const tabs = openTab(opts?.newTab ? withShownView(get().tabs, get().view) : get().tabs, id, opts?.newTab)
+    // Par défaut, la page (ou l'écran) qu'on quitte reste ouverte : la nouvelle page s'ouvre dans un autre onglet (ou on revient à son onglet s'il existe déjà).
+    const keep = opts?.newTab ?? get().keepPagesOpen
+    const tabs = openTab(keep ? withShownView(get().tabs, get().view) : get().tabs, id, keep)
     // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
     const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
     set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
@@ -457,6 +463,11 @@ export const useApp = create<AppState>((set, get) => ({
     const index = (tabs.active + delta + tabs.ids.length) % tabs.ids.length
     const next = activateTab(tabs, index)
     set({ tabs: next, selectedId: currentId(next), ...viewOfTab(next) })
+  },
+
+  setKeepPagesOpen(keep) {
+    try { localStorage.setItem('form-keep-pages', keep ? '1' : '0') } catch { /* sans importance */ }
+    set({ keepPagesOpen: keep })
   },
 
   toggleSidebar() {
