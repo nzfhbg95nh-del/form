@@ -63,7 +63,7 @@ export function MoveLibrary({ disabled }: { disabled: boolean }) {
     <section className="mt-6">
       <div className="text-xs font-medium uppercase tracking-wide" style={muted}>Déplacer la bibliothèque</div>
       <p className="mt-2 text-sm" style={muted}>
-        Copie tout le dossier (Instagram, Pinterest, images ajoutées, recettes, cache) vers un autre disque ou dossier, vérifie chaque fichier, puis Form s'y rend. L'ancien dossier reste intact : tu l'effaceras toi-même quand tu auras vérifié. Un déplacement interrompu reprend là où il s'est arrêté.
+        Copie tout le dossier (Instagram, Pinterest, images ajoutées, recette, cache) vers un autre disque ou dossier, vérifie chaque fichier, puis Form s'y rend. L'ancien dossier reste intact : tu l'effaceras toi-même quand tu auras vérifié. Un déplacement interrompu reprend là où il s'est arrêté.
       </p>
 
       {(step.kind === 'idle' || step.kind === 'checking') && (

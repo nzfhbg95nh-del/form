@@ -173,7 +173,7 @@ mod tests {
         assert_eq!(ClipTokenizer::content_len(&ids, 11), 3);
     }
 
-    /// Vérification sur le vrai fichier (lancer avec KLIPPR_TOKENIZER=chemin) : « a photo of a cat » = 320 1125 539 320 2368.
+    /// Vérification sur le vrai fichier (lancer avec Form_TOKENIZER=chemin) : « a photo of a cat » = 320 1125 539 320 2368.
     #[test]
     #[ignore]
     fn real_tokenizer_matches_openai_clip() {

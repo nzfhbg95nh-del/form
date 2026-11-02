@@ -1,8 +1,8 @@
-// Corbeille de Klippr et suppression définitive.
-//   1. « Mettre à la corbeille » : l'image disparaît de partout dans Klippr (ses rangements sont gardés). Aucun fichier touché.
+// Corbeille de Form et suppression définitive.
+//   1. « Mettre à la corbeille » : l'image disparaît de partout dans Form (ses rangements sont gardés). Aucun fichier touché.
 //   2. « Restaurer » : elle revient, dans les mêmes tableaux.
-//   3. « Supprimer définitivement » : le fichier part dans la Corbeille Windows (récupérable), Klippr oublie l'image
-//      et ne la réimporte plus, même si Social Saver remet un jour le même fichier.
+//   3. « Supprimer définitivement » : le fichier part dans la Corbeille Windows (récupérable), Form oublie l'image
+//      et ne la réimporte plus, même si Form remet un jour le même fichier.
 
 import { invoke } from '@tauri-apps/api/core'
 import type { Source } from './scan.ts'
@@ -60,8 +60,8 @@ interface Outcome {
 }
 
 /**
- * Supprime définitivement des images : leurs fichiers partent dans la Corbeille Windows, puis Klippr les oublie (et ne les réimportera plus).
- * Une image dont un fichier n'a pas pu partir reste dans la corbeille de Klippr.
+ * Supprime définitivement des images : leurs fichiers partent dans la Corbeille Windows, puis Form les oublie (et ne les réimportera plus).
+ * Une image dont un fichier n'a pas pu partir reste dans la corbeille de Form.
  */
 export async function deleteForever(ids: readonly string[], root: string): Promise<{ deleted: number; failed: number }> {
   const d = await getDb()

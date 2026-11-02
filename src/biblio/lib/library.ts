@@ -1,4 +1,4 @@
-// Bibliothèque : synchronisation du dossier de Social Saver avec la base de Klippr.
+// Bibliothèque : synchronisation du dossier de la bibliothèque avec la base de Form.
 // Les fichiers ne sont jamais copiés ni modifiés : la base ne garde que leurs chemins et ce qu'on en déduit.
 
 import { invoke } from '@tauri-apps/api/core'
@@ -6,7 +6,8 @@ import { getDb, inChunks, multiInsert } from './db.ts'
 import { loadForgotten } from './trash.ts'
 import { buildBlocks, diffFiles, type ScannedFile, dropForgotten } from './scan.ts'
 
-export const DEFAULT_ROOT = 'C:\\Users\\noesa\\Desktop\\Social Saver\\Save images'
+/** Aucun dossier tant que Victor n'a pas choisi sa « Bibliothèque Form » (Réglages > Bibliothèque). */
+export const DEFAULT_ROOT = ''
 
 export interface LibraryStats {
   blocks: number
@@ -50,7 +51,7 @@ export async function syncLibrary(root: string, onProgress?: (label: string, don
   if (diff.added.length > 0) {
     const now = new Date().toISOString()
     const { blocks: allBlocks, collections } = buildBlocks(scanned)
-    // Ce que Victor a supprimé définitivement ne revient pas, même si Social Saver remet le fichier.
+    // Ce que Victor a supprimé définitivement ne revient pas, même si Form remet le fichier.
     const blocks = dropForgotten(allBlocks, await loadForgotten())
     const addedSet = new Set(diff.added.map((f) => f.rel))
     // Les blocs touchés par un nouveau fichier : on les (re)écrit en entier, ce qui rattache aussi un carrousel qui s'agrandit.

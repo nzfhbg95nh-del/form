@@ -45,7 +45,7 @@ export interface MoveRecipePhotosResult {
 }
 
 /**
- * Range les photos des recettes dans le dossier « recettes » de la bibliothèque. Avant de toucher à la base, une copie de sécurité
+ * Range les photos des recettes dans le dossier « recette » de la bibliothèque. Avant de toucher à la base, une copie de sécurité
  * est faite. Une recette n'est réécrite que si TOUTES ses photos ont été rangées ; sinon elle reste telle quelle (rien n'est perdu).
  */
 export async function moveRecipePhotos(rows: ObjectRow[], root: string, onProgress: (done: number, total: number) => void): Promise<MoveRecipePhotosResult> {

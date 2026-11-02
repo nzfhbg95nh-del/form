@@ -1,4 +1,4 @@
-// Ajouter des images à la main dans la bibliothèque. Les fichiers sont copiés dans « Mes ajouts » (Documents\Form\Mes ajouts) par Rust, sans doublon ;
+// Ajouter des images à la main dans la bibliothèque. Les fichiers sont copiés dans « images ajoutées » (Documents\Form\images ajoutées) par Rust, sans doublon ;
 // ensuite la bibliothèque se met à jour, et le reste suit tout seul : miniatures, puis couleurs, empreintes de l'IA et types d'image (donc la recherche).
 
 import { invoke } from '@tauri-apps/api/core'

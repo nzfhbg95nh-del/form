@@ -3,7 +3,7 @@ import { fileUrl, originalPath } from '@/biblio/lib/media.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 /**
- * L'adresse à afficher pour l'image d'une page. Une photo rangée dans la bibliothèque (« form-lib:recettes/… ») se retrouve à partir
+ * L'adresse à afficher pour l'image d'une page. Une photo rangée dans la bibliothèque (« form-lib:recette/… ») se retrouve à partir
  * du dossier choisi ; toute autre adresse (photo intégrée, lien) est renvoyée telle quelle. Avant que le dossier soit connu, une
  * photo de la bibliothèque n'a pas encore d'adresse (rien) : les écrans qui s'abonnent à `useLibrary` se mettent à jour ensuite.
  */

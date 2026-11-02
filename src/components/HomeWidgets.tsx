@@ -180,7 +180,7 @@ export function QuickDropWidget() {
       <ImagePlus size={26} className="shrink-0 text-[var(--fg-muted)]" />
       <div className="min-w-0 flex-1 text-sm">
         <div className="font-medium">Dépose des images ici</div>
-        <div className="text-xs text-[var(--fg-muted)]">Elles sont copiées dans « Mes ajouts », sans doublon, et l’IA les range dans la bonne collection.</div>
+        <div className="text-xs text-[var(--fg-muted)]">Elles sont copiées dans « images ajoutées » de ta bibliothèque, sans doublon, et l’IA les range dans la bonne collection.</div>
       </div>
       <button className="btn" onClick={() => void pick()}>Choisir…</button>
     </div>

@@ -1,10 +1,10 @@
 // Le dossier « Bibliothèque Form » : un seul dossier, déplaçable où l'on veut, dont l'appli ne retient que le chemin.
 //
 //   Bibliothèque Form\
-//     instagram\            enregistrements Instagram (Social Saver / gallery-dl)
+//     instagram\            enregistrements Instagram (Form / gallery-dl)
 //     pinterest\            enregistrements Pinterest
-//     images ajoutées\      images ajoutées à la main (anciennement « Mes ajouts »)
-//     recettes\             photos des recettes
+//     images ajoutées\      images ajoutées à la main (anciennement « images ajoutées »)
+//     recette\             photos des recettes
 //     cache\                miniatures et modèle d'IA (se refont tout seuls si on les perd)
 //     _archive.sqlite3      la mémoire de gallery-dl (ne rien retélécharger)
 //
@@ -19,7 +19,7 @@ use tauri::{AppHandle, Manager};
 pub const INSTAGRAM: &str = "instagram";
 pub const PINTEREST: &str = "pinterest";
 pub const ADDED: &str = "images ajoutées";
-pub const RECIPES: &str = "recettes";
+pub const RECIPES: &str = "recette";
 pub const CACHE: &str = "cache";
 
 /// Les sous-dossiers de la bibliothèque qui ne contiennent PAS d'enregistrements à lire (le scan les saute à la racine).
@@ -98,13 +98,13 @@ pub struct LayoutInfo {
 }
 
 /// Branche l'appli sur une bibliothèque : « images ajoutées » et le cache suivent ce dossier. Un dossier vide ou introuvable
-/// laisse les anciens emplacements (Documents\Form\Mes ajouts et dossier de données de l'appli).
+/// laisse les anciens emplacements (Documents\Form\images ajoutées et dossier de données de l'appli).
 pub fn apply_root(root: &str) -> LayoutInfo {
     let path = PathBuf::from(root);
     let usable = !root.trim().is_empty() && path.is_dir();
     if usable {
         // Rien n'est créé ici : choisir un dossier ne le modifie pas. Les sous-dossiers naissent au premier usage ou au déplacement.
-        // Des images ajoutées dans l'ancien dossier « Mes ajouts » restent visibles tant qu'elles n'ont pas été copiées dans « images ajoutées ».
+        // Des images ajoutées dans l'ancien dossier « images ajoutées » restent visibles tant qu'elles n'ont pas été copiées dans « images ajoutées ».
         let added = path.join(ADDED);
         let legacy_has_files = super::ajouts::legacy_dir().is_some_and(|l| std::fs::read_dir(l).is_ok_and(|mut r| r.next().is_some()));
         if added.is_dir() || !legacy_has_files {
@@ -156,8 +156,8 @@ pub fn store_image_into(dir: &Path, bytes: &[u8], ext: &str) -> Result<String, S
     Ok(name)
 }
 
-/// Range une photo de recette (reçue en base64) dans « recettes » de la bibliothèque. Renvoie son chemin dans la bibliothèque
-/// (« recettes/3fa9…c2.jpg »), celui que la base retient : il ne change pas quand on déplace le dossier.
+/// Range une photo de recette (reçue en base64) dans « recette » de la bibliothèque. Renvoie son chemin dans la bibliothèque
+/// (« recette/3fa9…c2.jpg »), celui que la base retient : il ne change pas quand on déplace le dossier.
 #[tauri::command]
 pub fn library_store_image(root: String, data: String, ext: String) -> Result<String, String> {
     use base64::Engine;
@@ -188,7 +188,7 @@ mod tests {
     #[test]
     fn reserved_names_are_recognised_whatever_the_case() {
         assert!(is_reserved("cache"));
-        assert!(is_reserved("Recettes"));
+        assert!(is_reserved("Recette"));
         assert!(is_reserved("Images Ajoutées"));
         assert!(!is_reserved("instagram"));
         assert!(!is_reserved("pinterest"));

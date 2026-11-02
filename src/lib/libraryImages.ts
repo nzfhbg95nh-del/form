@@ -1,6 +1,6 @@
 /**
- * Photos de recettes rangées dans la bibliothèque (dossier « recettes ») au lieu d'être cachées dans la base.
- * Dans une page, une photo rangée dans le dossier est écrite « form-lib:recettes/3fa9…c2.jpg » : un chemin À L'INTÉRIEUR de la
+ * Photos de recettes rangées dans la bibliothèque (dossier « recette ») au lieu d'être cachées dans la base.
+ * Dans une page, une photo rangée dans le dossier est écrite « form-lib:recette/3fa9…c2.jpg » : un chemin À L'INTÉRIEUR de la
  * bibliothèque, qui ne change pas quand on déplace le dossier. L'adresse affichable se calcule à l'ouverture de la page.
  */
 
@@ -8,7 +8,7 @@ export const LIBRARY_URL_PREFIX = 'form-lib:'
 
 export const isLibraryUrl = (url: string | null | undefined): url is string => !!url && url.startsWith(LIBRARY_URL_PREFIX)
 
-/** « form-lib:recettes/a.jpg » -> « recettes/a.jpg » (rien si ce n'est pas une adresse de la bibliothèque, ou si elle sortirait du dossier). */
+/** « form-lib:recette/a.jpg » -> « recette/a.jpg » (rien si ce n'est pas une adresse de la bibliothèque, ou si elle sortirait du dossier). */
 export function libraryRel(url: string): string | null {
   if (!isLibraryUrl(url)) return null
   const rel = url.slice(LIBRARY_URL_PREFIX.length)
@@ -69,7 +69,7 @@ export function countDataImages(blocks: unknown): { count: number; bytes: number
   return { count, bytes }
 }
 
-/** Range une image et renvoie son chemin dans la bibliothèque (« recettes/… »). */
+/** Range une image et renvoie son chemin dans la bibliothèque (« recette/… »). */
 export type StoreImage = (image: DataImage) => Promise<string>
 
 /**

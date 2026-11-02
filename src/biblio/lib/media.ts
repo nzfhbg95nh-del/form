@@ -1,13 +1,13 @@
-// Où trouver les fichiers : les originaux restent dans le dossier de Social Saver, les miniatures dans les données de Klippr.
+// Où trouver les fichiers : les originaux restent dans le dossier de la bibliothèque, les miniatures dans les données de Form.
 
 import { convertFileSrc } from '@tauri-apps/api/core'
 
 const toWindows = (p: string) => p.replace(/\//g, '\\')
 
-/** Début du chemin relatif des images ajoutées à la main (dossier « Mes ajouts », hors du dossier de Social Saver). */
+/** Début du chemin relatif des images ajoutées à la main (dossier « images ajoutées », hors du dossier de la bibliothèque). */
 export const AJOUTS_PREFIX = 'ajouts/'
 let ajoutsDir = ''
-/** Le dossier Mes ajouts, connu au démarrage de la bibliothèque. */
+/** Le dossier images ajoutées, connu au démarrage de la bibliothèque. */
 export const setAjoutsDir = (dir: string) => { ajoutsDir = dir }
 
 /** Chemin complet (Windows) d'un original, depuis le dossier choisi et le chemin relatif. */

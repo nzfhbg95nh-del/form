@@ -1,4 +1,4 @@
-// Lecture des chemins de Social Saver : tout vient de l'arborescence et des noms de fichiers.
+// Lecture des chemins de Form : tout vient de l'arborescence et des noms de fichiers.
 // Logique « pure » (rien ne touche au disque ni à l'écran), testée automatiquement.
 //
 //   instagram/<auteur>/<AAAAMMJJ>_<code>_<NN>.<ext>
@@ -88,16 +88,16 @@ export function buildBlocks(files: ScannedFile[]): { blocks: BlockDraft[]; colle
   const usedIds = new Set<string>()
 
   for (const file of sorted) {
-    // Une image ajoutée à la main : un bloc à elle, dans la collection « Mes ajouts ».
+    // Une image ajoutée à la main : un bloc à elle, dans la collection « images ajoutées ».
     if (file.rel.startsWith(MANUAL_PREFIX)) {
       const name = file.rel.slice(MANUAL_PREFIX.length)
       const stem = name.replace(/\.\w+$/, '')
-      collections.set(MANUAL_COLLECTION, { id: MANUAL_COLLECTION, name: 'Mes ajouts', kind: 'manual', owner: 'Mes ajouts' })
+      collections.set(MANUAL_COLLECTION, { id: MANUAL_COLLECTION, name: 'Images ajoutées', kind: 'manual', owner: 'Images ajoutées' })
       const bf = [toBlockFile(file, 0)]
       blocks.push({
         id: `man:${stem}`,
         source: 'manual',
-        owner: 'Mes ajouts',
+        owner: 'Images ajoutées',
         board: null,
         originId: stem,
         originUrl: '',
@@ -196,7 +196,7 @@ export function diffFiles(scanned: ScannedFile[], known: { rel: string; missing:
   }
 }
 
-/** Retire les blocs que Victor a supprimés définitivement (même si Social Saver remet un jour leurs fichiers). */
+/** Retire les blocs que Victor a supprimés définitivement (même si Form remet un jour leurs fichiers). */
 export function dropForgotten(blocks: BlockDraft[], forgotten: ReadonlySet<string>): BlockDraft[] {
   return forgotten.size === 0 ? blocks : blocks.filter((b) => !forgotten.has(b.id))
 }

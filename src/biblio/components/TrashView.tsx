@@ -93,7 +93,7 @@ export function TrashView({ onBack }: { onBack: () => void }) {
             <h2 className="text-lg font-semibold">Supprimer définitivement ?</h2>
             <p className="mt-2 text-sm">
               {chosen.length} image{chosen.length > 1 ? 's' : ''} : leurs fichiers vont dans la <b>Corbeille Windows</b> et Form les oublie
-              (elles ne reviendront pas, même si Social Saver remet les fichiers). Tu pourras encore récupérer les fichiers dans la Corbeille Windows.
+              (elles ne reviendront pas, même si les fichiers reviennent dans le dossier). Tu pourras encore récupérer les fichiers dans la Corbeille Windows.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button className="btn" disabled={busy} onClick={() => setConfirm(false)}>Annuler</button>

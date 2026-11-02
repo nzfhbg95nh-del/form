@@ -73,7 +73,7 @@ html.floating #root {
   background: transparent !important;
 }
 
-/* Bibliothèque (venue de Klippr) : boutons et rotation. */
+/* Bibliothèque (venue de Form) : boutons et rotation. */
 .btn {
   display: inline-flex;
   align-items: center;

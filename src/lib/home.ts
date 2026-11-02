@@ -24,7 +24,7 @@ export const WIDGET_TYPES: { type: WidgetType; label: string; help: string }[] =
   { type: 'boards', label: 'Moodboards récents', help: 'Tes derniers moodboards, avec leur aperçu' },
   { type: 'triage', label: 'À trier', help: 'Les images qu’il reste à ranger, et tes ajouts de la semaine' },
   { type: 'memories', label: 'Il y a un an', help: 'Les images enregistrées à cette période les années passées' },
-  { type: 'drop', label: 'Dépôt rapide', help: 'Dépose des images : elles vont dans « Mes ajouts »' },
+  { type: 'drop', label: 'Dépôt rapide', help: 'Dépose des images : elles vont dans « images ajoutées »' },
   { type: 'recipe', label: 'Recette du jour', help: 'Une recette au hasard' },
   { type: 'late', label: 'Factures en retard', help: 'Les impayés dont l’échéance est dépassée' },
 ]

@@ -18,7 +18,7 @@ export interface Placed {
   collectionName: string
 }
 
-/** Les collections où l'IA a le droit de ranger : les miennes et mes tableaux Pinterest (pas « Mes ajouts », pas les comptes des autres). */
+/** Les collections où l'IA a le droit de ranger : les miennes et mes tableaux Pinterest (pas « images ajoutées », pas les comptes des autres). */
 const CANDIDATE_COLLECTIONS = `SELECT id FROM lib_collections WHERE (kind = 'manual' AND id <> '${MANUAL_COLLECTION}') OR id LIKE 'pin:${MY_ACCOUNT}/%'`
 
 async function vectorsOf(where: string): Promise<Map<string, Float32Array>> {

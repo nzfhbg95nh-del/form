@@ -1,4 +1,4 @@
-// Miniatures, générées en arrière-plan dans le dossier de données de Klippr (jamais à côté des originaux).
+// Miniatures, générées en arrière-plan dans le dossier de données de Form (jamais à côté des originaux).
 // Images : bibliothèque « image ». Vidéos (et images que « image » ne sait pas lire, comme HEIC) : ffmpeg, s'il est installé.
 
 use image::{codecs::jpeg::JpegEncoder, DynamicImage, ImageDecoder, ImageReader};

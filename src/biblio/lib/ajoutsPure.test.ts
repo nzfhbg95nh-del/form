@@ -25,7 +25,7 @@ describe('ajout d’images à la main', () => {
     expect(mine[0].collectionIds).toEqual(['man:ajouts'])
     expect(mine[0].publishedAt).toBe('2026-10-26')
     expect(mine[0].files[0].rel).toBe('ajouts/3fa9c2.jpg')
-    expect(collections.find((c) => c.id === 'man:ajouts')).toMatchObject({ name: 'Mes ajouts', kind: 'manual' })
+    expect(collections.find((c) => c.id === 'man:ajouts')).toMatchObject({ name: 'Images ajoutées', kind: 'manual' })
     expect(blocks.some((b) => b.source === 'pinterest')).toBe(true)
   })
 })

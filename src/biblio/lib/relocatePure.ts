@@ -1,6 +1,6 @@
 import { formatBytes } from './vectors.ts'
 
-/** Nom du dossier qui contient toute la bibliothèque (instagram, pinterest, images ajoutées, recettes, cache). */
+/** Nom du dossier qui contient toute la bibliothèque (instagram, pinterest, images ajoutées, recette, cache). */
 export const LIBRARY_FOLDER_NAME = 'Bibliothèque Form'
 
 export interface MovePreview {

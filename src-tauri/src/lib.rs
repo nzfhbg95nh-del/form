@@ -147,7 +147,7 @@ pub fn run() {
         .setup(|app| {
             // Une restauration de sauvegarde demandée avant la fermeture s'applique ici, avant l'ouverture de la base.
             backup::apply_pending_restore(app.handle());
-            // Le dossier des images ajoutées à la main : Documents\Form\Mes ajouts tant qu'aucune bibliothèque n'est choisie ;
+            // Le dossier des images ajoutées à la main : Documents\Form\images ajoutées tant qu'aucune bibliothèque n'est choisie ;
             // ensuite « images ajoutées » dans la Bibliothèque Form (voir biblio::layout::library_set_root).
             if let Ok(docs) = tauri::Manager::path(app).document_dir() {
                 biblio::ajouts::set_legacy(docs.join("Form").join("Mes ajouts"));

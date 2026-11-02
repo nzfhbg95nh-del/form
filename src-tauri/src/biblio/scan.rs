@@ -1,4 +1,4 @@
-// Parcours du dossier de Social Saver. LECTURE SEULE : on ne déplace, ne renomme et ne supprime jamais rien.
+// Parcours du dossier de la bibliothèque. LECTURE SEULE : on ne déplace, ne renomme et ne supprime jamais rien.
 
 use serde::Serialize;
 use std::path::Path;

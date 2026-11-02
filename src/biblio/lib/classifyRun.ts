@@ -10,7 +10,7 @@ import { buildExampleSet, DEFAULT_OPTIONS } from './neighbours.ts'
 import { allPrompts, buildPromptMatrix, SEMANTIC_TYPES, thresholdsOf } from './semantic.ts'
 import { decodeVector } from './vectors.ts'
 
-/** À changer quand la règle de classement change : Klippr refait alors le classement une fois au démarrage. */
+/** À changer quand la règle de classement change : Form refait alors le classement une fois au démarrage. */
 export const CLASSIFY_VERSION = '8'
 export const OTHER_TYPE_ID = 'autres'
 /** Types exclusifs, par ordre de priorité : une image qui en reçoit un n'a plus que celui-là. */

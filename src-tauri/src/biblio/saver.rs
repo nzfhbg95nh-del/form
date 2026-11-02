@@ -1,5 +1,5 @@
-// Télécharger mes enregistrements Instagram et mes épingles Pinterest (ce que faisait Social Saver), directement depuis Form.
-// Form lance gallery-dl (programme libre, fourni avec l'installateur) avec exactement les mêmes réglages que Social Saver : mêmes dossiers,
+// Télécharger mes enregistrements Instagram et mes épingles Pinterest (ce que faisait Form), directement depuis Form.
+// Form lance gallery-dl (programme libre, fourni avec l'installateur) avec exactement les mêmes réglages que Form : mêmes dossiers,
 // mêmes noms de fichiers, même liste des fichiers déjà téléchargés (`_archive.sqlite3`), mêmes pauses anti-blocage.
 // Seuls les nouveaux fichiers sont téléchargés. Form n'utilise jamais de mot de passe : seulement les fichiers cookies.txt exportés par Victor.
 
@@ -16,7 +16,7 @@ static RUNNING: AtomicBool = AtomicBool::new(false);
 static STOP: AtomicBool = AtomicBool::new(false);
 static CHILD: Mutex<Option<Child>> = Mutex::new(None);
 
-/// Le fichier de réglages de gallery-dl : identique à celui de Social Saver.
+/// Le fichier de réglages de gallery-dl : identique à celui de Form.
 pub fn build_config(out_dir: &Path) -> Value {
     json!({
         "extractor": {
@@ -234,7 +234,7 @@ pub struct SaverDefaults {
     pub pin_cookies: Option<String>,
 }
 
-/// Les réglages de Social Saver sur le Bureau (lecture seule) pour préremplir Form : pseudo, lien Pinterest, fichiers de cookies.
+/// Les réglages de Form sur le Bureau (lecture seule) pour préremplir Form : pseudo, lien Pinterest, fichiers de cookies.
 #[tauri::command]
 pub fn saver_defaults(app: AppHandle) -> SaverDefaults {
     let Ok(desktop) = app.path().desktop_dir() else { return SaverDefaults::default() };
@@ -242,7 +242,7 @@ pub fn saver_defaults(app: AppHandle) -> SaverDefaults {
     let text = |v: &Value, key: &str| v.get(key).and_then(Value::as_str).map(str::trim).filter(|s| !s.is_empty()).map(String::from);
     let json: Value = std::fs::read_to_string(folder.join("settings.json")).ok().and_then(|s| serde_json::from_str(&s).ok()).unwrap_or(Value::Null);
     let existing = |p: PathBuf| p.is_file().then(|| p.to_string_lossy().to_string());
-    // Le fichier de cookies du site : celui indiqué dans les réglages s'il correspond, sinon celui rangé dans le dossier de Social Saver.
+    // Le fichier de cookies du site : celui indiqué dans les réglages s'il correspond, sinon celui rangé dans le dossier de la bibliothèque.
     let cookies_for = |site: &str| {
         text(&json, "cookies").filter(|c| c.contains(site) && Path::new(c).is_file()).or_else(|| existing(folder.join(format!("www.{site}.com_cookies.txt"))))
     };
@@ -265,7 +265,7 @@ pub fn saver_file_age_days(path: String) -> Option<u64> {
 
 // ───────────────────────── Images d'un lien (moodboard) ─────────────────────────
 // Un tableau Pinterest ou un post Instagram est téléchargé dans un dossier TEMPORAIRE (jamais dans la bibliothèque), avec les mêmes pauses
-// que Social Saver, puis Form lit les images, les pose sur la toile et efface le dossier.
+// que Form, puis Form lit les images, les pose sur la toile et efface le dossier.
 
 /// Les réglages de gallery-dl pour un import dans un moodboard : tout à plat dans un dossier, sans liste d'archive (on re-télécharge à chaque fois),
 /// sans les vidéos (une toile de moodboard n'accueille que des images).

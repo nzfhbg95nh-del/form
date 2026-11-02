@@ -178,7 +178,7 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
           <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Mettre les doublons à la Corbeille Windows" onMouseDown={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold">Mettre {toDelete.length} image{toDelete.length > 1 ? 's' : ''} à la Corbeille Windows ?</h2>
             <p className="mt-2 text-sm">
-              Les fichiers partent dans la <b>Corbeille Windows</b> ({formatBytes(freed)}) et Form les oublie : ils ne reviendront pas, même si Social Saver remet les fichiers.
+              Les fichiers partent dans la <b>Corbeille Windows</b> ({formatBytes(freed)}) et Form les oublie : ils ne reviendront pas, même si les fichiers reviennent dans le dossier.
               Les images marquées « Garder » ne sont pas touchées. Tu pourras récupérer les fichiers dans la Corbeille Windows.
             </p>
             <div className="mt-5 flex justify-end gap-2">

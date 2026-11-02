@@ -6,7 +6,7 @@ import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 /**
- * Mise à jour automatique de la bibliothèque, quelques secondes après le lancement de Form : nouveaux fichiers de Social Saver,
+ * Mise à jour automatique de la bibliothèque, quelques secondes après le lancement de Form : nouveaux fichiers de Form,
  * miniatures, empreintes d'IA, couleurs, texte des vidéos, classement. Rien ne se lance s'il n'y a rien de nouveau.
  * Seulement dans la fenêtre principale, et selon la fréquence choisie dans Réglages > Bibliothèque (jamais, au démarrage, par jour, semaine ou mois).
  */

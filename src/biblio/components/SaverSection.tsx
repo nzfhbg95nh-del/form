@@ -35,7 +35,7 @@ function CookieRow({ label, value, note, disabled, onChange }: { label: string; 
 }
 
 /**
- * Télécharger mes enregistrements Instagram et mes épingles Pinterest (ce que faisait Social Saver) : même méthode, mêmes dossiers, mêmes noms de fichiers,
+ * Télécharger mes enregistrements Instagram et mes épingles Pinterest (ce que faisait Form) : même méthode, mêmes dossiers, mêmes noms de fichiers,
  * mêmes pauses. Seules les nouveautés sont téléchargées ; la bibliothèque se met à jour toute seule ensuite.
  */
 export function SaverSection() {
@@ -118,7 +118,7 @@ export function SaverSection() {
     <div className="py-4">
       <h2 className="text-base font-semibold">Télécharger mes enregistrements</h2>
       <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Form télécharge tes enregistrés Instagram et tes épingles Pinterest dans ton dossier d'images ({root || 'dossier non choisi'}), comme le faisait Social Saver.
+        Form télécharge tes enregistrés Instagram et tes épingles Pinterest dans ton dossier « Bibliothèque Form » ({root || 'dossier non choisi'}), rangés dans « instagram » et « pinterest ».
         Seules les nouveautés sont téléchargées. Il utilise tes fichiers <b>cookies.txt</b> (jamais ton mot de passe) et fait des pauses entre les fichiers pour ne pas gêner ton compte.
         Les cookies expirent vite : refais l'export depuis Chrome avant une session.
       </p>
@@ -138,7 +138,7 @@ export function SaverSection() {
           <li>Enregistre le fichier : <b>www.pinterest.com_cookies.txt</b></li>
         </ol>
       </div>
-      {prefilled && <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Réglages repris de ton Social Saver (qui n'a pas été modifié).</p>}
+      {prefilled && <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Réglages repris de ton ancien outil de téléchargement (qui n'a pas été modifié).</p>}
 
       {loaded && (
         <>

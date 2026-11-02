@@ -1,4 +1,4 @@
-// Télécharger mes enregistrements Instagram et Pinterest depuis Form (le travail de Social Saver). Le téléchargement lui-même est fait par le programme
+// Télécharger mes enregistrements Instagram et Pinterest depuis Form (le travail de Form). Le téléchargement lui-même est fait par le programme
 // (gallery-dl, voir `saver.rs`) ; ici : les réglages retenus, les adresses à télécharger et les avertissements.
 
 import { invoke } from '@tauri-apps/api/core'
@@ -23,7 +23,7 @@ export interface SaverJob {
   cookies: string
 }
 
-/** Les adresses à télécharger, ou ce qui manque (dit en français simple). Instagram d'abord, comme Social Saver. */
+/** Les adresses à télécharger, ou ce qui manque (dit en français simple). Instagram d'abord, comme Form. */
 export function buildJobs(s: SaverSettings): { jobs: SaverJob[]; problem: string | null } {
   const jobs: SaverJob[] = []
   if (s.doIg) {
@@ -67,7 +67,7 @@ export async function saveSaverSettings(s: SaverSettings) {
   ])
 }
 
-/** Les réglages retenus par Form ; la première fois, ils sont préremplis depuis ceux de Social Saver (lus sans rien y changer). */
+/** Les réglages retenus par Form ; la première fois, ils sont préremplis depuis ceux de Form (lus sans rien y changer). */
 export async function loadSaverSettings(): Promise<{ settings: SaverSettings; prefilled: boolean }> {
   const stored = await getSetting(KEYS.igUser)
   const [pinUrl, igCookies, pinCookies, doIg, doPin] = await Promise.all([

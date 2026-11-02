@@ -1,5 +1,5 @@
 // « Images ajoutées » : les images que Victor ajoute à la main dans la bibliothèque. Elles sont COPIÉES dans un dossier à elles,
-// « images ajoutées » dans la Bibliothèque Form (avant : Documents\Form\Mes ajouts) : le dossier de Social Saver n'est jamais touché.
+// « images ajoutées » dans la Bibliothèque Form (avant : Documents\Form\images ajoutées) : le dossier de la bibliothèque n'est jamais touché.
 // Le nom d'un fichier copié est l'empreinte de son contenu, donc la même image ajoutée deux fois ne crée jamais de doublon.
 
 use serde::Serialize;
@@ -13,7 +13,7 @@ pub const PREFIX: &str = "ajouts/";
 
 static DIR: RwLock<Option<PathBuf>> = RwLock::new(None);
 
-/// L'ancien dossier « Mes ajouts » (Documents\Form\Mes ajouts), utilisé tant qu'aucune bibliothèque n'est choisie.
+/// L'ancien dossier « images ajoutées » (Documents\Form\images ajoutées), utilisé tant qu'aucune bibliothèque n'est choisie.
 static LEGACY: RwLock<Option<PathBuf>> = RwLock::new(None);
 
 /// Au démarrage : retient l'ancien dossier et l'utilise en attendant la bibliothèque.
@@ -104,7 +104,7 @@ fn expand(paths: &[String]) -> Vec<PathBuf> {
 /// Copie une liste de fichiers (ou de dossiers) dans `dest`, sans doublon.
 pub fn add_into(dest: &Path, paths: &[String]) -> Vec<AddOutcome> {
     if let Err(e) = std::fs::create_dir_all(dest) {
-        return vec![outcome("", "error", None, Some(format!("Dossier Mes ajouts impossible à créer : {e}")))];
+        return vec![outcome("", "error", None, Some(format!("Dossier des images ajoutées impossible à créer : {e}")))];
     }
     let mut seen = std::collections::HashSet::new();
     expand(paths)
@@ -152,7 +152,7 @@ pub fn add_bytes_into(dest: &Path, bytes: &[u8], ext: &str) -> AddOutcome {
         return outcome(&name, "error", None, Some("Format non pris en charge.".into()));
     }
     if let Err(e) = std::fs::create_dir_all(dest) {
-        return outcome(&name, "error", None, Some(format!("Dossier Mes ajouts impossible à créer : {e}")));
+        return outcome(&name, "error", None, Some(format!("Dossier des images ajoutées impossible à créer : {e}")));
     }
     let sum = hex(&Sha256::digest(bytes)[..12]);
     let stored = format!("{sum}.{ext}");
@@ -167,7 +167,7 @@ pub fn add_bytes_into(dest: &Path, bytes: &[u8], ext: &str) -> AddOutcome {
     }
 }
 
-/// Le dossier Mes ajouts (créé s'il n'existe pas encore).
+/// Le dossier images ajoutées (créé s'il n'existe pas encore).
 #[tauri::command]
 pub fn ajouts_dir() -> Result<String, String> {
     let d = dir().ok_or("Le dossier des images ajoutées n'est pas encore connu.")?;

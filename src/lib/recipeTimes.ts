@@ -1,6 +1,6 @@
 /**
  * Estimation du temps de préparation d'une recette (propriété « Préparation (min) »).
- * 1. D'après la ligne « Temps : … » des notes (importée de Klippr) : on garde le temps actif (« 15 min + 35 min de cuisson » -> 15),
+ * 1. D'après la ligne « Temps : … » des notes (importée de Form) : on garde le temps actif (« 15 min + 35 min de cuisson » -> 15),
  *    pas la cuisson, le repos ni le mijotage.
  * 2. Sinon, une estimation d'après le nombre d'ingrédients et d'étapes : 5 min + 1,5 min par ingrédient + 2 min par étape, à 5 min près.
  * Rien n'est enregistré ici : l'écran montre l'estimation et Victor valide.

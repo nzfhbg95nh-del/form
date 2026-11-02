@@ -184,7 +184,7 @@ function AutoUpdate() {
         </select>
       </label>
       <p className="mt-1 text-xs" style={{ color: 'var(--fg-muted)' }}>
-        Quelques secondes après l'ouverture de Form, quand c'est le moment, Form cherche les nouveaux fichiers de Social Saver, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau. Le bouton « Mettre à jour la bibliothèque » fonctionne toujours, quel que soit ce choix.
+        Quelques secondes après l'ouverture de Form, quand c'est le moment, Form cherche les nouveaux fichiers de ta bibliothèque, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau. Le bouton « Mettre à jour la bibliothèque » fonctionne toujours, quel que soit ce choix.
         {frequency !== 'never' && frequency !== 'startup' && (lastDay ? ` Dernière mise à jour automatique : ${lastDay.split('-').reverse().join('/')}.` : ' Aucune mise à jour automatique faite pour le moment.')}
       </p>
     </section>
@@ -203,7 +203,7 @@ export function LibrarySettings() {
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
 
   const choose = async () => {
-    const picked = await open({ directory: true, defaultPath: root, title: 'Dossier « Bibliothèque Form » (ou « Save images » de Social Saver)' })
+    const picked = await open({ directory: true, defaultPath: root || undefined, title: 'Dossier « Bibliothèque Form »' })
     if (typeof picked === 'string') await setRoot(picked)
   }
 
@@ -224,7 +224,7 @@ export function LibrarySettings() {
           <button className="btn" onClick={choose} disabled={busy}><FolderOpen size={16} /> Choisir…</button>
         </div>
         <ul className="mt-2 space-y-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
-          <li>Dedans : <b>instagram</b>, <b>pinterest</b>, <b>images ajoutées</b>, <b>recettes</b> et <b>cache</b> (miniatures et modèle d'IA, qui se refont tout seuls).</li>
+          <li>Dedans : <b>instagram</b>, <b>pinterest</b>, <b>images ajoutées</b>, <b>recette</b> et <b>cache</b> (miniatures et modèle d'IA, qui se refont tout seuls).</li>
           {layout && !layout.exists && <li style={{ color: '#d44c47' }}>Ce dossier est introuvable (disque débranché ou dossier déplacé ?). Choisis son nouvel emplacement.</li>}
           {layout?.exists && (
             <li>{layout.cache_in_library ? 'Le cache est dans la bibliothèque.' : 'Le cache (miniatures, modèle d\'IA) est encore sur le disque C: : « Déplacer ma bibliothèque… » le range dans la bibliothèque.'}</li>
