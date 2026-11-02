@@ -1,12 +1,19 @@
 name: Fabriquer la bêta « Form Travail »
 
-# Se lance quand on pose une étiquette beta-..., par exemple beta-1.
+# Se lance à chaque envoi de code sur la branche `travail` (plus besoin de poser une étiquette) : la bêta s'appelle beta-N (N = numéro de fabrication).
+# Pourquoi la branche et pas une étiquette : GitHub ne réutilise pas son cache de compilation d'une étiquette à l'autre, donc chaque bêta repartait de zéro
+# (environ 40 min). Depuis la branche, le cache est réutilisé : les fabrications suivantes sont bien plus rapides.
+# Un nouvel envoi arrête la fabrication précédente encore en cours (inutile de finir une version déjà dépassée).
 # « Form Travail » s'installe À CÔTÉ de la vraie Form : autre nom, autre dossier de données, pas de mise à jour automatique,
 # rien n'est publié dans le dépôt public des mises à jour. La vraie Form n'est jamais touchée.
 on:
   push:
-    tags:
-      - 'beta-*'
+    branches:
+      - travail
+
+concurrency:
+  group: beta-travail
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -70,8 +77,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tagName: ${{ github.ref_name }}
-          releaseName: 'Form Travail ${{ github.ref_name }}'
+          tagName: beta-${{ github.run_number }}
+          releaseName: 'Form Travail bêta ${{ github.run_number }}'
           releaseBody: "Bêta « Form Travail » : s'installe à côté de la vraie Form, avec ses propres données. Télécharge le fichier .msi ci-dessous, puis double-clique dessus."
           releaseDraft: false
           prerelease: true
