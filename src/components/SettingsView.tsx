@@ -6,7 +6,6 @@ import { SystemCheck } from '@/components/SystemCheck'
 import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { backupDirs, backupFileName, joinPath, restoreBackup, todayISO } from '@/lib/backup'
 import { useLibrary } from '@/biblio/store/library'
-import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
@@ -39,7 +38,6 @@ export function GeneralSettings() {
   const [dir, setDir] = useState<string | null>(null)
   const [last, setLast] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
-  const [reminders, setReminders] = useState(true)
   const root = useLibrary((s) => s.root)
   const desktop = isTauri()
 
@@ -47,7 +45,6 @@ export function GeneralSettings() {
     // Le dossier de sauvegarde suit la bibliothèque (« sauvegardes » dedans) ; si elle est introuvable, c'est Documents\Form sauvegardes.
     if (repo && desktop) void backupDirs(repo).then((d) => setDir(d[0] ?? null)).catch(() => setDir(null))
     void repo?.getSetting('last_backup_date').then(setLast)
-    void repo?.getSetting('reminders_enabled').then((v) => setReminders(v !== '0'))
   }, [repo, desktop, root])
 
   const run = async (fn: () => Promise<string | void>) => {
@@ -134,30 +131,6 @@ export function GeneralSettings() {
           <BackupAction icon={<Copy size={16} />} title="Enregistrer une copie ailleurs" hint="Clé USB, OneDrive, un autre dossier…" disabled={!desktop} onClick={exportAll} />
         </div>
         {msg && <p className="mt-3 text-sm">{msg}</p>}
-      </SettingsSection>
-
-      <SettingsSection
-        title="Notifications"
-        description="Les rappels ne fonctionnent que lorsque Form est ouvert. Une tâche n'est rappelée qu'une fois par jour."
-      >
-        <label className="mb-3 flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={reminders}
-            onChange={(e) => {
-              setReminders(e.target.checked)
-              void repo?.setSetting('reminders_enabled', e.target.checked ? '1' : '0')
-            }}
-          />
-          Me prévenir par une notification Windows quand une tâche arrive à échéance
-        </label>
-        <button
-          className="btn disabled:opacity-40"
-          disabled={!desktop}
-          onClick={() => void run(async () => ((await notify('Form', 'Les notifications fonctionnent.')) ? 'Notification envoyée.' : "Impossible d'envoyer la notification : vérifie que Windows autorise les notifications pour Form."))}
-        >
-          Envoyer une notification de test
-        </button>
       </SettingsSection>
     </div>
   )

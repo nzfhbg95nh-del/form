@@ -1003,3 +1003,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fenêtre « Créer / Modifier un moodboard » : la photo de couverture est un carré en pointillés à gauche, ses actions (Ajouter / Changer la photo, Retirer, Parmi ses images) à sa droite, le nom en dessous sur toute la largeur.
 
 - Le « + » des boutons ne fait plus de quart de tour au survol (animation retirée de index.css).
+
+- Réglages > Général : section « Notifications » retirée (pas de réglage). Les rappels automatiques (factures en retard, plafonds, URSSAF, tâches) restent actifs comme avant, sans interrupteur.
+- Fenêtre moodboard : « Ajouter une photo » aligné en haut du carré, sans texte en dessous.

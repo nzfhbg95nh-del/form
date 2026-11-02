@@ -60,7 +60,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
           <button className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-[var(--bg-hover)]" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
         </div>
 
-        <div className="mt-6 flex items-center gap-4">
+        <div className="mt-6 flex items-start gap-4">
           <button
             className={'group relative aspect-[4/3] w-44 shrink-0 overflow-hidden rounded-2xl transition-colors ' + (shown ? '' : 'border-2 border-dashed hover:bg-[var(--bg-hover)]')}
             style={shown ? { background: 'var(--bg-hover)' } : { borderColor: 'var(--border)' }}
@@ -108,10 +108,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
                 </SideAction>
               </>
             ) : (
-              <>
-                <SideAction icon={<ImagePlus size={14} />} onClick={choose}>Ajouter une photo</SideAction>
-                <p className="px-1.5 pt-1 text-xs" style={{ color: 'var(--fg-muted)' }}>Facultatif : tu pourras la changer plus tard.</p>
-              </>
+              <SideAction icon={<ImagePlus size={14} />} onClick={choose}>Ajouter une photo</SideAction>
             )}
             {onPickFromBoard && <SideAction icon={<Images size={14} />} onClick={onPickFromBoard}>Parmi ses images</SideAction>}
           </div>
