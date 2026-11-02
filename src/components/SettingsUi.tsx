@@ -24,10 +24,10 @@ export function SettingsSection({ title, description, icon, children }: { title:
   )
 }
 
-/** Une barre de choix (un seul choix à la fois), dans le même style que les onglets : le choisi est « posé » en blanc. */
-export function SegmentedBar<T extends string>({ items, value, onChange, label }: { items: { id: T; label: string }[]; value: T; onChange: (id: T) => void; label: string }) {
+/** Une barre de choix (un seul choix à la fois), dans le même style que les onglets : le choisi est « posé » en blanc. `block` : elle prend toute la largeur. */
+export function SegmentedBar<T extends string>({ items, value, onChange, label, block = false }: { items: { id: T; label: ReactNode }[]; value: T; onChange: (id: T) => void; label: string; block?: boolean }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex flex-wrap gap-1 rounded-xl bg-[var(--bg-side)] p-1">
+    <div role="radiogroup" aria-label={label} className={(block ? 'flex w-full' : 'inline-flex flex-wrap') + ' gap-1 rounded-xl bg-[var(--bg-side)] p-1'}>
       {items.map((it) => {
         const active = it.id === value
         return (
@@ -36,7 +36,7 @@ export function SegmentedBar<T extends string>({ items, value, onChange, label }
             role="radio"
             aria-checked={active}
             onClick={() => onChange(it.id)}
-            className={'rounded-lg px-3 py-1.5 text-sm transition-colors ' + (active ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}
+            className={'flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ' + (block ? 'flex-1 ' : '') + (active ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}
           >
             {it.label}
           </button>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
+import { SegmentedBar } from '@/components/SettingsUi'
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
@@ -98,16 +99,17 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
               </button>
             ))}
             <div className="my-1 border-t border-[var(--border)]" />
-            <div className="flex gap-1 p-1">
-              {([false, true] as const).map((desc) => (
-                <button
-                  key={String(desc)}
-                  onClick={() => onChange(sortBy, desc)}
-                  className={'flex flex-1 items-center justify-center gap-1 rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)] ' + (sortDesc === desc ? 'bg-[var(--bg-hover)] font-medium' : 'text-[var(--fg-muted)]')}
-                >
-                  {desc ? <ArrowDown size={14} /> : <ArrowUp size={14} />} {desc ? 'Descendant' : 'Ascendant'}
-                </button>
-              ))}
+            <div className="p-1">
+              <SegmentedBar
+                block
+                label="Ordre du tri"
+                value={sortDesc ? 'desc' : 'asc'}
+                onChange={(id) => onChange(sortBy, id === 'desc')}
+                items={[
+                  { id: 'asc', label: <><ArrowUp size={14} /> Ascendant</> },
+                  { id: 'desc', label: <><ArrowDown size={14} /> Descendant</> },
+                ]}
+              />
             </div>
             <div className="p-1">
               <button className="btn btn-primary w-full justify-center" onClick={() => setOpen(false)}>Valider</button>
