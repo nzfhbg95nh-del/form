@@ -1006,3 +1006,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 - Réglages > Général : section « Notifications » retirée (pas de réglage). Les rappels automatiques (factures en retard, plafonds, URSSAF, tâches) restent actifs comme avant, sans interrupteur.
 - Fenêtre moodboard : « Ajouter une photo » aligné en haut du carré, sans texte en dessous.
+
+- Icônes de la barre d'onglets ramenées à la taille de celles de la barre latérale (14 px) pour qu'elles soient identiques.

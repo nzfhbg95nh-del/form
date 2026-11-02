@@ -9,10 +9,10 @@ import { viewTitle } from '@/lib/viewTitle'
 import { parseViewTab } from '@/lib/tabs'
 
 const VIEW_ICONS: Record<string, React.ReactNode> = {
-  home: <Home size={15} />, trash: <Trash2 size={15} />, settings: <Settings size={15} />, clients: <Users size={15} />, services: <Briefcase size={15} />,
-  quotes: <FileSignature size={15} />, invoices: <Receipt size={15} />, payments: <Banknote size={15} />, dashboard: <LayoutDashboard size={15} />,
+  home: <Home size={14} />, trash: <Trash2 size={14} />, settings: <Settings size={14} />, clients: <Users size={14} />, services: <Briefcase size={14} />,
+  quotes: <FileSignature size={14} />, invoices: <Receipt size={14} />, payments: <Banknote size={14} />, dashboard: <LayoutDashboard size={14} />,
 }
-const LIBRARY_ICONS: Record<string, React.ReactNode> = { all: <LayoutGrid size={15} />, collections: <FolderOpen size={15} />, moodboards: <Images size={15} />, map: <MapIcon size={15} /> }
+const LIBRARY_ICONS: Record<string, React.ReactNode> = { all: <LayoutGrid size={14} />, collections: <FolderOpen size={14} />, moodboards: <Images size={14} />, map: <MapIcon size={14} /> }
 
 export function TabBar() {
   const { tabs, objects, view, activate, closeTabAt, setSearch, goBack, goForward, navBack, navForward, toggleSidebar } = useApp()
@@ -55,7 +55,7 @@ export function TabBar() {
       {/* Hors d'une page (Accueil, Devis, Tout…), l'onglet actif porte le nom de l'écran : on sait toujours où l'on est. */}
       {view !== 'page' && !parseViewTab(tabs.ids[tabs.active] ?? '') && (
         <div className="flex max-w-[200px] items-center gap-1.5 rounded-t-md bg-[var(--bg)] px-2 py-1 text-sm font-medium" aria-current="page">
-          {view === 'library' ? LIBRARY_ICONS[libPage] ?? <LayoutGrid size={15} /> : VIEW_ICONS[view]}
+          {view === 'library' ? LIBRARY_ICONS[libPage] ?? <LayoutGrid size={14} /> : VIEW_ICONS[view]}
           <span className="truncate">{viewTitle(view, libPage, openedCollection?.name ?? null)}</span>
         </div>
       )}
