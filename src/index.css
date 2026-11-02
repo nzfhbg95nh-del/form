@@ -20,6 +20,7 @@
   --accent: #2383e2;
 }
 .dark {
+  color-scheme: dark; /* barres de défilement, champs de date… passent en sombre aussi */
   --bg: #191919;
   --bg-side: #202020;
   --bg-hover: #2c2c2c;
@@ -35,6 +36,9 @@ body {
   color: var(--fg);
   font-family: "Segoe UI", system-ui, sans-serif;
 }
+
+/* L'éditeur n'a pas de fond à lui : en mode sombre, il laissait un rectangle plus clair derrière la première ligne d'une page vide. */
+.bn-container, .bn-editor { background-color: transparent !important; }
 
 /* Blocs touchés par le rectangle de sélection d'une page */
 .bn-block-outer[data-marquee="true"] > .bn-block > .bn-block-content {
@@ -212,3 +216,6 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 
 /* Recette : sa photo est déjà en bandeau de couverture, on masque celle qui ouvre le corps de la page. */
 .recipe-cover-on .bn-editor > .bn-block-group > .bn-block-outer:first-child:has(> .bn-block > .bn-block-content[data-content-type='image']) { display: none; }
+
+/* Page vide, comme dans Notion : pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (le curseur arrive dans le titre). */
+.page-body .bn-editor:not(:focus-within) .bn-inline-content::before { content: none !important; }

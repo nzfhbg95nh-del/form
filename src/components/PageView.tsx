@@ -17,6 +17,17 @@ import { useLibrary } from '@/biblio/store/library.ts'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
 
+/** Vrai pour une page sans contenu (aucun bloc, ou seulement des lignes vides). */
+function isBlankContent(content: string | null): boolean {
+  if (!content) return true
+  try {
+    const blocks = JSON.parse(content) as { type: string; content?: unknown[] }[]
+    return blocks.every((b) => b.type === 'paragraph' && (!b.content || b.content.length === 0))
+  } catch {
+    return false
+  }
+}
+
 /** L'icône que les recettes recevaient par défaut : elle n'est plus montrée. */
 const OLD_RECIPE_ICON = '🍳'
 
@@ -45,6 +56,12 @@ export function PageView({ pageId }: { pageId?: string }) {
       void update(p.id, p.patch)
     }
     setTitle(page?.title ?? '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page?.id])
+
+  // Comme dans Notion : une page toute neuve s'ouvre avec le curseur dans le titre, prête à être nommée.
+  useEffect(() => {
+    if (page && page.type !== 'row' && !page.title && isBlankContent(page.content)) requestAnimationFrame(() => titleRef.current?.focus())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page?.id])
 
@@ -217,7 +234,7 @@ export function PageView({ pageId }: { pageId?: string }) {
       </div>
       {page.cover && <div className={(isRecipe ? 'h-64' : 'h-48') + ' w-full'} style={coverStyle(page.cover)} />}
       <div
-        className={'mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '') + (photoInBody ? ' recipe-cover-on' : '')}
+        className={'page-body mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '') + (photoInBody ? ' recipe-cover-on' : '')}
         style={{ '--bn-font-family': pageFontFamily(ui.font), fontFamily: pageFontFamily(ui.font) } as React.CSSProperties}
       >
         <div className="group">

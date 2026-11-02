@@ -1056,3 +1056,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 - Recettes : le bouton « Corriger les quantités (g, ml)… » est supprimé ; à chaque ouverture d'une recette, les quantités de la liste « Ingrédients » passent toutes seules en g / ml / l (liquides en ml ou litres), avec le tableau d'équivalences (réglage `recipe_equivalences`, valeurs de départ sinon). `RecipeUnitsDialog` supprimé : le tableau n'a plus d'écran de modification pour l'instant.
 - Bloc « Pour N personnes » : il ne passe plus en bleu quand on clique sur + ou −.
+
+## 2026-11-02 — Page vierge à la manière de Notion
+- Nouvelle page : le curseur arrive dans le titre ; pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (`.page-body`) ; plus de rectangle plus clair derrière la première ligne en mode sombre (fond de l'éditeur transparent) ; `color-scheme: dark` en mode sombre (barres de défilement et champs natifs sombres).
