@@ -1,4 +1,4 @@
-﻿# Journal de Form
+# Journal de Form
 
 ## 2026-10-03 — Phase 0 (Fondations), première version
 
@@ -849,3 +849,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les 7 idées validées sont faites. Reste à vérifier dans l'appli : les fenêtres intégrées (YouTube peut refuser sans « referer »), l'aperçu de lien (dépend de chaque site), le plan de la page, « Mentionné dans ».
 - Moodboard incrusté dans une page : habillage refait dans la même direction artistique (coins arrondis, relief doux, bandeau avec le nom en gras et le nombre d'éléments seulement s'il y en a, deux actions « Fenêtre flottante » et « Pleine page » dans une pastille qui s'éclaircit au survol, poignée de redimensionnement discrète).
 - Moodboard incrusté : l'icône (clic = sélecteur d'icône) et le nom (champ modifiable, Entrée pour valider, Échap pour annuler) se changent directement dans le bandeau ; le mot « vide » est retiré.
+
+## 2026-11-02 — Version 0.47.4
+- Contenu : accueil avec sept nouveaux widgets, éditeur plus proche de Notion (aide sur la ligne vide, Espace ouvre l'assistant, Tab), aperçu de lien web et intégrations (YouTube, Spotify, Figma…), menu « / » avec descriptions, plan de la page / « Mentionné dans » / carte de page, bloc Équation (LaTeX), plus de cadre bleu dans l'éditeur, moodboard incrusté avec nouvel habillage.
