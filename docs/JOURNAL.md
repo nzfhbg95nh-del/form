@@ -999,3 +999,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - La photo de couverture choisie à la création ou dans « Modifier… » n'est plus posée sur la toile du moodboard : elle est seulement gardée avec lui comme couverture.
 
 - « Mettre à la corbeille » (carte d'un moodboard) : plus de question de confirmation ; le moodboard part directement dans la corbeille de Form et un message en bas de l'écran propose « Annuler ».
+
+- Fenêtre « Créer / Modifier un moodboard » : la photo de couverture est un carré en pointillés à gauche, ses actions (Ajouter / Changer la photo, Retirer, Parmi ses images) à sa droite, le nom en dessous sur toute la largeur.
