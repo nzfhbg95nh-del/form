@@ -162,6 +162,12 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 .ProseMirror-selectednode > .bn-block-content[data-content-type='moodboard'] > *::after,
 .bn-block-content[data-content-type='database'].ProseMirror-selectednode > *::after,
 .ProseMirror-selectednode > .bn-block-content[data-content-type='database'] > *::after { display: none; }
+/* Le bloc « Pour N personnes » : ses boutons + et − ne doivent pas le faire passer en bleu à chaque clic. */
+.bn-block-content[data-content-type='portions'] { user-select: none; -webkit-user-select: none; }
+.bn-block-content[data-content-type='portions'].ProseMirror-selectednode > *::after,
+.ProseMirror-selectednode > .bn-block-content[data-content-type='portions'] > *::after { display: none !important; }
+.bn-block-content[data-content-type='portions'].ProseMirror-selectednode > *,
+.ProseMirror-selectednode > .bn-block-content[data-content-type='portions'] > * { outline: none !important; }
 
 /* Images, vidéos, audio et fichiers d'une page (la photo d'une recette, par exemple) : quand le bloc est « sélectionné » (c'est le cas dès qu'on ouvre la page), BlockNote le recouvre d'un voile bleu avec un liseré bleu. On le retire ; le menu du bloc et les poignées de taille restent. */
 .bn-block-content:is([data-content-type='image'], [data-content-type='video'], [data-content-type='audio'], [data-content-type='file'], [data-content-type='recipephoto']).ProseMirror-selectednode > *::after,

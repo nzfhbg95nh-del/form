@@ -1053,3 +1053,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 - Recettes : la photo devient la vraie image de couverture (bandeau de 256 px tout en haut de la fiche, modifiable dans « Ajouter / Changer l'image de couverture »). À l'ouverture d'une recette sans couverture, sa première photo est enregistrée comme couverture et celle qui ouvrait le corps de la page est masquée (elle reste dans le contenu). `coverStyle` sait afficher les images de la bibliothèque (`form-lib:`) et d'un site (`https:`).
 - Icône de poêle à frire (🍳, mise par défaut) retirée : plus de défaut pour les nouvelles recettes, et elle n'est plus montrée sur les recettes existantes (page, fil d'Ariane, fiches).
+
+- Recettes : le bouton « Corriger les quantités (g, ml)… » est supprimé ; à chaque ouverture d'une recette, les quantités de la liste « Ingrédients » passent toutes seules en g / ml / l (liquides en ml ou litres), avec le tableau d'équivalences (réglage `recipe_equivalences`, valeurs de départ sinon). `RecipeUnitsDialog` supprimé : le tableau n'a plus d'écran de modification pour l'instant.
+- Bloc « Pour N personnes » : il ne passe plus en bleu quand on clique sur + ou −.
