@@ -23,7 +23,7 @@ export function TabBar() {
   const menuId = menu ? tabs.ids[menu.i] : undefined
 
   return (
-    <div className="flex items-center gap-0.5 overflow-x-auto border-b border-[var(--border)] bg-[var(--bg-side)] px-1 pt-1">
+    <div className="flex items-center gap-0.5 overflow-x-auto bg-[var(--bg-side)] px-1 pt-1 shadow-[inset_0_-1px_0_var(--border)]">
       <button title="Afficher / masquer la barre latérale (Ctrl+\)" onClick={toggleSidebar} className="mb-0.5 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"><PanelLeft size={16} /></button>
       <button title="Précédent (Alt+←)" disabled={navBack.length === 0} onClick={goBack} className="mb-0.5 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
       <button title="Suivant (Alt+→)" disabled={navForward.length === 0} onClick={goForward} className="mb-0.5 mr-1 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
@@ -36,7 +36,7 @@ export function TabBar() {
             key={id + i}
             onMouseDown={(e) => { if (e.button === 1) { e.preventDefault(); closeTabAt(i) } }}
             onContextMenu={(e) => { e.preventDefault(); setMenu({ i, x: e.clientX, y: e.clientY }) }}
-            className={'group flex max-w-[200px] items-center gap-1 rounded-t-md px-2 py-1 text-sm ' + (active ? 'bg-[var(--bg)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
+            className={'group flex max-w-[200px] items-center gap-1 self-end rounded-t-md px-2 py-1 text-sm ' + (active ? 'bg-[var(--bg)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
           >
             <button onClick={() => activate(i)} className="flex min-w-0 items-center gap-1.5">
               {vt ? (vt.libPage ? LIBRARY_ICONS[vt.libPage] : VIEW_ICONS[vt.view]) : <Icon value={o?.icon ?? (o?.type === 'database' ? '📊' : '📄')} size={15} />}
@@ -54,7 +54,7 @@ export function TabBar() {
       })}
       {/* Hors d'une page (Accueil, Devis, Tout…), l'onglet actif porte le nom de l'écran : on sait toujours où l'on est. */}
       {view !== 'page' && !parseViewTab(tabs.ids[tabs.active] ?? '') && (
-        <div className="flex max-w-[200px] items-center gap-1.5 rounded-t-md bg-[var(--bg)] px-2 py-1 text-sm font-medium" aria-current="page">
+        <div className="flex max-w-[200px] items-center gap-1.5 self-end rounded-t-md bg-[var(--bg)] px-2 py-1 text-sm font-medium" aria-current="page">
           {view === 'library' ? LIBRARY_ICONS[libPage] ?? <LayoutGrid size={15} /> : VIEW_ICONS[view]}
           <span className="truncate">{viewTitle(view, libPage, openedCollection?.name ?? null)}</span>
         </div>
