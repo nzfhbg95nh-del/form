@@ -114,7 +114,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
           </div>
         </div>
 
-        <label className="mt-5 block rounded-2xl border px-4 py-2 focus-within:border-[var(--accent)]" style={{ borderColor: 'var(--border)' }}>
+        <label className="mt-8 block rounded-2xl border px-4 py-2 focus-within:border-[var(--accent)]" style={{ borderColor: 'var(--border)' }}>
           <span className="block text-xs">Nom du moodboard</span>
           <input
             ref={input}
