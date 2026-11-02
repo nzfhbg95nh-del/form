@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
-import { SplitSlider } from '@/components/SplitSlider'
 import { SegmentedBar } from '@/components/SettingsUi'
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { Icon } from '@/components/Icon'
@@ -25,20 +24,6 @@ import { askConfirm } from '@/lib/confirm'
 const button = 'rounded-lg px-2.5 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
 
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
-const SIZE_KEY = 'form-recipes-size'
-const SIZE_MIN = 160
-const SIZE_MAX = 420
-const SIZE_DEFAULT = 240
-
-/** La taille des fiches (largeur en px), retenue sur cet ordinateur. */
-function savedSize(): number {
-  try {
-    const n = Number(localStorage.getItem(SIZE_KEY))
-    if (n >= SIZE_MIN && n <= SIZE_MAX) return n
-  } catch { /* sans importance */ }
-  return SIZE_DEFAULT
-}
-
 export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
   const select = useApp((s) => s.select)
   const v = parseValues(row.properties)
@@ -60,7 +45,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
     <button onClick={() => select(row.id)} className="group overflow-hidden rounded-xl border border-[var(--border)] text-left shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--bg-hover)]">
       {/* La photo et le texte sont dans le même cadre arrondi. */}
       <div
-        className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'aspect-[3/2]' : 'h-32')}
+        className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}
         style={style}
       >
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
@@ -306,11 +291,6 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
-  const [size, setSizeState] = useState(savedSize)
-  const setSize = (n: number) => {
-    setSizeState(n)
-    try { localStorage.setItem(SIZE_KEY, String(n)) } catch { /* sans importance */ }
-  }
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -529,10 +509,9 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
           <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
-          <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des fiches" />
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: `repeat(auto-fill, minmax(${size}px, 1fr))` }}>
+        <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
