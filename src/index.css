@@ -218,4 +218,4 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 .recipe-cover-on .bn-editor > .bn-block-group > .bn-block-outer:first-child:has(> .bn-block > .bn-block-content[data-content-type='image']) { display: none; }
 
 /* Page vide, comme dans Notion : pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (le curseur arrive dans le titre). */
-.page-body .bn-editor:not(:focus-within) .bn-inline-content::before { content: none !important; }
+.page-body .bn-editor:not(:focus-within) .bn-block-content[data-content-type='paragraph']::after { content: none !important; }
