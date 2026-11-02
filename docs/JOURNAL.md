@@ -1016,3 +1016,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Jauge (version compacte : taille des vignettes, confiance min.) : même hauteur que les boutons (34 px) et extrémités en pilule.
 
 - Jauge (toutes les versions) : toujours 34 px de haut, bouts en pilule, plus d'amincissement aux extrémités. Texte des boutons ramené à 13 px (comme le champ de recherche).
+
+- Jauge : l'animation d'amincissement aux extrémités (barre fine, libellés qui remontent) est rétablie pour la jauge de la grille ; formes en pilule et 34 px conservés.
