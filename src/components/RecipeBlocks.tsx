@@ -1,10 +1,12 @@
 import type { BlockNoteEditor } from '@blocknote/core'
 import { createReactBlockSpec } from '@blocknote/react'
 import { Minus, Plus } from 'lucide-react'
+import { useState } from 'react'
 import { parseSchema, parseValues } from '@/lib/database'
 import { RECIPE } from '@/lib/recipes'
 import { extractIngredients, scaleFactor, scaleLine } from '@/lib/recipeScale'
 import { useApp } from '@/store/app'
+import { RecipeUnitsDialog } from './RecipeUnitsDialog'
 
 type Ed = BlockNoteEditor<never, never, never>
 type AnyBlock = { id: string; type: string; props: Record<string, unknown> }
@@ -16,6 +18,7 @@ const btn = 'btn !px-2 !py-1 disabled:opacity-40'
 /** Choix du nombre de personnes : recalcule sur place les quantités de la liste « Ingrédients » de la page. */
 function Portions({ editor, block }: { editor: Ed; block: AnyBlock }) {
   const current = Math.max(1, Number(block.props.servings) || 4)
+  const [unitsOpen, setUnitsOpen] = useState(false)
   // Pour combien de personnes la recette est écrite à la base (propriété « Portions de base » de la page).
   const base = useApp((st) => {
     const page = st.objects.find((o) => o.id === st.selectedId)
@@ -50,6 +53,8 @@ function Portions({ editor, block }: { editor: Ed; block: AnyBlock }) {
       {base !== null && current !== base && (
         <button type="button" className={btn} onClick={() => change(base)}>Revenir à {base}</button>
       )}
+      <button type="button" className={btn} onClick={() => setUnitsOpen(true)}>Corriger les quantités (g, ml)…</button>
+      {unitsOpen && <RecipeUnitsDialog editor={editor} onClose={() => setUnitsOpen(false)} />}
       <span className="text-xs text-[var(--fg-muted)]">
         {base !== null ? `Recette écrite pour ${base} personne${base > 1 ? 's' : ''}. ` : ''}Les quantités de la liste « Ingrédients » s’adaptent toutes seules (Ctrl+Z pour revenir en arrière).
       </span>

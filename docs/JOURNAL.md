@@ -852,3 +852,12 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-11-02 — Version 0.47.4
 - Contenu : accueil avec sept nouveaux widgets, éditeur plus proche de Notion (aide sur la ligne vide, Espace ouvre l'assistant, Tab), aperçu de lien web et intégrations (YouTube, Spotify, Figma…), menu « / » avec descriptions, plan de la page / « Mentionné dans » / carte de page, bloc Équation (LaTeX), plus de cadre bleu dans l'éditeur, moodboard incrusté avec nouvel habillage.
+
+## 2026-11-02 — Version 0.47.5 : recettes, corriger les quantités en g / ml / l
+- Bouton « Corriger les quantités (g, ml)… » à côté du nombre de personnes d'une recette. Il ouvre un APERÇU avant / après de la liste « Ingrédients » : rien ne change tant qu'on ne clique pas sur « Appliquer » (une case par ligne, Ctrl+Z annule).
+- Règle : les liquides restent en ml ou en litres, les autres ingrédients passent en grammes (kg à partir de 1000). « 0,52 bloc de feta » -> « 105 g de feta » ; « 1 c. à soupe d'huile » -> « 15 ml d'huile » ; « 1 c. à café de cannelle » -> « 2,5 g de cannelle » ; « 3 boîtes de pois chiches » -> « 720 g ». Un poids déjà écrit dans la ligne passe avant le tableau (« 1 boîte de pois chiches (265 g) » -> « 265 g »). « petit » = 70 %, « gros » = 130 % du poids d'une pièce. Les lignes déjà en g / ml / l ne sont pas arrondies (seulement cl -> ml, 1000 g -> 1 kg).
+- Tableau d'équivalences modifiable (une ligne « ingrédient = valeur » : `110 g`, `400 ml`, `0,5 g/ml`, `liquide`, `garder`) dans la fenêtre d'aperçu, enregistré dans le réglage `recipe_equivalences`. Les œufs, gousses d'ail, citrons, pincées... sont « garder ». Un ingrédient absent du tableau n'est jamais inventé : il est listé « à compléter » (un clic l'ajoute au tableau).
+- Essai en lecture seule sur les 81 recettes de Victor (820 lignes d'ingrédients) : 267 converties, 457 laissées telles quelles, 96 à compléter (surtout des épices).
+- Code : `src/lib/recipeUnits.ts` (+ 22 tests), `src/components/RecipeUnitsDialog.tsx`. Aucune migration. Tests : 638.
+- Limite : la fenêtre n'a pas été vue à l'écran (l'appli Windows complète est nécessaire) ; à valider avec la prochaine version installée.
+- Envoi vers GitHub : le compte noesainlez-ctrl a été invité comme collaborateur du dépôt (le compte propriétaire nzfhbg95nh-del se connecte avec Apple / une clé d'accès, pas avec un mot de passe).
