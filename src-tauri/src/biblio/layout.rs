@@ -191,6 +191,25 @@ pub fn library_read_text(root: String, rel: String) -> Result<String, String> {
     std::fs::read_to_string(&path).map_err(|e| format!("Lecture impossible : {e}"))
 }
 
+/// Vrai pour un nom de miniature fait par Form : « 3f/3fa9…c2.jpg » (2 caractères, puis 16 chiffres hexadécimaux qui commencent par les mêmes 2, puis .jpg).
+pub fn is_thumb_name(rel: &str) -> bool {
+    let b = rel.as_bytes();
+    let hex = |s: &[u8]| s.iter().all(|c| c.is_ascii_digit() || (b'a'..=b'f').contains(c));
+    b.len() == 23 && rel.ends_with(".jpg") && b[2] == b'/' && hex(&b[..2]) && hex(&b[3..19]) && b[..2] == b[3..5]
+}
+
+/// Range une miniature (reçue en base64) dans le dossier des miniatures. Sert aux vidéos : la fenêtre de l'appli lit leur première image
+/// (sans ffmpeg) et l'envoie ici. Seul un nom de miniature de Form est accepté.
+#[tauri::command]
+pub fn library_write_thumb(app: AppHandle, rel: String, data: String) -> Result<bool, String> {
+    use base64::Engine;
+    if !is_thumb_name(&rel) {
+        return Err("Nom de miniature refusé.".into());
+    }
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data.trim()).map_err(|e| format!("Miniature illisible : {e}"))?;
+    write_if_changed(&thumbs_dir(&app)?.join(&rel), &bytes)
+}
+
 /// Les sous-dossiers d'un dossier de « recette » (rel = « recette » pour la liste des recettes), triés par nom. Vide si le dossier n'existe pas encore.
 #[tauri::command]
 pub fn library_list_dir(root: String, rel: String) -> Result<Vec<String>, String> {
@@ -230,6 +249,15 @@ mod tests {
         assert_eq!(std::fs::read(&file).unwrap(), b"{\"a\":2}");
         assert_eq!(std::fs::read_dir(&dir).unwrap().count(), 1, "aucun fichier provisoire ne reste");
         let _ = std::fs::remove_dir_all(dir.parent().unwrap().parent().unwrap());
+    }
+
+    #[test]
+    fn only_form_thumbnail_names_are_accepted() {
+        assert!(is_thumb_name("af/af63dc4c8601ec8c.jpg"));
+        assert!(is_thumb_name("cb/cbf29ce484222325.jpg"));
+        for bad in ["", "../af63dc4c8601ec8c.jpg", "af/ag63dc4c8601ec8c.jpg", "af/bf63dc4c8601ec8c.jpg", "AF/AF63DC4C8601EC8C.jpg", "af/af63dc4c8601ec8c.png", "af/af63dc4c8601ec8.jpg", "af\\af63dc4c8601ec8c.jpg", "af/af63dc4c8601ec8c.jpg/x", "é/éf63dc4c8601ec8c.jpg", "af/../../x.jpg"] {
+            assert!(!is_thumb_name(bad), "{bad} devrait être refusé");
+        }
     }
 
     #[test]

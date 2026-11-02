@@ -187,6 +187,7 @@ pub fn run() {
             biblio::layout::library_write_file,
             biblio::layout::library_read_text,
             biblio::layout::library_list_dir,
+            biblio::layout::library_write_thumb,
             biblio::relocate::library_move_preview,
             biblio::relocate::library_move,
             biblio::relocate::library_move_cancel,

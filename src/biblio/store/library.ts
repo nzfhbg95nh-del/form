@@ -3,6 +3,7 @@ import { listen } from '@tauri-apps/api/event'
 import { applyLibraryRoot } from '@/biblio/lib/relocate.ts'
 import type { LayoutInfo } from '@/biblio/lib/relocatePure.ts'
 import { seedAndApplyTypes } from '@/biblio/lib/types.ts'
+import { makeVideoThumbs, videosWithoutThumb } from '@/biblio/lib/videoThumbs.ts'
 import { applyThumbBatch, DEFAULT_ROOT, getSetting, getStats, setSetting, startThumbs, syncLibrary, type LibraryStats, type SyncResult, type ThumbResult } from '@/biblio/lib/library.ts'
 
 type Phase = 'idle' | 'sync' | 'thumbs'
@@ -22,6 +23,8 @@ interface LibraryState {
   init: (auto?: boolean) => Promise<void>
   setRoot: (root: string) => Promise<void>
   update: () => Promise<void>
+  /** Fait les miniatures des vidéos qui n'en ont pas (la fenêtre lit leur première image ; aucun programme en plus). */
+  videoThumbs: () => Promise<void>
 }
 
 const EMPTY_STATS: LibraryStats = { blocks: 0, files: 0, collections: 0, missing: 0, thumbsReady: 0, thumbsPending: 0, thumbsFailed: 0 }
@@ -58,6 +61,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       await listen('thumbs-done', async () => {
         await writing
         set({ phase: 'idle', label: '', stats: await getStats() })
+        // Windows ne sait pas lire les vidéos sans ffmpeg : la fenêtre de l'appli s'en charge ensuite.
+        void get().videoThumbs()
       })
     }
     // Détection au démarrage : si le dossier est réglé, on met la bibliothèque à jour sans rien demander.
@@ -86,9 +91,29 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       set({ lastResult: result, stats: await getStats() })
       const started = await startThumbs(root)
       if (started) set({ phase: 'thumbs', label: 'Miniatures…', done: 0, total: get().stats?.thumbsPending ?? 0 })
-      else set({ phase: 'idle', label: '' })
+      else {
+        set({ phase: 'idle', label: '' })
+        void get().videoThumbs()
+      }
     } catch (e) {
       set({ phase: 'idle', label: '', error: String(e) })
     }
+  },
+
+  async videoThumbs() {
+    const { phase, root } = get()
+    if (phase !== 'idle' || !root) return
+    const total = (await videosWithoutThumb().catch(() => [])).length
+    if (total === 0) return
+    set({ phase: 'thumbs', label: 'Miniatures des vidéos…', done: 0, total, error: null })
+    try {
+      await makeVideoThumbs(root, (done, all) => set({ done, total: all }))
+    } catch (e) {
+      set({ error: String(e) })
+    }
+    set({ phase: 'idle', label: '', stats: await getStats().catch(() => get().stats) })
+    // La grille relit les miniatures toutes neuves.
+    const { useGrid } = await import('@/biblio/store/grid.ts')
+    if (useGrid.getState().loaded) await useGrid.getState().load()
   },
 }))
