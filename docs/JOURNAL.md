@@ -989,3 +989,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Confirmation « mettre un moodboard à la corbeille » (carte des moodboards) refaite : icône, titre court, explication discrète, boutons Annuler / Mettre à la corbeille (rouge) alignés à droite.
 
 - « Nouveau moodboard » (page Moodboards) ouvre une fenêtre « Créer un moodboard » (aperçu, nom avec libellé, grand bouton Créer ; Entrée valide, Échap ou clic à côté ferme) au lieu d'un champ en haut à droite : NewMoodboardDialog.tsx.
+
+- Page Moodboards : une carte « Nouveau moodboard » (même forme qu'un moodboard, bordure en tirets, plus au centre) ouvre la fenêtre de création ; elle est la première de la grille.

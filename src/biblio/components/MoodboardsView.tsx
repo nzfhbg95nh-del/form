@@ -192,6 +192,16 @@ export function MoodboardsView() {
           <EmptyState icon={<Images size={24} />} title="Aucun moodboard pour le moment" hint="Pour y mettre des images : clic droit sur une image de la bibliothèque, puis « Ajouter à un moodboard ». Tu peux aussi en poser un dans une page avec « /moodboard »." action={{ label: 'Nouveau moodboard', onClick: () => setNaming(true) }} />
         ) : (
           <div className="grid gap-x-5 gap-y-7" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
+            <div>
+              <button
+                className="flex aspect-[4/3] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed text-sm font-medium transition-colors hover:bg-[var(--bg-hover)]"
+                style={{ borderColor: 'var(--border)', color: 'var(--fg-muted)' }}
+                onClick={() => setNaming(true)}
+              >
+                <span className="flex h-11 w-11 items-center justify-center rounded-full" style={{ background: 'var(--bg-hover)', color: 'var(--fg)' }}><Plus size={22} /></span>
+                Nouveau moodboard
+              </button>
+            </div>
             {boards.map((b) => (
               <div key={b.id} className="group relative">
                 <button className="flex w-full flex-col gap-2 text-left" onClick={() => select(b.id)}>
