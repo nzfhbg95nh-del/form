@@ -6,7 +6,6 @@ import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
 import { PageEditor } from '@/components/PageEditor'
-import { RecipeTimesDialog } from '@/components/RecipeTimesDialog'
 import { recipesWithoutTime } from '@/lib/recipeTimes'
 import { IconPicker } from '@/components/PagePickers'
 import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
@@ -277,7 +276,7 @@ function CategoryChooser({ categories, cover, onCover, onPick, onCreate, onClose
  * (photo + titre). Un clic sur une carte ouvre la recette. « Sans catégorie » se règle comme les autres lignes.
  */
 export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
-  const { objects, saveSchema, addRecipe, setCell, trash } = useApp()
+  const { objects, saveSchema, addRecipe, setCell, trash, repo } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
@@ -291,7 +290,6 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
-  const [estimating, setEstimating] = useState(false)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -302,7 +300,23 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
   const { byCategory, none } = useMemo(() => groupByCategory(rows, categories, (r) => parseValues(r.properties)[RECIPE.type]), [rows, categories])
-  const missingCount = useMemo(() => recipesWithoutTime(rows).items.length, [rows])
+  // Une seule fois, les recettes sans temps de préparation en reçoivent un (estimé d'après les notes, les ingrédients et les étapes) : de quoi trier par temps.
+  // Ensuite, les temps des nouvelles recettes sont écrits à la main ; un temps déjà rempli n'est jamais touché.
+  const hasRows = rows.length > 0
+  useEffect(() => {
+    if (!repo || !hasRows) return
+    let stopped = false
+    void (async () => {
+      if ((await repo.getSetting('recipe_times_estimated')) === '1') return
+      for (const i of recipesWithoutTime(rows).items) {
+        if (stopped) return
+        await setCell(i.id, RECIPE.prep, Math.round(i.minutes))
+      }
+      await repo.setSetting('recipe_times_estimated', '1')
+    })()
+    return () => { stopped = true }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [repo, hasRows])
   const countOf = (e: RecipeEntry) => (e.isNone ? none.length : (byCategory.get(e.id)?.length ?? 0))
   const listOf = (e: RecipeEntry) => (e.isNone ? none : (byCategory.get(e.id) ?? []))
   // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
@@ -364,7 +378,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           </button>
         </div>
         <div className="mb-3"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
-        <div className="grid items-start gap-x-3 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        <div className="grid items-start gap-x-3 gap-y-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
             onClick={() => create(entry.isNone ? undefined : entry.id)}
@@ -492,20 +506,13 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
           <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
-          {missingCount > 0 && (
-            <button className="btn !px-3 !py-1.5" onClick={() => setEstimating(true)} title="Remplir les temps de préparation qui manquent (aperçu avant d'enregistrer)">
-              Estimer les temps ({missingCount})
-            </button>
-          )}
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <div className="grid items-start gap-x-4 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        <div className="grid items-start gap-x-4 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
       </section>
-
-      {estimating && <RecipeTimesDialog rows={rows} onClose={() => setEstimating(false)} />}
 
       {choosing && (
         <CategoryChooser

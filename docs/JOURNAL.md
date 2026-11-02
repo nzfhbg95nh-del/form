@@ -1040,3 +1040,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fiches de recettes : la photo et le titre sont dans un seul cadre arrondi (contour fin, ombre douce, voile léger sur la photo au survol).
 
 - Tri des recettes : la barre Ascendant / Descendant n'a plus que deux flèches (haut / bas), avec le nom en info-bulle.
+
+- Recettes : le bouton « Estimer les temps » est retiré ; les temps de préparation manquants sont estimés une seule fois, automatiquement (réglage `recipe_times_estimated`), puis les nouvelles recettes se remplissent à la main. `RecipeTimesDialog` supprimé. Écart vertical entre les fiches rétabli (16 px).
