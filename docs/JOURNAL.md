@@ -999,5 +999,3 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - La photo de couverture choisie à la création ou dans « Modifier… » n'est plus posée sur la toile du moodboard : elle est seulement gardée avec lui comme couverture.
 
 - « Mettre à la corbeille » (carte d'un moodboard) : plus de question de confirmation ; le moodboard part directement dans la corbeille de Form et un message en bas de l'écran propose « Annuler ».
-
-- Barre d'onglets : la ligne fine sous la barre ne traverse plus l'onglet actif (il se fond dans la page) ; la ligne est dessinée en ombre interne, derrière les onglets alignés en bas.
