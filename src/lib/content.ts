@@ -35,7 +35,7 @@ interface ImageBlockLike {
 
 function findImage(blocks: ImageBlockLike[]): string | null {
   for (const b of blocks) {
-    if (b && b.type === 'image' && typeof b.props?.url === 'string' && /^(data:image\/|https?:\/\/)/.test(b.props.url)) return b.props.url
+    if (b && b.type === 'image' && typeof b.props?.url === 'string' && /^(data:image\/|https?:\/\/|form-lib:)/.test(b.props.url)) return b.props.url
     // Ancien bloc de photo de recette (v0.40.0 / v0.40.1).
     if (b && b.type === 'recipephoto' && typeof b.props?.src === 'string' && b.props.src.startsWith('data:image/')) return b.props.src
     const inner = b?.children?.length ? findImage(b.children) : null

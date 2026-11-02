@@ -36,6 +36,11 @@ describe('première image d’une page', () => {
     expect(firstImageUrl(JSON.stringify(blocks))).toBe(png)
   })
 
+  it('trouve aussi une photo rangée dans le dossier de la bibliothèque (form-lib:…)', () => {
+    const lib = 'form-lib:recette/Acuka [abcd1234]/photo-1.jpg'
+    expect(firstImageUrl(JSON.stringify([{ type: 'portions', props: { servings: 4 } }, { type: 'image', props: { url: lib } }]))).toBe(lib)
+  })
+
   it('ignore les blocs image vides ou douteux, et lit l’ancien bloc photo', () => {
     expect(firstImageUrl(JSON.stringify([{ type: 'image', props: { url: '' } }]))).toBeNull()
     expect(firstImageUrl(JSON.stringify([{ type: 'image', props: { url: 'javascript:alert(1)' } }]))).toBeNull()
