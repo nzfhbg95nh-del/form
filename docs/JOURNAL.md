@@ -861,3 +861,12 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Code : `src/lib/recipeUnits.ts` (+ 22 tests), `src/components/RecipeUnitsDialog.tsx`. Aucune migration. Tests : 638.
 - Limite : la fenêtre n'a pas été vue à l'écran (l'appli Windows complète est nécessaire) ; à valider avec la prochaine version installée.
 - Envoi vers GitHub : le compte noesainlez-ctrl a été invité comme collaborateur du dépôt (le compte propriétaire nzfhbg95nh-del se connecte avec Apple / une clé d'accès, pas avec un mot de passe).
+
+## 2026-11-02 — Recettes : fiches sans temps, titre qui passe à la ligne, image sans cadre bleu, temps estimés (branche fonction/recettes-temps, pas encore publié)
+- Fiches (galerie des recettes) : le temps n'est plus écrit sur la carte (le temps reste dans la propriété « Préparation » de la recette). Les cartes ont une hauteur fixe, donc toutes la même dimension, avec ou sans note ni difficulté.
+- Page d'une recette (et de toute page) : le titre est un champ qui passe à la ligne et grandit avec son texte, au lieu d'être coupé (« Acuka (tartinade turque de poivron et d… »). Entrée n'ajoute pas de retour à la ligne.
+- Image d'une recette : plus de voile ni de liséré bleu quand le bloc est « sélectionné » (c'est le cas dès qu'on ouvre la page). Règle CSS pour image, vidéo, audio, fichier et photo de recette ; mêmes règles que pour le moodboard incrusté.
+- Bouton « Estimer les temps (N) » dans « Toutes les recettes » : aperçu des temps de préparation estimés pour les recettes qui n'en ont pas ; durée modifiable par ligne, case par ligne, rien d'enregistré avant « Enregistrer », un temps déjà rempli n'est jamais touché. Règle : d'après la ligne « Temps : » des notes quand elle donne un temps actif (« 15 min + 35 min de cuisson » -> 15 ; cuisson, repos et mijotage exclus), sinon 5 min + 1,5 min par ingrédient + 2 min par étape, à 5 min près (5 à 90 min).
+- Essai en lecture seule sur les 81 recettes : 59 sans temps, 48 estimables (de 10 à 55 min), 11 sans ingrédients ni étapes (pas d'estimation).
+- Code : `src/lib/recipeTimes.ts` (+ 11 tests), `src/components/RecipeTimesDialog.tsx`, `PageView.tsx`, `RecipesView.tsx`, `index.css`. Tests : 649.
+- Limite : rien de tout cela n'a été vu à l'écran (appli complète nécessaire) ; à valider avec la prochaine version installée.

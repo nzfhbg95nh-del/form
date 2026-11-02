@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
 import { Pin, Star, Trash2 } from 'lucide-react'
 import { addOption } from '@/components/DatabaseView'
@@ -21,6 +21,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   const [title, setTitle] = useState('')
   const timer = useRef<number | undefined>(undefined)
   const editorRef = useRef<BlockNoteEditor<never, never, never> | null>(null)
+  const titleRef = useRef<HTMLTextAreaElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
@@ -39,6 +40,20 @@ export function PageView({ pageId }: { pageId?: string }) {
     setTitle(page?.title ?? '')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page?.id])
+
+  // Le champ du titre prend la hauteur de son texte (retour à la ligne automatique), y compris quand la largeur de la page change.
+  useLayoutEffect(() => {
+    const el = titleRef.current
+    if (!el) return
+    const fit = () => {
+      el.style.height = 'auto'
+      el.style.height = `${el.scrollHeight}px`
+    }
+    fit()
+    const observer = new ResizeObserver(fit)
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [title, page?.id])
 
   if (!page) {
     return (
@@ -183,15 +198,21 @@ export function PageView({ pageId }: { pageId?: string }) {
             {!ui.locked && <CoverPicker value={page.cover} onChange={(cover) => void update(page.id, { cover })} />}
           </div>
           {page.icon && <div className="mb-2"><Icon value={page.icon} size={64} /></div>}
-        <input
+        {/* Le titre passe à la ligne (un long titre n'est plus coupé) et le champ grandit avec ; pas de vrai retour à la ligne dans un titre. */}
+        <textarea
+          ref={titleRef}
+          rows={1}
           value={title}
           readOnly={ui.locked}
           placeholder="Nouvelle page"
+          aria-label="Titre de la page"
           onChange={(e) => {
-            setTitle(e.target.value)
-            saveLater({ title: e.target.value })
+            const next = e.target.value.replace(/\s*\r?\n\s*/g, ' ')
+            setTitle(next)
+            saveLater({ title: next })
           }}
-          className="w-full bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
+          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
+          className="block w-full resize-none overflow-hidden bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
         />
         </div>
         {page.type === 'row' && (() => {
