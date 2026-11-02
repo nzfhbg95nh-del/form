@@ -79,7 +79,7 @@ html.floating #root {
   align-items: center;
   white-space: nowrap;
   gap: 6px;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border: 1px solid transparent;
   /* En pilule, comme les boutons des références : un bloc teinté sans contour, doux au repos, un peu plus sombre au survol, couleur de l'accent quand il est actif. */
   border-radius: 9999px;
