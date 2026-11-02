@@ -1028,3 +1028,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fiches de recettes : seule la photo a un cadre arrondi (voile léger au survol) ; le titre et la difficulté sont posés dessous, sans encadré. Même hauteur pour toutes les fiches.
 
 - Tri des recettes : « Ascendant / Descendant » devient une barre de choix (même style que Clair / Sombre, pleine largeur) ; `SegmentedBar` accepte maintenant des libellés avec icône et l'option `block`.
+
+- Fiches de recettes : espace vertical entre les cartes réduit (bloc de texte plus bas, écart de lignes 8 px).

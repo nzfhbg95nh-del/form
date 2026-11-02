@@ -52,7 +52,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
-      <div className="h-[3.25rem] px-0.5 pt-2">
+      <div className="h-[2.6rem] px-0.5 pt-1.5">
         <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
         <div className="mt-0.5 h-4 truncate text-xs text-[var(--fg-muted)]">{info}</div>
       </div>
@@ -364,7 +364,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           </button>
         </div>
         <div className="mb-3"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
-        <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        <div className="grid items-start gap-x-3 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
             onClick={() => create(entry.isNone ? undefined : entry.id)}
@@ -499,7 +499,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           )}
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        <div className="grid items-start gap-x-4 gap-y-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
