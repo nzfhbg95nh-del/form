@@ -1038,3 +1038,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Ligne vide d'une page (et encadré vide) : le texte d'aide devient « Écris tes notes ici… » au lieu de « Tapez / pour afficher les commandes » (le menu « / » marche toujours).
 
 - Fiches de recettes : la photo et le titre sont dans un seul cadre arrondi (contour fin, ombre douce, voile léger sur la photo au survol).
+
+- Tri des recettes : la barre Ascendant / Descendant n'a plus que deux flèches (haut / bas), avec le nom en info-bulle.

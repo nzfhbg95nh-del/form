@@ -106,8 +106,8 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
                 value={sortDesc ? 'desc' : 'asc'}
                 onChange={(id) => onChange(sortBy, id === 'desc')}
                 items={[
-                  { id: 'asc', label: <><ArrowUp size={14} /> Ascendant</> },
-                  { id: 'desc', label: <><ArrowDown size={14} /> Descendant</> },
+                  { id: 'asc', label: <ArrowUp size={15} />, title: 'Ascendant' },
+                  { id: 'desc', label: <ArrowDown size={15} />, title: 'Descendant' },
                 ]}
               />
             </div>
