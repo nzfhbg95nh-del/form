@@ -68,17 +68,13 @@ export function FilterBar() {
         <Popover label="Couleur" active={Boolean(filters.color)} width={340}>
           <div className="p-1">
             <ColorBar value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
-            <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {filters.color ? (
-                <>
-                  <span className="h-4 w-4 rounded-full border" style={{ background: `#${filters.color}`, borderColor: 'var(--border)' }} />
-                  #{filters.color.toUpperCase()}
-                  <button className="ml-auto underline" onClick={() => setFilters({ color: '' })}>Aucune</button>
-                </>
-              ) : (
-                'Glisse sur les barres pour choisir une couleur'
-              )}
-            </div>
+            {filters.color && (
+              <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
+                <span className="h-4 w-4 rounded-full border" style={{ background: `#${filters.color}`, borderColor: 'var(--border)' }} />
+                #{filters.color.toUpperCase()}
+                <button className="ml-auto underline" onClick={() => setFilters({ color: '' })}>Aucune</button>
+              </div>
+            )}
           </div>
         </Popover>
 
@@ -115,7 +111,6 @@ export function FilterBar() {
             <span style={{ color: 'var(--fg-muted)' }}>Au</span>
             <input type="date" value={filters.dateTo} min={filters.dateFrom || undefined} onChange={(e) => setFilters({ dateTo: e.target.value })} className="rounded border px-1.5 py-1" style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }} />
           </div>
-          <p className="mt-2 px-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Les blocs Pinterest n'ont pas de date de publication : ils sont masqués avec ce filtre.</p>
         </Popover>
 
 

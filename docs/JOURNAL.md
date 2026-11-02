@@ -1030,3 +1030,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Tri des recettes : « Ascendant / Descendant » devient une barre de choix (même style que Clair / Sombre, pleine largeur) ; `SegmentedBar` accepte maintenant des libellés avec icône et l'option `block`.
 
 - Fiches de recettes : espace vertical entre les cartes réduit (bloc de texte plus bas, écart de lignes 8 px).
+
+- Filtres de la bibliothèque : phrases d'aide retirées (« Glisse sur les barres… » ; « Les blocs Pinterest n'ont pas de date… »). La ligne « couleur choisie / Aucune » n'apparaît que quand une couleur est choisie.
