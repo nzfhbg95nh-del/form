@@ -105,7 +105,7 @@ export function FilterBar() {
               </button>
             ))}
           </div>
-          <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 px-2 text-sm">
+          <div className="mt-2 grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 px-2 pb-3 text-sm">
             <span style={{ color: 'var(--fg-muted)' }}>Du</span>
             <input type="date" value={filters.dateFrom} max={filters.dateTo || undefined} onChange={(e) => setFilters({ dateFrom: e.target.value })} className="rounded border px-1.5 py-1" style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }} />
             <span style={{ color: 'var(--fg-muted)' }}>Au</span>
