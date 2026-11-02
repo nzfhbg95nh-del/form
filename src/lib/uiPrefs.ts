@@ -23,12 +23,11 @@ export function nearestTextSize(scale: number): number {
   return TEXT_SIZES.reduce((best, s) => (Math.abs(s.scale - scale) < Math.abs(best - scale) ? s.scale : best), 100 as number)
 }
 
-/** Le niveau d'animations : normales, réduites (plus courtes) ou aucune. */
-export type Motion = 'normal' | 'reduced' | 'none'
+/** Les animations : normales ou aucune. */
+export type Motion = 'normal' | 'none'
 
 export const MOTIONS: { id: Motion; label: string }[] = [
   { id: 'normal', label: 'Normales' },
-  { id: 'reduced', label: 'Réduites' },
   { id: 'none', label: 'Aucune' },
 ]
 
@@ -64,7 +63,6 @@ export function applyTextScale(scale: number) {
 
 export function applyMotion(level: Motion) {
   const root = document.documentElement.classList
-  root.toggle('motion-reduced', level === 'reduced')
   root.toggle('motion-none', level === 'none')
 }
 

@@ -192,11 +192,7 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 /* L'éditeur de pages est une zone de saisie : le curseur suffit à montrer où l'on écrit. Sans cette règle, le navigateur dessine un grand cadre bleu autour de tout l'éditeur (il compte toute zone de saisie comme « focus clavier »). */
 .bn-editor:focus-visible, .ProseMirror:focus-visible, [contenteditable="true"]:focus-visible, .bn-container:focus-visible, .bn-container *:focus-visible:not(button):not(input):not(select):not(textarea):not(a) { outline: none; }
 
-/* Réglages > Interface > Animations : « réduites » (plus courtes) ou « aucune ». Les indicateurs de chargement (.spin) tournent toujours. */
-.motion-reduced *:not(.spin), .motion-reduced *:not(.spin)::before, .motion-reduced *:not(.spin)::after {
-  animation-duration: 0.12s !important;
-  transition-duration: 0.12s !important;
-}
+/* Réglages > Interface > Animations : « aucune ». Les indicateurs de chargement (.spin) tournent toujours. */
 .motion-none *:not(.spin), .motion-none *:not(.spin)::before, .motion-none *:not(.spin)::after {
   animation-duration: 0.01ms !important;
   animation-iteration-count: 1 !important;

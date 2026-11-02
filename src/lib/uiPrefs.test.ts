@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { nearestTextSize, parseMotion, parseTextScale, textScaleToPx } from './uiPrefs'
 
 describe('animations', () => {
-  it('connaît normales, réduites et aucune, sinon normales', () => {
-    expect(parseMotion('reduced')).toBe('reduced')
+  it('connaît normales et aucune, sinon normales', () => {
+    expect(parseMotion('reduced')).toBe('normal')
     expect(parseMotion('none')).toBe('none')
     expect(parseMotion('normal')).toBe('normal')
     expect(parseMotion(null)).toBe('normal')

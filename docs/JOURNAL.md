@@ -979,5 +979,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Ménage des réglages devenus inutiles : export manuel des cookies (champs « Cookies », mode d'emploi de l'extension Chrome, avertissement de fichier vieux) retirés, la connexion dans Form suffit ; boutons de téléchargement des modèles d'IA remplacés par un téléchargement automatique au démarrage (image puis texte), avec « Reprendre » seulement si ça s'arrête ; chiffres « miniatures prêtes / à faire / impossibles » retirés de « Ma bibliothèque en chiffres ».
 
 ## 2026-11-02 — Interface : barres de choix
-- Thème, taille du texte (Petit 85 % / Normal / Grand 115 % / Très grand 130 %) et animations (Normales / Réduites / Aucune) se choisissent avec une barre dans le style des onglets (`SegmentedBar`). Animations : classes `motion-reduced` (0,12 s) et `motion-none` sur la page, les indicateurs de chargement (`.spin`) tournent toujours. Réglage retenu sous `form-motion`.
+- Thème, taille du texte (Petit 85 % / Normal / Grand 115 % / Très grand 130 %) et animations (Normales / Aucune) se choisissent avec une barre dans le style des onglets (`SegmentedBar`). Animations : classe `motion-none` sur la page, les indicateurs de chargement (`.spin`) tournent toujours. Réglage retenu sous `form-motion`.
 - Réglages > Général : sauvegarde présentée en bandeau d'état + 4 cartes d'action.
