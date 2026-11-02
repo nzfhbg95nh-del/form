@@ -45,7 +45,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
     <button onClick={() => select(row.id)} className="group overflow-hidden rounded-xl border border-[var(--border)] text-left shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--bg-hover)]">
       {/* La photo et le texte sont dans le même cadre arrondi. */}
       <div
-        className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'aspect-[4/3]' : 'h-32')}
+        className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}
         style={style}
       >
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
