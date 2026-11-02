@@ -13,9 +13,10 @@ pub struct TrashOutcome {
 
 /// Le chemin complet d'un fichier de la bibliothèque, ou rien s'il sortirait du dossier (chemin absolu, « .. »…).
 pub fn safe_path(root: &Path, rel: &str) -> Option<PathBuf> {
-    // Les images ajoutées à la main vivent dans Mes ajouts, pas dans le dossier de Social Saver.
+    // Les images ajoutées à la main vivent dans « images ajoutées », pas parmi les enregistrements Instagram / Pinterest.
+    let added = super::ajouts::dir();
     let (root, rel) = match rel.strip_prefix(super::ajouts::PREFIX) {
-        Some(rest) => (super::ajouts::dir()?.as_path(), rest),
+        Some(rest) => (added.as_deref()?, rest),
         None => (root, rel),
     };
     let rel_path = Path::new(rel);

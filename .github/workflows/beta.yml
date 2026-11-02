@@ -41,13 +41,20 @@ jobs:
           $hash = (Get-FileHash src-tauri/resources/gallery-dl.exe -Algorithm SHA256).Hash.ToLower()
           if ($hash -ne '73ab3f3d09a9b0e65f73d843fae75cdaf7928d069a219ae360b636e0803119d0') { throw "gallery-dl : empreinte inattendue ($hash)" }
 
+      # Tests de la partie Windows (Rust) : Windows les bloque sur le PC de Victor (Smart App Control), donc on les lance ici.
+      # Seulement les modules de la bibliothèque (dossier, déplacement, images ajoutées, corbeille). Il faut l'interface construite d'abord.
+      - run: npm run build
+
+      - name: Tests Rust de la bibliothèque
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib -- biblio::relocate biblio::layout biblio::ajouts biblio::trash
+
       # Réglages propres à la bêta, ajoutés par-dessus tauri.conf.json : nom, identifiant (donc dossier de données et programme d'installation distincts),
-      # numéro de version « 0.47.5-N » (N = numéro de fabrication), pas d'archive de mise à jour, et une adresse de mise à jour qui ne mène nulle part.
+      # numéro de version « 0.99.N » (N = numéro de fabrication), pas d'archive de mise à jour, et une adresse de mise à jour qui ne mène nulle part.
       - name: Réglages de la bêta
         shell: pwsh
         run: |
-          $base = (Get-Content src-tauri/tauri.conf.json -Raw | ConvertFrom-Json).version
-          $version = "$base-$env:GITHUB_RUN_NUMBER"
+          # Windows ignore le 4e chiffre d'une version pour décider d'une mise à jour : on fait changer le 3e à chaque bêta (0.99.N).
+          $version = "0.99.$env:GITHUB_RUN_NUMBER"
           $beta = [ordered]@{
             productName = 'Form Travail'
             version     = $version

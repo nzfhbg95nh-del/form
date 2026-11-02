@@ -9,6 +9,8 @@ import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
 import { DuplicatesView } from './DuplicatesView.tsx'
+import { MoveLibrary } from './MoveLibrary.tsx'
+import { RecipePhotos } from './RecipePhotos.tsx'
 import { SaverSection } from './SaverSection.tsx'
 import { TrashView } from './TrashView.tsx'
 
@@ -190,7 +192,7 @@ function AutoUpdate() {
 }
 
 export function LibrarySettings() {
-  const { root, phase, label, done, total, stats, lastResult, error, setRoot, update } = useLibrary()
+  const { root, layout, phase, label, done, total, stats, lastResult, error, setRoot, update } = useLibrary()
   const [trashOpen, setTrashOpen] = useState(false)
   const [dupesOpen, setDupesOpen] = useState(false)
   const busy = phase !== 'idle'
@@ -201,7 +203,7 @@ export function LibrarySettings() {
   const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
 
   const choose = async () => {
-    const picked = await open({ directory: true, defaultPath: root, title: 'Dossier « Save images » de Social Saver' })
+    const picked = await open({ directory: true, defaultPath: root, title: 'Dossier « Bibliothèque Form » (ou « Save images » de Social Saver)' })
     if (typeof picked === 'string') await setRoot(picked)
   }
 
@@ -212,16 +214,25 @@ export function LibrarySettings() {
     <div className="mx-auto max-w-3xl p-8">
       <h1 className="text-3xl font-bold">Bibliothèque</h1>
       <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Form lit le dossier de Social Saver sans le modifier : rien n'est déplacé ni renommé. Seule exception, quand tu choisis « Supprimer définitivement » : le fichier part dans la Corbeille Windows.
+        Toute la bibliothèque tient dans un seul dossier. Form ne retient que son chemin : tu peux le déplacer où tu veux (un autre disque, par exemple), puis le lui redonner ici. Form lit tes enregistrements sans les modifier : rien n'est renommé. Seule exception, quand tu choisis « Supprimer définitivement » : le fichier part dans la Corbeille Windows.
       </p>
 
       <section className="mt-6">
-        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Dossier de Social Saver</div>
+        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Dossier « Bibliothèque Form »</div>
         <div className="mt-2 flex items-center gap-2">
           <div className="min-w-0 flex-1 truncate rounded-md border px-3 py-2 text-sm" style={{ borderColor: 'var(--border)' }} title={root}>{root}</div>
           <button className="btn" onClick={choose} disabled={busy}><FolderOpen size={16} /> Choisir…</button>
         </div>
+        <ul className="mt-2 space-y-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+          <li>Dedans : <b>instagram</b>, <b>pinterest</b>, <b>images ajoutées</b>, <b>recettes</b> et <b>cache</b> (miniatures et modèle d'IA, qui se refont tout seuls).</li>
+          {layout && !layout.exists && <li style={{ color: '#d44c47' }}>Ce dossier est introuvable (disque débranché ou dossier déplacé ?). Choisis son nouvel emplacement.</li>}
+          {layout?.exists && (
+            <li>{layout.cache_in_library ? 'Le cache est dans la bibliothèque.' : 'Le cache (miniatures, modèle d\'IA) est encore sur le disque C: : « Déplacer ma bibliothèque… » le range dans la bibliothèque.'}</li>
+          )}
+        </ul>
       </section>
+
+      <MoveLibrary disabled={busy} />
 
       <section className="mt-6 flex items-center gap-3">
         <button className="btn btn-primary" onClick={() => void update()} disabled={busy}>
@@ -259,6 +270,7 @@ export function LibrarySettings() {
       )}
 
       <AutoUpdate />
+      <RecipePhotos disabled={busy} />
       <AiSection />
       <section className="mt-10">
         <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Doublons</div>

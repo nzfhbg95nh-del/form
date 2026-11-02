@@ -8,6 +8,8 @@ import { PageEditor } from '@/components/PageEditor'
 import { RecipeTimesDialog } from '@/components/RecipeTimesDialog'
 import { recipesWithoutTime } from '@/lib/recipeTimes'
 import { IconPicker } from '@/components/PagePickers'
+import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
+import { useLibrary } from '@/biblio/store/library.ts'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
 import {
@@ -29,7 +31,9 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
   const diff = { d1: 'Facile', d2: 'Moyen', d3: 'Difficile' }[String(v[RECIPE.difficulty] ?? '') as 'd1']
   // Pas de temps sur la fiche : il changerait la hauteur des cartes (le temps reste dans la propriété « Préparation » de la recette).
   const info = [stars ? '★'.repeat(Number(stars[1])) : '', diff ?? ''].filter(Boolean).join(' · ')
-  const photo = row.cover ? null : firstImageUrl(row.content, `${row.id}:${row.updated_at}`)
+  // Les photos rangées dans la bibliothèque n'ont d'adresse qu'une fois le dossier connu : la carte se met à jour à ce moment-là.
+  useLibrary((s) => s.root + s.ready)
+  const photo = row.cover ? null : displayUrl(firstImageUrl(row.content, `${row.id}:${row.updated_at}`))
   const style = row.cover
     ? row.cover.startsWith('data:')
       ? { backgroundImage: `url("${row.cover}")`, backgroundSize: 'cover', backgroundPosition: 'center' }

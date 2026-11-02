@@ -1,28 +1,47 @@
-// « Mes ajouts » : les images que Victor ajoute à la main dans la bibliothèque. Elles sont COPIÉES dans un dossier à elles
-// (Documents\Form\Mes ajouts) : le dossier de Social Saver n'est jamais touché. Le nom d'un fichier copié est l'empreinte de son contenu,
-// donc la même image ajoutée deux fois ne crée jamais de doublon.
+// « Images ajoutées » : les images que Victor ajoute à la main dans la bibliothèque. Elles sont COPIÉES dans un dossier à elles,
+// « images ajoutées » dans la Bibliothèque Form (avant : Documents\Form\Mes ajouts) : le dossier de Social Saver n'est jamais touché.
+// Le nom d'un fichier copié est l'empreinte de son contenu, donc la même image ajoutée deux fois ne crée jamais de doublon.
 
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::path::{Path, PathBuf};
-use std::sync::OnceLock;
+use std::sync::RwLock;
 
-/// Début du chemin « relatif » d'un fichier de Mes ajouts dans la base (ex. « ajouts/3fa9…c2.jpg »).
+/// Début du chemin « relatif » d'un fichier ajouté à la main dans la base (ex. « ajouts/3fa9…c2.jpg »). Il ne change pas quand
+/// on déplace la bibliothèque : seul le dossier vers lequel il pointe change.
 pub const PREFIX: &str = "ajouts/";
 
-static DIR: OnceLock<PathBuf> = OnceLock::new();
+static DIR: RwLock<Option<PathBuf>> = RwLock::new(None);
 
+/// L'ancien dossier « Mes ajouts » (Documents\Form\Mes ajouts), utilisé tant qu'aucune bibliothèque n'est choisie.
+static LEGACY: RwLock<Option<PathBuf>> = RwLock::new(None);
+
+/// Au démarrage : retient l'ancien dossier et l'utilise en attendant la bibliothèque.
+pub fn set_legacy(p: PathBuf) {
+    if let Ok(mut l) = LEGACY.write() {
+        *l = Some(p.clone());
+    }
+    set_dir(p);
+}
+
+pub fn legacy_dir() -> Option<PathBuf> {
+    LEGACY.read().ok().and_then(|l| l.clone())
+}
+
+/// Change le dossier des images ajoutées (suit le dossier de la bibliothèque).
 pub fn set_dir(p: PathBuf) {
-    let _ = DIR.set(p);
+    if let Ok(mut d) = DIR.write() {
+        *d = Some(p);
+    }
 }
 
-pub fn dir() -> Option<&'static PathBuf> {
-    DIR.get()
+pub fn dir() -> Option<PathBuf> {
+    DIR.read().ok().and_then(|d| d.clone())
 }
 
-/// Le chemin complet d'un fichier de la bibliothèque : dans Mes ajouts s'il commence par « ajouts/ », sinon dans le dossier de Social Saver.
+/// Le chemin complet d'un fichier de la bibliothèque : dans les images ajoutées s'il commence par « ajouts/ », sinon dans le dossier de la bibliothèque.
 pub fn resolve(root: &Path, rel: &str) -> PathBuf {
-    if let (Some(rest), Some(d)) = (rel.strip_prefix(PREFIX), DIR.get()) {
+    if let (Some(rest), Some(d)) = (rel.strip_prefix(PREFIX), dir()) {
         return d.join(rest);
     }
     root.join(rel)
@@ -151,21 +170,21 @@ pub fn add_bytes_into(dest: &Path, bytes: &[u8], ext: &str) -> AddOutcome {
 /// Le dossier Mes ajouts (créé s'il n'existe pas encore).
 #[tauri::command]
 pub fn ajouts_dir() -> Result<String, String> {
-    let d = dir().ok_or("Le dossier Mes ajouts n'est pas encore connu.")?;
-    std::fs::create_dir_all(d).map_err(|e| e.to_string())?;
+    let d = dir().ok_or("Le dossier des images ajoutées n'est pas encore connu.")?;
+    std::fs::create_dir_all(&d).map_err(|e| e.to_string())?;
     Ok(d.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
 pub async fn add_images(paths: Vec<String>) -> Result<Vec<AddOutcome>, String> {
-    let d = dir().ok_or("Le dossier Mes ajouts n'est pas encore connu.")?.clone();
+    let d = dir().ok_or("Le dossier des images ajoutées n'est pas encore connu.")?;
     tauri::async_runtime::spawn_blocking(move || add_into(&d, &paths)).await.map_err(|e| e.to_string())
 }
 
 #[tauri::command]
 pub async fn add_image_bytes(data: String, ext: String) -> Result<AddOutcome, String> {
     use base64::Engine;
-    let d = dir().ok_or("Le dossier Mes ajouts n'est pas encore connu.")?.clone();
+    let d = dir().ok_or("Le dossier des images ajoutées n'est pas encore connu.")?;
     let bytes = base64::engine::general_purpose::STANDARD.decode(data.trim()).map_err(|e| format!("Image illisible : {e}"))?;
     tauri::async_runtime::spawn_blocking(move || add_bytes_into(&d, &bytes, &ext)).await.map_err(|e| e.to_string())
 }

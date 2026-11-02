@@ -144,7 +144,7 @@ fn exact_groups(app: &AppHandle, root: &Path, files: &[DupeFile]) -> Vec<Vec<usi
 }
 
 fn thumbs_root(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("thumbs"))
+    super::layout::thumbs_dir(app)
 }
 
 /// Calcul complet : identiques d'abord, puis (si `max_distance` est donné) quasi identiques.

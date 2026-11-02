@@ -23,6 +23,11 @@ fn walk(root: &Path, dir: &Path, out: &mut Vec<ScannedFile>) {
         let path = entry.path();
         let Ok(file_type) = entry.file_type() else { continue };
         if file_type.is_dir() {
+            // À la racine de la bibliothèque, « images ajoutées », « recettes » et « cache » ne contiennent pas d'enregistrements
+            // à lire (les images ajoutées sont lues à part, sous « ajouts/ »).
+            if dir == root && path.file_name().is_some_and(|n| super::layout::is_reserved(&n.to_string_lossy())) {
+                continue;
+            }
             walk(root, &path, out);
         } else if file_type.is_file() {
             let ext = path
@@ -59,10 +64,10 @@ pub async fn scan_folder(root: String) -> Result<Vec<ScannedFile>, String> {
         }
         let mut out = Vec::new();
         walk(root, root, &mut out);
-        // Mes ajouts : les images ajoutées à la main, rangées sous « ajouts/ ».
+        // Images ajoutées : les images ajoutées à la main, rangées sous « ajouts/ ».
         if let Some(extra) = super::ajouts::dir().filter(|d| d.is_dir()) {
             let mut mine = Vec::new();
-            walk(extra, extra, &mut mine);
+            walk(&extra, &extra, &mut mine);
             for mut f in mine {
                 f.rel = format!("{}{}", super::ajouts::PREFIX, f.rel);
                 out.push(f);

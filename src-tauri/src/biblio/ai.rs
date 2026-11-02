@@ -29,11 +29,11 @@ static DOWNLOADING: AtomicBool = AtomicBool::new(false);
 static EMBEDDING: AtomicBool = AtomicBool::new(false);
 
 pub(crate) fn model_dir(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("models").join("clip-vit-b32"))
+    Ok(super::layout::models_dir(app)?.join("clip-vit-b32"))
 }
 
 fn thumbs_root(app: &AppHandle) -> Result<PathBuf, String> {
-    Ok(app.path().app_local_data_dir().map_err(|e| e.to_string())?.join("thumbs"))
+    super::layout::thumbs_dir(app)
 }
 
 // ───────────────────────── Statut ─────────────────────────

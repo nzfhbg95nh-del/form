@@ -31,6 +31,7 @@ import { SlashMenu, type SlashItem } from '@/components/SlashMenu'
 import { recipeSlashBlocks } from '@/lib/recipes'
 import { DatabaseView } from '@/components/DatabaseView'
 import { MoodboardView } from '@/components/MoodboardView'
+import { resolveForEditor } from '@/biblio/lib/libraryUrl.ts'
 import { parseContent, readFileAsDataUrl } from '@/lib/content'
 import { parseBoard } from '@/lib/moodboard'
 import { openFloatingBoard } from '@/lib/floating'
@@ -536,6 +537,8 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     dropCursor: multiColumnDropCursor,
     // Les images sont enregistrées directement dans la base : tout reste local et sauvegardé.
     uploadFile: readFileAsDataUrl,
+    // Les photos rangées dans la bibliothèque (dossier « recettes ») sont retrouvées à partir du dossier choisi.
+    resolveFileUrl: resolveForEditor,
     initialContent: parseContent(initial) as never,
   })
   if (editorRef) editorRef.current = editor as unknown as BlockNoteEditor<never, never, never>

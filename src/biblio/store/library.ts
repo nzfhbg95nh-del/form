@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { listen } from '@tauri-apps/api/event'
-import { invoke } from '@tauri-apps/api/core'
-import { setAjoutsDir } from '@/biblio/lib/media.ts'
+import { applyLibraryRoot } from '@/biblio/lib/relocate.ts'
+import type { LayoutInfo } from '@/biblio/lib/relocatePure.ts'
 import { seedAndApplyTypes } from '@/biblio/lib/types.ts'
 import { applyThumbBatch, DEFAULT_ROOT, getSetting, getStats, setSetting, startThumbs, syncLibrary, type LibraryStats, type SyncResult, type ThumbResult } from '@/biblio/lib/library.ts'
 
@@ -10,6 +10,8 @@ type Phase = 'idle' | 'sync' | 'thumbs'
 interface LibraryState {
   ready: boolean
   root: string
+  /** Où sont rangés « images ajoutées » et le cache pour le dossier choisi (rien tant que l'appli ne l'a pas lu). */
+  layout: LayoutInfo | null
   phase: Phase
   label: string
   done: number
@@ -29,6 +31,7 @@ let listening = false
 export const useLibrary = create<LibraryState>((set, get) => ({
   ready: false,
   root: DEFAULT_ROOT,
+  layout: null,
   phase: 'idle',
   label: '',
   done: 0,
@@ -40,9 +43,9 @@ export const useLibrary = create<LibraryState>((set, get) => ({
   async init(auto = false) {
     if (get().ready) return
     const saved = await getSetting('library_root')
-    // Le dossier des images ajoutées à la main (pour retrouver leurs fichiers).
-    await invoke<string>('ajouts_dir').then(setAjoutsDir).catch(() => undefined)
-    set({ root: saved ?? DEFAULT_ROOT, stats: await getStats().catch(() => EMPTY_STATS), ready: true })
+    // La bibliothèque choisie décide où sont les images ajoutées à la main et le cache (miniatures, modèle d'IA).
+    const layout = await applyLibraryRoot(saved ?? DEFAULT_ROOT)
+    set({ root: saved ?? DEFAULT_ROOT, layout, stats: await getStats().catch(() => EMPTY_STATS), ready: true })
 
     if (!listening) {
       listening = true
@@ -63,7 +66,13 @@ export const useLibrary = create<LibraryState>((set, get) => ({
 
   async setRoot(root) {
     await setSetting('library_root', root)
-    set({ root })
+    const layout = await applyLibraryRoot(root)
+    set({ root, layout })
+    // Les miniatures peuvent avoir changé de dossier (cache dans la bibliothèque) : la grille relit son emplacement.
+    const { useGrid } = await import('@/biblio/store/grid.ts')
+    const wasLoaded = useGrid.getState().loaded
+    useGrid.setState({ thumbsDir: '' })
+    if (wasLoaded) await useGrid.getState().load()
   },
 
   async update() {

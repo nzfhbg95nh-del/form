@@ -5,6 +5,8 @@ import {
   type Column, type Group, type Schema, type ViewConfig,
 } from '@/lib/database'
 import { coverStyle } from '@/components/PagePickers'
+import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
+import { useLibrary } from '@/biblio/store/library.ts'
 import { firstImageUrl } from '@/lib/content'
 import { Chip, PropertyEditor } from '@/components/PropertyEditor'
 import { useApp } from '@/store/app'
@@ -155,12 +157,14 @@ export function ListView({ db, schema, view, rows, change }: ViewProps) {
 
 export function GalleryView({ db, schema, rows, change }: ViewProps) {
   const select = useApp((s) => s.select)
+  // Les photos rangées dans la bibliothèque n'ont d'adresse qu'une fois le dossier connu : la galerie se met à jour à ce moment-là.
+  useLibrary((s) => s.root + s.ready)
   return (
     <div>
       <div className="grid items-start gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
         {rows.map((row) => {
           // Image de la carte : la couverture, sinon la première image de la page (la photo de la recette).
-          const photo = row.cover ? null : firstImageUrl(row.content, `${row.id}:${row.updated_at}`)
+          const photo = row.cover ? null : displayUrl(firstImageUrl(row.content, `${row.id}:${row.updated_at}`))
           return (
             <button key={row.id} onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
               <div
