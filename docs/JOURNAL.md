@@ -1048,3 +1048,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Notes rapides (page Recettes) : plus de « + » ni de poignée à gauche, juste du texte (`PageEditor` option `plain`).
 
 - Notes rapides : texte aligné à gauche, sur le titre.
+
+- Fiches de recettes : bloc de texte plus bas (40 px), titre centré ; la ligne de difficulté n'est affichée que s'il y en a une.

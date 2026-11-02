@@ -51,9 +51,9 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
-      <div className="flex h-[3rem] flex-col justify-center px-3">
+      <div className="flex h-10 flex-col justify-center px-3">
         <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
-        <div className="mt-0.5 h-4 truncate text-xs text-[var(--fg-muted)]">{info}</div>
+        {info && <div className="truncate text-xs leading-4 text-[var(--fg-muted)]">{info}</div>}
       </div>
     </button>
   )
