@@ -997,3 +997,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Moodboards : le menu d'une carte devient « Modifier… » (icône crayon) et « Mettre à la corbeille… » (icône rouge). « Modifier… » rouvre la fenêtre de création en mode modification (nom, photo de couverture, ou choix parmi les images du moodboard) ; l'emplacement de la photo est un carré en pointillés. setBoardCoverFromFile dans formBoards.ts.
 
 - La photo de couverture choisie à la création ou dans « Modifier… » n'est plus posée sur la toile du moodboard : elle est seulement gardée avec lui comme couverture.
+
+- « Mettre à la corbeille » (carte d'un moodboard) : plus de question de confirmation ; le moodboard part directement dans la corbeille de Form et un message en bas de l'écran propose « Annuler ».

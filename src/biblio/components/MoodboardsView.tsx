@@ -4,6 +4,7 @@ import { Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
 import { getDb } from '@/biblio/lib/db.ts'
 import { createBoard, createBoardWithCover, setBoardCoverFromFile } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
+import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 import { NewMoodboardDialog } from './NewMoodboardDialog.tsx'
 
@@ -95,8 +96,15 @@ function MenuItem({ icon, children, danger = false, onClick }: { icon: ReactNode
 function CardMenu({ card, coverSrc }: { card: BoardCard; coverSrc: string | null }) {
   const update = useApp((s) => s.update)
   const trash = useApp((s) => s.trash)
-  const [mode, setMode] = useState<'closed' | 'menu' | 'edit' | 'delete' | 'cover'>('closed')
+  const restore = useApp((s) => s.restore)
+  const [mode, setMode] = useState<'closed' | 'menu' | 'edit' | 'cover'>('closed')
   const close = () => setMode('closed')
+  // Pas de question : le moodboard va dans la corbeille de Form, et le message permet de le remettre aussitôt.
+  const remove = async () => {
+    close()
+    await trash(card.id)
+    useToast.getState().show(`« ${card.name} » est à la corbeille.`, { label: 'Annuler', run: () => void restore(card.id) })
+  }
   const save = async (name: string, file: File | null, coverRemoved: boolean) => {
     if (name !== card.name) await update(card.id, { title: name })
     if (file) await setBoardCoverFromFile(card.id, file)
@@ -128,31 +136,12 @@ function CardMenu({ card, coverSrc }: { card: BoardCard; coverSrc: string | null
       {mode !== 'closed' && mode !== 'cover' && mode !== 'edit' && (
         <>
           <div className="fixed inset-0 z-10" onMouseDown={close} />
-          <div className={'absolute bottom-8 right-0 z-20 rounded-xl border p-1.5 shadow-lg ' + (mode === 'delete' ? 'w-80' : 'w-64')} style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+          <div className={'absolute bottom-8 right-0 z-20 w-64 rounded-xl border p-1.5 shadow-lg'} style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
             {mode === 'menu' && (
               <>
                 <MenuItem icon={<Pencil size={14} />} onClick={() => setMode('edit')}>Modifier…</MenuItem>
-                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => setMode('delete')}>Mettre à la corbeille…</MenuItem>
+                <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void remove()}>Mettre à la corbeille</MenuItem>
               </>
-            )}
-            {mode === 'delete' && (
-              <div className="p-1.5">
-                <div className="flex items-start gap-2.5">
-                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, #d44c47 14%, transparent)', color: '#d44c47' }}>
-                    <Trash2 size={16} />
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">Mettre à la corbeille ?</div>
-                    <p className="mt-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
-                      « <span className="break-words">{card.name}</span> » pourra être récupéré. Les images de ta bibliothèque ne sont pas touchées.
-                    </p>
-                  </div>
-                </div>
-                <div className="mt-3 flex justify-end gap-1.5">
-                  <button className="btn" onClick={close}>Annuler</button>
-                  <button className="btn" style={{ background: '#d44c47', color: '#fff' }} onClick={() => void trash(card.id).then(close)}>Mettre à la corbeille</button>
-                </div>
-              </div>
             )}
           </div>
         </>
