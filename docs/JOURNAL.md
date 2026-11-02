@@ -870,3 +870,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Essai en lecture seule sur les 81 recettes : 59 sans temps, 48 estimables (de 10 à 55 min), 11 sans ingrédients ni étapes (pas d'estimation).
 - Code : `src/lib/recipeTimes.ts` (+ 11 tests), `src/components/RecipeTimesDialog.tsx`, `PageView.tsx`, `RecipesView.tsx`, `index.css`. Tests : 649.
 - Limite : rien de tout cela n'a été vu à l'écran (appli complète nécessaire) ; à valider avec la prochaine version installée.
+## 2026-11-02 — Bibliothèque : fréquence de la mise à jour automatique (branche fonction/frequence-mise-a-jour-biblio, pas encore publié)
+- Réglages > Bibliothèque : l'interrupteur devient une liste « Mettre à jour la bibliothèque automatiquement » : jamais, à chaque démarrage (comme avant, valeur de départ), une fois par jour, par semaine ou par mois. Le bouton « Mettre à jour la bibliothèque » marche toujours. Pour jour / semaine / mois, la date de la dernière mise à jour terminée est affichée.
+- Règle : « par jour » = jour du calendrier (pas 24 h) ; semaine = 7 jours ; mois = 30 jours ; la date n'est notée qu'une fois la mise à jour allée au bout (fermée en route, elle repart au démarrage suivant) ; une horloge reculée ne bloque rien. Les anciens réglages sont repris (interrupteur coupé = « jamais »).
+- Réglages : `library_auto_frequency`, `library_auto_last_day` (l'ancien `library_auto_update` reste cohérent). Code : `src/biblio/lib/autoUpdate.ts` (+ 10 tests). Tests : 648.

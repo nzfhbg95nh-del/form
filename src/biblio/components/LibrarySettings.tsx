@@ -2,6 +2,7 @@ import { SplitSlider } from '@/components/SplitSlider'
 import { useEffect, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
+import { AUTO_FREQUENCIES, parseFrequency, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { formatBytes, formatSeconds } from '@/biblio/lib/vectors.ts'
 import { useAi } from '@/biblio/store/ai.ts'
@@ -153,28 +154,36 @@ function TrashSection({ onOpen }: { onOpen: () => void }) {
   )
 }
 
-/** Mise à jour automatique au démarrage de Form (activée au départ). */
+/** Quand la bibliothèque se met à jour toute seule : jamais, à chaque démarrage (au départ), par jour, par semaine ou par mois. */
 function AutoUpdate() {
-  const [on, setOn] = useState<boolean | null>(null)
+  const [frequency, setFrequency] = useState<AutoFrequency | null>(null)
+  const [lastDay, setLastDay] = useState('')
   useEffect(() => {
-    void getSetting('library_auto_update').then((v) => setOn(v !== '0'))
+    void Promise.all([getSetting('library_auto_frequency'), getSetting('library_auto_update'), getSetting('library_auto_last_day')]).then(([f, legacy, last]) => {
+      setFrequency(parseFrequency(f, legacy))
+      setLastDay(last ?? '')
+    })
   }, [])
-  if (on === null) return null
+  if (frequency === null) return null
+  const choose = (next: AutoFrequency) => {
+    setFrequency(next)
+    void setSetting('library_auto_frequency', next)
+    // L'ancien interrupteur reste d'accord avec le choix (une version plus ancienne lirait encore celui-là).
+    void setSetting('library_auto_update', next === 'never' ? '0' : '1')
+  }
   return (
     <section className="mt-8">
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={on}
-          onChange={(e) => {
-            setOn(e.target.checked)
-            void setSetting('library_auto_update', e.target.checked ? '1' : '0')
-          }}
-        />
-        Mettre à jour la bibliothèque au démarrage de Form
+      <label className="flex flex-wrap items-center gap-2 text-sm">
+        <span>Mettre à jour la bibliothèque automatiquement :</span>
+        <select className="lib-input" value={frequency} onChange={(e) => choose(e.target.value as AutoFrequency)} aria-label="Fréquence de la mise à jour automatique">
+          {AUTO_FREQUENCIES.map((f) => (
+            <option key={f.id} value={f.id}>{f.label}</option>
+          ))}
+        </select>
       </label>
       <p className="mt-1 text-xs" style={{ color: 'var(--fg-muted)' }}>
-        Quelques secondes après l'ouverture, Form cherche les nouveaux fichiers de Social Saver, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau.
+        Quelques secondes après l'ouverture de Form, quand c'est le moment, Form cherche les nouveaux fichiers de Social Saver, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau. Le bouton « Mettre à jour la bibliothèque » fonctionne toujours, quel que soit ce choix.
+        {frequency !== 'never' && frequency !== 'startup' && (lastDay ? ` Dernière mise à jour automatique : ${lastDay.split('-').reverse().join('/')}.` : ' Aucune mise à jour automatique faite pour le moment.')}
       </p>
     </section>
   )
