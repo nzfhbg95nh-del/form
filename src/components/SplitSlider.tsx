@@ -5,13 +5,15 @@ import { useLayoutEffect, useRef, useState } from 'react'
  * et une poignée blanche les sépare. On glisse n'importe où sur la barre ; les flèches du clavier règlent aussi (Maj = par 10).
  * Même hauteur et mêmes bouts arrondis (pilule) que les boutons de l'appli. Dès que la poignée touche un des textes, la barre s'amincit en un trait fin et les libellés remontent au-dessus pour rester lisibles.
  */
-export function SplitSlider({ value, min, max, step = 1, onChange, label, right = '', valueLabel, small = false, ariaLabel, className = '' }: {
+export function SplitSlider({ value, min, max, step = 1, onChange, label, right = '', valueLabel, small = false, morph = true, ariaLabel, className = '' }: {
   value: number; min: number; max: number; step?: number; onChange: (v: number) => void
   label: string; right?: string; ariaLabel: string; className?: string
   /** Ce qui s'affiche après le libellé (par défaut, la position en %). */
   valueLabel?: string
-  /** Version compacte (barre de fenêtre, réglages) : pas d'amincissement. */
+  /** Version compacte (barre de fenêtre, panneaux) : libellés un peu plus serrés. */
   small?: boolean
+  /** La barre s'amincit quand la poignée touche un texte (par défaut oui ; non pour la transparence de la fenêtre flottante). */
+  morph?: boolean
 }) {
   const track = useRef<HTMLDivElement>(null)
   const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100))
@@ -37,7 +39,7 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
     return () => watcher.disconnect()
   }, [label, valueLabel, right, value])
   const margin = (small ? 14 : 16) + 8
-  const thin = !small && size.track > 0 && (size.track * (pct / 100) < size.left + margin || size.track * (1 - pct / 100) < size.right + margin)
+  const thin = morph && size.track > 0 && (size.track * (pct / 100) < size.left + margin || size.track * (1 - pct / 100) < size.right + margin)
   const spring = 'height 0.34s cubic-bezier(0.34, 1.3, 0.64, 1), border-radius 0.3s'
   const mono = 'font-mono text-[11px] uppercase tracking-wider'
   const padX = small ? 14 : 16

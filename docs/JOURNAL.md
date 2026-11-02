@@ -1022,3 +1022,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Barres de couleur du filtre « Couleur » : plus fines (10 px au lieu de 18) avec une poignée plus petite (16 px au lieu de 24).
 
 - Jauge de la grille : l'amincissement commence exactement quand la poignée touche un texte (largeurs mesurées), plus à un pourcentage fixe.
+
+- L'amincissement de la jauge (barre fine, texte au-dessus) s'applique à toutes les jauges de ce style (taille des vignettes, confiance min., réglages des outils du moodboard), sauf la transparence de la fenêtre flottante du moodboard (morph={false}).

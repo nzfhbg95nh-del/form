@@ -80,7 +80,7 @@ export function FloatingBoard({ id }: { id: string }) {
     <div className="flex h-screen flex-col overflow-hidden rounded-md border border-[var(--border)] bg-[var(--bg)]" style={{ opacity: opacity / 100 }}>
       <div data-tauri-drag-region className="flex shrink-0 select-none items-center gap-1 border-b border-[var(--border)] bg-[var(--bg-side)] px-2 py-1 text-sm">
         <span data-tauri-drag-region className="min-w-0 flex-1 cursor-move truncate font-medium">{board.title || 'Moodboard'}</span>
-        <SplitSlider small className="w-32 shrink-0" min={30} max={100} value={opacity} onChange={changeOpacity} label="Opacité" valueLabel={`${opacity}%`} ariaLabel="Transparence de la fenêtre" />
+        <SplitSlider small morph={false} className="w-32 shrink-0" min={30} max={100} value={opacity} onChange={changeOpacity} label="Opacité" valueLabel={`${opacity}%`} ariaLabel="Transparence de la fenêtre" />
         <button className={icon} onClick={() => void togglePin()} title={pinned ? 'Ne plus rester devant les autres fenêtres' : 'Rester devant les autres fenêtres'} aria-pressed={pinned}>
           {pinned ? <Pin size={14} /> : <PinOff size={14} />}
         </button>
