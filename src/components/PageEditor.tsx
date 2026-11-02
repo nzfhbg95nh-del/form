@@ -1,11 +1,13 @@
 import { dateText, dateTimeText } from '@/lib/dateShortcuts'
-import { EMPTY_LINE_HINT, tabAction } from '@/lib/editorKeys'
+import { EMPTY_LINE_HINT } from '@/lib/editorKeys'
 import { EquationBlock } from '@/components/EquationBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { fr } from '@blocknote/core/locales'
+import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
+import { useBlockSel } from '@/store/blockSel'
 import { BlockNoteView } from '@blocknote/mantine'
 import {
   createReactBlockSpec,
@@ -543,6 +545,34 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   })
   if (editorRef) editorRef.current = editor as unknown as BlockNoteEditor<never, never, never>
 
+  // Sélection de blocs « façon Notion » : surlignage dessiné par-dessus (l'éditeur réécrit lui-même ses éléments), recalculé au défilement.
+  const selKey = pageId ?? 'page'
+  const selAnchor = useBlockSel((s) => (s.pageId === selKey ? s.anchor : null))
+  const selFocus = useBlockSel((s) => (s.pageId === selKey ? s.focus : null))
+  const [selRects, setSelRects] = useState<{ left: number; top: number; width: number; height: number }[]>([])
+  useLayoutEffect(() => {
+    if (!selAnchor || !selFocus) {
+      setSelRects([])
+      return
+    }
+    const compute = () => {
+      const ids = rangeIds(flatten(editor.document as unknown as BlockLike[]), selAnchor, selFocus)
+      setSelRects(ids.flatMap((id) => {
+        const content = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${id}"]`)?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
+        if (!content) return []
+        const b = content.getBoundingClientRect()
+        return [{ left: b.left - 4, top: b.top - 1, width: b.width + 8, height: b.height + 2 }]
+      }))
+    }
+    compute()
+    window.addEventListener('scroll', compute, true)
+    window.addEventListener('resize', compute)
+    return () => {
+      window.removeEventListener('scroll', compute, true)
+      window.removeEventListener('resize', compute)
+    }
+  }, [selAnchor, selFocus, editor])
+
   /** Remplace la ligne du lien collé par un bloc (aperçu ou intégration), en gardant une ligne libre dessous. */
   const turnInto = (block: Record<string, unknown>) => {
     if (!pasted || !editor.getBlock(pasted.blockId)) return
@@ -551,30 +581,98 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (last.type !== 'paragraph') editor.insertBlocks([{ type: 'paragraph' } as never], last as never, 'after')
   }
 
-  // Comme dans Notion : Tab sur une ligne de texte passe à la ligne suivante (Maj+Tab : précédente) au lieu de décaler ;
-  // dans les listes, tâches, tableaux et code, Tab garde son rôle.
+  /**
+   * Touches de la sélection de blocs (comme dans Notion). Échap sélectionne le bloc du curseur ; ensuite ↑/↓ changent de bloc, Maj+↑/↓ étendent,
+   * Entrée revient au texte, Suppr / Retour arrière efface les blocs, Ctrl+D les duplique, Ctrl+C / Ctrl+X les copient. Toute autre touche quitte ce mode.
+   * Rend vrai quand la touche a été traitée ici.
+   */
+  const blockSelectionKey = (e: React.KeyboardEvent): boolean => {
+    const sel = useBlockSel.getState()
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    const ctrl = e.ctrlKey || e.metaKey
+    const stop = () => {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    if (sel.pageId !== selKey || !sel.anchor || !sel.focus) {
+      // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
+      if (e.key === 'Escape' && !ctrl && !e.shiftKey && !e.altKey && !document.querySelector('[role="listbox"]')) {
+        try {
+          const block = ed.getTextCursorPosition().block as { id: string }
+          sel.set(selKey, block.id, block.id)
+          stop()
+          return true
+        } catch { /* pas de curseur dans l'éditeur */ }
+      }
+      return false
+    }
+    const { anchor, focus } = sel
+    const order = flatten(ed.document as unknown as BlockLike[])
+    const ids = rangeIds(order, anchor, focus)
+    if (e.key === 'Escape') {
+      stop()
+      sel.clear()
+      return true
+    }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      stop()
+      const next = neighbour(order, focus, e.key === 'ArrowUp' ? -1 : 1)
+      sel.set(selKey, e.shiftKey ? anchor : next, next)
+      document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${next}"]`)?.scrollIntoView({ block: 'nearest' })
+      return true
+    }
+    if (e.key === 'Enter') {
+      stop()
+      sel.clear()
+      ed.setTextCursorPosition(focus as never, 'end')
+      return true
+    }
+    if (e.key === 'Backspace' || e.key === 'Delete') {
+      stop()
+      const target = afterRemoval(order, ids)
+      sel.clear()
+      ed.removeBlocks(ids as never)
+      if (target) {
+        try { ed.setTextCursorPosition(target as never, 'end') } catch { /* le bloc n'existe plus */ }
+      }
+      return true
+    }
+    if (ctrl && e.key.toLowerCase() === 'd') {
+      stop()
+      // Les blocs dont le parent est déjà choisi sont copiés avec lui : on ne garde que les plus hauts.
+      const top = ids.filter((id) => {
+        const parent = ed.getParentBlock(id as never) as { id: string } | undefined
+        return !parent || !ids.includes(parent.id)
+      })
+      const copies = top.map((id) => ed.getBlock(id as never)).filter((b): b is NonNullable<typeof b> => !!b).map((b) => withoutIds(b as unknown as { id?: string; children?: unknown[] }))
+      sel.clear()
+      if (copies.length > 0) ed.insertBlocks(copies as never, ids[ids.length - 1] as never, 'after')
+      return true
+    }
+    if (ctrl && (e.key.toLowerCase() === 'c' || e.key.toLowerCase() === 'x')) {
+      // La copie se fait par la sélection de l'éditeur ; on la pose sur ces blocs, puis la touche suit son cours.
+      try { ed.setSelection(ids[0] as never, ids[ids.length - 1] as never) } catch { /* sélection impossible */ }
+      if (e.key.toLowerCase() === 'x') window.setTimeout(() => sel.clear(), 0)
+      return false
+    }
+    if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(e.key)) return false
+    // Toute autre touche : on quitte la sélection de blocs (la frappe continue dans le texte).
+    sel.clear()
+    return false
+  }
+
+  // Tab et Maj+Tab gardent le comportement de Notion (décaler le bloc sous le précédent / le ramener) : c'est celui de l'éditeur.
   const onKeyDownCapture = (e: React.KeyboardEvent) => {
     if (!editable || e.nativeEvent.isComposing) return
     const el = e.target as HTMLElement
     if (!el.closest('.bn-editor') || el.closest('input, textarea, select, [role="menu"], [role="listbox"]')) return
-    try {
-      const pos = editor.getTextCursorPosition()
-      const block = pos.block as { id: string; type: string; content?: unknown }
-      if (e.key === 'Tab' && !e.ctrlKey && !e.altKey && !e.metaKey) {
-        const action = tabAction(block.type, e.shiftKey)
-        if (action === 'default') return
-        e.preventDefault()
-        e.stopPropagation()
-        // On saute les blocs qui n'ont pas de texte (image, moodboard…) : le curseur va à la prochaine ligne de texte.
-        let target = action === 'next' ? editor.getNextBlock(block.id) : editor.getPrevBlock(block.id)
-        while (target && !Array.isArray((target as { content?: unknown }).content)) target = action === 'next' ? editor.getNextBlock(target.id) : editor.getPrevBlock(target.id)
-        if (target) editor.setTextCursorPosition(target.id, action === 'next' ? 'start' : 'end')
-      }
-    } catch { /* pas de curseur dans l'éditeur : la touche garde son rôle */ }
+    blockSelectionKey(e)
   }
-
   return (
-    <div className="contents" onKeyDownCapture={onKeyDownCapture}>
+    <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()}>
+      {selRects.map((b, i) => (
+        <div key={i} className="pointer-events-none fixed z-20 rounded bg-[#4da3ff]/20" style={b} />
+      ))}
     <BlockNoteView
       editor={editor}
       theme={theme}

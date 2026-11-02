@@ -13,6 +13,7 @@ import { displayTitle, lastEditText } from '@/lib/lastEdit'
 import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
 import { parsePageStyle } from '@/lib/pageStyle'
 import { firstImageUrl } from '@/lib/content'
+import { useBlockSel } from '@/store/blockSel'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
@@ -153,9 +154,30 @@ export function PageView({ pageId }: { pageId?: string }) {
       return { left: b.left - 4, top: b.top - 1, width: b.width + 8, height: b.height + 2 }
     }))
   }
+  // Comme dans Notion : un clic dans le vide sous le dernier bloc met le curseur à la fin de la page ; si ce bloc n'est pas du texte
+  // (image, moodboard, tableau…), une ligne vide est ajoutée dessous pour pouvoir continuer à écrire.
+  const focusEndOfPage = (clientY: number) => {
+    const editor = editorRef.current
+    if (!editor || ui.locked) return
+    const blocks = editor.document as unknown as { id: string; type: string; content?: unknown }[]
+    const last = blocks[blocks.length - 1]
+    if (!last) return
+    const lastEl = scroller.current?.querySelector<HTMLElement>(`.bn-block-outer[data-id="${last.id}"]`)
+    if (!lastEl || clientY < lastEl.getBoundingClientRect().bottom) return
+    editor.focus()
+    if (Array.isArray(last.content)) {
+      editor.setTextCursorPosition(last.id as never, 'end')
+      return
+    }
+    editor.insertBlocks([{ type: 'paragraph' }] as never, last.id as never, 'after')
+    const created = editor.document[editor.document.length - 1] as unknown as { id: string }
+    editor.setTextCursorPosition(created.id as never, 'start')
+  }
+
   const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
     const t = e.target as HTMLElement
     if (e.button !== 0 || t.closest('button, input, textarea, select, a, img, [data-ui], .bn-side-menu, .bn-formatting-toolbar, [role="menu"], [role="dialog"], .fixed, .bn-block-content, .bn-inline-content')) return
+    useBlockSel.getState().clear()
     drag.current = { x: e.clientX, y: e.clientY, moved: false }
     e.currentTarget.setPointerCapture(e.pointerId)
     e.preventDefault()
@@ -173,16 +195,20 @@ export function PageView({ pageId }: { pageId?: string }) {
     const d = drag.current
     drag.current = null
     try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* déjà relâché */ }
-    if (!d?.moved) return
+    if (!d?.moved) {
+      focusEndOfPage(e.clientY)
+      return
+    }
     const hit = blocksIn({ x1: d.x, y1: d.y, x2: e.clientX, y2: e.clientY })
     mark([])
     setMarquee(null)
     const editor = editorRef.current
     if (!editor || hit.length === 0) return
     const ids = hit.map((el) => el.getAttribute('data-id')).filter((id): id is string => !!id)
+    // Les blocs touchés deviennent la sélection de blocs de la page (Suppr, Ctrl+D, ↑/↓, copier… comme après Échap).
     try {
       editor.focus()
-      editor.setSelection(ids[0] as never, ids[ids.length - 1] as never)
+      useBlockSel.getState().set(page.id, ids[0], ids[ids.length - 1])
     } catch { /* sélection impossible : le surlignage disparaît simplement */ }
   }
 
@@ -256,7 +282,20 @@ export function PageView({ pageId }: { pageId?: string }) {
             setTitle(next)
             saveLater({ title: next })
           }}
-          onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault() }}
+          onKeyDown={(e) => {
+            // Comme dans Notion : Entrée (ou ↓ en fin de titre) envoie le curseur au début du texte de la page ; jamais de retour à la ligne dans un titre.
+            const atEnd = e.currentTarget.selectionStart === e.currentTarget.value.length && e.currentTarget.selectionEnd === e.currentTarget.value.length
+            if (e.key === 'Enter' || (e.key === 'ArrowDown' && atEnd && !e.shiftKey)) {
+              e.preventDefault()
+              if (e.nativeEvent.isComposing) return
+              const editor = editorRef.current
+              const first = editor?.document[0] as { id: string } | undefined
+              if (editor && first) {
+                editor.focus()
+                editor.setTextCursorPosition(first.id as never, 'start')
+              }
+            }
+          }}
           className="block w-full resize-none overflow-hidden bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
         />
         </div>

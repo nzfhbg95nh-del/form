@@ -1059,3 +1059,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-11-02 — Page vierge à la manière de Notion
 - Nouvelle page : le curseur arrive dans le titre ; pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (`.page-body`) ; plus de rectangle plus clair derrière la première ligne en mode sombre (fond de l'éditeur transparent) ; `color-scheme: dark` en mode sombre (barres de défilement et champs natifs sombres).
+
+## 2026-11-02 — Éditeur de pages : gestes comme dans Notion (1/2)
+- Titre : Entrée (ou ↓ en fin de titre) envoie le curseur au début du texte (avant, Entrée ne faisait rien et tout ce qu'on tapait restait dans le titre).
+- Sélection de blocs : Échap sélectionne le bloc du curseur, ↑/↓ changent de bloc, Maj+↑/↓ étendent, Entrée revient au texte, Suppr / Retour arrière efface, Ctrl+D duplique, Ctrl+C / Ctrl+X copient ; un clic ailleurs ou toute autre touche quitte la sélection. Le rectangle tracé à la souris donne la même sélection. Logique pure testée (`src/lib/blockSelection.ts`), état dans `src/store/blockSel.ts`, surlignage dessiné par `PageEditor`.
+- Clic dans le vide sous le dernier bloc : curseur à la fin de la page (une ligne vide est ajoutée si le dernier bloc n'est pas du texte).
+- Tab / Maj+Tab : comportement de Notion (décaler le bloc sous le précédent / le ramener), le réglage « passer à la ligne suivante » est retiré (`tabAction` supprimé).
+- À faire ensuite : déplacer (Ctrl+Maj+↑/↓, Alt+glisser, Alt+clic sur +), barre de texte et raccourcis de saisie.
