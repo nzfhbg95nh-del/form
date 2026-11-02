@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '@/components/States'
-import { Images, MoreHorizontal, Plus, X } from 'lucide-react'
+import { Images, MoreHorizontal, Plus, Trash2, X } from 'lucide-react'
 import { getDb } from '@/biblio/lib/db.ts'
 import { createBoard } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
@@ -101,7 +101,7 @@ function CardMenu({ card }: { card: BoardCard }) {
       {mode !== 'closed' && mode !== 'cover' && (
         <>
           <div className="fixed inset-0 z-10" onMouseDown={close} />
-          <div className="absolute bottom-8 right-0 z-20 w-64 rounded-lg border p-1.5 shadow-lg" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+          <div className={'absolute bottom-8 right-0 z-20 rounded-xl border p-1.5 shadow-lg ' + (mode === 'delete' ? 'w-80' : 'w-64')} style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
             {mode === 'menu' && (
               <>
                 <button className={item} onClick={() => setMode('rename')}>Renommer</button>
@@ -111,11 +111,21 @@ function CardMenu({ card }: { card: BoardCard }) {
             )}
             {mode === 'rename' && <NameInput initial={card.name} placeholder="Nouveau nom" onCancel={close} onSubmit={(name) => void update(card.id, { title: name }).then(close)} />}
             {mode === 'delete' && (
-              <div className="p-1 text-sm">
-                Mettre le moodboard « {card.name} » à la corbeille de Form ? Tu pourras le récupérer. Les images de ta bibliothèque ne sont pas touchées.
-                <div className="mt-2 flex gap-1.5">
-                  <button className="btn" onClick={() => void trash(card.id).then(close)}>Mettre à la corbeille</button>
+              <div className="p-1.5">
+                <div className="flex items-start gap-2.5">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" style={{ background: 'color-mix(in srgb, #d44c47 14%, transparent)', color: '#d44c47' }}>
+                    <Trash2 size={16} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium">Mettre à la corbeille ?</div>
+                    <p className="mt-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+                      « <span className="break-words">{card.name}</span> » pourra être récupéré. Les images de ta bibliothèque ne sont pas touchées.
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-3 flex justify-end gap-1.5">
                   <button className="btn" onClick={close}>Annuler</button>
+                  <button className="btn" style={{ background: '#d44c47', color: '#fff' }} onClick={() => void trash(card.id).then(close)}>Mettre à la corbeille</button>
                 </div>
               </div>
             )}

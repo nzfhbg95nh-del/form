@@ -985,3 +985,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Cartes cliquables de l'accueil (`data-lift`) : soulèvement au survol adouci (1 px au lieu de 2, ombre plus légère) et fond gris à peine teinté.
 
 - Survol des images (grille, collections, moodboards) : voile noir de 25 % ramené à 10 %.
+
+- Confirmation « mettre un moodboard à la corbeille » (carte des moodboards) refaite : icône, titre court, explication discrète, boutons Annuler / Mettre à la corbeille (rouge) alignés à droite.
