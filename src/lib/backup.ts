@@ -14,6 +14,17 @@ export function joinPath(dir: string, file: string): string {
   return dir.replace(/[\\/]+$/, '') + '\\' + file
 }
 
+/** Sauvegarde dans `dir`. SQLite refuse d'écraser un fichier : si celui d'aujourd'hui existe déjà (autre sauvegarde faite plus tôt), on en fait un autre, daté à la seconde près. */
+async function backupInto(repo: Repo, dir: string, today: string, now = new Date()): Promise<void> {
+  try {
+    await repo.backupTo(joinPath(dir, backupFileName(today)))
+  } catch (e) {
+    if (!/already exists/i.test(String(e))) throw e
+    const p = (n: number) => String(n).padStart(2, '0')
+    await repo.backupTo(joinPath(dir, backupFileName(`${today}-${p(now.getHours())}h${p(now.getMinutes())}m${p(now.getSeconds())}`)))
+  }
+}
+
 /** Sauvegarde quotidienne : au plus une fois par jour, seulement si un dossier est choisi. */
 export async function runDailyBackup(
   repo: Repo,
@@ -30,14 +41,14 @@ export async function runDailyBackup(
   const today = todayISO()
   if ((await repo.getSetting('last_backup_date')) === today) return null
   try {
-    await repo.backupTo(joinPath(dir, backupFileName(today)))
+    await backupInto(repo, dir, today)
   } catch (e) {
     // Le dossier retenu n'existe pas sur cet ordinateur (autre profil Windows, disque débranché, dossier effacé) :
     // on se rabat sur le dossier par défaut au lieu de ne plus rien sauvegarder, et on le retient.
     if (!defaultDir) throw e
     const fallback = await defaultDir()
     if (fallback === dir) throw e
-    await repo.backupTo(joinPath(fallback, backupFileName(today)))
+    await backupInto(repo, fallback, today)
     await repo.setSetting('backup_dir', fallback)
     dir = fallback
   }

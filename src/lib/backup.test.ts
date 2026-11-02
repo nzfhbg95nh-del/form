@@ -42,6 +42,32 @@ describe('sauvegarde quotidienne', () => {
     expect(settings.last_backup_date).toBe(todayISO())
   })
 
+  it("fait une autre sauvegarde, datée à la seconde, quand celle d'aujourd'hui existe déjà (SQLite n'écrase jamais)", async () => {
+    const copies: string[] = []
+    const settings: Record<string, string> = { backup_dir: 'C:\\Sauve' }
+    const repo = {
+      getSetting: async (k: string) => settings[k] ?? null,
+      setSetting: async (k: string, v: string) => { settings[k] = v },
+      backupTo: async (p: string) => {
+        if (p.endsWith(backupFileName(todayISO()))) throw new Error('error returned from database: (code: 1) output file already exists')
+        copies.push(p)
+      },
+    } as unknown as Repo
+    expect(await runDailyBackup(repo, null)).toBe(todayISO())
+    expect(copies).toHaveLength(1)
+    expect(copies[0]).toMatch(/^C:\\Sauve\\form-sauvegarde-\d{4}-\d{2}-\d{2}-\d{2}h\d{2}m\d{2}\.db$/)
+    expect(settings.last_backup_date).toBe(todayISO())
+  })
+
+  it("laisse remonter une vraie erreur (autre que « fichier déjà là »)", async () => {
+    const repo = {
+      getSetting: async (k: string) => (k === 'backup_dir' ? 'C:\\Sauve' : null),
+      setSetting: async () => undefined,
+      backupTo: async () => { throw new Error('disque plein') },
+    } as unknown as Repo
+    await expect(runDailyBackup(repo, null)).rejects.toThrow('disque plein')
+  })
+
   it("laisse remonter l'erreur quand il n'y a pas d'autre dossier à essayer", async () => {
     const repo = {
       getSetting: async (k: string) => (k === 'backup_dir' ? 'C:\\Perdu' : null),
