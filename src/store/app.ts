@@ -19,6 +19,7 @@ import {
 } from '@/lib/invoices'
 import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipesSchema } from '@/lib/recipes'
 import { isSettled } from '@/lib/payments'
+import { applyAccent, loadAccent } from '@/lib/uiPrefs'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
 export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
@@ -47,15 +48,23 @@ export interface Editing {
   id: string | null
 }
 export type Theme = 'light' | 'dark'
+/** Le choix de thème : clair, sombre, ou « auto » (suit le mode de Windows, y compris quand il change le soir). */
+export type ThemeMode = 'light' | 'dark' | 'auto'
 
-function initialTheme(): Theme {
+function initialThemeMode(): ThemeMode {
   const saved = localStorage.getItem('form-theme')
-  if (saved === 'light' || saved === 'dark') return saved
+  return saved === 'light' || saved === 'dark' ? saved : 'auto'
+}
+
+function resolveTheme(mode: ThemeMode): Theme {
+  if (mode !== 'auto') return mode
   return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
 }
 
 function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle('dark', theme === 'dark')
+  // La couleur d'accent a une variante claire et une variante sombre.
+  applyAccent(loadAccent(), theme === 'dark')
 }
 
 function savedExpanded(): Record<string, boolean> {
@@ -121,6 +130,7 @@ interface AppState {
   movingId: string | null
   view: View
   theme: Theme
+  themeMode: ThemeMode
   error: string | null
   backupMessage: string | null
   expanded: Record<string, boolean>
@@ -198,6 +208,7 @@ interface AppState {
   restore(id: string): Promise<void>
   purge(id: string): Promise<void>
   toggleTheme(): void
+  setThemeMode(mode: ThemeMode): void
 }
 
 type SetFn = (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void
@@ -300,7 +311,8 @@ export const useApp = create<AppState>((set, get) => ({
   renamingId: null,
   movingId: null,
   view: 'home',
-  theme: initialTheme(),
+  theme: resolveTheme(initialThemeMode()),
+  themeMode: initialThemeMode(),
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
@@ -975,10 +987,27 @@ export const useApp = create<AppState>((set, get) => ({
     set((s) => ({ objects: s.objects.filter((o) => !ids.includes(o.id)) }))
   },
 
+  setThemeMode(mode) {
+    localStorage.setItem('form-theme', mode)
+    const theme = resolveTheme(mode)
+    applyTheme(theme)
+    set({ theme, themeMode: mode })
+  },
+
   toggleTheme() {
     const theme: Theme = get().theme === 'dark' ? 'light' : 'dark'
     localStorage.setItem('form-theme', theme)
     applyTheme(theme)
-    set({ theme })
+    set({ theme, themeMode: theme })
   },
 }))
+
+// Thème « Auto » : quand Windows passe en mode sombre ou clair (le soir…), Form suit tout de suite.
+if (typeof window !== 'undefined' && window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+    if (useApp.getState().themeMode !== 'auto') return
+    const theme = resolveTheme('auto')
+    applyTheme(theme)
+    useApp.setState({ theme })
+  })
+}

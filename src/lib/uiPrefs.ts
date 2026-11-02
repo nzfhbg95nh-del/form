@@ -79,6 +79,105 @@ export function setMotion(level: Motion) {
 
 /** À appeler une fois au démarrage. */
 export function applyUiPrefs() {
+  applyAccent(loadAccent(), document.documentElement.classList.contains('dark'))
   applyTextScale(loadTextScale())
   applyMotion(loadMotion())
 }
+
+// ───────────────────────── Couleur d'accent ─────────────────────────
+
+export interface Accent {
+  id: string
+  label: string
+  /** La couleur en thème clair et sa variante un peu plus claire en thème sombre. */
+  light: string
+  dark: string
+}
+
+export const ACCENTS: Accent[] = [
+  { id: 'blue', label: 'Bleu', light: '#2383e2', dark: '#5ca8f0' },
+  { id: 'violet', label: 'Violet', light: '#7c5cdb', dark: '#a58cf0' },
+  { id: 'green', label: 'Vert', light: '#2f9e6f', dark: '#5ccf9a' },
+  { id: 'orange', label: 'Orange', light: '#e07b2b', dark: '#f0a35c' },
+  { id: 'pink', label: 'Rose', light: '#d6457f', dark: '#ef7fa9' },
+  { id: 'graphite', label: 'Graphite', light: '#55595f', dark: '#aab0b7' },
+]
+
+const ACCENT_KEY = 'form-accent'
+
+export const parseAccent = (raw: string | null | undefined): string => (ACCENTS.some((a) => a.id === raw) ? (raw as string) : 'blue')
+export const loadAccent = () => parseAccent(read(ACCENT_KEY))
+
+/** Pose la couleur d'accent sur toute l'appli (le bleu d'origine garde les couleurs du fichier de style). */
+export function applyAccent(id: string, dark: boolean) {
+  const root = document.documentElement
+  if (id === 'blue') {
+    root.style.removeProperty('--accent')
+    return
+  }
+  const a = ACCENTS.find((x) => x.id === id) ?? ACCENTS[0]
+  root.style.setProperty('--accent', dark ? a.dark : a.light)
+}
+
+export function setAccent(id: string) {
+  const accent = parseAccent(id)
+  write(ACCENT_KEY, accent)
+  applyAccent(accent, document.documentElement.classList.contains('dark'))
+}
+
+// ───────────────────────── Moodboards ─────────────────────────
+
+export type BoardPattern = 'dots' | 'grid' | 'none'
+export type SnapStrength = 'soft' | 'normal' | 'strong'
+export type BoardOpen = 'fit' | 'last'
+
+/** Réglages par défaut des moodboards (Réglages > Interface > Moodboards). */
+export interface BoardPrefs {
+  /** Le fond des nouveaux moodboards : petits points, quadrillage ou uni. */
+  pattern: BoardPattern
+  /** La couleur du fond : « theme » (couleur de l'appli) ou une couleur #rrggbb. */
+  bg: string
+  /** Aimantation : les éléments s'alignent sur les autres quand on les déplace. */
+  snap: boolean
+  snapStrength: SnapStrength
+  /** À l'ouverture : tout afficher, ou revenir là où on était. */
+  open: BoardOpen
+}
+
+export const BOARD_BACKGROUNDS: { id: string; label: string }[] = [
+  { id: 'theme', label: "Couleur de l'appli" },
+  { id: '#ffffff', label: 'Blanc' },
+  { id: '#ececea', label: 'Gris clair' },
+  { id: '#2a2a2a', label: 'Gris foncé' },
+  { id: '#0b0b0b', label: 'Noir' },
+]
+
+export const DEFAULT_BOARD_PREFS: BoardPrefs = { pattern: 'dots', bg: 'theme', snap: true, snapStrength: 'normal', open: 'last' }
+
+/** Rattache une valeur lue (peut-être absente ou abîmée) à des réglages valides. */
+export function parseBoardPrefs(raw: string | null | undefined): BoardPrefs {
+  let data: Partial<Record<keyof BoardPrefs, unknown>> = {}
+  try {
+    const parsed = raw ? JSON.parse(raw) : {}
+    if (parsed && typeof parsed === 'object') data = parsed
+  } catch { /* réglages abîmés : valeurs de départ */ }
+  const pick = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T => (allowed.includes(value as T) ? (value as T) : fallback)
+  return {
+    pattern: pick(data.pattern, ['dots', 'grid', 'none'] as const, DEFAULT_BOARD_PREFS.pattern),
+    bg: typeof data.bg === 'string' && (BOARD_BACKGROUNDS.some((b) => b.id === data.bg)) ? data.bg : DEFAULT_BOARD_PREFS.bg,
+    snap: typeof data.snap === 'boolean' ? data.snap : DEFAULT_BOARD_PREFS.snap,
+    snapStrength: pick(data.snapStrength, ['soft', 'normal', 'strong'] as const, DEFAULT_BOARD_PREFS.snapStrength),
+    open: pick(data.open, ['fit', 'last'] as const, DEFAULT_BOARD_PREFS.open),
+  }
+}
+
+const BOARD_KEY = 'form-board-prefs'
+export const loadBoardPrefs = () => parseBoardPrefs(read(BOARD_KEY))
+export function saveBoardPrefs(patch: Partial<BoardPrefs>): BoardPrefs {
+  const next = { ...loadBoardPrefs(), ...patch }
+  write(BOARD_KEY, JSON.stringify(next))
+  return next
+}
+
+/** La distance (en pixels d'écran) à partir de laquelle un élément « s'accroche » aux autres. */
+export const snapThreshold = (strength: SnapStrength): number => ({ soft: 3, normal: 6, strong: 12 })[strength]

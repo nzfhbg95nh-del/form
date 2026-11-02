@@ -91,15 +91,17 @@ export interface Board {
   v: 1
   items: BoardItem[]
   view: View
-  /** « theme » = la couleur de fond de l'application (claire ou sombre), sinon une couleur #rrggbb. */
+  /** « theme » = la couleur de fond de l'application (claire ou sombre), « auto » = le réglage par défaut, sinon une couleur #rrggbb. */
   bg: string
   pattern: Pattern
 }
 
 /** Fonds proposés : petits points (par défaut) ou uni. Un ancien moodboard qui avait la grille ou les cases repasse en petits points. */
-export type Pattern = 'dots' | 'none'
+/** Le fond de la toile ; « auto » (nouveaux moodboards) suit le réglage par défaut de Réglages > Interface > Moodboards. */
+export type Pattern = 'dots' | 'grid' | 'none' | 'auto'
 export const PATTERNS: { id: Pattern; label: string }[] = [
   { id: 'dots', label: 'Points' },
+  { id: 'grid', label: 'Quadrillage' },
   { id: 'none', label: 'Uni' },
 ]
 
@@ -119,7 +121,7 @@ export const NOTE_COLORS = ['#fff3a3', '#ffd6e0', '#cfeaff', '#d4f5d0', '#ffffff
 export const newId = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3)
 
 export function emptyBoard(): Board {
-  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'theme', pattern: 'dots' }
+  return { v: 1, items: [], view: { x: 0, y: 0, zoom: 1 }, bg: 'auto', pattern: 'auto' }
 }
 
 export function parseBoard(content: string | null): Board {
@@ -128,7 +130,7 @@ export function parseBoard(content: string | null): Board {
     const data = JSON.parse(content)
     if (data && data.v === 1 && Array.isArray(data.items)) {
       const board = { ...emptyBoard(), ...data }
-      return board.pattern === 'none' ? board : { ...board, pattern: 'dots' }
+      return ['none', 'grid', 'auto'].includes(board.pattern) ? board : { ...board, pattern: 'dots' }
     }
   } catch {
     /* plan illisible : on repart d'une toile vide */

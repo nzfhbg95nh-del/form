@@ -184,13 +184,15 @@ describe('guides intelligents', () => {
 })
 
 describe('fond du moodboard', () => {
-  it('petits points par défaut ; uni reste possible', () => {
-    expect(emptyBoard().pattern).toBe('dots')
+  it('un nouveau moodboard suit le réglage par défaut ; points, quadrillage et uni restent possibles', () => {
+    expect(emptyBoard().pattern).toBe('auto')
+    expect(emptyBoard().bg).toBe('auto')
     expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'dots' })).pattern).toBe('dots')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'grid' })).pattern).toBe('grid')
     expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'none' })).pattern).toBe('none')
+    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'auto' })).pattern).toBe('auto')
   })
-  it('un ancien moodboard avec la grille ou les cases repasse en petits points', () => {
-    expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'grid' })).pattern).toBe('dots')
+  it('un ancien moodboard avec un fond disparu (les cases) repasse en petits points', () => {
     expect(parseBoard(JSON.stringify({ v: 1, items: [], pattern: 'cells' })).pattern).toBe('dots')
   })
 })

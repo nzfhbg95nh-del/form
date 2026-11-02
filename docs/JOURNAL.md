@@ -1068,3 +1068,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - À faire ensuite : déplacer (Ctrl+Maj+↑/↓, Alt+glisser, Alt+clic sur +), barre de texte et raccourcis de saisie.
 
 - Éditeur (2/2 pour l'instant) : Ctrl+Maj+↑/↓ déplace le bloc du curseur (déjà fourni par l'éditeur, vérifié) et, avec des blocs sélectionnés, les déplace ensemble ; le surlignage suit le déplacement. Reste : Alt+glisser (dupliquer), Alt+clic sur « + » (ajouter au-dessus), vérification de la barre de texte et des raccourcis de saisie.
+
+## 2026-11-02 — Réglages > Interface : thème Auto, couleur d'accent, moodboards
+- Thème : Clair / Sombre / Auto ; « Auto » suit Windows et réagit quand Windows change de mode (`themeMode` dans le store ; sans réglage enregistré, c'est Auto).
+- Couleur d'accent : 6 pastilles (bleu d'origine, violet, vert, orange, rose, graphite) avec variante claire et sombre, posée sur `--accent` ; l'ombre du bouton principal suit la couleur.
+- Section « Moodboards » : fond par défaut (petits points / quadrillage / uni), couleur du fond (couleur de l'appli, blanc, gris clair, gris foncé, noir), aimantation (activée ou non, douce / normale / forte = 3, 6, 12 px), ouverture (là où j'étais / tout afficher). Réglages dans `localStorage` (`form-board-prefs`), lus à l'ouverture d'un moodboard. Les nouveaux moodboards ont `bg` et `pattern` à « auto » et suivent ces réglages ; un moodboard dont le fond a été changé à la main garde le sien. Nouveau fond « Quadrillage » aussi dans le bouton de la barre du moodboard.

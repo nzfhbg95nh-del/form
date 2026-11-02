@@ -26,6 +26,7 @@ import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { classifyLink, imageTypeOf, importMessage, IMPORT_LIMIT } from '@/lib/boardImport'
 import { loadSaverSettings } from '@/biblio/lib/saver.ts'
 import { useApp } from '@/store/app'
+import { loadBoardPrefs, snapThreshold } from '@/lib/uiPrefs'
 import type { ObjectRow } from '@/lib/types'
 
 interface Asset {
@@ -84,6 +85,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [view, setView] = useState<View>(initial.view)
   const [bg, setBg] = useState(initial.bg)
   const [pattern, setPattern] = useState<Pattern>(initial.pattern)
+  // Réglages par défaut (Réglages > Interface > Moodboards), lus à l'ouverture du moodboard.
+  const prefs = useMemo(() => loadBoardPrefs(), [])
+  const effectiveBg = bg === 'auto' ? prefs.bg : bg
+  const effectivePattern: Exclude<Pattern, 'auto'> = pattern === 'auto' ? prefs.pattern : pattern
   const appTheme = useApp((s) => s.theme)
   const [selection, setSelection] = useState<Set<string>>(new Set())
   const [marquee, setMarquee] = useState<Rect | null>(null)
@@ -190,12 +195,13 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   useEffect(() => {
     if (fitted.current || size.w < 100) return
     fitted.current = true
-    if (initial.items.length > 0 && initial.view.x === 0 && initial.view.y === 0 && initial.view.zoom === 1) {
+    // Sans vue enregistrée, ou si le réglage dit « tout afficher à l'ouverture » : toute la toile tient dans la fenêtre.
+    if (initial.items.length > 0 && (prefs.open === 'fit' || (initial.view.x === 0 && initial.view.y === 0 && initial.view.zoom === 1))) {
       setView(fitView(boundsOf(initial.items), size))
     } else if (initial.items.length === 0) {
       setView({ x: size.w / 2, y: size.h / 2, zoom: 1 })
     }
-  }, [size, initial])
+  }, [size, initial, prefs.open])
 
   // ── Enregistrement automatique ──
   const first = useRef(true)
@@ -646,10 +652,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       const started = !!live || Math.hypot(dx, dy) * v.zoom > 3
       // Guides intelligents : un bord ou le centre qui s'aligne sur un autre élément s'y colle (Ctrl pour désactiver).
       let shown: Guide[] = []
-      if (started && !(e.ctrlKey || e.metaKey) && d.others.length > 0) {
+      if (started && prefs.snap && !(e.ctrlKey || e.metaKey) && d.others.length > 0) {
         const mb = boundsOf(d.items.filter((i) => d.ids.has(i.id)))
         if (mb) {
-          const sn = snapMove({ ...mb, x: mb.x + dx, y: mb.y + dy }, d.others, 6 / v.zoom)
+          const sn = snapMove({ ...mb, x: mb.x + dx, y: mb.y + dy }, d.others, snapThreshold(prefs.snapStrength) / v.zoom)
           if (locked !== 'dx') dx += sn.dx
           if (locked !== 'dy') dy += sn.dy
           shown = sn.guides
@@ -872,16 +878,18 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   }
 
   // Fond : par défaut la couleur de l'application, avec de petits points très discrets, ou uni.
-  const isDark = bg === 'theme' ? appTheme === 'dark' : readableOn(bg) === '#ffffff'
+  const isDark = effectiveBg === 'theme' ? appTheme === 'dark' : readableOn(effectiveBg) === '#ffffff'
   const textColor = isDark ? '#ffffff' : '#111111'
-  const bgColor = bg === 'theme' ? 'var(--bg)' : bg
+  const bgColor = effectiveBg === 'theme' ? 'var(--bg)' : effectiveBg
   const step = 28 * view.zoom
   // Les petits points sont discrets : ils se devinent à peine.
   const dotInk = isDark ? 'rgba(255,255,255,0.11)' : 'rgba(0,0,0,0.11)'
   const patternStyle: React.CSSProperties =
-    pattern === 'dots' && step >= 8
+    effectivePattern === 'dots' && step >= 8
       ? { backgroundImage: `radial-gradient(circle at center, ${dotInk} ${Math.max(1, view.zoom * 1.1)}px, transparent ${Math.max(1.4, view.zoom * 1.1 + 0.5)}px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x - step / 2}px ${view.y - step / 2}px` }
-      : {}
+      : effectivePattern === 'grid' && step >= 8
+        ? { backgroundImage: `linear-gradient(to right, ${dotInk} 1px, transparent 1px), linear-gradient(to bottom, ${dotInk} 1px, transparent 1px)`, backgroundSize: `${step}px ${step}px`, backgroundPosition: `${view.x}px ${view.y}px` }
+        : {}
   const swatch = (b: string): React.CSSProperties => (b === 'theme' ? { background: 'linear-gradient(135deg, #ffffff 50%, #1f1f1f 50%)' } : { background: b })
   const zoom = view.zoom
   const hs = 11 / zoom
@@ -1168,7 +1176,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         {/* Vue : cadrer et choisir le fond de la toile */}
         <div className={group}>
           <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} />Ajuster</button>
-          <button className={item} title="Fond de la toile : petits points ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === pattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === pattern)?.label}</button>
+          <button className={item} title="Fond de la toile : petits points, quadrillage ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === effectivePattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === effectivePattern)?.label}</button>
         </div>
 
         {/* Fenêtre : à droite. Épingler = reste devant les autres fenêtres ; Fenêtre flottante = le moodboard s'ouvre dans une petite fenêtre à part et la page se ferme derrière. */}
