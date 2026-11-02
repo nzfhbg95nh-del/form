@@ -6,6 +6,7 @@ import { createBoard } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
 import { useApp } from '@/store/app'
 import { NameInput } from './NameInput.tsx'
+import { NewMoodboardDialog } from './NewMoodboardDialog.tsx'
 
 const nf = new Intl.DateTimeFormat('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
 
@@ -182,11 +183,8 @@ export function MoodboardsView() {
           <span className="lib-count">{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
         </div>
         <div className="ml-auto">
-          {naming ? (
-            <NameInput placeholder="Nom du moodboard" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void create(name)} className="w-96" />
-          ) : (
-            <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
-          )}
+          <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
+          {naming && <NewMoodboardDialog onCreate={(name) => void create(name)} onClose={() => setNaming(false)} />}
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">

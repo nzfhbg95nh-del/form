@@ -987,3 +987,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Survol des images (grille, collections, moodboards) : voile noir de 25 % ramené à 10 %.
 
 - Confirmation « mettre un moodboard à la corbeille » (carte des moodboards) refaite : icône, titre court, explication discrète, boutons Annuler / Mettre à la corbeille (rouge) alignés à droite.
+
+- « Nouveau moodboard » (page Moodboards) ouvre une fenêtre « Créer un moodboard » (aperçu, nom avec libellé, grand bouton Créer ; Entrée valide, Échap ou clic à côté ferme) au lieu d'un champ en haut à droite : NewMoodboardDialog.tsx.
