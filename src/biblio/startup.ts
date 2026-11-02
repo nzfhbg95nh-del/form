@@ -16,17 +16,16 @@ export async function startLibraryBackground() {
   if (getCurrentWindow().label !== 'main') return
   // Les empreintes sont lues en arrière-plan dès le lancement : la Carte et la recherche par contenu les trouvent déjà prêtes.
   window.setTimeout(() => void getSearchIndex().catch(() => undefined), 3000)
+  // La bibliothèque est branchée dès le démarrage (dossier connu) : les photos des recettes et les miniatures en ont besoin, même sans mise à jour.
+  await useLibrary.getState().init(false)
   const now = new Date()
   const frequency = parseFrequency(await getSetting('library_auto_frequency'), await getSetting('library_auto_update'))
   const updateDue = shouldAutoUpdate(frequency, await getSetting('library_auto_last_day'), now)
   const downloadDue = shouldAutoUpdate(await downloadFrequency(), await getSetting(DOWNLOAD_LAST_DAY_KEY), now)
   if (!updateDue && !downloadDue) return
 
-  const library = useLibrary.getState()
   let downloaded = false
   if (downloadDue) {
-    // La bibliothèque doit être branchée (son dossier connu) avant de télécharger dedans.
-    await library.init(false)
     const root = useLibrary.getState().root
     if (root) {
       try {
@@ -40,9 +39,8 @@ export async function startLibraryBackground() {
       }
     }
   }
-  // Déjà branchée : `init` ne refait rien et c'est `update` qui range les nouveaux fichiers.
-  await library.init(true)
-  if (downloaded) await useLibrary.getState().update()
+  // Mise à jour due, ou nouveaux fichiers téléchargés : la bibliothèque lit son dossier, fait les miniatures, etc.
+  if (updateDue || downloaded) await useLibrary.getState().update()
   await useAi.getState().init(true)
   // Le jour n'est noté qu'une fois la mise à jour allée au bout : fermée en route, elle sera relancée au prochain démarrage.
   if (updateDue) await setSetting('library_auto_last_day', dayKey(now))

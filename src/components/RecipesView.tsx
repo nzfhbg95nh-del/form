@@ -300,6 +300,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
   const { byCategory, none } = useMemo(() => groupByCategory(rows, categories, (r) => parseValues(r.properties)[RECIPE.type]), [rows, categories])
+  // Les photos des recettes sont rangées dans la bibliothèque : son dossier doit être connu pour les afficher (la page peut s'ouvrir avant tout autre chargement).
+  useEffect(() => { void useLibrary.getState().init() }, [])
   // Une seule fois, les recettes sans temps de préparation en reçoivent un (estimé d'après les notes, les ingrédients et les étapes) : de quoi trier par temps.
   // Ensuite, les temps des nouvelles recettes sont écrits à la main ; un temps déjà rempli n'est jamais touché.
   const hasRows = rows.length > 0
