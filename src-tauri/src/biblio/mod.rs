@@ -7,6 +7,7 @@ pub mod clip_tokenizer;
 pub mod colors;
 pub mod dupes;
 pub mod layout;
+pub mod login;
 pub mod ocr;
 pub mod relocate;
 pub mod saver;

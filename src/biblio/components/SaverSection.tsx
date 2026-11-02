@@ -4,6 +4,8 @@ import { listen } from '@tauri-apps/api/event'
 import { open } from '@tauri-apps/plugin-dialog'
 import { Download, Square } from 'lucide-react'
 import { buildJobs, cookieAge, cookieNote, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
+import { getSetting, setSetting } from '@/biblio/lib/library.ts'
+import { adoptCookies, ALERT_KEY, AUTO_DOWNLOAD_KEY, autoDownloadEnabled, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -30,6 +32,75 @@ function CookieRow({ label, value, note, disabled, onChange }: { label: string; 
         <button className="btn" onClick={() => void pick()} disabled={disabled}>Choisir…</button>
       </div>
       {note && <p className="ml-[7.5rem] mt-1 text-xs" style={{ color: '#d9730d' }}>{note}</p>}
+    </div>
+  )
+}
+
+/** Connexion au site dans une fenêtre de Form : Victor tape son mot de passe lui-même, Form garde la session et prépare le fichier de cookies. */
+function LoginRow({ site, disabled, onFile }: { site: Site; disabled: boolean; onFile: (file: string) => void }) {
+  const [status, setStatus] = useState<LoginStatus | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const wasConnected = useRef(false)
+  const onFileRef = useRef(onFile)
+  onFileRef.current = onFile
+  useEffect(() => {
+    let gone = false
+    const tick = async () => {
+      try {
+        const st = await loginCheck(site)
+        if (gone) return
+        setStatus(st)
+        if (st.connected && st.cookiesFile) {
+          onFileRef.current(st.cookiesFile)
+          // Connexion réussie dans la fenêtre : on la referme.
+          if (!wasConnected.current) void loginClose(site).catch(() => undefined)
+        }
+        wasConnected.current = st.connected
+      } catch (e) {
+        if (!gone) setError(String(e))
+      }
+    }
+    void tick()
+    const timer = window.setInterval(() => void tick(), 3000)
+    return () => {
+      gone = true
+      window.clearInterval(timer)
+    }
+  }, [site])
+  const name = SITE_NAMES[site]
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      <button className="btn" onClick={() => { setError(null); void loginOpen(site).catch((e) => setError(String(e))) }} disabled={disabled}>
+        {status?.connected ? `Me reconnecter à ${name}` : `Me connecter à ${name}`}
+      </button>
+      <span className="text-sm" style={{ color: status?.connected ? '#2b8a3e' : 'var(--fg-muted)' }}>{loginLabel(status)}</span>
+      {error && <span className="text-xs" style={{ color: '#d44c47' }}>{error}</span>}
+    </div>
+  )
+}
+
+/** Tourne tant que le téléchargement automatique est activé : lit/écrit le réglage et affiche l'alerte « connexion à refaire ». */
+function AutoDownloadOption() {
+  const [on, setOn] = useState<boolean | null>(null)
+  const [alert, setAlertText] = useState('')
+  useEffect(() => {
+    void Promise.all([autoDownloadEnabled(), getSetting(ALERT_KEY)]).then(([enabled, a]) => {
+      setOn(enabled)
+      setAlertText(a ?? '')
+    })
+  }, [])
+  if (on === null) return null
+  return (
+    <div className="mt-5 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
+      <label className="flex items-center gap-2 font-medium">
+        <input type="checkbox" checked={on} onChange={(e) => { setOn(e.target.checked); void setSetting(AUTO_DOWNLOAD_KEY, e.target.checked ? '1' : '0') }} />
+        Télécharger aussi mes nouveaux enregistrements quand la bibliothèque se met à jour toute seule
+      </label>
+      <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>
+        Au rythme choisi dans « Ma bibliothèque » (par exemple une fois par semaine), à l'ouverture de Form. Il faut être connecté ci-dessus ; si la connexion a expiré, Form te le dit ici et saute ce site.
+        Les pauses entre fichiers limitent le risque pour ton compte, mais Instagram n'aime pas les téléchargements automatiques : un rythme d'une fois par semaine est raisonnable.
+      </p>
+      {alert && <p className="mt-2" style={{ color: '#d9730d' }}>{alert}</p>}
     </div>
   )
 }
@@ -119,11 +190,12 @@ export function SaverSection() {
       <h2 className="text-base font-semibold">Télécharger mes enregistrements</h2>
       <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
         Form télécharge tes enregistrés Instagram et tes épingles Pinterest dans ton dossier « Bibliotheque » ({root || 'dossier non choisi'}), rangés dans « instagram » et « pinterest ».
-        Seules les nouveautés sont téléchargées. Il utilise tes fichiers <b>cookies.txt</b> (jamais ton mot de passe) et fait des pauses entre les fichiers pour ne pas gêner ton compte.
-        Les cookies expirent vite : refais l'export depuis Chrome avant une session.
+        Seules les nouveautés sont téléchargées.
+        Tu te connectes à chaque site <b>une seule fois</b> dans une petite fenêtre de Form : tu tapes ton mot de passe toi-même sur le site, Form ne le voit jamais.
+        Il garde seulement la session et fait des pauses entre les fichiers pour ne pas gêner ton compte.
       </p>
-      <div className="mt-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
-        <div className="font-medium">Avant de télécharger : exporter les cookies depuis Chrome</div>
+      <details className="mt-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
+        <summary className="cursor-pointer font-medium">Avancé : utiliser un fichier cookies.txt exporté depuis Chrome</summary>
         <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>Extension nécessaire : « Get cookies.txt LOCALLY » (Chrome Web Store).</p>
         <div className="mt-2 font-medium">Pour Instagram</div>
         <ol className="ml-5 list-decimal" style={{ color: 'var(--fg-muted)' }}>
@@ -137,7 +209,8 @@ export function SaverSection() {
           <li>Clique sur l'icône de l'extension, puis « Export ».</li>
           <li>Enregistre le fichier : <b>www.pinterest.com_cookies.txt</b></li>
         </ol>
-      </div>
+        <p className="mt-2" style={{ color: 'var(--fg-muted)' }}>Puis choisis ce fichier dans « Cookies » ci-dessous.</p>
+      </details>
       {prefilled && <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Réglages repris de ton ancien outil de téléchargement (qui n'a pas été modifié).</p>}
 
       {loaded && (
@@ -150,6 +223,7 @@ export function SaverSection() {
               <span className="w-28 shrink-0 text-sm" style={{ color: 'var(--fg-muted)' }}>Pseudo</span>
               <input className={input} style={inputStyle} value={s.igUser} onChange={(e) => change({ igUser: e.target.value })} placeholder="ton pseudo Instagram" disabled={running || !s.doIg} aria-label="Pseudo Instagram" />
             </div>
+            <LoginRow site="instagram" disabled={running || !s.doIg} onFile={(f) => { if (s.igCookies !== f) { change({ igCookies: f }); void adoptCookies('instagram', f) } }} />
             <CookieRow label="Cookies" value={s.igCookies} note={igNote} disabled={running || !s.doIg} onChange={(igCookies) => change({ igCookies })} />
           </div>
 
@@ -161,8 +235,11 @@ export function SaverSection() {
               <span className="w-28 shrink-0 text-sm" style={{ color: 'var(--fg-muted)' }}>Lien du profil</span>
               <input className={input} style={inputStyle} value={s.pinUrl} onChange={(e) => change({ pinUrl: e.target.value })} placeholder="https://www.pinterest.com/monpseudo/ (ou un seul tableau)" disabled={running || !s.doPin} aria-label="Lien du profil Pinterest" />
             </div>
+            <LoginRow site="pinterest" disabled={running || !s.doPin} onFile={(f) => { if (s.pinCookies !== f) { change({ pinCookies: f }); void adoptCookies('pinterest', f) } }} />
             <CookieRow label="Cookies" value={s.pinCookies} note={pinNote} disabled={running || !s.doPin} onChange={(pinCookies) => change({ pinCookies })} />
           </div>
+
+          <AutoDownloadOption />
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button className="btn btn-primary" onClick={() => void start()} disabled={running}><Download size={16} /> {running ? 'Téléchargement…' : 'Télécharger les nouveautés'}</button>

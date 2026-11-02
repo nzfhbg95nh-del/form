@@ -2,6 +2,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window'
 import { dayKey, parseFrequency, shouldAutoUpdate } from '@/biblio/lib/autoUpdate.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { getSearchIndex } from '@/biblio/lib/searchIndex.ts'
+import { autoDownload, autoDownloadEnabled, setAlert } from '@/biblio/lib/siteLogin.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
@@ -18,6 +19,16 @@ export async function startLibraryBackground() {
   const now = new Date()
   if (!shouldAutoUpdate(frequency, await getSetting('library_auto_last_day'), now)) return
   await useLibrary.getState().init(true)
+  // Option : télécharger d'abord les nouveaux enregistrements Instagram / Pinterest (connexion faite dans Réglages > Téléchargement).
+  const root = useLibrary.getState().root
+  if (root && (await autoDownloadEnabled())) {
+    try {
+      await setAlert(await autoDownload(root))
+      await useLibrary.getState().update()
+    } catch (e) {
+      await setAlert(`Le téléchargement automatique a échoué : ${String(e)}`)
+    }
+  }
   await useAi.getState().init(true)
   // Le jour n'est noté qu'une fois la mise à jour allée au bout : fermée en route, elle sera relancée au prochain démarrage.
   await setSetting('library_auto_last_day', dayKey(now))
