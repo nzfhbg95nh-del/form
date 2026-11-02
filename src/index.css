@@ -88,7 +88,7 @@ html.floating #root {
   border-radius: 9999px;
   background: color-mix(in srgb, var(--fg) 6%, transparent);
   color: var(--fg);
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
 }
 .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 10%, transparent); }
