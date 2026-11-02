@@ -1,5 +1,4 @@
 import { newId, OPTION_COLORS, parseValues, type Column, type Schema, type SelectOption } from './database'
-import type { Recipe } from './ai'
 
 /** Identifiants des colonnes de la base « Recettes ». */
 export const RECIPE = {
@@ -220,33 +219,6 @@ export function emptyRecipeBlocks(people = 4): unknown[] {
     h('Notes'),
     p(),
   ]
-}
-
-/** Contenu d'une recette lue par l'assistant (les durées et les portions vont dans les propriétés). */
-export function recipeBodyBlocks(r: Recipe): unknown[] {
-  return [
-    { type: 'portions', props: { servings: firstNumber(r.servings) ?? 4 } },
-    h('Ingrédients'),
-    ...(r.ingredients.length ? r.ingredients.map((i) => ({ type: 'checkListItem', content: i })) : [{ type: 'checkListItem', content: '' }]),
-    h('Étapes'),
-    ...(r.steps.length ? r.steps.map((s) => ({ type: 'numberedListItem', content: s })) : [{ type: 'numberedListItem', content: '' }]),
-    h('Notes'),
-    p(r.notes),
-  ]
-}
-
-/** Premier nombre d'un texte (« 4 personnes » → 4, « 2 à 3 parts » → 2), sinon null. */
-export function firstNumber(text: string): number | null {
-  const m = /\d+(?:[.,]\d+)?/.exec(text)
-  if (!m) return null
-  const n = Number(m[0].replace(',', '.'))
-  return Number.isFinite(n) ? n : null
-}
-
-/** Valeurs de propriétés d'une recette lue par l'assistant. */
-export function recipeValues(r: Recipe): Record<string, unknown> {
-  const servings = firstNumber(r.servings)
-  return servings !== null ? { [RECIPE.servings]: servings } : {}
 }
 
 /** Ce qu'insère la commande « / » Recette : nom (si la page n'a pas encore de titre), durées, photo, personnes, ingrédients, étapes, notes. */

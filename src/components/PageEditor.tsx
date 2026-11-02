@@ -1,5 +1,5 @@
 import { dateText, dateTimeText } from '@/lib/dateShortcuts'
-import { EMPTY_LINE_HINT, spaceOpensAssistant, tabAction } from '@/lib/editorKeys'
+import { EMPTY_LINE_HINT, tabAction } from '@/lib/editorKeys'
 import { EquationBlock } from '@/components/EquationBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
@@ -552,7 +552,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   }
 
   // Comme dans Notion : Tab sur une ligne de texte passe à la ligne suivante (Maj+Tab : précédente) au lieu de décaler ;
-  // Espace sur une ligne vide ouvre l'assistant. Dans les listes, tâches, tableaux et code, Tab garde son rôle.
+  // dans les listes, tâches, tableaux et code, Tab garde son rôle.
   const onKeyDownCapture = (e: React.KeyboardEvent) => {
     if (!editable || e.nativeEvent.isComposing) return
     const el = e.target as HTMLElement
@@ -569,13 +569,6 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         let target = action === 'next' ? editor.getNextBlock(block.id) : editor.getPrevBlock(block.id)
         while (target && !Array.isArray((target as { content?: unknown }).content)) target = action === 'next' ? editor.getNextBlock(target.id) : editor.getPrevBlock(target.id)
         if (target) editor.setTextCursorPosition(target.id, action === 'next' ? 'start' : 'end')
-        return
-      }
-      const empty = Array.isArray(block.content) && block.content.length === 0
-      if (spaceOpensAssistant(block.type, empty, e.key, { ctrl: e.ctrlKey, alt: e.altKey, shift: e.shiftKey, meta: e.metaKey })) {
-        e.preventDefault()
-        e.stopPropagation()
-        useApp.getState().setAssistant('recipe')
       }
     } catch { /* pas de curseur dans l'éditeur : la touche garde son rôle */ }
   }

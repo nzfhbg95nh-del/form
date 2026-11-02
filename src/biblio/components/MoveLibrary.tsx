@@ -7,6 +7,7 @@ import {
   type MovePreview, type MoveProgress, type MoveResult,
 } from '@/biblio/lib/relocatePure.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
+import { SettingsSection } from '@/components/SettingsUi'
 
 type Step =
   | { kind: 'idle' }
@@ -60,11 +61,7 @@ export function MoveLibrary({ disabled }: { disabled: boolean }) {
   const muted = { color: 'var(--fg-muted)' }
 
   return (
-    <section className="mt-6">
-      <div className="text-xs font-medium uppercase tracking-wide" style={muted}>Déplacer la bibliothèque</div>
-      <p className="mt-2 text-sm" style={muted}>
-        Copie tout le dossier (Instagram, Pinterest, images ajoutées, recette, cache) vers un autre disque ou dossier, vérifie chaque fichier, puis Form s'y rend. L'ancien dossier reste intact : tu l'effaceras toi-même quand tu auras vérifié. Un déplacement interrompu reprend là où il s'est arrêté.
-      </p>
+    <SettingsSection title="Déplacer la bibliothèque" description="Copie tout le dossier (Instagram, Pinterest, images ajoutées, recette, cache) vers un autre disque ou dossier, vérifie chaque fichier, puis Form s'y rend. L'ancien dossier reste intact : tu l'effaceras toi-même quand tu auras vérifié. Un déplacement interrompu reprend là où il s'est arrêté.">
 
       {(step.kind === 'idle' || step.kind === 'checking') && (
         <button className="btn mt-3" onClick={() => void pick()} disabled={disabled || step.kind === 'checking'}>
@@ -110,6 +107,6 @@ export function MoveLibrary({ disabled }: { disabled: boolean }) {
       )}
 
       {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
-    </section>
+    </SettingsSection>
   )
 }

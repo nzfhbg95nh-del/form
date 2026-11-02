@@ -9,10 +9,20 @@ import { REMINDER_FIELDS } from '@/lib/payments'
 import { todayISO } from '@/lib/backup'
 import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
+import { SettingsHeader, SubNav, type SubNavItem } from '@/components/SettingsUi'
 
 const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
 const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
 const secondary = 'btn whitespace-nowrap disabled:opacity-40'
+
+type Panel = 'identity' | 'billing' | 'taxes' | 'reminders'
+
+const PANELS: SubNavItem<Panel>[] = [
+  { id: 'identity', label: 'Identité et logo' },
+  { id: 'billing', label: 'Factures et TVA' },
+  { id: 'taxes', label: 'Plafonds et cotisations' },
+  { id: 'reminders', label: 'Relances' },
+]
 
 /** Champ de montant en euros, enregistré en centimes. */
 function MoneyInput({ value, onChange }: { value: number; onChange: (cents: number) => void }) {
@@ -63,6 +73,7 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
 export function CompanySettings() {
   const { company, setCompany, save, dirty, message } = useCompany()
   const logoInput = useRef<HTMLInputElement>(null)
+  const [panel, setPanel] = useState<Panel>('identity')
   if (!company) return <div className="px-12 py-10 text-[var(--fg-muted)]">Chargement…</div>
 
   const set = <K extends keyof Company>(key: K, value: Company[K]) => setCompany({ ...company, [key]: value })
@@ -84,8 +95,7 @@ export function CompanySettings() {
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <h1 className="mb-1 text-3xl font-bold">Entreprise</h1>
-      <p className="mb-6 text-sm text-[var(--fg-muted)]">Ces informations sont reprises automatiquement sur tous tes devis et factures.</p>
+      <SettingsHeader title="Entreprise" subtitle="Ces informations sont reprises automatiquement sur tous tes devis et factures." />
 
       {missing.length > 0 ? (
         <div className="mb-3 rounded border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">
@@ -99,7 +109,11 @@ export function CompanySettings() {
         <div key={w} className="mb-2 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">⚠ {w}</div>
       ))}
 
-      <h2 className="mb-2 mt-6 text-lg font-semibold">Identité</h2>
+      <SubNav items={PANELS} value={panel} onChange={setPanel} />
+
+      {panel === 'identity' && (
+      <>
+      <h2 className="mb-2 text-lg font-semibold">Identité</h2>
       <div className="grid grid-cols-2 gap-x-4">
         <Row label="Nom légal">{text('legalName')}</Row>
         <Row label="Nom commercial (en-tête des documents)">{text('tradeName')}</Row>
@@ -108,7 +122,6 @@ export function CompanySettings() {
       </div>
 
       <h2 className="mb-2 mt-4 text-lg font-semibold">Adresse</h2>
-      <p className="mb-2 text-xs text-[var(--fg-muted)]">Provisoire : à remplacer par l'adresse de ton entreprise quand elle sera confirmée.</p>
       <Row label="Rue et numéro">{text('street')}</Row>
       <div className="grid grid-cols-3 gap-x-4">
         <Row label="Code postal">{text('postalCode')}</Row>
@@ -120,7 +133,12 @@ export function CompanySettings() {
         <Row label="E-mail">{text('email')}</Row>
       </div>
 
-      <h2 className="mb-2 mt-4 text-lg font-semibold">Paiement</h2>
+      </>
+      )}
+
+      {panel === 'billing' && (
+      <>
+      <h2 className="mb-2 text-lg font-semibold">Paiement</h2>
       <div className="grid grid-cols-2 gap-x-4">
         <Row label="IBAN">{text('iban')}</Row>
         <Row label="BIC (facultatif)">{text('bic')}</Row>
@@ -165,7 +183,12 @@ export function CompanySettings() {
         Cette mention a été confirmée par un comptable
       </label>
 
-      <h2 className="mb-2 mt-4 text-lg font-semibold">Plafonds et seuils (alertes du tableau de bord)</h2>
+      </>
+      )}
+
+      {panel === 'taxes' && (
+      <>
+      <h2 className="mb-2 text-lg font-semibold">Plafonds et seuils (alertes du tableau de bord)</h2>
       <div className="mb-2 rounded border border-yellow-500/50 bg-yellow-500/10 p-2 text-xs">
         ⚠ Ces montants sont des valeurs de départ pour une activité de <strong>prestations de services</strong>. Ils changent selon les lois de finances :
         <strong> vérifie-les sur service-public.fr ou avec un comptable</strong>, corrige-les si besoin, puis coche la case de confirmation.
@@ -208,7 +231,12 @@ export function CompanySettings() {
         J'ai vérifié ces taux
       </label>
 
-      <h2 className="mb-2 mt-4 text-lg font-semibold">Relances de paiement</h2>
+      </>
+      )}
+
+      {panel === 'reminders' && (
+      <>
+      <h2 className="mb-2 text-lg font-semibold">Relances de paiement</h2>
       <p className="mb-2 text-xs text-[var(--fg-muted)]">
         Form te propose de relancer une facture impayée quelques jours après son échéance. Il prépare le message : c'est toi qui l'envoies. Mots remplacés automatiquement : {REMINDER_FIELDS.join(' ')}.
       </p>
@@ -220,7 +248,12 @@ export function CompanySettings() {
         <textarea className={field + ' h-48 text-xs'} value={company.reminderBody} onChange={(e) => set('reminderBody', e.target.value)} />
       </Row>
 
-      <h2 className="mb-2 mt-4 text-lg font-semibold">Logo</h2>
+      </>
+      )}
+
+      {panel === 'identity' && (
+      <>
+      <h2 className="mb-2 mt-6 text-lg font-semibold">Logo</h2>
       <div className="mb-6 flex items-center gap-3">
         {company.logo ? <img src={company.logo} alt="Logo" className="h-16 rounded-lg border border-[var(--border)]" /> : <span className="text-sm text-[var(--fg-muted)]">Aucun logo</span>}
         <button className={secondary} onClick={() => logoInput.current?.click()}>Choisir une image…</button>
@@ -237,8 +270,10 @@ export function CompanySettings() {
           }}
         />
       </div>
+      </>
+      )}
 
-      <div className="sticky bottom-0 -mx-12 flex items-center gap-3 border-t border-[var(--border)] bg-[var(--bg)] px-12 py-3">
+      <div className="sticky bottom-0 -mx-12 mt-6 flex items-center gap-3 border-t border-[var(--border)] bg-[var(--bg)] px-12 py-3">
         <button className={primary} disabled={!dirty} onClick={() => void save(company)}>Enregistrer</button>
         <button className={secondary} disabled={!dirty} onClick={() => window.location.reload()}>Annuler les modifications</button>
         {message && <span className="text-sm text-green-600">{message}</span>}
@@ -254,11 +289,10 @@ export function CgvSettings() {
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <h1 className="mb-1 text-3xl font-bold">Conditions générales de vente</h1>
-      <p className="mb-4 text-sm text-[var(--fg-muted)]">
+      <SettingsHeader title="Conditions générales de vente" subtitle={<>
         Ce texte sera joint en dernière page de chaque devis. Dernière mise à jour : {company.cgvDate.split('-').reverse().join('/')}.
         Chaque article commence par « ARTICLE n - TITRE », les points par « * » et les sous-points par « - ».
-      </p>
+      </>} />
       <textarea
         className={field + ' h-[60vh] font-mono text-xs leading-relaxed'}
         value={company.cgv}

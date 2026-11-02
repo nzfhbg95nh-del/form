@@ -5,7 +5,7 @@ import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues
 import { activateTab, closeTab, currentId, dropTabs, openTab, parseViewTab, viewTabId, type Tabs } from '@/lib/tabs'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
-import { tasksSchema, TASK } from '@/lib/tasks'
+import { tasksSchema } from '@/lib/tasks'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
 import { checkForUpdate, isNewer, type AvailableUpdate } from '@/lib/updates'
 import { parsePinned, PINNED_SETTING, togglePinned } from '@/lib/pinned'
@@ -17,8 +17,7 @@ import {
   blockersToIssue, buildInvoiceSnapshot, creditFromInvoice, depositFromQuote, finalFromQuote, invoicePrefix, newStandardInvoice,
   type Draft,
 } from '@/lib/invoices'
-import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipeBodyBlocks, recipesSchema, recipeValues } from '@/lib/recipes'
-import type { AiMode, AiTask, Recipe } from '@/lib/ai'
+import { emptyRecipeBlocks, normalizeRecipesSchema, RECIPE, recipesSchema } from '@/lib/recipes'
 import { isSettled } from '@/lib/payments'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
@@ -160,11 +159,6 @@ interface AppState {
   createMoodboard(): Promise<void>
   /** Crée un moodboard enfant de la page (sans l'ouvrir) pour l'intégrer dans son contenu ; renvoie son identifiant. */
   createEmbeddedChild(parentId: string | null, kind: 'page' | 'database' | 'moodboard'): Promise<string | null>
-  /** Fenêtre de l'assistant IA : null = fermée. */
-  assistantMode: AiMode | null
-  setAssistant(mode: AiMode | null): void
-  /** Range la recette lue par l'assistant dans la base « Recettes » et l'ouvre. */
-  createRecipePage(recipe: Recipe, categoryId?: string): Promise<void>
   /** Ajoute des recettes lues dans le dossier « recette » (celles dont le titre existe déjà sont laissées telles quelles). */
   importRecipeRows(items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[]): Promise<{ created: number; skipped: number }>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
@@ -189,8 +183,6 @@ interface AppState {
   setFloatingBoard(id: string, open: boolean): void
   /** Démarrage léger de la fenêtre flottante : ouvre la base et charge les pages, sans sauvegarde ni rappels. */
   initFloating(): Promise<void>
-  /** `open: false` : on reste où l'on est (l'accueil) au lieu d'ouvrir la base de tâches. */
-  addTasksFromAi(tasks: AiTask[], dbId: string | null, open?: boolean): Promise<void>
   /** Ajoute un événement daté à la base « Agenda » (créée au besoin), sans quitter la page. */
   addCalendarEvent(title: string, date: string, time?: string): Promise<void>
   createFromTemplate(templateId: string): Promise<void>
@@ -318,7 +310,6 @@ export const useApp = create<AppState>((set, get) => ({
   zoom: Number(localStorage.getItem('form-zoom') ?? '1') || 1,
   searchOpen: false,
   searchNewTab: false,
-  assistantMode: null,
   toast: null,
   floatingBoards: [],
   pinned: [],
@@ -795,10 +786,6 @@ export const useApp = create<AppState>((set, get) => ({
     return created.id
   },
 
-  setAssistant(mode) {
-    set({ assistantMode: mode })
-  },
-
   async reloadObjects() {
     const repo = get().repo
     if (repo) set({ objects: await repo.listObjects() })
@@ -815,32 +802,6 @@ export const useApp = create<AppState>((set, get) => ({
 
   async importRecipeRows(items) {
     return importRecipeRowsInto(get, set, items)
-  },
-
-  async createRecipePage(recipe, categoryId) {
-    await addRecipeRow(get, set, { title: recipe.title, values: { ...recipeValues(recipe), ...(categoryId ? { [RECIPE.type]: categoryId } : {}) }, content: recipeBodyBlocks(recipe) })
-  },
-
-  async addTasksFromAi(tasks, dbId, open = true) {
-    const repo = get().repo
-    if (!repo) return
-    let target = dbId
-    if (!target) {
-      const db = await repo.createPage(null, 'database', JSON.stringify(tasksSchema()))
-      const patch = { title: 'Tâches', icon: '✅' }
-      await repo.updateObject(db.id, patch)
-      set((s) => ({ objects: [...s.objects, { ...db, ...patch }] }))
-      target = db.id
-    }
-    for (const t of tasks) {
-      const values: Record<string, unknown> = { [TASK.status]: 'afaire' }
-      if (t.due) values[TASK.due] = t.due
-      if (t.priority) values[TASK.priority] = t.priority === 'haute' ? 'haute' : t.priority === 'moyenne' ? 'moyenne' : 'basse'
-      const row = await repo.createPage(target, 'row', JSON.stringify(values))
-      await repo.updateObject(row.id, { title: t.title })
-      set((s) => ({ objects: [...s.objects, { ...row, title: t.title }] }))
-    }
-    if (open) get().select(target)
   },
 
   async addCalendarEvent(title, date, time) {

@@ -2,13 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker.tsx'
 import { Image as ImageIcon, Smile } from 'lucide-react'
 import { Icon } from '@/components/Icon'
-import { DEFAULT_MODEL, generateIconImage, iconAiAvailable, suggestEmojis } from '@/lib/ai'
 import { readFileAsDataUrl } from '@/lib/content'
 import {
   CALLOUT_EMOJIS, GROUPS, groupEmojis, loadEmojiData, loadRecents, pushRecent, randomEmoji, saveRecents, searchEmojis, SKIN_TONES, withSkin,
   type EmojiItem,
 } from '@/lib/emoji'
-import { useApp } from '@/store/app'
 
 export const COVERS = [
   'linear-gradient(135deg, #f6d365, #fda085)',
@@ -30,7 +28,7 @@ export function coverStyle(cover: string): React.CSSProperties {
 const pop = 'absolute z-20 mt-1 rounded-md border border-[var(--border)] bg-[var(--bg)] p-2 shadow-lg'
 const btn = 'rounded px-2 py-1 text-sm hover:bg-[var(--bg-hover)]'
 
-type PickerTab = 'emoji' | 'upload' | 'ai'
+type PickerTab = 'emoji' | 'upload'
 
 /** Réduit une image à `size` pixels (carré, recadrée au centre) pour ne pas alourdir la base. */
 async function shrinkImage(dataUrl: string, size = 128): Promise<string> {
@@ -53,7 +51,6 @@ function EmojiButton({ e, onPick, label }: { e: string; onPick: (e: string) => v
 }
 
 export function IconPicker({ value, onChange, trigger, startOpen = false, onClosed }: { value: string | null; onChange: (v: string | null) => void; trigger?: React.ReactNode; startOpen?: boolean; onClosed?: () => void }) {
-  const repo = useApp((st) => st.repo)
   const [open, setOpen] = useState(startOpen)
   const wasOpen = useRef(startOpen)
   useEffect(() => {
@@ -66,11 +63,6 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
   const [tone, setTone] = useState(0)
   const [toneOpen, setToneOpen] = useState(false)
   const [recents, setRecents] = useState<string[]>([])
-  const [aiText, setAiText] = useState('')
-  const [aiBusy, setAiBusy] = useState(false)
-  const [aiError, setAiError] = useState('')
-  const [suggested, setSuggested] = useState<string[]>([])
-  const [drawn, setDrawn] = useState<string | null>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const file = useRef<HTMLInputElement>(null)
 
@@ -103,13 +95,6 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
     setToneOpen(false)
     try { localStorage.setItem('form-emoji-tone', String(t)) } catch { /* sans importance */ }
   }
-  const aiModel = async () => (await repo?.getSetting('gemini_model')) || DEFAULT_MODEL
-  const runAi = async (job: () => Promise<void>) => {
-    setAiBusy(true)
-    setAiError('')
-    try { await job() } catch (e) { setAiError(e instanceof Error ? e.message : String(e)) } finally { setAiBusy(false) }
-  }
-
   const tabBtn = (id: PickerTab, label: string) => (
     <button key={id} className={'border-b-2 px-2 py-1.5 text-sm ' + (tab === id ? 'border-[var(--fg)] text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')} onClick={() => setTab(id)}>
       {label}
@@ -131,7 +116,6 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
           <div className="flex items-center border-b border-[var(--border)] px-2">
             {tabBtn('emoji', 'Émoji')}
             {tabBtn('upload', 'Charger')}
-            {tabBtn('ai', '✨ Avec l’IA')}
             <div className="flex-1" />
             {value && <button className="rounded px-2 py-1 text-xs text-red-500 hover:bg-[var(--bg-hover)]" onClick={() => choose(null)}>Supprimer</button>}
           </div>
@@ -219,44 +203,6 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
                   if (f) choose(await shrinkImage(await readFileAsDataUrl(f)))
                 }}
               />
-            </div>
-          )}
-
-          {tab === 'ai' && (
-            <div className="p-3">
-              {!iconAiAvailable() ? (
-                <p className="text-sm text-[var(--fg-muted)]">L’assistant IA n’est disponible que dans l’application Windows.</p>
-              ) : (
-                <>
-                  <textarea
-                    value={aiText}
-                    onChange={(e) => setAiText(e.target.value)}
-                    rows={2}
-                    placeholder="Décris l’icône : « un singe qui fait de la céramique »…"
-                    className="w-full resize-none lib-input rounded-xl border px-3 py-1.5 text-sm outline-none"
-                  />
-                  <div className="mt-2 flex gap-2">
-                    <button disabled={aiBusy || !aiText.trim()} className="btn !px-2.5 !py-1 disabled:opacity-50"
-                      onClick={() => void runAi(async () => { setDrawn(null); setSuggested(await suggestEmojis(aiText, await aiModel())) })}>
-                      Proposer des emojis
-                    </button>
-                    <button disabled={aiBusy || !aiText.trim()} className="btn !px-2.5 !py-1 disabled:opacity-50"
-                      onClick={() => void runAi(async () => { setSuggested([]); setDrawn(await shrinkImage(await generateIconImage(aiText))) })}>
-                      Dessiner une icône
-                    </button>
-                  </div>
-                  {aiBusy && <p className="mt-2 text-sm text-[var(--fg-muted)]">Gemini réfléchit…</p>}
-                  {aiError && <p className="mt-2 text-sm text-red-500">{aiError}</p>}
-                  {suggested.length > 0 && <div className="mt-2 flex flex-wrap">{suggested.map((e) => <EmojiButton key={e} e={e} onPick={choose} />)}</div>}
-                  {drawn && (
-                    <div className="mt-2 flex items-center gap-3">
-                      <Icon value={drawn} size={64} />
-                      <button className="rounded-lg border border-[var(--border)] px-2 py-1 text-sm hover:bg-[var(--bg-hover)]" onClick={() => choose(drawn)}>Utiliser cette icône</button>
-                    </div>
-                  )}
-                  <p className="mt-3 text-xs text-[var(--fg-muted)]">Seule ta description part chez Google, et seulement quand tu cliques. Le dessin d’icônes n’est pas toujours inclus dans le palier gratuit.</p>
-                </>
-              )}
             </div>
           )}
         </div>

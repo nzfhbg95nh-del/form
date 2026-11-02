@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react'
 import { open, save } from '@tauri-apps/plugin-dialog'
+import { SettingsHeader, SettingsSection } from '@/components/SettingsUi'
 import { backupFileName, DEFAULT_KEEP, joinPath, parseKeep, restoreBackup, todayISO } from '@/lib/backup'
 import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
 import { askConfirm } from '@/lib/confirm'
 
+/** Réglages généraux : la version de Form, la sauvegarde de tes données et les notifications. */
 export function GeneralSettings() {
   const repo = useApp((s) => s.repo)
   const [dir, setDir] = useState<string | null>(null)
@@ -57,20 +59,20 @@ export function GeneralSettings() {
     run(async () => {
       if (!repo) return
       const target = await save({
-        title: 'Exporter toutes mes données',
+        title: 'Enregistrer une copie de mes données',
         defaultPath: backupFileName(todayISO()),
         filters: [{ name: 'Base Form', extensions: ['db'] }],
       })
       if (target) {
         await repo.backupTo(target)
-        return 'Export terminé.'
+        return 'Copie enregistrée.'
       }
     })
 
   const searchUpdate = () =>
     run(async () => {
       const result = await checkUpdates()
-      if (result === 'found') return 'Une nouvelle version est disponible : un bandeau en haut de la fenêtre te propose de l\u2019installer.'
+      if (result === 'found') return 'Une nouvelle version est disponible : un bandeau en haut de la fenêtre te propose de l’installer.'
       if (result === 'none') return 'Form est à jour.'
       return `Impossible de vérifier : ${result.error}`
     })
@@ -92,80 +94,82 @@ export function GeneralSettings() {
       await restoreBackup(chosen)
     })
 
-  const btn = 'whitespace-nowrap rounded-lg border border-[var(--border)] px-3 py-1.5 text-sm hover:bg-[var(--bg-hover)] disabled:opacity-40'
+  const muted = 'text-[var(--fg-muted)]'
 
   return (
     <div className="mx-auto max-w-3xl px-12 py-10">
-      <h1 className="mb-6 text-3xl font-bold">Général</h1>
+      <SettingsHeader title="Général" />
 
-      <h2 className="mb-2 text-lg font-semibold">Rappels de tâches</h2>
-      <label className="mb-2 flex items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={reminders}
-          onChange={(e) => {
-            setReminders(e.target.checked)
-            void repo?.setSetting('reminders_enabled', e.target.checked ? '1' : '0')
-          }}
-        />
-        Me prévenir par une notification Windows quand une tâche arrive à échéance
-      </label>
-      <p className="mb-2 text-xs text-[var(--fg-muted)]">
-        Les rappels ne fonctionnent que lorsque Form est ouvert. Une tâche n'est rappelée qu'une fois par jour.
-      </p>
-      <button
-        className="btn mb-8 disabled:opacity-40"
-        disabled={!desktop}
-        onClick={() => void run(async () => ((await notify('Form', 'Les notifications fonctionnent.')) ? 'Notification envoyée.' : "Impossible d'envoyer la notification : vérifie que Windows autorise les notifications pour Form."))}
+      <SettingsSection
+        title="Version"
+        description="Form cherche tout seul une nouvelle version au démarrage, puis toutes les 6 heures. Rien n'est installé sans ton clic."
       >
-        Envoyer une notification de test
-      </button>
+        <p className="mb-3 text-sm">
+          Version installée : <strong>{__APP_VERSION__}</strong>
+          {available && <span className={muted}> — la version {available.version} est disponible</span>}
+        </p>
+        <button className="btn disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>Rechercher une mise à jour</button>
+      </SettingsSection>
 
-      <h2 className="mb-2 text-lg font-semibold">Mises à jour</h2>
-      <p className="mb-2 text-sm">
-        Version installée : <strong>{__APP_VERSION__}</strong>
-        {available && <span className="text-[var(--fg-muted)]"> — la version {available.version} est disponible</span>}
-      </p>
-      <p className="mb-3 text-xs text-[var(--fg-muted)]">
-        Form cherche tout seul une nouvelle version au démarrage, puis toutes les 6 heures. Rien n'est installé sans ton clic.
-      </p>
-      <button className="btn mb-8 disabled:opacity-40" disabled={!desktop} onClick={searchUpdate}>
-        Rechercher une mise à jour
-      </button>
+      <SettingsSection
+        title="Sauvegarde de mes données"
+        description="Une copie de ta base (recettes, pages, devis, factures, réglages) est faite automatiquement une fois par jour. Tes images et tes vidéos ne sont pas dedans : elles sont dans ta bibliothèque."
+      >
+        {!desktop && <p className={'mb-3 text-sm ' + muted}>La sauvegarde n'est disponible que dans l'application Windows.</p>}
+        <p className="mb-3 text-sm">
+          Dossier : <strong className="break-all">{dir ?? 'aucun dossier choisi'}</strong>
+          {last && <span className={muted}> — dernière sauvegarde automatique : {last.split('-').reverse().join('/')}</span>}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button className="btn" disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
+          <button className="btn" disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
+          <button className="btn" disabled={!desktop} onClick={exportAll}>Enregistrer une copie…</button>
+          <button className="btn" disabled={!desktop} onClick={restore}>Restaurer une sauvegarde…</button>
+        </div>
+        <label className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+          Garder les
+          <input
+            type="number"
+            min={5}
+            max={365}
+            value={keep}
+            disabled={!desktop}
+            onChange={(e) => setKeep(Number(e.target.value))}
+            onBlur={() => {
+              const n = parseKeep(String(keep))
+              setKeep(n)
+              void repo?.setSetting('backup_keep', String(n))
+            }}
+            className="lib-input w-20 rounded-lg border px-2 py-1"
+          />
+          dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
+        </label>
+        {msg && <p className="mt-3 text-sm">{msg}</p>}
+      </SettingsSection>
 
-      <h2 className="mb-2 text-lg font-semibold">Sauvegarde</h2>
-      {!desktop && (
-        <p className="mb-3 text-sm text-[var(--fg-muted)]">La sauvegarde n'est disponible que dans l'application Windows.</p>
-      )}
-      <p className="mb-3 text-sm">
-        Dossier : <strong>{dir ?? 'aucun dossier choisi'}</strong>
-        {last && <span className="text-[var(--fg-muted)]"> — dernière sauvegarde automatique : {last}</span>}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        <button className={btn} disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
-        <button className={btn} disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
-        <button className={btn} disabled={!desktop} onClick={exportAll}>Exporter tout</button>
-        <button className={btn} disabled={!desktop} onClick={restore}>Restaurer une sauvegarde…</button>
-      </div>
-      <label className="mt-3 flex items-center gap-2 text-sm">
-        Garder les
-        <input
-          type="number"
-          min={5}
-          max={365}
-          value={keep}
+      <SettingsSection
+        title="Notifications"
+        description="Les rappels ne fonctionnent que lorsque Form est ouvert. Une tâche n'est rappelée qu'une fois par jour."
+      >
+        <label className="mb-3 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={reminders}
+            onChange={(e) => {
+              setReminders(e.target.checked)
+              void repo?.setSetting('reminders_enabled', e.target.checked ? '1' : '0')
+            }}
+          />
+          Me prévenir par une notification Windows quand une tâche arrive à échéance
+        </label>
+        <button
+          className="btn disabled:opacity-40"
           disabled={!desktop}
-          onChange={(e) => setKeep(Number(e.target.value))}
-          onBlur={() => {
-            const n = parseKeep(String(keep))
-            setKeep(n)
-            void repo?.setSetting('backup_keep', String(n))
-          }}
-          className="w-20 rounded-lg border border-[var(--border)] bg-transparent px-2 py-1"
-        />
-        dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
-      </label>
-      {msg && <p className="mt-3 text-sm">{msg}</p>}
+          onClick={() => void run(async () => ((await notify('Form', 'Les notifications fonctionnent.')) ? 'Notification envoyée.' : "Impossible d'envoyer la notification : vérifie que Windows autorise les notifications pour Form."))}
+        >
+          Envoyer une notification de test
+        </button>
+      </SettingsSection>
     </div>
   )
 }

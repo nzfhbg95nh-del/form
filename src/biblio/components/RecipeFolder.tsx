@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react'
 import { exportRecipes, importRecipes, recipeRows, scanRecipePhotos, type ExportResult, type ImportResult } from '@/biblio/lib/recipeFolderRun.ts'
 import { formatBytes } from '@/biblio/lib/vectors.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
+import { SettingsSection } from '@/components/SettingsUi'
 import { askConfirm } from '@/lib/confirm'
 import { useApp } from '@/store/app'
 
@@ -62,15 +63,18 @@ export function RecipeFolder({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <section className="mt-10">
-      <div className="text-xs font-medium uppercase tracking-wide" style={muted}>Recettes dans le dossier « recette »</div>
-      <p className="mt-2 text-sm" style={muted}>
-        Chaque recette a son dossier dans « recette » de la bibliothèque : <b>recette.json</b> (la recette complète, que Form relit pour reprendre tes recettes sur un autre ordinateur), <b>recette.md</b> (la même recette, lisible dans n'importe quel éditeur de texte) et ses photos. Ainsi, copier le dossier de la bibliothèque emporte aussi tes recettes.
-        {scan.photos > 0
-          ? ` ${plural(scan.photos, 'photo')} de ${plural(scan.recipes, 'recette')} (${formatBytes(scan.bytes)}) sont encore dans la base de données.`
-          : rows.length > 0 ? ' Toutes les photos de recettes sont dans le dossier.' : ''}
-      </p>
-      <div className="mt-3 flex flex-wrap gap-2">
+    <SettingsSection
+      title="Mes recettes dans le dossier « recette »"
+      description={
+        <>
+          Chaque recette a son dossier dans « recette » de la bibliothèque : <b>recette.json</b> (la recette complète, que Form relit pour reprendre tes recettes sur un autre ordinateur), <b>recette.md</b> (la même recette, lisible dans n'importe quel éditeur de texte) et ses photos. Ainsi, copier le dossier de la bibliothèque emporte aussi tes recettes.
+          {scan.photos > 0
+            ? ` ${plural(scan.photos, 'photo')} de ${plural(scan.recipes, 'recette')} (${formatBytes(scan.bytes)}) sont encore dans la base de données.`
+            : rows.length > 0 ? ' Toutes les photos de recettes sont dans le dossier.' : ''}
+        </>
+      }
+    >
+      <div className="flex flex-wrap gap-2">
         <button className="btn" onClick={() => void save()} disabled={busy || !ready || rows.length === 0}>
           <FolderDown size={16} /> {progress && progress.total > 0 ? `Rangement… ${nf.format(progress.done)} / ${nf.format(progress.total)}` : 'Enregistrer mes recettes dans le dossier'}
         </button>
@@ -96,6 +100,6 @@ export function RecipeFolder({ disabled }: { disabled: boolean }) {
         </p>
       )}
       {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
-    </section>
+    </SettingsSection>
   )
 }

@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import type { Recipe } from './ai'
 import { isSystemDatabase, parseSchema } from './database'
 import {
-  addCategory, emptyRecipeBlocks, firstNumber, groupByCategory, RECIPE, recipeBodyBlocks, recipeCategories, recipeSlashBlocks, recipesSchema, recipeValues,
+  addCategory, emptyRecipeBlocks, groupByCategory, RECIPE, recipeCategories, recipeSlashBlocks, recipesSchema,
   moveCategory, moveEntry, NONE_ID, normalizeRecipesSchema, recipeEntries, sortRecipes, removeCategory, renameEntry, setEntryEmoji, renameCategory, setCategoryEmoji,
 } from './recipes'
-
-const recipe: Recipe = {
-  title: 'Gâteau au yaourt', servings: '6 personnes', prepMinutes: 15, cookMinutes: 35,
-  ingredients: ['1 yaourt', '3 pots de farine'], steps: ['Mélanger', 'Cuire'], notes: 'Se garde 3 jours',
-}
 
 describe('base de recettes', () => {
   it('a un schéma valide, avec la galerie en premier', () => {
@@ -29,24 +23,7 @@ describe('base de recettes', () => {
     expect(isSystemDatabase({ type: 'database', properties: JSON.stringify(recipesSchema()) })).toBe(true)
   })
 
-  it('lit un nombre dans un texte', () => {
-    expect(firstNumber('4 personnes')).toBe(4)
-    expect(firstNumber('2 à 3 parts')).toBe(2)
-    expect(firstNumber('1,5 litre')).toBe(1.5)
-    expect(firstNumber('quelques-uns')).toBeNull()
-  })
-
-  it('range seulement les portions de base dans les propriétés', () => {
-    expect(recipeValues(recipe)).toEqual({ servings: 6 })
-    expect(recipeValues({ ...recipe, servings: '', prepMinutes: null, cookMinutes: null })).toEqual({})
-  })
-
-  it('fabrique le contenu : ingrédients, étapes, notes', () => {
-    const blocks = recipeBodyBlocks(recipe) as { type: string; content?: string }[]
-    expect(blocks.map((b) => b.type)).toEqual(['portions', 'heading', 'checkListItem', 'checkListItem', 'heading', 'numberedListItem', 'numberedListItem', 'heading', 'paragraph'])
-    expect(blocks[2].content).toBe('1 yaourt')
-    expect(blocks[8].content).toBe('Se garde 3 jours')
-    expect((blocks[0] as { props?: { servings: number } }).props?.servings).toBe(6)
+  it('une nouvelle recette vide a ses trois sections', () => {
     expect((emptyRecipeBlocks() as { type: string }[]).filter((b) => b.type === 'heading')).toHaveLength(3)
   })
 

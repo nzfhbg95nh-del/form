@@ -1,7 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { spaceOpensAssistant, tabAction } from './editorKeys'
-
-const none = { ctrl: false, alt: false, shift: false, meta: false }
+import { EMPTY_LINE_HINT, tabAction } from './editorKeys'
 
 describe('touches de l’éditeur comme dans Notion', () => {
   it('Tab sur une ligne de texte passe au bloc suivant, Maj+Tab au précédent', () => {
@@ -15,11 +13,7 @@ describe('touches de l’éditeur comme dans Notion', () => {
       expect(tabAction(t, true)).toBe('default')
     }
   })
-  it('Espace sur une ligne vide ouvre l’assistant, pas ailleurs', () => {
-    expect(spaceOpensAssistant('paragraph', true, ' ', none)).toBe(true)
-    expect(spaceOpensAssistant('paragraph', false, ' ', none)).toBe(false)
-    expect(spaceOpensAssistant('heading', true, ' ', none)).toBe(false)
-    expect(spaceOpensAssistant('paragraph', true, 'a', none)).toBe(false)
-    expect(spaceOpensAssistant('paragraph', true, ' ', { ...none, ctrl: true })).toBe(false)
+  it('l’aide d’une ligne vide parle des commandes « / », plus de l’IA', () => {
+    expect(EMPTY_LINE_HINT).toBe('Tapez « / » pour afficher les commandes')
   })
 })

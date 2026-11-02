@@ -1,8 +1,6 @@
 mod backup;
 mod biblio;
 mod linkpreview;
-mod gemini;
-mod secrets;
 mod vector;
 
 use tauri_plugin_sql::{Builder as SqlBuilder, Migration, MigrationKind};
@@ -160,9 +158,6 @@ pub fn run() {
                 .build(),
         )
         .invoke_handler(tauri::generate_handler![
-            secrets::secret_set,
-            secrets::secret_exists,
-            secrets::secret_delete,
             backup::stage_restore,
             backup::restart_app,
             backup::prune_backups,
@@ -176,10 +171,6 @@ pub fn run() {
             linkpreview::link_preview,
             vector::vc_option,
             vector::vc_close,
-            gemini::gemini_generate,
-            gemini::gemini_generate_video,
-            gemini::gemini_models,
-            gemini::gemini_image,
             biblio::scan::scan_folder,
             biblio::ajouts::ajouts_dir,
             biblio::ajouts::add_images,

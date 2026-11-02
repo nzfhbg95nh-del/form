@@ -5,7 +5,7 @@ const BASE = `${import.meta.env.BASE_URL}emoji/apple/`
 
 /**
  * Icône d'une page : un emoji (affiché en style Apple, quelle que soit la machine) ou une image
- * (icône chargée ou créée avec Gemini, enregistrée sous forme de « data URL »).
+ * (icône chargée depuis un fichier, enregistrée sous forme de « data URL »).
  */
 export function Icon({ value, size = 16, className }: { value: string | null | undefined; size?: number; className?: string }) {
   // 0 = image avec FE0F, 1 = sans FE0F, 2 = texte (si aucune image n'existe).

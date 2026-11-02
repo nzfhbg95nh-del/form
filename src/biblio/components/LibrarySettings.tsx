@@ -1,7 +1,9 @@
 import { SplitSlider } from '@/components/SplitSlider'
 import { useEffect, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
+import { revealItemInDir } from '@tauri-apps/plugin-opener'
 import { Download, FolderOpen, RefreshCw, Sparkles, Trash2 } from 'lucide-react'
+import { SettingsHeader, SettingsSection, SubNav, type SubNavItem } from '@/components/SettingsUi'
 import { AUTO_FREQUENCIES, parseFrequency, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { formatBytes, formatSeconds } from '@/biblio/lib/vectors.ts'
@@ -44,14 +46,7 @@ function AiSection() {
   const partial = !status.model_ready && status.downloaded > 0
 
   return (
-    <section className="mt-10">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>
-        <Sparkles size={13} /> IA locale
-      </div>
-      <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Un modèle d'images (CLIP) tourne sur ton PC, sur la carte graphique si possible : aucune image ne quitte l'ordinateur. Il sert à classer par type et à retrouver des images qui se ressemblent.
-      </p>
-
+    <SettingsSection title="IA locale" icon={<Sparkles size={16} />} description="Un modèle d'images (CLIP) tourne sur ton PC, sur la carte graphique si possible : aucune image ne quitte l'ordinateur. Il sert à classer par type et à retrouver des images qui se ressemblent.">
       {!status.model_ready ? (
         <div className="mt-4">
           <button className="btn btn-primary" onClick={() => void download()} disabled={downloading}>
@@ -132,7 +127,7 @@ function AiSection() {
         </div>
       )}
       {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
-    </section>
+    </SettingsSection>
   )
 }
 
@@ -144,15 +139,9 @@ function TrashSection({ onOpen }: { onOpen: () => void }) {
     void refresh()
   }, [refresh])
   return (
-    <section className="mt-10">
-      <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>
-        <Trash2 size={13} /> Corbeille
-      </div>
-      <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        {count === 0 ? 'La corbeille est vide.' : `${nf.format(count)} image${count > 1 ? 's' : ''} à la corbeille : elles ont disparu de la bibliothèque mais leurs fichiers sont intacts.`}
-      </p>
-      <button className="btn mt-3" onClick={onOpen}>Ouvrir la corbeille</button>
-    </section>
+    <SettingsSection title="Corbeille" icon={<Trash2 size={16} />} description={count === 0 ? 'La corbeille est vide.' : `${nf.format(count)} image${count > 1 ? 's' : ''} à la corbeille : elles ont disparu de la bibliothèque mais leurs fichiers sont intacts.`}>
+      <button className="btn" onClick={onOpen}>Ouvrir la corbeille</button>
+    </SettingsSection>
   )
 }
 
@@ -174,7 +163,7 @@ function AutoUpdate() {
     void setSetting('library_auto_update', next === 'never' ? '0' : '1')
   }
   return (
-    <section className="mt-8">
+    <div>
       <label className="flex flex-wrap items-center gap-2 text-sm">
         <span>Mettre à jour la bibliothèque automatiquement :</span>
         <select className="lib-input" value={frequency} onChange={(e) => choose(e.target.value as AutoFrequency)} aria-label="Fréquence de la mise à jour automatique">
@@ -187,102 +176,166 @@ function AutoUpdate() {
         Quelques secondes après l'ouverture de Form, quand c'est le moment, Form cherche les nouveaux fichiers de ta bibliothèque, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau. Le bouton « Mettre à jour la bibliothèque » fonctionne toujours, quel que soit ce choix.
         {frequency !== 'never' && frequency !== 'startup' && (lastDay ? ` Dernière mise à jour automatique : ${lastDay.split('-').reverse().join('/')}.` : ' Aucune mise à jour automatique faite pour le moment.')}
       </p>
-    </section>
+    </div>
   )
 }
 
+type Part = 'folder' | 'update' | 'download' | 'recipes' | 'ai' | 'clean'
+
+/** Les dossiers de la bibliothèque et à quoi ils servent. */
+const FOLDERS = [
+  ['instagram', 'tes enregistrements Instagram'],
+  ['pinterest', 'tes épingles Pinterest'],
+  ['images ajoutées', 'les images que tu ajoutes à la main'],
+  ['recette', 'tes recettes (un dossier par recette, avec ses photos)'],
+  ['cache', 'miniatures et modèle d\'IA : ils se refont tout seuls si on les perd'],
+] as const
+
 export function LibrarySettings() {
   const { root, layout, phase, label, done, total, stats, lastResult, error, setRoot, update } = useLibrary()
+  const trashCount = useTrash((s) => s.count)
+  const [part, setPart] = useState<Part>('folder')
   const [trashOpen, setTrashOpen] = useState(false)
   const [dupesOpen, setDupesOpen] = useState(false)
+  const [note, setNote] = useState<string | null>(null)
   const busy = phase !== 'idle'
   useEffect(() => {
     void useLibrary.getState().init()
     void useAi.getState().init(false)
   }, [])
-  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0
 
   const choose = async () => {
     const picked = await open({ directory: true, defaultPath: root || undefined, title: 'Dossier « Bibliotheque »' })
     if (typeof picked === 'string') await setRoot(picked)
   }
 
+  const reveal = async () => {
+    setNote(null)
+    try {
+      await revealItemInDir(root)
+    } catch {
+      setNote('Impossible d\'ouvrir le dossier : il est introuvable ou Windows a refusé.')
+    }
+  }
+
   if (trashOpen) return <TrashView onBack={() => setTrashOpen(false)} />
   if (dupesOpen) return <DuplicatesView onBack={() => setDupesOpen(false)} />
 
+  const muted = { color: 'var(--fg-muted)' }
+  const missingFolder = !!layout && !layout.exists
+  const noFolder = root.trim() === ''
+  const parts: SubNavItem<Part>[] = [
+    { id: 'folder', label: 'Dossier', badge: missingFolder || noFolder ? '!' : undefined },
+    { id: 'update', label: 'Mise à jour' },
+    { id: 'download', label: 'Téléchargement' },
+    { id: 'recipes', label: 'Recettes' },
+    { id: 'ai', label: 'IA locale' },
+    { id: 'clean', label: 'Nettoyage', badge: trashCount > 0 ? nf.format(trashCount) : undefined },
+  ]
+
   return (
-    <div className="mx-auto max-w-3xl p-8">
-      <h1 className="text-3xl font-bold">Bibliothèque</h1>
-      <p className="mt-1 text-sm" style={{ color: 'var(--fg-muted)' }}>
-        Toute la bibliothèque tient dans un seul dossier. Form ne retient que son chemin : tu peux le déplacer où tu veux (un autre disque, par exemple), puis le lui redonner ici. Form lit tes enregistrements sans les modifier : rien n'est renommé. Seule exception, quand tu choisis « Supprimer définitivement » : le fichier part dans la Corbeille Windows.
-      </p>
+    <div className="mx-auto max-w-3xl px-12 py-10">
+      <SettingsHeader title="Bibliothèque" subtitle="Tes images, tes vidéos et tes recettes, rangées dans un seul dossier que tu peux déplacer où tu veux." />
 
-      <section className="mt-6">
-        <div className="text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Dossier « Bibliotheque »</div>
-        <div className="mt-2 flex items-center gap-2">
-          <div className="min-w-0 flex-1 truncate rounded-md border px-3 py-2 text-sm" style={{ borderColor: 'var(--border)' }} title={root}>{root}</div>
-          <button className="btn" onClick={choose} disabled={busy}><FolderOpen size={16} /> Choisir…</button>
+      {(missingFolder || noFolder) && (
+        <div className="mb-5 flex flex-wrap items-center gap-3 rounded-xl border p-4 text-sm" style={{ borderColor: '#d44c47', background: 'color-mix(in srgb, #d44c47 8%, transparent)' }}>
+          <span className="min-w-0 flex-1">
+            {noFolder ? 'Aucun dossier choisi : Form ne sait pas où est ta bibliothèque.' : 'Le dossier de la bibliothèque est introuvable (disque débranché ou dossier déplacé ?).'}
+          </span>
+          <button className="btn btn-primary" onClick={() => void choose()}><FolderOpen size={16} /> Choisir le dossier</button>
         </div>
-        <ul className="mt-2 space-y-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
-          <li>Dedans : <b>instagram</b>, <b>pinterest</b>, <b>images ajoutées</b>, <b>recette</b> et <b>cache</b> (miniatures et modèle d'IA, qui se refont tout seuls).</li>
-          {layout && !layout.exists && <li style={{ color: '#d44c47' }}>Ce dossier est introuvable (disque débranché ou dossier déplacé ?). Choisis son nouvel emplacement.</li>}
-          {layout?.exists && (
-            <li>{layout.cache_in_library ? 'Le cache est dans la bibliothèque.' : 'Le cache (miniatures, modèle d\'IA) est encore sur le disque C: : « Déplacer ma bibliothèque… » le range dans la bibliothèque.'}</li>
-          )}
-        </ul>
-      </section>
+      )}
 
-      <MoveLibrary disabled={busy} />
+      <SubNav items={parts} value={part} onChange={setPart} />
 
-      <section className="mt-6 flex items-center gap-3">
-        <button className="btn btn-primary" onClick={() => void update()} disabled={busy}>
-          <RefreshCw size={16} className={phase === 'sync' ? 'spin' : ''} /> Mettre à jour la bibliothèque
-        </button>
-        {busy && (
-          <div className="min-w-0 flex-1">
-            <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {label}{total > 0 ? ` ${nf.format(done)} / ${nf.format(total)}` : ''}
-            </div>
-            <div className="mt-1 h-1.5 overflow-hidden rounded-full" style={{ background: 'var(--bg-hover)' }}>
-              <div className="h-full rounded-full transition-all" style={{ width: `${total > 0 ? pct : 100}%`, background: 'var(--accent)', opacity: total > 0 ? 1 : 0.4 }} />
-            </div>
+      <div className="[&>section]:!mt-0">
+        {part === 'folder' && (
+          <>
+            <SettingsSection title="Mon dossier Bibliotheque" description="Tout est dedans. Form ne retient que son chemin : après l'avoir déplacé, redonne-le ici et rien ne casse.">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1 truncate rounded-lg border px-3 py-2 text-sm" style={{ borderColor: 'var(--border)' }} title={root}>{root || 'Aucun dossier choisi'}</div>
+                <button className="btn" onClick={() => void choose()} disabled={busy}><FolderOpen size={16} /> Choisir…</button>
+                <button className="btn" onClick={() => void reveal()} disabled={noFolder || missingFolder}>Ouvrir</button>
+              </div>
+              {note && <p className="mt-2 text-xs" style={{ color: '#d44c47' }}>{note}</p>}
+              <ul className="mt-4 space-y-1 text-sm">
+                {FOLDERS.map(([name, use]) => (
+                  <li key={name} className="flex gap-2">
+                    <b className="w-36 shrink-0">{name}</b>
+                    <span style={muted}>{use}</span>
+                  </li>
+                ))}
+              </ul>
+              {layout?.exists && (
+                <p className="mt-3 text-xs" style={muted}>
+                  {layout.cache_in_library ? 'Le cache est dans la bibliothèque.' : 'Le cache (miniatures, modèle d\'IA) est encore sur le disque C: : « Déplacer ma bibliothèque… » le range dans la bibliothèque.'}
+                </p>
+              )}
+              <p className="mt-2 text-xs" style={muted}>Form lit tes enregistrements sans les modifier. Seule exception, « Supprimer définitivement » : le fichier part dans la Corbeille Windows.</p>
+            </SettingsSection>
+            <MoveLibrary disabled={busy} />
+          </>
+        )}
+
+        {part === 'update' && (
+          <>
+            <SettingsSection title="Mettre à jour" description="Form cherche les nouveaux fichiers de ta bibliothèque, fait leurs miniatures, calcule leurs empreintes d'IA et leurs couleurs, lit le texte des vidéos et les classe. Rien ne se lance s'il n'y a rien de nouveau.">
+              <div className="flex items-center gap-3">
+                <button className="btn btn-primary" onClick={() => void update()} disabled={busy || noFolder}>
+                  <RefreshCw size={16} className={phase === 'sync' ? 'spin' : ''} /> Mettre à jour la bibliothèque
+                </button>
+                {busy && (
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs" style={muted}>{label}{total > 0 ? ` ${nf.format(done)} / ${nf.format(total)}` : ''}</div>
+                    <ProgressBar done={done} total={total} />
+                  </div>
+                )}
+              </div>
+              {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
+              {lastResult && !busy && (
+                <p className="mt-3 text-sm" style={muted}>
+                  Dernière mise à jour : {nf.format(lastResult.scanned)} fichiers lus, {nf.format(lastResult.added)} nouveaux, {nf.format(lastResult.missing)} disparus.
+                </p>
+              )}
+              <div className="mt-5 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+                <AutoUpdate />
+              </div>
+            </SettingsSection>
+            {stats && (
+              <SettingsSection title="Ma bibliothèque en chiffres">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <Stat label="Blocs (images, vidéos, carrousels)" value={stats.blocks} />
+                  <Stat label="Fichiers" value={stats.files} />
+                  <Stat label="Collections automatiques" value={stats.collections} />
+                  <Stat label="Fichiers introuvables" value={stats.missing} />
+                  <Stat label="Miniatures prêtes" value={stats.thumbsReady} />
+                  <Stat label="Miniatures à faire" value={stats.thumbsPending} />
+                  <Stat label="Miniatures impossibles" value={stats.thumbsFailed} />
+                </div>
+              </SettingsSection>
+            )}
+          </>
+        )}
+
+        {part === 'download' && (
+          <div className="mb-5 rounded-xl border border-[var(--border)] px-5">
+            <SaverSection />
           </div>
         )}
-      </section>
 
-      {error && <p className="mt-4 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
-      {lastResult && !busy && (
-        <p className="mt-4 text-sm" style={{ color: 'var(--fg-muted)' }}>
-          Dernière mise à jour : {nf.format(lastResult.scanned)} fichiers lus, {nf.format(lastResult.added)} nouveaux, {nf.format(lastResult.missing)} disparus.
-        </p>
-      )}
+        {part === 'recipes' && <RecipeFolder disabled={busy} />}
 
-      {stats && (
-        <section className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <Stat label="Blocs (images, vidéos, carrousels)" value={stats.blocks} />
-          <Stat label="Fichiers" value={stats.files} />
-          <Stat label="Collections automatiques" value={stats.collections} />
-          <Stat label="Fichiers introuvables" value={stats.missing} />
-          <Stat label="Miniatures prêtes" value={stats.thumbsReady} />
-          <Stat label="Miniatures à faire" value={stats.thumbsPending} />
-          <Stat label="Miniatures impossibles" value={stats.thumbsFailed} />
-        </section>
-      )}
+        {part === 'ai' && <AiSection />}
 
-      <AutoUpdate />
-      <RecipeFolder disabled={busy} />
-      <AiSection />
-      <section className="mt-10">
-        <div className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide" style={{ color: 'var(--fg-muted)' }}>Doublons</div>
-        <p className="mt-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-          Trouve les images en double (identiques ou presque) et te laisse choisir lesquelles garder. Les autres partent dans la Corbeille Windows, jamais effacées pour de bon.
-        </p>
-        <button className="btn mt-3" onClick={() => setDupesOpen(true)}>Chercher les doublons</button>
-      </section>
-      <TrashSection onOpen={() => setTrashOpen(true)} />
-      <section className="mt-10 border-t pt-2" style={{ borderColor: 'var(--border)' }}>
-        <SaverSection />
-      </section>
+        {part === 'clean' && (
+          <>
+            <SettingsSection title="Doublons" description="Trouve les images en double (identiques ou presque) et te laisse choisir lesquelles garder. Les autres partent dans la Corbeille Windows, jamais effacées pour de bon.">
+              <button className="btn" onClick={() => setDupesOpen(true)}>Chercher les doublons</button>
+            </SettingsSection>
+            <TrashSection onOpen={() => setTrashOpen(true)} />
+          </>
+        )}
+      </div>
     </div>
   )
 }
