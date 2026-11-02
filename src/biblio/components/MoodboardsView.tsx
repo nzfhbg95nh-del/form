@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { EmptyState } from '@/components/States'
 import { Images, MoreHorizontal, Plus, Trash2, X } from 'lucide-react'
 import { getDb } from '@/biblio/lib/db.ts'
-import { createBoard } from '@/biblio/lib/formBoards.ts'
+import { createBoard, createBoardWithCover } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
 import { useApp } from '@/store/app'
 import { NameInput } from './NameInput.tsx'
@@ -170,9 +170,9 @@ export function MoodboardsView() {
     return () => { cancelled = true }
   }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const create = async (name: string) => {
+  const create = async (name: string, cover: File | null) => {
     setNaming(false)
-    select(await createBoard(name))
+    select(cover ? (await createBoardWithCover(name, cover)).id : await createBoard(name))
   }
 
   return (
@@ -184,7 +184,7 @@ export function MoodboardsView() {
         </div>
         <div className="ml-auto">
           <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
-          {naming && <NewMoodboardDialog onCreate={(name) => void create(name)} onClose={() => setNaming(false)} />}
+          {naming && <NewMoodboardDialog onCreate={(name, cover) => void create(name, cover)} onClose={() => setNaming(false)} />}
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">

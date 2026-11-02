@@ -991,3 +991,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Nouveau moodboard » (page Moodboards) ouvre une fenêtre « Créer un moodboard » (aperçu, nom avec libellé, grand bouton Créer ; Entrée valide, Échap ou clic à côté ferme) au lieu d'un champ en haut à droite : NewMoodboardDialog.tsx.
 
 - Page Moodboards : une carte « Nouveau moodboard » (même forme qu'un moodboard, bordure en tirets, plus au centre) ouvre la fenêtre de création ; elle est la première de la grille.
+
+- Fenêtre « Créer un moodboard » : photo de couverture au choix (clic sur la grande case de l'aperçu ; Changer / Retirer ; facultative). La photo est posée sur la toile et choisie comme couverture (createBoardWithCover, formBoards.ts). Pastille teintée et boutons arrondis comme le reste de l'appli.

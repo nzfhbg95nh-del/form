@@ -10,6 +10,7 @@ import { useGrid } from '@/biblio/store/grid.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { processImage } from '@/lib/images'
 import { addedMessage, assetName, assetPrefix, placeNewItems, slidesOf } from '@/biblio/lib/formBoardsPure.ts'
+import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { makeImage, parseBoard, serializeBoard, type BoardItem } from '@/lib/moodboard'
 import { useApp } from '@/store/app'
 
@@ -28,6 +29,28 @@ export async function createBoard(name: string): Promise<string> {
   await repo.updateObject(board.id, patch)
   useApp.setState((s) => ({ objects: [...s.objects, { ...board, ...patch }] }))
   return board.id
+}
+
+/**
+ * Crée un moodboard avec une photo de couverture : la photo est posée sur sa toile (comme une image ajoutée) et choisie comme couverture.
+ * Si la photo est illisible, le moodboard est quand même créé (sans couverture) et `coverFailed` le dit.
+ */
+export async function createBoardWithCover(name: string, cover: Blob & { name?: string }): Promise<{ id: string; coverFailed: boolean }> {
+  const id = await createBoard(name)
+  const repo = useApp.getState().repo
+  const board = useApp.getState().objects.find((o) => o.id === id)
+  const prepared = await processImage(cover).catch(() => null)
+  if (!repo || !board || !prepared) return { id, coverFailed: true }
+  const item = makeImage(crypto.randomUUID(), prepared.width, prepared.height, { x: 0, y: 0 })
+  await repo.saveBoardAsset({
+    board_id: id, id: item.assetId!, name: cover.name || 'couverture',
+    width: prepared.width, height: prepared.height, data_url: prepared.dataUrl, thumb_url: prepared.thumbUrl, created_at: new Date().toISOString(),
+  })
+  const content = serializeBoard({ ...parseBoard(board.content), items: placeNewItems([], [item]) })
+  const properties = withCoverAsset(board.properties ?? null, item.assetId!)
+  await repo.updateObject(id, { content, properties })
+  useApp.setState((s) => ({ objects: s.objects.map((o) => (o.id === id ? { ...o, content, properties } : o)) }))
+  return { id, coverFailed: false }
 }
 
 /** Les moodboards qui contiennent déjà une image de ce bloc. */
