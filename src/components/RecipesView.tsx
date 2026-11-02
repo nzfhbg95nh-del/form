@@ -5,6 +5,8 @@ import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
 import { PageEditor } from '@/components/PageEditor'
+import { RecipeTimesDialog } from '@/components/RecipeTimesDialog'
+import { recipesWithoutTime } from '@/lib/recipeTimes'
 import { IconPicker } from '@/components/PagePickers'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues, type Schema } from '@/lib/database'
@@ -25,8 +27,8 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
   const v = parseValues(row.properties)
   const stars = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? ''))
   const diff = { d1: 'Facile', d2: 'Moyen', d3: 'Difficile' }[String(v[RECIPE.difficulty] ?? '') as 'd1']
-  const prep = Number(v[RECIPE.prep])
-  const info = [stars ? '★'.repeat(Number(stars[1])) : '', v[RECIPE.prep] && prep > 0 ? `${prep} min` : '', diff ?? ''].filter(Boolean).join(' · ')
+  // Pas de temps sur la fiche : il changerait la hauteur des cartes (le temps reste dans la propriété « Préparation » de la recette).
+  const info = [stars ? '★'.repeat(Number(stars[1])) : '', diff ?? ''].filter(Boolean).join(' · ')
   const photo = row.cover ? null : firstImageUrl(row.content, `${row.id}:${row.updated_at}`)
   const style = row.cover
     ? row.cover.startsWith('data:')
@@ -40,9 +42,10 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
       <div className={'flex items-center justify-center bg-[var(--bg-side)] ' + (tall ? 'h-44' : 'h-32')} style={style}>
         {!row.cover && !photo && <Icon value={row.icon ?? '🍳'} size={40} />}
       </div>
-      <div className="p-2">
+      {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
+      <div className="h-[3.25rem] p-2">
         <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
-        {info && <div className="mt-0.5 truncate text-xs text-[var(--fg-muted)]">{info}</div>}
+        <div className="mt-0.5 h-4 truncate text-xs text-[var(--fg-muted)]">{info}</div>
       </div>
     </button>
   )
@@ -278,6 +281,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
+  const [estimating, setEstimating] = useState(false)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
   useEffect(() => {
@@ -288,6 +292,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
   const { byCategory, none } = useMemo(() => groupByCategory(rows, categories, (r) => parseValues(r.properties)[RECIPE.type]), [rows, categories])
+  const missingCount = useMemo(() => recipesWithoutTime(rows).items.length, [rows])
   const countOf = (e: RecipeEntry) => (e.isNone ? none.length : (byCategory.get(e.id)?.length ?? 0))
   const listOf = (e: RecipeEntry) => (e.isNone ? none : (byCategory.get(e.id) ?? []))
   // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
@@ -477,6 +482,11 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
           <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
+          {missingCount > 0 && (
+            <button className="btn !px-3 !py-1.5" onClick={() => setEstimating(true)} title="Remplir les temps de préparation qui manquent (aperçu avant d'enregistrer)">
+              Estimer les temps ({missingCount})
+            </button>
+          )}
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
         <div className="grid items-start gap-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
@@ -484,6 +494,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
       </section>
+
+      {estimating && <RecipeTimesDialog rows={rows} onClose={() => setEstimating(false)} />}
 
       {choosing && (
         <CategoryChooser
