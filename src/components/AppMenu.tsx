@@ -85,7 +85,7 @@ export function AppMenu() {
         if (!id) { id = crypto.randomUUID(); await s.repo?.setSetting('install_id', id) }
         if (await copyText(id)) say("ID d'installation copié.")
       } },
-      { label: 'Ouvrir les réglages de sauvegarde', action: () => s.show('settings') },
+      { label: 'Ouvrir les réglages de sauvegarde', action: () => s.openSettings('general') },
     ],
   }
 

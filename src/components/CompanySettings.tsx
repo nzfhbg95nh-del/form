@@ -74,10 +74,10 @@ function Row({ label, hint, children }: { label: string; hint?: string; children
   )
 }
 
-export function CompanySettings() {
+export function CompanySettings({ initialPanel }: { initialPanel?: Panel }) {
   const { company, setCompany, save, dirty, message } = useCompany()
   const logoInput = useRef<HTMLInputElement>(null)
-  const [panel, setPanel] = useState<Panel>('identity')
+  const [panel, setPanel] = useState<Panel>(initialPanel ?? 'identity')
   if (!company) return <div className="px-12 py-10 text-[var(--fg-muted)]">Chargement…</div>
 
   const set = <K extends keyof Company>(key: K, value: Company[K]) => setCompany({ ...company, [key]: value })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Building2, Download, Images, Palette, SlidersHorizontal } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { CompanySettings } from '@/components/CompanySettings'
@@ -6,8 +6,9 @@ import { InterfaceSettings } from '@/components/InterfaceSettings'
 import { LibrarySettings } from '@/biblio/components/LibrarySettings'
 import { NotionImport } from '@/components/NotionImport'
 import { GeneralSettings } from '@/components/SettingsView'
+import { useApp, type CompanyPanelId, type SettingsPageId } from '@/store/app'
 
-type Id = 'general' | 'interface' | 'library' | 'company' | 'notion'
+type Id = SettingsPageId
 
 /** Les pages de réglages. */
 const PAGES: { id: Id; label: string; icon: LucideIcon }[] = [
@@ -19,7 +20,17 @@ const PAGES: { id: Id; label: string; icon: LucideIcon }[] = [
 ]
 
 export function SettingsPage() {
-  const [page, setPage] = useState<Id>('general')
+  const target = useApp((s) => s.settingsTarget)
+  const clearTarget = useApp((s) => s.clearSettingsTarget)
+  const [page, setPage] = useState<Id>(target?.page ?? 'general')
+  // Un lien venu d'ailleurs (« Ouvrir les réglages » sur le tableau de bord…) ouvre la bonne page et le bon onglet de « Mon entreprise ».
+  const [panel, setPanel] = useState<CompanyPanelId | undefined>(target?.panel)
+  useEffect(() => {
+    if (!target) return
+    setPage(target.page)
+    setPanel(target.panel)
+    clearTarget()
+  }, [target, clearTarget])
   return (
     <div className="flex min-h-full">
       <nav aria-label="Réglages" className="sticky top-0 h-screen w-56 shrink-0 self-start overflow-y-auto border-r border-[var(--border)] p-4">
@@ -40,7 +51,7 @@ export function SettingsPage() {
         {page === 'general' && <GeneralSettings />}
         {page === 'interface' && <InterfaceSettings />}
         {page === 'library' && <LibrarySettings />}
-        {page === 'company' && <CompanySettings />}
+        {page === 'company' && <CompanySettings key={panel ?? 'identity'} initialPanel={panel} />}
         {page === 'notion' && <NotionImport />}
       </div>
     </div>

@@ -22,6 +22,10 @@ import { isSettled } from '@/lib/payments'
 import { applyAccent, loadAccent } from '@/lib/uiPrefs'
 import type { Client, Invoice, InvoiceLine, ObjectPatch, Payment, ObjectRow, Quote, QuoteLine, QuoteStatus, Repo, Service } from '@/lib/types'
 
+/** Les pages des Réglages, et les onglets de « Mon entreprise » (pour ouvrir les Réglages au bon endroit). */
+export type SettingsPageId = 'general' | 'interface' | 'library' | 'company' | 'notion'
+export type CompanyPanelId = 'identity' | 'billing' | 'taxes' | 'reminders' | 'cgv'
+
 export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
 
 /** Si un écran (Devis, Tout…) est affiché sans onglet à lui, on lui en crée un et on le rend actif : il ne disparaît pas quand on ouvre un autre onglet. */
@@ -131,6 +135,8 @@ interface AppState {
   view: View
   theme: Theme
   themeMode: ThemeMode
+  /** Où ouvrir les Réglages (page, et onglet de « Mon entreprise ») : posé par openSettings, pris par la page des Réglages. */
+  settingsTarget: { page: SettingsPageId; panel?: CompanyPanelId } | null
   error: string | null
   backupMessage: string | null
   expanded: Record<string, boolean>
@@ -209,6 +215,9 @@ interface AppState {
   purge(id: string): Promise<void>
   toggleTheme(): void
   setThemeMode(mode: ThemeMode): void
+  /** Ouvre les Réglages directement sur la bonne page (et le bon onglet de « Mon entreprise »). */
+  openSettings(page: SettingsPageId, panel?: CompanyPanelId): void
+  clearSettingsTarget(): void
 }
 
 type SetFn = (partial: Partial<AppState> | ((s: AppState) => Partial<AppState>)) => void
@@ -313,6 +322,7 @@ export const useApp = create<AppState>((set, get) => ({
   view: 'home',
   theme: resolveTheme(initialThemeMode()),
   themeMode: initialThemeMode(),
+  settingsTarget: null,
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
@@ -985,6 +995,15 @@ export const useApp = create<AppState>((set, get) => ({
       await repo.purgeObject(i)
     }
     set((s) => ({ objects: s.objects.filter((o) => !ids.includes(o.id)) }))
+  },
+
+  openSettings(page, panel) {
+    set({ settingsTarget: { page, panel } })
+    get().show('settings')
+  },
+
+  clearSettingsTarget() {
+    set({ settingsTarget: null })
   },
 
   setThemeMode(mode) {

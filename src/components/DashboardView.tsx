@@ -55,7 +55,7 @@ const VAT_TEXT: Record<VatLevel, string> = {
 }
 
 export function DashboardView() {
-  const { payments, invoices, invoiceLines, quotes, quoteLines, objects, clients, company, show, select, openInvoice } = useApp()
+  const { payments, invoices, invoiceLines, quotes, quoteLines, objects, clients, company, show, select, openInvoice, openSettings } = useApp()
   const today = todayISO()
   const { year, month } = yearMonthOf(today)
 
@@ -95,7 +95,7 @@ export function DashboardView() {
 
       {missing.length > 0 && (
         <div className="mb-4 rounded border border-yellow-500/50 bg-yellow-500/10 p-3 text-sm">
-          Pour pouvoir émettre de vraies factures, il manque encore : <strong>{missing.join(', ')}</strong>. <Link onClick={() => show('settings')}>Ouvrir les réglages</Link>
+          Pour pouvoir émettre de vraies factures, il manque encore : <strong>{missing.join(', ')}</strong>. <Link onClick={() => openSettings('company', 'identity')}>Ouvrir les réglages</Link>
         </div>
       )}
 
@@ -109,7 +109,7 @@ export function DashboardView() {
       <Card title={`Plafonds ${year}`} className="mb-4">
         {!confirmed && (
           <div className="mb-3 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
-            Ces plafonds n'ont pas encore été vérifiés : les alertes sont indicatives. <Link onClick={() => show('settings')}>Les vérifier dans Réglages &gt; Entreprise</Link>
+            Ces plafonds n'ont pas encore été vérifiés : les alertes sont indicatives. <Link onClick={() => openSettings('company', 'taxes')}>Les vérifier dans Réglages &gt; Mon entreprise</Link>
           </div>
         )}
         <div className="mb-4">
@@ -139,7 +139,7 @@ export function DashboardView() {
       <Card title="Cotisations (estimation)" className="mb-4">
         {!company.ratesConfirmed && (
           <div className="mb-3 rounded-lg border border-[var(--border)] p-2 text-xs text-[var(--fg-muted)]">
-            Le taux de cotisations n'a pas encore été vérifié : les montants sont indicatifs. <Link onClick={() => show('settings')}>Le vérifier dans Réglages &gt; Entreprise</Link>
+            Le taux de cotisations n'a pas encore été vérifié : les montants sont indicatifs. <Link onClick={() => openSettings('company', 'taxes')}>Le vérifier dans Réglages &gt; Mon entreprise</Link>
           </div>
         )}
         <div className="mb-3 grid grid-cols-1 gap-4 sm:grid-cols-3">
