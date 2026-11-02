@@ -511,7 +511,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(max(150px, calc((100% - 4 * 20px) / 5)), 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
