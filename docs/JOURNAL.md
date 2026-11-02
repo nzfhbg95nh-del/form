@@ -1052,3 +1052,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fiches de recettes : bloc de texte plus bas (40 px), titre centré ; la ligne de difficulté n'est affichée que s'il y en a une.
 
 - Recettes : la galerie affiche jusqu'à 5 fiches par ligne (colonnes d'au moins 150 px, donc moins sur une fenêtre étroite).
+
+- Fiches de recettes de la galerie : la photo garde la proportion 4:3 quand la largeur change (fenêtre réduite ou agrandie), au lieu d'une hauteur fixe.
