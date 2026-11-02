@@ -89,7 +89,6 @@ html.floating #root {
   background: color-mix(in srgb, var(--fg) 6%, transparent);
   color: var(--fg);
   font-size: 14px;
-  font-weight: 500;
   cursor: pointer;
 }
 .btn:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 10%, transparent); }
