@@ -983,3 +983,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Réglages > Général : sauvegarde présentée en bandeau d'état + 4 cartes d'action.
 
 - Cartes cliquables de l'accueil (`data-lift`) : soulèvement au survol adouci (1 px au lieu de 2, ombre plus légère) et fond gris à peine teinté.
+
+- Survol des images (grille, collections, moodboards) : voile noir de 25 % ramené à 10 %.

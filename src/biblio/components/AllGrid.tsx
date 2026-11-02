@@ -34,7 +34,7 @@ interface TileProps {
 export const Tile = memo(function Tile({ block, place, thumbsDir, videoSrc, selected, onClick, onHover, onMenu }: TileProps) {
   return (
     <div
-      className="absolute cursor-pointer overflow-hidden rounded-xl shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[''] hover:after:bg-black/25"
+      className="absolute cursor-pointer overflow-hidden rounded-xl shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[''] hover:after:bg-black/10"
       style={{ left: place.x, top: place.y, width: place.w, height: place.h, background: 'var(--bg-hover)', outline: selected ? '3px solid var(--accent)' : 'none', outlineOffset: -3 }}
       onClick={(e) => onClick(e, block.id)}
       onContextMenu={(e) => {
