@@ -1008,3 +1008,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Fenêtre moodboard : « Ajouter une photo » aligné en haut du carré, sans texte en dessous.
 
 - Icônes de la barre d'onglets ramenées à la taille de celles de la barre latérale (14 px) pour qu'elles soient identiques.
+
+- Boutons de l'appli (classe `.btn`) : forme en pilule, un peu plus de marge, texte légèrement plus marqué ; mêmes couleurs (fond teinté, accent pour le bouton principal et les choix actifs), à la manière des références.
