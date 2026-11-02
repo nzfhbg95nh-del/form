@@ -381,7 +381,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           </button>
         </div>
         <div className="mb-3"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
-        <div className="grid items-start gap-x-3 gap-y-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
+        <div className="grid items-start gap-x-4 gap-y-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
           {list.map((row) => <RecipeCard key={row.id} row={row} />)}
           <button
             onClick={() => create(entry.isNone ? undefined : entry.id)}
@@ -511,7 +511,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <div className="grid items-start gap-x-4 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
+        <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
