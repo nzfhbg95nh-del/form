@@ -1,9 +1,9 @@
-import { useRef } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 
 /**
  * Un curseur à deux zones (comme la barre Coffee / Milk de la maquette) : la zone teintée à gauche grandit, la zone grise à droite rétrécit,
  * et une poignée blanche les sépare. On glisse n'importe où sur la barre ; les flèches du clavier règlent aussi (Maj = par 10).
- * Même hauteur et mêmes bouts arrondis (pilule) que les boutons de l'appli. Aux extrémités (presque vide ou presque plein), la barre s'amincit en un trait fin et les libellés remontent au-dessus pour rester lisibles.
+ * Même hauteur et mêmes bouts arrondis (pilule) que les boutons de l'appli. Dès que la poignée touche un des textes, la barre s'amincit en un trait fin et les libellés remontent au-dessus pour rester lisibles.
  */
 export function SplitSlider({ value, min, max, step = 1, onChange, label, right = '', valueLabel, small = false, ariaLabel, className = '' }: {
   value: number; min: number; max: number; step?: number; onChange: (v: number) => void
@@ -22,7 +22,22 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
     const snapped = Math.round(raw / step) * step
     onChange(Math.max(min, Math.min(max, snapped)))
   }
-  const thin = !small && (pct < 30 || pct > 82)
+  // Largeurs mesurées : la barre, le texte de gauche et celui de droite. La barre s'amincit dès que la poignée arrive sur un texte.
+  const leftText = useRef<HTMLSpanElement>(null)
+  const rightText = useRef<HTMLSpanElement>(null)
+  const [size, setSize] = useState({ track: 0, left: 0, right: 0 })
+  useLayoutEffect(() => {
+    const measure = () => {
+      const next = { track: track.current?.clientWidth ?? 0, left: leftText.current?.offsetWidth ?? 0, right: rightText.current?.offsetWidth ?? 0 }
+      setSize((s) => (s.track === next.track && s.left === next.left && s.right === next.right ? s : next))
+    }
+    measure()
+    const watcher = new ResizeObserver(measure)
+    if (track.current) watcher.observe(track.current)
+    return () => watcher.disconnect()
+  }, [label, valueLabel, right, value])
+  const margin = (small ? 14 : 16) + 8
+  const thin = !small && size.track > 0 && (size.track * (pct / 100) < size.left + margin || size.track * (1 - pct / 100) < size.right + margin)
   const spring = 'height 0.34s cubic-bezier(0.34, 1.3, 0.64, 1), border-radius 0.3s'
   const mono = 'font-mono text-[11px] uppercase tracking-wider'
   const padX = small ? 14 : 16
@@ -54,8 +69,8 @@ export function SplitSlider({ value, min, max, step = 1, onChange, label, right 
         className={mono + ' pointer-events-none absolute inset-x-0 flex justify-between whitespace-nowrap'}
         style={{ top: thin ? 1 : '50%', transform: thin ? 'none' : 'translateY(-50%)', paddingInline: thin ? 2 : padX, transition: 'top 0.34s cubic-bezier(0.34, 1.3, 0.64, 1), transform 0.34s, padding 0.3s' }}
       >
-        <span style={{ color: 'color-mix(in srgb, var(--accent) 70%, var(--fg))' }}>{label} <b className="font-semibold text-[var(--accent)]">{valueLabel ?? `${Math.round(pct)}%`}</b></span>
-        <span className="text-[var(--fg-muted)]">{right}</span>
+        <span ref={leftText} style={{ color: 'color-mix(in srgb, var(--accent) 70%, var(--fg))' }}>{label} <b className="font-semibold text-[var(--accent)]">{valueLabel ?? `${Math.round(pct)}%`}</b></span>
+        <span ref={rightText} className="text-[var(--fg-muted)]">{right}</span>
       </div>
     </div>
   )
