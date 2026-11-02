@@ -21,12 +21,14 @@ pub const PINTEREST: &str = "pinterest";
 pub const ADDED: &str = "images ajoutées";
 pub const RECIPES: &str = "recette";
 pub const CACHE: &str = "cache";
+/// Les copies de sauvegarde de la base de données (une par jour) : elles voyagent avec la bibliothèque.
+pub const BACKUPS: &str = "sauvegardes";
 
 /// Les sous-dossiers de la bibliothèque qui ne contiennent PAS d'enregistrements à lire (le scan les saute à la racine).
-pub const RESERVED: [&str; 3] = [ADDED, RECIPES, CACHE];
+pub const RESERVED: [&str; 4] = [ADDED, RECIPES, CACHE, BACKUPS];
 
 /// Les dossiers créés dans une bibliothèque (au déplacement). Le cache en fait partie : sa présence suffit à y ranger miniatures et modèle d'IA.
-const FOLDERS: [&str; 5] = [INSTAGRAM, PINTEREST, ADDED, RECIPES, CACHE];
+const FOLDERS: [&str; 6] = [INSTAGRAM, PINTEREST, ADDED, RECIPES, CACHE, BACKUPS];
 
 static CACHE_DIR: RwLock<Option<PathBuf>> = RwLock::new(None);
 
@@ -259,6 +261,7 @@ mod tests {
     fn reserved_names_are_recognised_whatever_the_case() {
         assert!(is_reserved("cache"));
         assert!(is_reserved("Recette"));
+        assert!(is_reserved("Sauvegardes"));
         assert!(is_reserved("Images Ajoutées"));
         assert!(!is_reserved("instagram"));
         assert!(!is_reserved("pinterest"));
@@ -337,7 +340,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(&root);
     }
     #[test]
-    fn ensure_folders_creates_the_five_folders_and_keeps_existing_files() {
+    fn ensure_folders_creates_the_six_folders_and_keeps_existing_files() {
         let root = temp("ensure");
         std::fs::create_dir_all(root.join(INSTAGRAM)).unwrap();
         std::fs::write(root.join(INSTAGRAM).join("a.jpg"), b"x").unwrap();

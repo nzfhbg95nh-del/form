@@ -100,6 +100,32 @@ pub fn default_backup_dir(app: tauri::AppHandle) -> Result<String, String> {
     Ok(dir.to_string_lossy().into_owned())
 }
 
+/// Les dossiers où ranger les sauvegardes, du préféré au dernier recours : « sauvegardes » dans la bibliothèque (elles la suivent quand
+/// on la déplace), puis « Documents\Form sauvegardes » si la bibliothèque est introuvable (disque débranché…). Les dossiers sont créés.
+pub fn candidate_backup_dirs(library: Option<&str>, documents: Option<PathBuf>) -> Vec<PathBuf> {
+    let mut out = Vec::new();
+    if let Some(root) = library.map(str::trim).filter(|r| !r.is_empty()).map(PathBuf::from).filter(|p| p.is_dir()) {
+        out.push(root.join(crate::biblio::layout::BACKUPS));
+    }
+    if let Some(docs) = documents {
+        out.push(docs.join("Form sauvegardes"));
+    }
+    out
+}
+
+#[tauri::command]
+pub fn backup_dirs(app: tauri::AppHandle, library: Option<String>) -> Result<Vec<String>, String> {
+    let dirs: Vec<String> = candidate_backup_dirs(library.as_deref(), app.path().document_dir().ok())
+        .into_iter()
+        .filter(|d| fs::create_dir_all(d).is_ok())
+        .map(|d| d.to_string_lossy().into_owned())
+        .collect();
+    if dirs.is_empty() {
+        return Err("Aucun dossier de sauvegarde possible (bibliothèque et Documents introuvables).".into());
+    }
+    Ok(dirs)
+}
+
 /// Ne garde que les `keep` sauvegardes automatiques les plus récentes du dossier (`form-sauvegarde-*.db`).
 /// Seuls ces fichiers sont concernés : rien d'autre n'est jamais supprimé.
 #[tauri::command]
@@ -126,4 +152,29 @@ pub fn prune_backups(dir: String, keep: usize) -> Result<usize, String> {
         }
     }
     Ok(removed)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn backups_go_to_the_library_first_then_to_documents() {
+        let lib = std::env::temp_dir().join("form-backup-test-lib");
+        std::fs::create_dir_all(&lib).unwrap();
+        let docs = std::env::temp_dir().join("form-backup-test-docs");
+        let dirs = candidate_backup_dirs(Some(lib.to_str().unwrap()), Some(docs.clone()));
+        assert_eq!(dirs, vec![lib.join("sauvegardes"), docs.join("Form sauvegardes")]);
+        let _ = std::fs::remove_dir_all(&lib);
+    }
+
+    #[test]
+    fn a_missing_or_empty_library_leaves_only_documents() {
+        let docs = std::env::temp_dir().join("form-backup-test-docs2");
+        let only = vec![docs.join("Form sauvegardes")];
+        assert_eq!(candidate_backup_dirs(None, Some(docs.clone())), only);
+        assert_eq!(candidate_backup_dirs(Some("  "), Some(docs.clone())), only);
+        assert_eq!(candidate_backup_dirs(Some("Z:\\n-existe-pas-form"), Some(docs)), only);
+        assert!(candidate_backup_dirs(None, None).is_empty());
+    }
 }

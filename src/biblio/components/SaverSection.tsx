@@ -7,6 +7,7 @@ import { buildJobs, cookieAge, cookieNote, EMPTY_SAVER, loadSaverSettings, saveS
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
 import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
+import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 const nf = new Intl.NumberFormat('fr-FR')
@@ -43,7 +44,9 @@ function LoginRow({ site, disabled, onFile }: { site: Site; disabled: boolean; o
   const [error, setError] = useState<string | null>(null)
   const wasConnected = useRef(false)
   const onFileRef = useRef(onFile)
-  onFileRef.current = onFile
+  useEffect(() => {
+    onFileRef.current = onFile
+  })
   useEffect(() => {
     let gone = false
     const tick = async () => {
@@ -158,8 +161,9 @@ export function SaverSection() {
           ? `Arrêté. ${nf.format(d.new)} nouveau${d.new > 1 ? 'x' : ''} fichier${d.new > 1 ? 's' : ''} reçu${d.new > 1 ? 's' : ''}.`
           : `Terminé : ${nf.format(d.new)} nouveau${d.new > 1 ? 'x' : ''}, ${nf.format(d.skipped)} déjà présent${d.skipped > 1 ? 's' : ''}.`,
       )
-      // De nouveaux fichiers sont arrivés : la bibliothèque les lit (miniatures, analyse…).
-      if (d.new > 0 && !d.error) void update()
+      // De nouveaux fichiers sont arrivés : tout se fait tout seul ensuite (lecture du dossier, miniatures, vidéos, empreintes d'IA, couleurs, classement).
+      // L'IA est branchée d'abord, pour qu'elle prenne le relais dès que les miniatures sont prêtes.
+      if (d.new > 0 && !d.error) void useAi.getState().init(true).then(() => update())
     }))
     return () => {
       gone = true

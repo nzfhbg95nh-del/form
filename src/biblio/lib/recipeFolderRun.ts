@@ -1,6 +1,6 @@
 import { invoke } from '@tauri-apps/api/core'
 import { getDb } from '@/biblio/lib/db.ts'
-import { joinPath, todayISO } from '@/lib/backup'
+import { backupDirs, joinPath, todayISO } from '@/lib/backup'
 import { parseContent } from '@/lib/content'
 import { parseSchema, parseValues } from '@/lib/database'
 import { countDataImages } from '@/lib/libraryImages'
@@ -61,8 +61,7 @@ export async function exportRecipes(rows: ObjectRow[], root: string, onProgress:
   const result: ExportResult = { recipes: 0, photos: 0, lightened: 0, failed: 0, errors: [], backup: null }
 
   if (scanRecipePhotos(rows).photos > 0) {
-    let dir = await repo.getSetting('backup_dir')
-    if (!dir) dir = await invoke<string>('default_backup_dir')
+    const dir = (await backupDirs(repo))[0]
     result.backup = joinPath(dir, `form-avant-recettes-dans-le-dossier-${todayISO()}.db`)
     await repo.backupTo(result.backup)
   }

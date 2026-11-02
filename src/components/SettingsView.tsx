@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 import { open, save } from '@tauri-apps/plugin-dialog'
 import { SettingsHeader, SettingsSection } from '@/components/SettingsUi'
 import { SystemCheck } from '@/components/SystemCheck'
-import { backupFileName, DEFAULT_KEEP, joinPath, parseKeep, restoreBackup, todayISO } from '@/lib/backup'
+import { revealItemInDir } from '@tauri-apps/plugin-opener'
+import { backupDirs, backupFileName, joinPath, restoreBackup, todayISO } from '@/lib/backup'
+import { useLibrary } from '@/biblio/store/library'
 import { notify } from '@/lib/notify'
 import { isTauri } from '@/lib/repo'
 import { useApp } from '@/store/app'
@@ -15,15 +17,15 @@ export function GeneralSettings() {
   const [last, setLast] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [reminders, setReminders] = useState(true)
-  const [keep, setKeep] = useState(DEFAULT_KEEP)
+  const root = useLibrary((s) => s.root)
   const desktop = isTauri()
 
   useEffect(() => {
-    void repo?.getSetting('backup_dir').then(setDir)
+    // Le dossier de sauvegarde suit la bibliothèque (« sauvegardes » dedans) ; si elle est introuvable, c'est Documents\Form sauvegardes.
+    if (repo && desktop) void backupDirs(repo).then((d) => setDir(d[0] ?? null)).catch(() => setDir(null))
     void repo?.getSetting('last_backup_date').then(setLast)
     void repo?.getSetting('reminders_enabled').then((v) => setReminders(v !== '0'))
-    void repo?.getSetting('backup_keep').then((v) => setKeep(parseKeep(v)))
-  }, [repo])
+  }, [repo, desktop, root])
 
   const run = async (fn: () => Promise<string | void>) => {
     try {
@@ -33,16 +35,6 @@ export function GeneralSettings() {
       setMsg(`Erreur : ${String(e)}`)
     }
   }
-
-  const chooseFolder = () =>
-    run(async () => {
-      const chosen = await open({ directory: true, title: 'Dossier de sauvegarde (OneDrive, Google Drive…)' })
-      if (typeof chosen === 'string' && repo) {
-        await repo.setSetting('backup_dir', chosen)
-        setDir(chosen)
-        return 'Dossier enregistré. La sauvegarde se fera automatiquement une fois par jour.'
-      }
-    })
 
   const backupNow = () =>
     run(async () => {
@@ -97,40 +89,22 @@ export function GeneralSettings() {
 
       <SettingsSection
         title="Sauvegarde de mes données"
-        description="Une copie de ta base (recettes, pages, devis, factures, réglages) est faite toute seule une fois par jour : tu n'as rien à faire. Tes images et tes vidéos sont dans ta bibliothèque."
+        description="Une copie de ta base (recettes, pages, devis, factures, réglages) est faite toute seule une fois par jour dans le dossier « sauvegardes » de ta bibliothèque : elle voyage avec elle quand tu la déplaces. Les 30 dernières sont gardées."
       >
         {!desktop && <p className={'mb-3 text-sm ' + muted}>La sauvegarde n'est disponible que dans l'application Windows.</p>}
         <p className="mb-3 text-sm">
-          Dossier : <strong className="break-all">{dir ?? 'aucun dossier choisi'}</strong>
-          {last && <span className={muted}> — dernière sauvegarde automatique : {last.split('-').reverse().join('/')}</span>}
+          Dossier : <strong className="break-all">{dir ?? '—'}</strong>
+          {last && <span className={muted}> — dernière sauvegarde : {last.split('-').reverse().join('/')}</span>}
         </p>
-        <details>
-        <summary className="cursor-pointer text-sm font-medium">Options de la sauvegarde</summary>
-        <div className="mt-3 flex flex-wrap gap-2">
-          <button className="btn" disabled={!desktop} onClick={chooseFolder}>Choisir le dossier</button>
+        {dir && root.trim() && !dir.toLowerCase().startsWith(root.trim().toLowerCase()) && (
+          <p className="mb-3 text-xs" style={{ color: '#d9730d' }}>Ta bibliothèque est introuvable : en attendant, les sauvegardes vont dans ce dossier de secours.</p>
+        )}
+        <div className="flex flex-wrap gap-2">
           <button className="btn" disabled={!desktop || !dir} onClick={backupNow}>Sauvegarder maintenant</button>
-          <button className="btn" disabled={!desktop} onClick={exportAll}>Enregistrer une copie…</button>
+          <button className="btn" disabled={!desktop || !dir} onClick={() => void run(async () => { await revealItemInDir(dir!) })}>Ouvrir le dossier</button>
           <button className="btn" disabled={!desktop} onClick={restore}>Restaurer une sauvegarde…</button>
+          <button className="btn" disabled={!desktop} onClick={exportAll}>Enregistrer une copie ailleurs…</button>
         </div>
-        <label className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-          Garder les
-          <input
-            type="number"
-            min={5}
-            max={365}
-            value={keep}
-            disabled={!desktop}
-            onChange={(e) => setKeep(Number(e.target.value))}
-            onBlur={() => {
-              const n = parseKeep(String(keep))
-              setKeep(n)
-              void repo?.setSetting('backup_keep', String(n))
-            }}
-            className="lib-input w-20 rounded-lg border px-2 py-1"
-          />
-          dernières sauvegardes automatiques (les plus anciennes sont supprimées du dossier).
-        </label>
-        </details>
         {msg && <p className="mt-3 text-sm">{msg}</p>}
       </SettingsSection>
 

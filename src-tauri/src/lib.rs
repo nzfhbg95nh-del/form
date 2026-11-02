@@ -162,6 +162,7 @@ pub fn run() {
             backup::restart_app,
             backup::prune_backups,
             backup::default_backup_dir,
+            backup::backup_dirs,
             vector::vc_load,
             vector::vc_paint,
             vector::vc_restyle,

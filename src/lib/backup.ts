@@ -25,33 +25,39 @@ async function backupInto(repo: Repo, dir: string, today: string, now = new Date
   }
 }
 
-/** Sauvegarde quotidienne : au plus une fois par jour, seulement si un dossier est choisi. */
+/**
+ * Les dossiers où ranger les sauvegardes, du préféré au dernier recours : « sauvegardes » dans la bibliothèque (elles la suivent quand on la
+ * déplace), puis « Documents\Form sauvegardes » si la bibliothèque est introuvable (disque débranché, autre ordinateur…).
+ */
+export async function backupDirs(repo: Repo): Promise<string[]> {
+  const library = (await repo.getSetting('library_root')) ?? null
+  return invoke<string[]>('backup_dirs', { library })
+}
+
+/** Sauvegarde quotidienne : au plus une fois par jour, dans le premier dossier qui marche. */
 export async function runDailyBackup(
   repo: Repo,
-  /** Le dossier de sauvegarde par défaut (« Documents\Form sauvegardes » de cet ordinateur), s'il y en a un. */
-  defaultDir: (() => Promise<string>) | null = isTauri() ? () => invoke<string>('default_backup_dir') : null,
+  dirsOf: (() => Promise<string[]>) | null = isTauri() ? () => backupDirs(repo) : null,
 ): Promise<string | null> {
-  let dir = await repo.getSetting('backup_dir')
-  if (!dir && defaultDir) {
-    // Aucun dossier choisi : on sauvegarde quand même, dans « Documents\Form sauvegardes » (modifiable dans les Réglages).
-    dir = await defaultDir()
-    await repo.setSetting('backup_dir', dir)
-  }
-  if (!dir) return null
+  // Hors de l'application Windows : seulement le dossier retenu dans les réglages, s'il y en a un.
+  const dirs = dirsOf ? await dirsOf() : [await repo.getSetting('backup_dir')].filter((d): d is string => !!d)
+  if (dirs.length === 0) return null
   const today = todayISO()
   if ((await repo.getSetting('last_backup_date')) === today) return null
-  try {
-    await backupInto(repo, dir, today)
-  } catch (e) {
-    // Le dossier retenu n'existe pas sur cet ordinateur (autre profil Windows, disque débranché, dossier effacé) :
-    // on se rabat sur le dossier par défaut au lieu de ne plus rien sauvegarder, et on le retient.
-    if (!defaultDir) throw e
-    const fallback = await defaultDir()
-    if (fallback === dir) throw e
-    await backupInto(repo, fallback, today)
-    await repo.setSetting('backup_dir', fallback)
-    dir = fallback
+  let dir: string | null = null
+  let failure: unknown = null
+  for (const candidate of dirs) {
+    try {
+      await backupInto(repo, candidate, today)
+      dir = candidate
+      break
+    } catch (e) {
+      failure = e
+    }
   }
+  if (dir === null) throw failure
+  // Le dossier réellement utilisé est retenu (pour l'affichage des Réglages et le diagnostic).
+  await repo.setSetting('backup_dir', dir)
   await repo.setSetting('last_backup_date', today)
   // Ménage : on ne garde que les plus récentes (une erreur de ménage ne doit jamais faire échouer la sauvegarde).
   try {

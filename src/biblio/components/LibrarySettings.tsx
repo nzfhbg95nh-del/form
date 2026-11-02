@@ -159,10 +159,11 @@ const FOLDERS = [
   ['images ajoutées', 'les images que tu ajoutes à la main'],
   ['recette', 'tes recettes (un dossier par recette, avec ses photos)'],
   ['cache', 'miniatures et modèle d\'IA : ils se refont tout seuls si on les perd'],
+  ['sauvegardes', 'une copie de ta base de données par jour (recettes, pages, devis, factures)'],
 ] as const
 
 export function LibrarySettings() {
-  const { root, layout, phase, label, done, total, stats, lastResult, error, setRoot, update, videoThumbs } = useLibrary()
+  const { root, layout, phase, label, done, total, stats, lastResult, error, setRoot, update } = useLibrary()
   const trashCount = useTrash((s) => s.count)
   const [part, setPart] = useState<Part>('folder')
   const [trashOpen, setTrashOpen] = useState(false)
@@ -282,15 +283,6 @@ export function LibrarySettings() {
               )}
               <div className="mt-5 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
                 <AutoUpdate />
-              </div>
-            </SettingsSection>
-            <SettingsSection
-              title="Miniatures des vidéos"
-              description="Form lit la première image de chaque vidéo pour en faire une miniature (aucun programme en plus). Ça se fait tout seul après une mise à jour ; ce bouton relance les vidéos qui n'en ont pas encore."
-            >
-              <div className="flex flex-wrap items-center gap-3">
-                <button className="btn" onClick={() => void videoThumbs()} disabled={busy || noFolder}>Faire les miniatures des vidéos</button>
-                {stats && <span className="text-sm" style={muted}>{stats.thumbsFailed === 0 ? 'Toutes les miniatures sont prêtes.' : `${nf.format(stats.thumbsFailed)} fichier${stats.thumbsFailed > 1 ? 's' : ''} sans miniature.`}</span>}
               </div>
             </SettingsSection>
             {stats && (

@@ -1,14 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { parseTextSize, TEXT_SIZES } from './uiPrefs'
+import { parseTextScale, textScaleToPx } from './uiPrefs'
 
 describe('taille du texte', () => {
-  it('reconnaît les tailles proposées et revient à « normal » sinon', () => {
-    for (const s of TEXT_SIZES) expect(parseTextSize(s.id)).toBe(s.id)
-    expect(parseTextSize(null)).toBe('normal')
-    expect(parseTextSize('énorme')).toBe('normal')
+  it('garde un pourcentage entre 80 et 140, arrondi au pas de 5', () => {
+    expect(parseTextScale('120')).toBe(120)
+    expect(parseTextScale(118)).toBe(120)
+    expect(parseTextScale('10')).toBe(80)
+    expect(parseTextScale('900')).toBe(140)
   })
 
-  it('« normal » correspond à la taille de base du navigateur (16 px)', () => {
-    expect(TEXT_SIZES.find((s) => s.id === 'normal')!.px).toBe(16)
+  it('revient à 100 % sans réglage ou avec une valeur illisible', () => {
+    expect(parseTextScale(null)).toBe(100)
+    expect(parseTextScale('')).toBe(100)
+    expect(parseTextScale('énorme')).toBe(100)
+  })
+
+  it('100 % correspond à la taille de base du navigateur (16 px)', () => {
+    expect(textScaleToPx(100)).toBe(16)
+    expect(textScaleToPx(125)).toBe(20)
+    expect(textScaleToPx(80)).toBeCloseTo(12.8)
   })
 })

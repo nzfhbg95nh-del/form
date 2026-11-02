@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { SettingsHeader, SettingsSection } from '@/components/SettingsUi'
-import { loadReduceMotion, loadTextSize, setReduceMotion, setTextSize, TEXT_SIZES, type TextSize } from '@/lib/uiPrefs'
+import { SplitSlider } from '@/components/SplitSlider'
+import { loadReduceMotion, loadTextScale, setReduceMotion, setTextScale, TEXT_SCALE_DEFAULT, TEXT_SCALE_MAX, TEXT_SCALE_MIN, TEXT_SCALE_STEP } from '@/lib/uiPrefs'
 import { useApp, type Theme } from '@/store/app'
 
 const THEMES: { id: Theme; label: string }[] = [
@@ -31,7 +32,7 @@ function Choice<T extends string>({ items, value, onChange, label }: { items: { 
 export function InterfaceSettings() {
   const theme = useApp((s) => s.theme)
   const toggleTheme = useApp((s) => s.toggleTheme)
-  const [size, setSize] = useState<TextSize>(loadTextSize)
+  const [scale, setScale] = useState(loadTextScale)
   const [calm, setCalm] = useState(loadReduceMotion)
 
   return (
@@ -42,8 +43,21 @@ export function InterfaceSettings() {
         <Choice items={THEMES} value={theme} label="Thème" onChange={(id) => { if (id !== theme) toggleTheme() }} />
       </SettingsSection>
 
-      <SettingsSection title="Taille du texte" description="Agrandit ou réduit tout ce qui est écrit dans Form (menus, pages, réglages).">
-        <Choice items={TEXT_SIZES} value={size} label="Taille du texte" onChange={(id) => { setSize(id); setTextSize(id) }} />
+      <SettingsSection title="Taille du texte" description="Agrandit ou réduit tout ce qui est écrit dans Form (menus, pages, réglages). 100 % est la taille normale.">
+        <SplitSlider
+          className="w-80 max-w-full"
+          min={TEXT_SCALE_MIN}
+          max={TEXT_SCALE_MAX}
+          step={TEXT_SCALE_STEP}
+          value={scale}
+          onChange={(v) => { setScale(v); setTextScale(v) }}
+          label="Taille"
+          valueLabel={`${scale} %`}
+          ariaLabel="Taille du texte"
+        />
+        {scale !== TEXT_SCALE_DEFAULT && (
+          <button className="btn mt-3" onClick={() => { setScale(TEXT_SCALE_DEFAULT); setTextScale(TEXT_SCALE_DEFAULT) }}>Revenir à 100 %</button>
+        )}
       </SettingsSection>
 
       <SettingsSection title="Animations" description="Pour une interface plus posée, ou si les mouvements te fatiguent.">
