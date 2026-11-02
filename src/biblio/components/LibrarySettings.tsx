@@ -53,12 +53,14 @@ function AiSection() {
 
   return (
     <SettingsSection title="Classement automatique par type" icon={<Sparkles size={16} />} description="Un modèle d'images tourne sur ton PC : aucune image ne quitte l'ordinateur. Les empreintes, les couleurs et le texte des vidéos se calculent tout seuls après chaque mise à jour.">
-      {!status.model_ready && (
+      {!status.model_ready && (downloading || partial || error) && (
         <div className="mb-5">
-          <button className="btn btn-primary" onClick={() => void download()} disabled={downloading}>
-            <Download size={16} /> {partial ? 'Reprendre le téléchargement' : 'Télécharger le modèle'} ({formatBytes(status.model_size)})
-          </button>
-          <span className="ml-3 text-xs" style={muted}>Une seule fois, depuis Hugging Face. Le classement en a besoin.</span>
+          <div className="text-sm" style={muted}>{downloading ? 'Téléchargement du modèle d\'images (une seule fois)…' : 'Le téléchargement du modèle d\'images s\'est arrêté.'}</div>
+          {!downloading && (
+            <button className="btn btn-primary mt-2" onClick={() => void download()}>
+              <Download size={16} /> Reprendre le téléchargement ({formatBytes(status.model_size)})
+            </button>
+          )}
           {(downloading || partial) && (
             <div className="mt-3">
               <div className="text-xs" style={muted}>{formatBytes(downloading ? dlDone : status.downloaded)} / {formatBytes(status.model_size)}</div>
@@ -67,12 +69,14 @@ function AiSection() {
           )}
         </div>
       )}
-      {status.model_ready && !text?.ready && (
+      {status.model_ready && text && !text.ready && (text.downloading || text.downloaded > 0 || error) && (
         <div className="mb-5">
-          <button className="btn btn-primary" onClick={() => void downloadText()} disabled={!text || text.downloading}>
-            <Download size={16} /> {text && text.downloaded > 0 ? 'Reprendre le téléchargement' : 'Télécharger le modèle de texte'} ({formatBytes(text?.total ?? 0)})
-          </button>
-          <span className="ml-3 text-xs" style={muted}>Une seule fois : il permet de repérer Typo et Recette par description.</span>
+          <div className="text-sm" style={muted}>{text.downloading ? 'Téléchargement du modèle de texte (une seule fois)…' : 'Le téléchargement du modèle de texte s\'est arrêté.'}</div>
+          {!text.downloading && (
+            <button className="btn btn-primary mt-2" onClick={() => void downloadText()}>
+              <Download size={16} /> Reprendre le téléchargement ({formatBytes(text.total)})
+            </button>
+          )}
           {text && (text.downloading || text.downloaded > 0) && (
             <div className="mt-3 max-w-md">
               <div className="text-xs" style={muted}>{formatBytes(text.downloading ? textDone : text.downloaded)} / {formatBytes(text.total)}</div>
@@ -292,9 +296,6 @@ export function LibrarySettings() {
                   <Stat label="Fichiers" value={stats.files} />
                   <Stat label="Collections automatiques" value={stats.collections} />
                   <Stat label="Fichiers introuvables" value={stats.missing} />
-                  <Stat label="Miniatures prêtes" value={stats.thumbsReady} />
-                  <Stat label="Miniatures à faire" value={stats.thumbsPending} />
-                  <Stat label="Miniatures impossibles" value={stats.thumbsFailed} />
                 </div>
               </SettingsSection>
             )}

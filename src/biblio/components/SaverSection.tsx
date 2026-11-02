@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { open } from '@tauri-apps/plugin-dialog'
 import { Download, Square } from 'lucide-react'
-import { buildJobs, cookieAge, cookieNote, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
+import { buildJobs, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
 import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
@@ -18,24 +17,6 @@ const MAX_LINES = 200
 interface Line {
   text: string
   kind: string
-}
-
-/** Un fichier cookies.txt : son chemin, un bouton pour le choisir, et un avertissement s'il est vieux ou introuvable. */
-function CookieRow({ label, value, note, disabled, onChange }: { label: string; value: string; note: string | null; disabled: boolean; onChange: (path: string) => void }) {
-  const pick = async () => {
-    const picked = await open({ multiple: false, directory: false, filters: [{ name: 'Cookies (.txt)', extensions: ['txt'] }], defaultPath: value || undefined })
-    if (typeof picked === 'string') onChange(picked)
-  }
-  return (
-    <div className="mt-2">
-      <div className="flex items-center gap-2">
-        <span className="w-28 shrink-0 text-sm" style={{ color: 'var(--fg-muted)' }}>{label}</span>
-        <input className={input} style={inputStyle} value={value} onChange={(e) => onChange(e.target.value)} placeholder="Fichier cookies.txt" disabled={disabled} aria-label={label} />
-        <button className="btn" onClick={() => void pick()} disabled={disabled}>Choisir…</button>
-      </div>
-      {note && <p className="ml-[7.5rem] mt-1 text-xs" style={{ color: '#d9730d' }}>{note}</p>}
-    </div>
-  )
 }
 
 /** Connexion au site dans une fenêtre de Form : Victor tape son mot de passe lui-même, Form garde la session et prépare le fichier de cookies. */
@@ -125,8 +106,6 @@ export function SaverSection() {
   const update = useLibrary((s) => s.update)
   const [s, setS] = useState<SaverSettings>(EMPTY_SAVER)
   const [loaded, setLoaded] = useState(false)
-  const [prefilled, setPrefilled] = useState(false)
-  const [ages, setAges] = useState<{ ig: number | null; pin: number | null }>({ ig: null, pin: null })
   const [running, setRunning] = useState(false)
   const [counts, setCounts] = useState({ new: 0, skipped: 0 })
   const [lines, setLines] = useState<Line[]>([])
@@ -135,15 +114,11 @@ export function SaverSection() {
   const logRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    void loadSaverSettings().then(({ settings, prefilled: p }) => {
+    void loadSaverSettings().then(({ settings }) => {
       setS(settings)
-      setPrefilled(p)
       setLoaded(true)
     })
   }, [])
-  useEffect(() => {
-    void Promise.all([cookieAge(s.igCookies), cookieAge(s.pinCookies)]).then(([ig, pin]) => setAges({ ig, pin }))
-  }, [s.igCookies, s.pinCookies])
 
   useEffect(() => {
     const offs: (() => void)[] = []
@@ -194,9 +169,6 @@ export function SaverSection() {
     }
   }
 
-  const igNote = s.doIg ? cookieNote(s.igCookies, ages.ig) : null
-  const pinNote = s.doPin ? cookieNote(s.pinCookies, ages.pin) : null
-
   return (
     <div className="py-4">
       <h2 className="text-base font-semibold">Télécharger mes enregistrements</h2>
@@ -206,24 +178,7 @@ export function SaverSection() {
         Tu te connectes à chaque site <b>une seule fois</b> dans une petite fenêtre de Form : tu tapes ton mot de passe toi-même sur le site, Form ne le voit jamais.
         Il garde seulement la session et fait des pauses entre les fichiers pour ne pas gêner ton compte.
       </p>
-      <details className="mt-3 rounded-lg border p-3 text-sm" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
-        <summary className="cursor-pointer font-medium">Avancé : utiliser un fichier cookies.txt exporté depuis Chrome</summary>
-        <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>Extension nécessaire : « Get cookies.txt LOCALLY » (Chrome Web Store).</p>
-        <div className="mt-2 font-medium">Pour Instagram</div>
-        <ol className="ml-5 list-decimal" style={{ color: 'var(--fg-muted)' }}>
-          <li>Ouvre Chrome, va sur https://www.instagram.com (vérifie que tu es connecté).</li>
-          <li>Clique sur l'icône de l'extension (icône puzzle, puis épingle si besoin).</li>
-          <li>Clique sur « Export » et enregistre le fichier : <b>www.instagram.com_cookies.txt</b></li>
-        </ol>
-        <div className="mt-2 font-medium">Pour Pinterest</div>
-        <ol className="ml-5 list-decimal" style={{ color: 'var(--fg-muted)' }}>
-          <li>Va sur https://www.pinterest.com (vérifie que tu es connecté).</li>
-          <li>Clique sur l'icône de l'extension, puis « Export ».</li>
-          <li>Enregistre le fichier : <b>www.pinterest.com_cookies.txt</b></li>
-        </ol>
-        <p className="mt-2" style={{ color: 'var(--fg-muted)' }}>Puis choisis ce fichier dans « Cookies » ci-dessous.</p>
-      </details>
-      {prefilled && <p className="mt-2 text-xs" style={{ color: 'var(--fg-muted)' }}>Réglages repris de ton ancien outil de téléchargement (qui n'a pas été modifié).</p>}
+
 
       {loaded && (
         <>
@@ -236,7 +191,6 @@ export function SaverSection() {
               <input className={input} style={inputStyle} value={s.igUser} onChange={(e) => change({ igUser: e.target.value })} placeholder="ton pseudo Instagram" disabled={running || !s.doIg} aria-label="Pseudo Instagram" />
             </div>
             <LoginRow site="instagram" disabled={running || !s.doIg} onFile={(f) => { if (s.igCookies !== f) { change({ igCookies: f }); void adoptCookies('instagram', f) } }} />
-            <CookieRow label="Cookies" value={s.igCookies} note={igNote} disabled={running || !s.doIg} onChange={(igCookies) => change({ igCookies })} />
           </div>
 
           <div className="mt-5">
@@ -248,7 +202,6 @@ export function SaverSection() {
               <input className={input} style={inputStyle} value={s.pinUrl} onChange={(e) => change({ pinUrl: e.target.value })} placeholder="https://www.pinterest.com/monpseudo/ (ou un seul tableau)" disabled={running || !s.doPin} aria-label="Lien du profil Pinterest" />
             </div>
             <LoginRow site="pinterest" disabled={running || !s.doPin} onFile={(f) => { if (s.pinCookies !== f) { change({ pinCookies: f }); void adoptCookies('pinterest', f) } }} />
-            <CookieRow label="Cookies" value={s.pinCookies} note={pinNote} disabled={running || !s.doPin} onChange={(pinCookies) => change({ pinCookies })} />
           </div>
 
           <AutoDownloadOption />

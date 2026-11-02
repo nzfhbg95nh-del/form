@@ -28,25 +28,15 @@ export function buildJobs(s: SaverSettings): { jobs: SaverJob[]; problem: string
   const jobs: SaverJob[] = []
   if (s.doIg) {
     if (!s.igUser.trim().replace(/^@+/, '')) return { jobs: [], problem: 'Indique ton pseudo Instagram.' }
-    if (!s.igCookies.trim()) return { jobs: [], problem: "Choisis ton fichier cookies.txt d'Instagram." }
+    if (!s.igCookies.trim()) return { jobs: [], problem: 'Connecte-toi à Instagram (bouton « Me connecter à Instagram »).' }
     jobs.push({ url: instagramUrl(s.igUser), cookies: s.igCookies.trim() })
   }
   if (s.doPin) {
     if (!s.pinUrl.trim()) return { jobs: [], problem: 'Indique le lien de ton profil Pinterest.' }
-    if (!s.pinCookies.trim()) return { jobs: [], problem: 'Choisis ton fichier cookies.txt de Pinterest.' }
+    if (!s.pinCookies.trim()) return { jobs: [], problem: 'Connecte-toi à Pinterest (bouton « Me connecter à Pinterest »).' }
     jobs.push({ url: s.pinUrl.trim(), cookies: s.pinCookies.trim() })
   }
   return jobs.length > 0 ? { jobs, problem: null } : { jobs: [], problem: 'Coche au moins une source.' }
-}
-
-/** Les cookies expirent vite : passé ce nombre de jours, Form conseille de refaire l'export. */
-export const COOKIE_OLD_DAYS = 3
-
-export function cookieNote(path: string, ageDays: number | null): string | null {
-  if (!path.trim()) return null
-  if (ageDays === null) return 'Fichier introuvable : choisis-le à nouveau.'
-  if (ageDays > COOKIE_OLD_DAYS) return `Fichier de cookies vieux de ${ageDays} jours : s'il échoue, refais l'export depuis Chrome.`
-  return null
 }
 
 const KEYS = { igUser: 'saver_ig_user', pinUrl: 'saver_pin_url', igCookies: 'saver_ig_cookies', pinCookies: 'saver_pin_cookies', doIg: 'saver_do_ig', doPin: 'saver_do_pin' } as const
@@ -84,5 +74,3 @@ export async function loadSaverSettings(): Promise<{ settings: SaverSettings; pr
   await saveSaverSettings(settings)
   return { settings, prefilled: !!(d.ig_user || d.pin_url || d.ig_cookies || d.pin_cookies) }
 }
-
-export const cookieAge = (path: string) => (path.trim() ? invoke<number | null>('saver_file_age_days', { path: path.trim() }) : Promise.resolve(null))

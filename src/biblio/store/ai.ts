@@ -100,7 +100,12 @@ export const useAi = create<AiState>((set, get) => ({
     await listen<{ done: number; total: number }>('ai-download', (e) => set({ dlDone: e.payload.done, dlTotal: e.payload.total }))
     await listen<{ ok: boolean; error: string | null }>('ai-download-done', async (e) => {
       await get().refresh()
-      if (e.payload.ok) void get().embed() // le modèle est là : on calcule tout de suite les empreintes
+      if (e.payload.ok) {
+        void get().embed() // le modèle est là : on calcule tout de suite les empreintes
+        // Puis le modèle de texte (Typo, Recette), s'il manque encore.
+        const t = get().text
+        if (t && !t.ready && !t.downloading) void get().downloadText()
+      }
       else set({ error: e.payload.error })
     })
     await listen<{ done: number; total: number }>('ai-text-download', (e) => set({ textDone: e.payload.done }))
@@ -153,6 +158,10 @@ export const useAi = create<AiState>((set, get) => ({
     })
     // `run` : lancer tout de suite les calculs en retard (désactivé quand la mise à jour automatique est coupée).
     if (!run) return
+    // Les modèles qui manquent se téléchargent tout seuls, une seule fois (celui d'images d'abord, puis celui de texte).
+    const { status, text } = get()
+    if (status && !status.model_ready && !status.downloading) void get().download()
+    else if (status?.model_ready && text && !text.ready && !text.downloading) void get().downloadText()
     void get().embed()
     void get().computeColors()
     void get().computeOcr()
