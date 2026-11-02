@@ -202,7 +202,7 @@ export function MoodboardsView() {
       </div>
       <div className="min-h-0 flex-1 overflow-auto p-6">
         {boards.length === 0 ? (
-          <EmptyState icon={<Images size={24} />} title="Aucun moodboard pour le moment" hint="Pour y mettre des images : clic droit sur une image de la bibliothèque, puis « Ajouter à un moodboard ». Tu peux aussi en poser un dans une page avec « /moodboard »." action={{ label: 'Nouveau moodboard', onClick: () => setNaming(true) }} />
+          <EmptyState icon={<Images size={24} />} title="Aucun moodboard pour le moment" hint="Clique pour ajouter un moodboard. Tu peux aussi en poser un dans une page avec « /moodboard »." action={{ label: 'Nouveau moodboard', onClick: () => setNaming(true) }} />
         ) : (
           <div className="grid gap-x-5 gap-y-7" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' }}>
             <div>
