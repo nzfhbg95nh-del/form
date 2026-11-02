@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Images, ImagePlus, Pencil, Trash2, X } from 'lucide-react'
 
 interface Props {
@@ -11,17 +11,18 @@ interface Props {
   onPickFromBoard?: () => void
 }
 
-/** Une petite action sous l'aperçu : icône teintée et texte, dans le style des cartes de l'appli. */
-function SmallAction({ icon, children, onClick, danger = false }: { icon: React.ReactNode; children: React.ReactNode; onClick: () => void; danger?: boolean }) {
+/** Une action à droite de la photo : une petite icône teintée, puis le texte (même style que le menu d'un moodboard). */
+function SideAction({ icon, children, onClick, danger = false }: { icon: ReactNode; children: ReactNode; onClick: () => void; danger?: boolean }) {
+  const tint = danger ? '#d44c47' : 'var(--fg)'
   return (
-    <button className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition-colors hover:bg-[var(--bg-hover)]" style={{ color: danger ? '#d44c47' : 'var(--fg)' }} onClick={onClick}>
-      <span className="flex h-5 w-5 items-center justify-center rounded-md" style={{ background: `color-mix(in srgb, ${danger ? '#d44c47' : 'var(--fg)'} ${danger ? 14 : 8}%, transparent)` }}>{icon}</span>
+    <button className="flex w-full items-center gap-2.5 rounded-lg px-1.5 py-1.5 text-left text-sm transition-colors hover:bg-[var(--bg-hover)]" style={danger ? { color: '#d44c47' } : undefined} onClick={onClick}>
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg" style={{ background: `color-mix(in srgb, ${tint} ${danger ? 14 : 8}%, transparent)`, color: tint }}>{icon}</span>
       {children}
     </button>
   )
 }
 
-/** La fenêtre « Créer un moodboard » (ou « Modifier le moodboard ») : un aperçu avec une photo de couverture au choix, le nom, et un grand bouton. */
+/** La fenêtre « Créer un moodboard » (ou « Modifier le moodboard ») : la photo de couverture et ses actions, le nom, et un grand bouton. */
 export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }: Props) {
   const [name, setName] = useState(edit?.name ?? '')
   const [cover, setCover] = useState<File | null>(null)
@@ -37,6 +38,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
   useEffect(() => () => { if (picked) URL.revokeObjectURL(picked) }, [picked])
   // L'aperçu : la photo qu'on vient de choisir, sinon la couverture actuelle (sauf si on l'a retirée).
   const shown = picked ?? (coverRemoved ? null : (edit?.coverSrc ?? null))
+  const choose = () => filePicker.current?.click()
   const submit = () => {
     if (ready) onCreate(name.trim(), cover, coverRemoved && !cover)
   }
@@ -58,11 +60,11 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
           <button className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-[var(--bg-hover)]" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
         </div>
 
-        <div className="mt-6 flex flex-col items-stretch gap-2">
+        <div className="mt-6 flex items-center gap-4">
           <button
-            className={'group relative aspect-[16/9] w-full overflow-hidden rounded-2xl transition-colors ' + (shown ? '' : 'border-2 border-dashed hover:bg-[var(--bg-hover)]')}
+            className={'group relative aspect-[4/3] w-44 shrink-0 overflow-hidden rounded-2xl transition-colors ' + (shown ? '' : 'border-2 border-dashed hover:bg-[var(--bg-hover)]')}
             style={shown ? { background: 'var(--bg-hover)' } : { borderColor: 'var(--border)' }}
-            onClick={() => filePicker.current?.click()}
+            onClick={choose}
             aria-label={shown ? 'Changer la photo de couverture' : 'Ajouter une photo de couverture'}
           >
             {shown ? (
@@ -71,12 +73,12 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
                 <span className="pointer-events-none absolute inset-0 bg-black/0 transition-colors group-hover:bg-black/10" />
               </>
             ) : (
-              <span className="absolute inset-0 flex flex-col items-center justify-center gap-2 px-4 text-center text-xs font-medium" style={{ color: 'var(--fg-muted)' }}>
+              <span className="absolute inset-0 flex items-center justify-center">
                 <span className="flex h-10 w-10 items-center justify-center rounded-xl" style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)', color: 'var(--accent)' }}><ImagePlus size={20} /></span>
-                Ajouter une photo de couverture
               </span>
             )}
-          </button>          <input
+          </button>
+          <input
             ref={filePicker}
             type="file"
             accept="image/*"
@@ -90,12 +92,12 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
               e.target.value = ''
             }}
           />
-          <div className="flex min-h-8 flex-wrap items-center justify-center gap-1 text-xs" style={{ color: 'var(--fg-muted)' }}>
+          <div className="min-w-0 flex-1">
             {shown ? (
               <>
-                <SmallAction icon={<Pencil size={11} />} onClick={() => filePicker.current?.click()}>Changer la photo</SmallAction>
-                <SmallAction
-                  icon={<Trash2 size={11} />}
+                <SideAction icon={<Pencil size={14} />} onClick={choose}>Changer la photo</SideAction>
+                <SideAction
+                  icon={<Trash2 size={14} />}
                   danger
                   onClick={() => {
                     setCover(null)
@@ -103,16 +105,19 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
                   }}
                 >
                   Retirer
-                </SmallAction>
+                </SideAction>
               </>
             ) : (
-              <span>Facultatif : tu pourras la changer plus tard.</span>
+              <>
+                <SideAction icon={<ImagePlus size={14} />} onClick={choose}>Ajouter une photo</SideAction>
+                <p className="px-1.5 pt-1 text-xs" style={{ color: 'var(--fg-muted)' }}>Facultatif : tu pourras la changer plus tard.</p>
+              </>
             )}
-            {onPickFromBoard && <SmallAction icon={<Images size={11} />} onClick={onPickFromBoard}>Choisir parmi ses images</SmallAction>}
+            {onPickFromBoard && <SideAction icon={<Images size={14} />} onClick={onPickFromBoard}>Parmi ses images</SideAction>}
           </div>
         </div>
 
-        <label className="mt-4 block rounded-2xl border px-4 py-2 focus-within:border-[var(--accent)]" style={{ borderColor: 'var(--border)' }}>
+        <label className="mt-5 block rounded-2xl border px-4 py-2 focus-within:border-[var(--accent)]" style={{ borderColor: 'var(--border)' }}>
           <span className="block text-xs">Nom du moodboard</span>
           <input
             ref={input}

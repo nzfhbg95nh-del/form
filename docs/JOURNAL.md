@@ -1001,3 +1001,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - « Mettre à la corbeille » (carte d'un moodboard) : plus de question de confirmation ; le moodboard part directement dans la corbeille de Form et un message en bas de l'écran propose « Annuler ».
 
 - Fenêtre « Créer / Modifier un moodboard » : la photo de couverture est un carré en pointillés à gauche, ses actions (Ajouter / Changer la photo, Retirer, Parmi ses images) à sa droite, le nom en dessous sur toute la largeur.
+
+- Le « + » des boutons ne fait plus de quart de tour au survol (animation retirée de index.css).

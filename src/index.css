@@ -178,9 +178,6 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 /* ── Petites animations rigolotes (inspirées de la pastille « Sean Leon » : ça s'écrase, ça rebondit, ça se déforme) ── */
 .btn { transition: background-color 0.15s, color 0.15s, box-shadow 0.2s, transform 0.45s var(--ease-spring); }
 /* Un bouton s'écrase à l'appui (plus large, plus bas) puis revient en rebondissant. */
-/* Le « + » fait un quart de tour en grossissant quand on survole le bouton. */
-.btn svg.lucide-plus { transition: transform 0.4s var(--ease-spring); }
-.btn:hover:not(:disabled) svg.lucide-plus { transform: rotate(90deg) scale(1.2); }
 /* Les menus et fenêtres jaillissent avec un petit dépassement. */
 /* Les messages en bas rebondissent en arrivant. */
 .form-toast { animation: form-toast-in 0.45s var(--ease-spring) backwards; }
@@ -188,7 +185,7 @@ input[type="range"]:active::-webkit-slider-thumb { transform: scaleY(1.12); }
 /* L'icône d'un élément de la barre latérale se trémousse au survol. */
 button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; }
 @keyframes form-wiggle { 0%, 100% { transform: rotate(0) scale(1); } 20% { transform: rotate(-12deg) scale(1.15); } 45% { transform: rotate(10deg) scale(1.15); } 70% { transform: rotate(-5deg) scale(1.05); } }
-@media (prefers-reduced-motion: reduce) { .btn svg.lucide-plus, button.group:hover > svg:first-child, .form-toast { animation: none !important; transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { button.group:hover > svg:first-child, .form-toast { animation: none !important; transition: none !important; } }
 
 /* L'éditeur de pages est une zone de saisie : le curseur suffit à montrer où l'on écrit. Sans cette règle, le navigateur dessine un grand cadre bleu autour de tout l'éditeur (il compte toute zone de saisie comme « focus clavier »). */
 .bn-editor:focus-visible, .ProseMirror:focus-visible, [contenteditable="true"]:focus-visible, .bn-container:focus-visible, .bn-container *:focus-visible:not(button):not(input):not(select):not(textarea):not(a) { outline: none; }
