@@ -58,9 +58,9 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
           <button className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-[var(--bg-hover)]" onClick={onClose} aria-label="Fermer"><X size={18} /></button>
         </div>
 
-        <div className="mt-6 flex flex-col items-center gap-2">
+        <div className="mt-6 flex flex-col items-stretch gap-2">
           <button
-            className={'group relative aspect-[4/3] w-60 overflow-hidden rounded-2xl transition-colors ' + (shown ? '' : 'border-2 border-dashed hover:bg-[var(--bg-hover)]')}
+            className={'group relative aspect-[16/9] w-full overflow-hidden rounded-2xl transition-colors ' + (shown ? '' : 'border-2 border-dashed hover:bg-[var(--bg-hover)]')}
             style={shown ? { background: 'var(--bg-hover)' } : { borderColor: 'var(--border)' }}
             onClick={() => filePicker.current?.click()}
             aria-label={shown ? 'Changer la photo de couverture' : 'Ajouter une photo de couverture'}
