@@ -567,9 +567,12 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     compute()
     window.addEventListener('scroll', compute, true)
     window.addEventListener('resize', compute)
+    // Un bloc déplacé ou un texte qui change de hauteur : le surlignage suit.
+    const off = (editor as unknown as BlockNoteEditor<never, never, never>).onChange(() => requestAnimationFrame(compute))
     return () => {
       window.removeEventListener('scroll', compute, true)
       window.removeEventListener('resize', compute)
+      off?.()
     }
   }, [selAnchor, selFocus, editor])
 
@@ -594,7 +597,17 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       e.preventDefault()
       e.stopPropagation()
     }
-    if (sel.pageId !== selKey || !sel.anchor || !sel.focus) {
+    // Ctrl+Maj+↑/↓ avec des blocs sélectionnés : ils montent ou descendent ensemble. (Sans sélection, l'éditeur déplace déjà le bloc du curseur.)
+    if (ctrl && e.shiftKey && !e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && sel.pageId === selKey && sel.anchor && sel.focus) {
+      stop()
+      try {
+        const picked = rangeIds(flatten(ed.document as unknown as BlockLike[]), sel.anchor, sel.focus)
+        ed.setSelection(picked[0] as never, picked[picked.length - 1] as never)
+        if (e.key === 'ArrowUp') ed.moveBlocksUp()
+        else ed.moveBlocksDown()
+      } catch (err) { console.warn('[blocs] déplacement impossible', err) }
+      return true
+    }    if (sel.pageId !== selKey || !sel.anchor || !sel.focus) {
       // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
       if (e.key === 'Escape' && !ctrl && !e.shiftKey && !e.altKey && !document.querySelector('[role="listbox"]')) {
         try {

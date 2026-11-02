@@ -1066,3 +1066,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic dans le vide sous le dernier bloc : curseur à la fin de la page (une ligne vide est ajoutée si le dernier bloc n'est pas du texte).
 - Tab / Maj+Tab : comportement de Notion (décaler le bloc sous le précédent / le ramener), le réglage « passer à la ligne suivante » est retiré (`tabAction` supprimé).
 - À faire ensuite : déplacer (Ctrl+Maj+↑/↓, Alt+glisser, Alt+clic sur +), barre de texte et raccourcis de saisie.
+
+- Éditeur (2/2 pour l'instant) : Ctrl+Maj+↑/↓ déplace le bloc du curseur (déjà fourni par l'éditeur, vérifié) et, avec des blocs sélectionnés, les déplace ensemble ; le surlignage suit le déplacement. Reste : Alt+glisser (dupliquer), Alt+clic sur « + » (ajouter au-dessus), vérification de la barre de texte et des raccourcis de saisie.
