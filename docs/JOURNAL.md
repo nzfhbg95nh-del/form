@@ -958,3 +958,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Case « Télécharger aussi mes nouveaux enregistrements quand la bibliothèque se met à jour toute seule » (réglage `library_auto_download`, éteint par défaut) : `startup.ts` lance `autoDownload` (src/biblio/lib/siteLogin.ts) avant la mise à jour ; un site sans connexion valable est sauté et un message s'affiche dans les Réglages (`saver_login_alert`). Form doit être ouvert pour que ça se fasse.
 - Tests : `siteLogin.test.ts` (libellés), tests Rust de `login.rs` (format Netscape, HttpOnly, cookies de session) écrits mais pas encore lancés (le programme en direct verrouille la compilation de test) ; le code Rust compile dans l'appli en direct.
 - Reste à vérifier à l'écran : connexion réelle à Instagram / Pinterest, puis un téléchargement automatique.
+
+- Téléchargement des enregistrements : arrêt automatique dès que 30 fichiers déjà présents sont rencontrés d'affilée (`skip: abort:30` de gallery-dl, constante `STOP_AFTER_KNOWN` dans saver.rs ; les enregistrements arrivent du plus récent au plus ancien). Le téléchargement ne parcourt plus toute la liste ; test mis à jour.

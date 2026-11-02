@@ -16,6 +16,9 @@ static RUNNING: AtomicBool = AtomicBool::new(false);
 static STOP: AtomicBool = AtomicBool::new(false);
 static CHILD: Mutex<Option<Child>> = Mutex::new(None);
 
+/// Nombre de fichiers déjà présents, d'affilée, après lequel le téléchargement s'arrête (un post Instagram peut compter jusqu'à 20 images).
+pub const STOP_AFTER_KNOWN: u32 = 30;
+
 /// Le fichier de réglages de gallery-dl : identique à celui de Form.
 pub fn build_config(out_dir: &Path) -> Value {
     json!({
@@ -25,6 +28,9 @@ pub fn build_config(out_dir: &Path) -> Value {
             "sleep": [0.5, 1.5],
             "retries": 4,
             "archive": out_dir.join("_archive.sqlite3").to_string_lossy(),
+            // Les enregistrements arrivent du plus récent au plus ancien : après ce nombre de fichiers déjà pris d'affilée,
+            // on est arrivé à l'ancien et on s'arrête (pour ce compte ou ce tableau), au lieu de parcourir toute la liste.
+            "skip": format!("abort:{STOP_AFTER_KNOWN}"),
             "instagram": {
                 "directory": ["instagram", "{username}"],
                 "filename": "{date:%Y%m%d}_{shortcode}_{num:>02}.{extension}",
@@ -417,6 +423,7 @@ mod tests {
         assert_eq!(e["sleep-request"], json!([2.0, 5.0]));
         assert_eq!(e["sleep"], json!([0.5, 1.5]));
         assert_eq!(e["retries"], 4);
+        assert_eq!(e["skip"], "abort:30");
         assert!(e["archive"].as_str().unwrap().ends_with("_archive.sqlite3"));
         assert_eq!(e["instagram"]["directory"], json!(["instagram", "{username}"]));
         assert_eq!(e["instagram"]["filename"], "{date:%Y%m%d}_{shortcode}_{num:>02}.{extension}");
