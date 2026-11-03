@@ -8,6 +8,7 @@ import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultP
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
+import { SELECTION_FILL, selectionBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
 import { blockLink, strippedCopy } from '@/lib/blocks'
 import { copyText } from '@/lib/windowActions'
@@ -564,8 +565,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         const content = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${id}"]`)?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
         if (!content) return []
         const b = content.getBoundingClientRect()
-        // Comme dans Notion : un rectangle arrondi par bloc, un peu plus large que le texte, avec un mince espace entre deux blocs.
-        return [{ left: b.left - 8, top: b.top + 1, width: b.width + 16, height: Math.max(0, b.height - 2) }]
+        return [selectionBox(b)]
       }))
     }
     compute()
@@ -717,7 +717,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   return (
     <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()}>
       {selRects.map((b, i) => (
-        <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: 'color-mix(in srgb, var(--accent) 17%, transparent)' }} />
+        <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
     <BlockNoteView
       editor={editor}

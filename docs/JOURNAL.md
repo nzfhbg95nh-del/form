@@ -1095,4 +1095,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 - Blocs colorés façon Notion : coins arrondis (6 px), le fond déborde de 8 px de chaque côté du texte (le texte reste aligné), couleurs de fond de Notion (pastel en clair ; tons sourds en sombre, le jaune d'origine du mode sombre était trop vif).
 - Sélection de blocs façon Notion : un rectangle arrondi par bloc, un peu plus large que le texte, avec un mince espace entre deux blocs, couleur de l'accent à 17 % (un bloc coloré garde sa couleur dessous).
+- Sélection de blocs, mise au point d'après une capture de Notion : le rectangle dépasse de 10 px à gauche (là où sont les cases et les puces) et de 4 px à droite, 2 px d'écart entre deux blocs, accent à 15 %. Calcul regroupé dans `src/lib/selectionBox.ts` (testé), partagé par l'éditeur et la sélection à la souris.
 - Correctif : le champ « Rechercher des actions » du menu d'un bloc ne prenait pas le curseur à l'ouverture (la frappe partait dans la page) ; il le reprend maintenant.

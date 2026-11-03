@@ -14,6 +14,7 @@ import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
 import { parsePageStyle } from '@/lib/pageStyle'
 import { firstImageUrl } from '@/lib/content'
 import { useBlockSel } from '@/store/blockSel'
+import { SELECTION_FILL, selectionBox } from '@/lib/selectionBox'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
@@ -151,7 +152,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   const mark = (hit: HTMLElement[]) => {
     setLit(hit.map((el) => {
       const b = (el.querySelector(':scope > .bn-block > .bn-block-content') ?? el).getBoundingClientRect()
-      return { left: b.left - 8, top: b.top + 1, width: b.width + 16, height: Math.max(0, b.height - 2) }
+      return selectionBox(b)
     }))
   }
   // Comme dans Notion : un clic dans le vide sous le dernier bloc met le curseur à la fin de la page ; si ce bloc n'est pas du texte
@@ -222,7 +223,7 @@ export function PageView({ pageId }: { pageId?: string }) {
       onPointerCancel={onPointerUp}
     >
       {lit.map((b, i) => (
-        <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: 'color-mix(in srgb, var(--accent) 17%, transparent)' }} />
+        <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
       {marquee && (
         <div
