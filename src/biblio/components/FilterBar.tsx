@@ -51,14 +51,14 @@ export function FilterBar({ onImageSearch }: { onImageSearch?: () => void }) {
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
             placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
-            className="lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 pr-11 text-sm outline-none"
+            className="lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 pr-12 text-sm outline-none"
             style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
             aria-label="Rechercher"
           />
           {onImageSearch && (
             <button
               type="button"
-              className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
+              className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
               style={{ color: 'var(--fg-muted)' }}
               onClick={onImageSearch}
               title="Chercher avec une image : dépose ou choisis une image, la bibliothèque montre celles qui lui ressemblent"
