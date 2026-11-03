@@ -1,7 +1,7 @@
 // Logique « pure » de la toile du moodboard : positions, zoom, sélection, organisation, historique.
 // Rien ici ne touche à l'écran : tout est testé automatiquement.
 
-export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape'
+export type ItemKind = 'image' | 'note' | 'color' | 'link' | 'text' | 'shape' | 'video'
 
 /** Les formes proposées dans le menu « Ajouter » : rectangle, rond et flèche (la flèche va d'un coin à l'autre du cadre ; « retourner » change la diagonale). Le type « line » n'est plus proposé mais reste lisible. */
 export type ShapeKind = 'rect' | 'rrect' | 'ellipse' | 'polygon' | 'star' | 'path' | 'line' | 'arrow'
@@ -31,7 +31,7 @@ export interface BoardItem {
   text?: string
   /** note : couleur de fond. couleur : la couleur, en #rrggbb. */
   color?: string
-  /** lien : l'adresse. */
+  /** lien : l'adresse. vidéo : le chemin du fichier sur l'ordinateur, ou le lien YouTube / Vimeo / Loom (le titre est dans `text`). */
   url?: string
   /** texte : taille des lettres, police, gras, italique, alignement, interlignage (× taille), espacement des lettres (× taille). */
   size?: number
@@ -636,6 +636,11 @@ export const makeSwatch = (at: { x: number; y: number }, color: string): BoardIt
 
 export const makeLink = (at: { x: number; y: number }, url: string, title = ''): BoardItem => ({
   id: newId(), kind: 'link', x: at.x, y: at.y, w: 260, h: 64, url, text: title || url,
+})
+
+/** Une vidéo (fichier de l'ordinateur ou lien), posée au centre de `at` au format 16/9. */
+export const makeVideo = (at: { x: number; y: number }, url: string, title = ''): BoardItem => ({
+  id: newId(), kind: 'video', x: at.x - 240, y: at.y - 135, w: 480, h: 270, url, text: title,
 })
 
 /**

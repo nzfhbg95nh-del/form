@@ -1119,3 +1119,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-03 - Version 0.48.0
 - Rangement du depot : rapports d'audit dans docs/audit/, ancien message de depart et script jetable retires, README.md ajoute, anciennes branches de travail supprimees (toutes deja fusionnees), tout fusionne dans main.
 - Regroupe tout le travail depuis la 0.47.5 : bibliotheque (recherche par image, doublons, connexion Instagram/Pinterest, telechargements), reglages refaits, partie Notion plus fidele (selection de blocs, raccourcis, Ctrl+F, grille d'images, blocs Bouton / Fil d'Ariane / equation en ligne, deplacer un bloc), export / import de moodboard, demarrage plus rapide, tests de bout en bout.
+
+
+## 2026-11-03 - Videos dans les pages et les moodboards (branche travail, pas publie)
+- `/video` dans une page : on choisit un fichier de l'ordinateur (mp4, m4v, mov, webm, ogv) ou on colle un lien YouTube / Vimeo / Loom. Le fichier n'est jamais copie : seul son chemin est garde (base legere). Si le fichier est deplace ou supprime : « Video introuvable » + bouton pour en choisir un autre. Les anciennes videos de pages restent lisibles.
+- Moodboard : Ajouter > Video… (fichier), ou coller un lien YouTube / Vimeo / Loom. La video se deplace et se redimensionne comme une image ; double-clic pour la lire sur place, un clic ailleurs l'arrete. Le glisser-deposer d'un fichier video affiche un message (Windows ne donne pas l'emplacement du fichier dans ce mode).
+- Export .formboard : les videos y gardent leur chemin ou leur lien, sans etre copiees ; sur un autre ordinateur un fichier absent affiche « Video introuvable ».
+- Tests : 9 nouveaux (src/lib/video.test.ts, boardFile.test.ts) ; 756 tests reussis.

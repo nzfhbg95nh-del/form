@@ -6,7 +6,7 @@ import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
   alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
-  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, moveItems,
+  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, makeVideo, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
   type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
@@ -14,6 +14,8 @@ import {
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
+import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
+import { pickVideoFile, playableUrl } from '@/lib/videoFile'
 import { itemPathD } from '@/lib/boardPath'
 import { applyVcPaths, DEFAULT_PAINT, isEngineTool, isPathItem, itemToVcPath, VectorSession, type PaintStyle, type VcKind, type VcMods, type VcOut, type VcOverlay } from '@/lib/vectorEngine'
 import { SHORTCUTS, VectorToolbar } from '@/components/VectorToolbar'
@@ -113,6 +115,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [selection, setSelection] = useState<Set<string>>(new Set())
   const [marquee, setMarquee] = useState<Rect | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
+  /** La vidéo en cours de lecture (double-clic) et celles dont le fichier est introuvable. */
+  const [playing, setPlaying] = useState<string | null>(null)
+  const [videoMissing, setVideoMissing] = useState<Set<string>>(new Set())
+  useEffect(() => { if (playing && !selection.has(playing)) setPlaying(null) }, [playing, selection])
   const [menu, setMenu] = useState<{ x: number; y: number; world: Pt; mode: 'full' | 'organize'; add?: boolean } | null>(null)
   const [size, setSize] = useState({ w: 800, h: 600 })
   const [assets, setAssets] = useState<Record<string, Asset>>({})
@@ -257,6 +263,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const viewCenter = useCallback((): Pt => screenToWorld(viewRef.current, { x: size.w / 2, y: size.h / 2 }), [size])
 
   const addFiles = useCallback(async (files: File[], at: Pt) => {
+    if (files.some((f) => f.type.startsWith('video/') || isVideoFileName(f.name))) say('Pour ajouter une vidéo : Ajouter > Vidéo… (le glisser-déposer ne donne pas l’emplacement du fichier).')
     const images = files.filter((f) => f.type.startsWith('image/'))
     if (images.length === 0) return
     say(`Import de ${images.length} image${images.length > 1 ? 's' : ''}…`)
@@ -488,9 +495,27 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   }
 
   /** Un lien : celui d'un tableau Pinterest, d'une épingle ou d'un post Instagram télécharge ses images ; un autre lien devient une carte « lien ». */
+  const addVideo = (url: string, at: Pt) => {
+    const v = makeVideo(at, url, videoTitle(url))
+    commitItems([...itemsRef.current, v])
+    setSelection(new Set([v.id]))
+    say('Vidéo ajoutée : double-clic pour la lire.')
+  }
+  /** Ajouter > Vidéo… : choisit un fichier sur l'ordinateur (on garde son emplacement, rien n'est copié). */
+  const addVideoFile = async (at: Pt) => {
+    if (!isTauri()) { say('Les fichiers vidéo se choisissent dans l’application Windows. Ici, colle un lien YouTube, Vimeo ou Loom.'); return }
+    try {
+      const path = await pickVideoFile()
+      if (path) addVideo(path, at)
+    } catch (e) { say(e instanceof Error ? e.message : String(e)) }
+  }
   const addLink = (text: string, at: Pt) => {
     if (classifyLink(text).info) {
       void runImport(text, at)
+      return
+    }
+    if (videoSource(text)?.kind === 'embed') {
+      addVideo(text.trim(), at)
       return
     }
     const l = makeLink({ x: at.x - 130, y: at.y - 32 }, text.trim())
@@ -745,6 +770,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (!it) return
     if (it.kind === 'text') { setDraft(it.text ?? ''); setEditing(it.id) }
     else if (it.kind === 'note') setEditing(it.id)
+    else if (it.kind === 'video') { setSelection(new Set([it.id])); setPlaying(it.id) }
     else if (it.kind === 'link' && it.url) {
       void (isTauri() ? import('@tauri-apps/plugin-opener').then((m) => m.openUrl(it.url as string)) : Promise.resolve(window.open(it.url, '_blank')))
     } else if (it.kind === 'color' && it.color) {
@@ -1064,6 +1090,52 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <rect x={sw / 2} y={sw / 2} width={Math.max(1, w - sw)} height={Math.max(1, h - sw)} rx={it.shape === 'rrect' ? cornerRadius(ss.radius, w - sw, h - sw) : 6} {...paint} />
             )}
           </svg>
+        </div>
+      )
+    }
+    if (it.kind === 'video') {
+      const src = videoSource(it.url ?? '')
+      const live = playing === it.id && isSel
+      const card: React.CSSProperties = { ...base, borderRadius: 8, overflow: 'hidden', background: '#000', boxShadow: '0 10px 24px -14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.12)' }
+      const label: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 12px 8px', color: '#fff', fontSize: 13, background: 'linear-gradient(transparent, rgba(0,0,0,.7))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none' }
+      const playBadge = (
+        <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{ width: 56, height: 56, borderRadius: 28, background: 'rgba(0,0,0,.55)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, paddingLeft: 4 }}>▶</div>
+        </div>
+      )
+      if (!src || (src.kind === 'file' && videoMissing.has(it.id))) {
+        return (
+          <div key={it.id} data-item={it.id} style={{ ...card, background: '#2a2a2a', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#bbb', fontSize: 14, textAlign: 'center', padding: 12, boxSizing: 'border-box' }}>
+            Vidéo introuvable{it.text ? ` : ${it.text}` : ''}
+          </div>
+        )
+      }
+      if (src.kind === 'embed') {
+        return (
+          <div key={it.id} data-item={it.id} style={card}>
+            {live ? (
+              <iframe data-ui src={src.info.src} title={src.info.label} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" style={{ width: '100%', height: '100%', border: 0, display: 'block' }} />
+            ) : (
+              <>
+                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: 15, pointerEvents: 'none' }}>{src.info.label}</div>
+                {playBadge}
+                <div style={label}>{it.text || src.url}</div>
+              </>
+            )}
+          </div>
+        )
+      }
+      return (
+        <div key={it.id} data-item={it.id} style={card}>
+          {live ? (
+            <video data-ui src={playableUrl(src.path)} controls autoPlay onError={() => setVideoMissing((s) => new Set(s).add(it.id))} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
+          ) : (
+            <>
+              <video src={`${playableUrl(src.path)}#t=0.1`} preload="metadata" muted playsInline onError={() => setVideoMissing((s) => new Set(s).add(it.id))} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }} />
+              {playBadge}
+              <div style={label}>{it.text || src.name}</div>
+            </>
+          )}
         </div>
       )
     }
@@ -1454,6 +1526,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 {menu.add && (
                   <div className="mb-1 ml-3 border-l border-[var(--border)] pl-1">
                     <MenuBtn label="Image…" onClick={() => { fileAt.current = menu.world; fileInput.current?.click() }} />
+                    <MenuBtn label="Vidéo…" onClick={() => void addVideoFile(menu.world)} />
                     <MenuBtn label="Texte" onClick={() => addText(menu.world)} />
                     <MenuBtn label="Note" onClick={() => addNote({ x: menu.world.x - 110, y: menu.world.y - 70 })} />
                     <MenuHead>Forme</MenuHead>

@@ -5,6 +5,7 @@ import { EquationBlock, InlineEquation } from '@/components/EquationBlock'
 import { BreadcrumbBlock } from '@/components/BreadcrumbBlock'
 import { ButtonBlock, type ButtonAction } from '@/components/ButtonBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
+import { VideoBlock } from '@/components/VideoBlock'
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Extension, markInputRule } from '@tiptap/core'
@@ -299,6 +300,12 @@ const createEmbedBlock = createReactBlockSpec(
   { render: (props) => <EmbedBlock props={props.block.props} update={(p) => props.editor.updateBlock(props.block, { props: p } as never)} /> },
 )
 
+// « Vidéo » remplace le bloc d'origine : le fichier reste où il est (on garde son chemin) au lieu d'être copié dans la page. Les anciennes vidéos des pages restent lisibles.
+const createVideoBlock = createReactBlockSpec(
+  { type: 'video', propSchema: { url: { default: '' }, name: { default: '' }, caption: { default: '' }, showPreview: { default: true }, previewWidth: { default: 512 } }, content: 'none' },
+  { render: (props) => <VideoBlock props={props.block.props} update={(p) => props.editor.updateBlock(props.block, { props: p } as never)} /> },
+)
+
 const createPageCardBlock = createReactBlockSpec(
   { type: 'pagecard', propSchema: { pageId: { default: '' } }, content: 'none' },
   { render: (props) => <PageCardBlock pageId={props.block.props.pageId} update={(id) => props.editor.updateBlock(props.block, { props: { pageId: id } } as never)} /> },
@@ -441,7 +448,7 @@ const strikeSingleTilde = createExtension({
 
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, quote: quoteSpec, toggleListItem: toggleSpec, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock(), breadcrumb: createBreadcrumbBlock(), button: createButtonBlock() },
+    blockSpecs: { ...defaultBlockSpecs, quote: quoteSpec, toggleListItem: toggleSpec, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), video: createVideoBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock(), breadcrumb: createBreadcrumbBlock(), button: createButtonBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention, equationInline: createInlineEquation },
   }),
 )
@@ -565,7 +572,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'breadcrumb', title: 'Fil d’Ariane', aliases: ['fil', 'ariane', 'chemin', 'breadcrumb', 'navigation'], group: 'Blocs avancés', subtext: 'Le chemin de cette page, cliquable', icon: ico(ChevronsRight), onItemClick: put({ type: 'breadcrumb' }) },
     { key: 'button', title: 'Bouton', aliases: ['bouton', 'button', 'lien', 'action'], group: 'Blocs avancés', subtext: 'Un bouton qui ouvre un lien ou une page', icon: ico(MousePointerClick), onItemClick: put({ type: 'button' }) },
     { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
-    { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
+    { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video', 'film', 'mp4', 'youtube', 'vimeo'], group: M, subtext: 'Un fichier de ton ordinateur ou un lien YouTube, Vimeo, Loom', icon: ico(Video), onItemClick: put({ type: 'video' }) },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
     {

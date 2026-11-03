@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { boardFileName, buildBoardFile, importedTitle, parseBoardFile } from './boardFile'
-import { emptyBoard, serializeBoard } from './moodboard'
+import { emptyBoard, makeVideo, serializeBoard } from './moodboard'
 import type { BoardAsset } from './types'
 
 const asset = (id: string): BoardAsset => ({ board_id: 'b1', id, name: `${id}.png`, width: 100, height: 50, data_url: `data:image/png;base64,${id}`, thumb_url: `data:image/png;base64,t${id}`, created_at: '2026-01-01T00:00:00.000Z' })
@@ -23,6 +23,13 @@ describe('fichier de moodboard', () => {
   })
   it('le fichier ne garde pas l’identifiant de l’ancien moodboard', () => {
     expect(buildBoardFile(source)).not.toContain('board_id')
+  })
+  it('les vidéos gardent leur chemin ou leur lien dans le fichier (sans être copiées)', () => {
+    const withVideos = { ...board, items: [...board.items, makeVideo({ x: 0, y: 0 }, 'C:\\Videos\\rendu.mp4', 'rendu'), makeVideo({ x: 10, y: 10 }, 'https://youtu.be/YpoNPAX8yGA', 'YouTube')] }
+    const text = buildBoardFile({ ...source, content: serializeBoard(withVideos) })
+    expect(text.length).toBeLessThan(2000 + source.assets.length * 200)
+    const parsed = parseBoardFile(text)
+    expect(parsed.ok && parsed.file.board.items.filter((i) => i.kind === 'video').map((i) => i.url)).toEqual(['C:\\Videos\\rendu.mp4', 'https://youtu.be/YpoNPAX8yGA'])
   })
   it('un moodboard vide s’exporte aussi', () => {
     const parsed = parseBoardFile(buildBoardFile({ title: '', icon: null, content: null, coverAsset: null, assets: [] }))
