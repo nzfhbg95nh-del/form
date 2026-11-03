@@ -220,6 +220,13 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 /* Page vide, comme dans Notion : pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (le curseur arrive dans le titre). */
 .page-body .bn-editor:not(:focus-within) .bn-block-content[data-content-type='paragraph']::after { content: none !important; }
 
+/* Une image est plus étroite que la page : son bloc se resserre autour d'elle, pour que « déposer à droite d'une image » (ou à sa gauche)
+   crée deux colonnes côte à côte, comme dans Notion, au lieu d'obliger à viser tout au bord de la page. */
+.bn-block-outer:has(> .bn-block > .bn-block-content[data-content-type='image']) {
+  width: fit-content;
+  max-width: 100%;
+}
+
 /* Bloc coloré (fond jaune, bleu…), comme dans Notion : coins arrondis, et le fond déborde un peu de chaque côté du texte
    (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */
 .bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout']) {
