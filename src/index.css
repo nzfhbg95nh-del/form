@@ -226,6 +226,8 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   border-radius: 6px;
   padding-inline: 6px;
   margin-inline: -6px;
+  width: calc(100% + 12px);
+  box-sizing: border-box;
 }
 
 /* Couleurs de fond des blocs, celles de Notion : pastel en mode clair, ton sourd en mode sombre (le jaune d'origine du mode sombre était trop vif). */
