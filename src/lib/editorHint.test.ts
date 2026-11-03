@@ -4,7 +4,7 @@ import { HINT_LEARNED_AFTER, hintLearned, isTyping, parseTyped } from './editorH
 const key = (k: string, mods: Partial<{ ctrlKey: boolean; metaKey: boolean; altKey: boolean }> = {}) => ({ key: k, ctrlKey: false, metaKey: false, altKey: false, ...mods })
 
 describe('aide des lignes vides', () => {
-  it('disparaît une fois assez de texte tapé', () => {
+  it('disparaît dès la première lettre tapée', () => {
     expect(hintLearned(0)).toBe(false)
     expect(hintLearned(HINT_LEARNED_AFTER - 1)).toBe(false)
     expect(hintLearned(HINT_LEARNED_AFTER)).toBe(true)

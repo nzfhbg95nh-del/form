@@ -1,9 +1,9 @@
-// La phrase d'aide des lignes vides (« Écris tes notes ici… ») sert à découvrir l'éditeur : une fois qu'on a assez écrit, elle disparaît partout.
+// La phrase d'aide des lignes vides (« Écris tes notes ici… ») sert à découvrir l'éditeur : dès qu'on écrit, elle disparaît partout.
 
 const KEY = 'form-hint-typed'
 
-/** Nombre de caractères tapés dans l'éditeur après lesquels l'aide est considérée comme comprise. */
-export const HINT_LEARNED_AFTER = 60
+/** Nombre de caractères tapés dans l'éditeur après lesquels l'aide disparaît : dès la première lettre. */
+export const HINT_LEARNED_AFTER = 1
 
 export const hintLearned = (typed: number) => typed >= HINT_LEARNED_AFTER
 
