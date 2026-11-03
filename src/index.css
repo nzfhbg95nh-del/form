@@ -219,3 +219,35 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
 
 /* Page vide, comme dans Notion : pas de phrase d'aide sous le titre tant que le curseur n'est pas dans le texte (le curseur arrive dans le titre). */
 .page-body .bn-editor:not(:focus-within) .bn-block-content[data-content-type='paragraph']::after { content: none !important; }
+
+/* Bloc coloré (fond jaune, bleu…), comme dans Notion : coins arrondis, et le fond déborde un peu de chaque côté du texte
+   (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */
+.bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout']) {
+  border-radius: 6px;
+  padding-inline: 8px;
+  margin-inline: -8px;
+}
+
+/* Couleurs de fond des blocs, celles de Notion : pastel en mode clair, ton sourd en mode sombre (le jaune d'origine du mode sombre était trop vif). */
+.bn-container[data-color-scheme='light'] {
+  --bn-colors-highlights-gray-background: #f1f1ef !important;
+  --bn-colors-highlights-brown-background: #f4eeee !important;
+  --bn-colors-highlights-orange-background: #fbecdd !important;
+  --bn-colors-highlights-yellow-background: #fbf3db !important;
+  --bn-colors-highlights-green-background: #edf3ec !important;
+  --bn-colors-highlights-blue-background: #e7f3f8 !important;
+  --bn-colors-highlights-purple-background: #f6f3f9 !important;
+  --bn-colors-highlights-pink-background: #faf1f5 !important;
+  --bn-colors-highlights-red-background: #fdebec !important;
+}
+.bn-container[data-color-scheme='dark'] {
+  --bn-colors-highlights-gray-background: #454b4e !important;
+  --bn-colors-highlights-brown-background: #434040 !important;
+  --bn-colors-highlights-orange-background: #594a3a !important;
+  --bn-colors-highlights-yellow-background: #59563b !important;
+  --bn-colors-highlights-green-background: #354c4b !important;
+  --bn-colors-highlights-blue-background: #364954 !important;
+  --bn-colors-highlights-purple-background: #443f57 !important;
+  --bn-colors-highlights-pink-background: #533b4c !important;
+  --bn-colors-highlights-red-background: #594141 !important;
+}

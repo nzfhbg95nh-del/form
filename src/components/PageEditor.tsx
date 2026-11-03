@@ -564,7 +564,8 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         const content = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${id}"]`)?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
         if (!content) return []
         const b = content.getBoundingClientRect()
-        return [{ left: b.left - 4, top: b.top - 1, width: b.width + 8, height: b.height + 2 }]
+        // Comme dans Notion : un rectangle arrondi par bloc, un peu plus large que le texte, avec un mince espace entre deux blocs.
+        return [{ left: b.left - 8, top: b.top + 1, width: b.width + 16, height: Math.max(0, b.height - 2) }]
       }))
     }
     compute()
@@ -716,7 +717,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   return (
     <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()}>
       {selRects.map((b, i) => (
-        <div key={i} className="pointer-events-none fixed z-20 rounded bg-[#4da3ff]/20" style={b} />
+        <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: 'color-mix(in srgb, var(--accent) 17%, transparent)' }} />
       ))}
     <BlockNoteView
       editor={editor}

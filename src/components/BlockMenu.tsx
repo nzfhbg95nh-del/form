@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { DragHandleMenu, useBlockNoteEditor, useComponentsContext, useExtensionState, usePortalElement } from '@blocknote/react'
 import {
@@ -56,6 +56,14 @@ export function BlockMenu() {
   const updatedAt = useApp((s) => s.objects.find((o) => o.id === s.selectedId)?.updated_at)
   const [query, setQuery] = useState('')
   const [recent, setRecent] = useState<RecentColor>(loadRecentColor)
+  // Le curseur arrive dans le champ de recherche dès l'ouverture du menu (le menu reprend lui-même le focus un instant après : on le lui redonne).
+  const searchInput = useRef<HTMLInputElement>(null)
+  const showing = !!block
+  useEffect(() => {
+    if (!showing) return
+    const timer = window.setTimeout(() => searchInput.current?.focus(), 40)
+    return () => window.clearTimeout(timer)
+  }, [showing])
 
   const stats = useMemo(() => countWords(editor.document as never), [editor, block?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   if (!c || !block) return null
@@ -115,6 +123,7 @@ export function BlockMenu() {
         <label className="flex items-center gap-2 rounded-lg px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
           <Search size={14} className="shrink-0" style={{ color: 'var(--fg-muted)' }} />
           <input
+            ref={searchInput}
             autoFocus
             value={query}
             placeholder="Rechercher des actions…"
