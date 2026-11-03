@@ -64,37 +64,40 @@ pub fn dhash(img: &DynamicImage) -> Option<u64> {
     Some(bits)
 }
 
-/// Groupes d'éléments dont les empreintes diffèrent d'au plus `max` bits (transitif : A~B et B~C réunit A, B et C). Groupes d'au moins deux.
+/// Un groupe de quasi-doublons ne dépasse pas cette taille : au-delà, ce sont presque toujours des images sans rapport dont l'empreinte (très petite) se ressemble par hasard.
+pub const MAX_NEAR_GROUP: usize = 12;
+
+/// Groupes d'éléments dont les empreintes diffèrent d'au plus `max` bits **de l'élément de départ du groupe** (pas de proche en proche :
+/// avec des empreintes de 64 bits, enchaîner A~B puis B~C relierait peu à peu des images sans aucun rapport). Groupes d'au moins deux,
+/// d'au plus `MAX_NEAR_GROUP`.
 pub fn near_components(hashes: &[u64], max: u32) -> Vec<Vec<usize>> {
     let n = hashes.len();
-    let mut parent: Vec<usize> = (0..n).collect();
-    fn find(parent: &mut [usize], mut i: usize) -> usize {
-        while parent[i] != i {
-            parent[i] = parent[parent[i]];
-            i = parent[i];
-        }
-        i
-    }
+    // Une empreinte qui ressemble à plus de MAX_NEAR_GROUP - 1 autres est une empreinte « banale » (images plates, très simples) : elle ne prouve rien, on l'écarte.
+    let common: Vec<bool> = (0..n)
+        .map(|i| (0..n).filter(|&j| j != i && (hashes[i] ^ hashes[j]).count_ones() <= max).count() + 1 > MAX_NEAR_GROUP)
+        .collect();
+    let mut taken = common.clone();
+    let mut out: Vec<Vec<usize>> = Vec::new();
     for i in 0..n {
+        if taken[i] {
+            continue;
+        }
+        let mut group = vec![i];
         for j in (i + 1)..n {
-            if (hashes[i] ^ hashes[j]).count_ones() <= max {
-                let (a, b) = (find(&mut parent, i), find(&mut parent, j));
-                if a != b {
-                    parent[b] = a;
-                }
+            if !taken[j] && (hashes[i] ^ hashes[j]).count_ones() <= max {
+                group.push(j);
             }
         }
+        if group.len() > 1 {
+            for &k in &group {
+                taken[k] = true;
+            }
+            out.push(group);
+        }
     }
-    let mut groups: HashMap<usize, Vec<usize>> = HashMap::new();
-    for i in 0..n {
-        let root = find(&mut parent, i);
-        groups.entry(root).or_default().push(i);
-    }
-    let mut out: Vec<Vec<usize>> = groups.into_values().filter(|g| g.len() > 1).collect();
-    out.sort_by_key(|g| g[0]);
     out
 }
-
+/// L'empreinte exacte (SHA-256) du contenu d'un fichier : deux fichiers identiques octet pour octet ont la même.
 fn file_sha(path: &Path) -> Option<[u8; 32]> {
     let mut file = std::fs::File::open(path).ok()?;
     let mut hasher = Sha256::new();
@@ -248,12 +251,23 @@ mod tests {
     }
 
     #[test]
-    fn groups_follow_the_distance_and_chain() {
-        // 0b0000, 0b0001 (1 bit), 0b0011 (1 bit de plus), très loin
+    fn groups_follow_the_distance_from_the_first_element_without_chaining() {
+        // 0b0000, 0b0001 (1 bit), 0b0011 (2 bits du départ), très loin : le troisième ne s'accroche pas de proche en proche
         let h = [0u64, 1, 3, u64::MAX];
-        assert_eq!(near_components(&h, 1), vec![vec![0, 1, 2]]);
+        assert_eq!(near_components(&h, 1), vec![vec![0, 1]]);
+        assert_eq!(near_components(&h, 2), vec![vec![0, 1, 2]]);
         assert_eq!(near_components(&h, 0), Vec::<Vec<usize>>::new());
         assert_eq!(near_components(&[7, 7, 9], 0), vec![vec![0, 1]]);
+    }
+
+    #[test]
+    fn a_huge_cluster_is_not_a_group_of_duplicates() {
+        // 20 empreintes quasi pareilles (images plates qui se ressemblent par hasard) : trop pour de vrais doublons, aucun groupe.
+        let h: Vec<u64> = (0..20).map(|i| 1u64 << (i % 3)).collect();
+        assert!(near_components(&h, 5).is_empty());
+        // mais 12 au plus, c'est accepté
+        let twelve: Vec<u64> = (0..12).map(|_| 42u64).collect();
+        assert_eq!(near_components(&twelve, 0), vec![(0..12).collect::<Vec<usize>>()]);
     }
 
     #[test]

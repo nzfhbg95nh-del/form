@@ -6,7 +6,7 @@ import {
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { formatBytes } from '@/biblio/lib/vectors.ts'
-import { useGrid } from '@/biblio/store/grid.ts'
+import { invoke } from '@tauri-apps/api/core'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { useTrash } from '@/biblio/store/trash.ts'
 
@@ -20,7 +20,11 @@ const originOf = (m: DupeMember) => (m.source === 'instagram' ? `@${m.owner}` : 
  * Rien n'est supprimé sans ce clic.
  */
 export function DuplicatesView({ onBack }: { onBack: () => void }) {
-  const thumbsDir = useGrid((s) => s.thumbsDir)
+  // Le dossier des miniatures : on le demande ici (la grille de la bibliothèque n'a pas forcément été ouverte, et il resterait vide : miniatures cassées).
+  const [thumbsDir, setThumbsDir] = useState('')
+  useEffect(() => {
+    void useLibrary.getState().init().then(() => invoke<string>('thumbs_dir')).then(setThumbsDir).catch(() => undefined)
+  }, [])
   const root = useLibrary((s) => s.root)
   const purge = useTrash((s) => s.purge)
   const purgeFiles = useTrash((s) => s.purgeFiles)
