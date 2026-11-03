@@ -232,22 +232,8 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   max-width: 100%;
 }
 
-/* Images dans des colonnes (grille façon Pinterest) : elles remplissent la colonne, coins arrondis, hauteur selon leur proportion. */
-/* Une vraie grille photo : colonnes de même largeur, images qui les remplissent, 8 px d'écart partout. */
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) { gap: 8px; }
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) > .bn-block-column {
-  flex: 1 1 0 !important;
-  min-width: 0;
-  padding: 0;
-  overflow: visible;
-}
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-block-group { display: flex; flex-direction: column; gap: 8px; }
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-block-outer { width: 100%; max-width: 100%; }
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-block-content { padding: 0; }
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-file-block-content-wrapper,
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-visual-media-wrapper { width: 100%; }
-.bn-block-column-list:not(:has(.bn-block-content:not([data-content-type='image']))) .bn-visual-media { width: 100% !important; max-width: 100%; height: auto; display: block; }
-.bn-block-content[data-content-type='image'] .bn-visual-media { border-radius: 10px; }
+/* Images dans des colonnes, comme dans Notion : colonnes de même largeur, chaque image garde sa taille (jamais étirée), alignée en haut à gauche de sa colonne. */
+.bn-block-content[data-content-type='image'] .bn-visual-media { border-radius: 4px; }
 
 /* Bloc coloré (fond jaune, bleu…), comme dans Notion : coins arrondis, et le fond déborde un peu de chaque côté du texte
    (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */

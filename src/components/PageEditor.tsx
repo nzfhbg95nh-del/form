@@ -29,7 +29,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2 } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -826,9 +826,44 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (!id) return
     useBlockSel.getState().set(selKey, e.shiftKey && before ? before : id, id)
   }
-  const onImageHover =(e: React.MouseEvent) => {
+  // Le bouton « ··· » qui apparaît au survol d'une image (en haut à droite), comme dans Notion : dupliquer, supprimer.
+  const [hoverImg, setHoverImg] = useState<{ id: string; right: number; top: number } | null>(null)
+  const [imgMenu, setImgMenu] = useState(false)
+  const onImageHover = (e: React.MouseEvent) => {
     const img = imageOf(e.target)
     if (img && !img.draggable) img.draggable = true
+    if (!editable || plain) return
+    if ((e.target as HTMLElement).closest('[data-image-menu]')) return
+    const holder = (e.target as HTMLElement).closest<HTMLElement>('.bn-block-content[data-content-type="image"]')
+    const id = holder?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+    const media = holder?.querySelector<HTMLElement>('.bn-visual-media-wrapper')
+    if (!id || !media) {
+      setHoverImg(null)
+      setImgMenu(false)
+      return
+    }
+    const r = media.getBoundingClientRect()
+    setHoverImg((cur) => (cur && cur.id === id && cur.right === r.right && cur.top === r.top ? cur : { id, right: r.right, top: r.top }))
+  }
+  useEffect(() => {
+    if (!hoverImg) return
+    const off = () => {
+      setHoverImg(null)
+      setImgMenu(false)
+    }
+    window.addEventListener('scroll', off, true)
+    return () => window.removeEventListener('scroll', off, true)
+  }, [hoverImg])
+  const imageAction = (action: 'duplicate' | 'delete') => {
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    const id = hoverImg?.id
+    setImgMenu(false)
+    setHoverImg(null)
+    if (!id) return
+    const block = ed.getBlock(id as never)
+    if (!block) return
+    if (action === 'delete') ed.removeBlocks([id] as never)
+    else ed.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
   }
   const onImageDragStart = (e: React.DragEvent) => {
     const img = imageOf(e.target)
@@ -845,6 +880,29 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
+      {hoverImg && (
+        <div data-image-menu className="fixed z-30" style={{ left: hoverImg.right - 36, top: hoverImg.top + 8 }} onMouseLeave={() => setImgMenu(false)}>
+          <button
+            type="button"
+            aria-label="Options de l'image"
+            className="flex h-7 w-7 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--bg)] text-[var(--fg-muted)] shadow-sm hover:bg-[var(--bg-hover)]"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => setImgMenu((o) => !o)}
+          >
+            <MoreHorizontal size={16} />
+          </button>
+          {imgMenu && (
+            <div className="absolute right-0 mt-1 w-40 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1 text-sm shadow-lg">
+              <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-[var(--bg-hover)]" onMouseDown={(e) => e.preventDefault()} onClick={() => imageAction('duplicate')}>
+                <Copy size={14} /> Dupliquer
+              </button>
+              <button type="button" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-[var(--bg-hover)]" onMouseDown={(e) => e.preventDefault()} onClick={() => imageAction('delete')}>
+                <Trash2 size={14} /> Supprimer
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     <BlockNoteView
       editor={editor}
       theme={theme}
