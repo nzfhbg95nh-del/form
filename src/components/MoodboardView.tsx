@@ -6,7 +6,7 @@ import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
   alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
-  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, makeVideo, moveItems,
+  expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, makeVideo, importSize, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
   type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
@@ -499,7 +499,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const v = makeVideo(at, url, videoTitle(url))
     commitItems([...itemsRef.current, v])
     setSelection(new Set([v.id]))
-    say('Vidéo ajoutée : double-clic pour la lire.')
+    say('Vidéo ajoutée : passe la souris dessus pour la lire, double-clic pour le son.')
   }
   /** Ajouter > Vidéo… : choisit un fichier sur l'ordinateur (on garde son emplacement, rien n'est copié). */
   const addVideoFile = async (at: Pt) => {
@@ -1125,16 +1125,26 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           </div>
         )
       }
+      // Le cadre prend les proportions de la vidéo, une seule fois (une vidéo verticale ne garde pas de bandes noires).
+      const fitToVideo = (v: HTMLVideoElement) => {
+        if (it.fit || !v.videoWidth || !v.videoHeight) return
+        const { w, h } = importSize(v.videoWidth, v.videoHeight, 480)
+        const c = centerOf(it)
+        commitItems(itemsRef.current.map((i) => (i.id === it.id ? { ...i, w, h, x: c.x - w / 2, y: c.y - h / 2, fit: true } : i)))
+      }
+      // Comme dans l'onglet « Tout » de la bibliothèque : la vidéo se lit (sans le son) quand la souris est dessus, et revient à l'image fixe en sortant.
+      const hoverPlay = (e: React.MouseEvent<HTMLDivElement>, on: boolean) => {
+        const v = e.currentTarget.querySelector('video')
+        if (!v || live) return
+        if (on) void v.play().catch(() => undefined)
+        else { v.pause(); v.currentTime = 0.1 }
+      }
       return (
-        <div key={it.id} data-item={it.id} style={card}>
+        <div key={it.id} data-item={it.id} style={card} onMouseEnter={(e) => hoverPlay(e, true)} onMouseLeave={(e) => hoverPlay(e, false)}>
           {live ? (
             <video data-ui src={playableUrl(src.path)} controls autoPlay onError={() => setVideoMissing((s) => new Set(s).add(it.id))} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain' }} />
           ) : (
-            <>
-              <video src={`${playableUrl(src.path)}#t=0.1`} preload="metadata" muted playsInline onError={() => setVideoMissing((s) => new Set(s).add(it.id))} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }} />
-              {playBadge}
-              <div style={label}>{it.text || src.name}</div>
-            </>
+            <video src={`${playableUrl(src.path)}#t=0.1`} preload="metadata" muted loop playsInline onLoadedMetadata={(e) => fitToVideo(e.currentTarget)} onError={() => setVideoMissing((s) => new Set(s).add(it.id))} style={{ width: '100%', height: '100%', display: 'block', objectFit: 'contain', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }} />
           )}
         </div>
       )

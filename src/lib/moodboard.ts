@@ -31,6 +31,8 @@ export interface BoardItem {
   text?: string
   /** note : couleur de fond. couleur : la couleur, en #rrggbb. */
   color?: string
+  /** vidéo : le cadre a déjà pris les proportions de la vidéo (fait une seule fois, ensuite la taille est celle choisie). */
+  fit?: boolean
   /** lien : l'adresse. vidéo : le chemin du fichier sur l'ordinateur, ou le lien YouTube / Vimeo / Loom (le titre est dans `text`). */
   url?: string
   /** texte : taille des lettres, police, gras, italique, alignement, interlignage (× taille), espacement des lettres (× taille). */
