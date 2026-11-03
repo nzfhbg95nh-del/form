@@ -1,4 +1,4 @@
-﻿import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
 import { Pin, Star, Trash2 } from 'lucide-react'
 import { addOption } from '@/components/DatabaseView'
@@ -260,7 +260,7 @@ export function PageView({ pageId }: { pageId?: string }) {
       </div>
       {page.cover && <div className={(isRecipe ? 'h-64' : 'h-48') + ' w-full'} style={coverStyle(page.cover)} />}
       <div
-        className={'page-body mx-auto px-12 py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-3xl') + (ui.small ? ' page-small' : '') + (photoInBody ? ' recipe-cover-on' : '')}
+        className={'page-body mx-auto px-[var(--page-pad)] py-8 ' + (ui.wide ? 'max-w-none' : 'max-w-[900px]') + (ui.small ? ' page-small' : '') + (photoInBody ? ' recipe-cover-on' : '')}
         style={{ '--bn-font-family': pageFontFamily(ui.font), fontFamily: pageFontFamily(ui.font) } as React.CSSProperties}
       >
         <div className="group">
@@ -296,7 +296,7 @@ export function PageView({ pageId }: { pageId?: string }) {
               }
             }
           }}
-          className="block w-full resize-none overflow-hidden bg-transparent py-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
+          className="block w-full resize-none overflow-hidden bg-transparent pb-0.5 pt-1 text-4xl font-bold leading-[1.3] outline-none placeholder:text-[var(--fg-muted)]"
         />
         </div>
         {page.type === 'row' && (() => {
@@ -334,7 +334,7 @@ export function PageView({ pageId }: { pageId?: string }) {
             </div>
           )
         })()}
-        <div className="-mx-12 mt-4">
+        <div className="-mx-[var(--page-pad)]">
           <PageEditor key={page.id} editable={!ui.locked} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
         <Backlinks pageId={page.id} />
