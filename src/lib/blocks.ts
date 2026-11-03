@@ -55,3 +55,19 @@ export function parseBlockLink(text: string): { pageId: string; blockId: string 
   const m = /^form:\/\/page\/([\w-]+)(?:#([\w-]+))?$/.exec(text.trim())
   return m ? { pageId: m[1], blockId: m[2] ?? null } : null
 }
+
+/**
+ * Le contenu d'une page (texte JSON) avec ce bloc ajouté à la fin, comme copie sans identifiants. Si la page se termine par une ligne vide,
+ * le bloc se place avant elle (la ligne libre du bas reste en bas).
+ */
+export function appendBlockToContent(content: string | null, block: AnyBlock): string {
+  let list: AnyBlock[] = []
+  try {
+    const parsed = content ? JSON.parse(content) : []
+    if (Array.isArray(parsed)) list = parsed as AnyBlock[]
+  } catch { /* contenu illisible : la page repart de ce bloc */ }
+  const copy = strippedCopy(block) as AnyBlock
+  const last = list[list.length - 1]
+  const blankLast = !!last && last.type === 'paragraph' && (!last.content || (Array.isArray(last.content) && last.content.length === 0))
+  return JSON.stringify(blankLast ? [...list.slice(0, -1), copy, last] : [...list, copy])
+}

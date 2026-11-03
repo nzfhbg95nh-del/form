@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import { useBoardReload } from '@/biblio/store/boardReload'
 import { HomeView } from '@/components/HomeView'
+import { BlockMovePicker } from '@/components/BlockMovePicker'
 import { MovePicker } from '@/components/MovePicker'
 import { SearchPalette } from '@/components/SearchPalette'
 import { ConfirmHost } from '@/components/ConfirmHost'
@@ -213,6 +214,7 @@ export default function App() {
         </div>
       </div>
       {movingId && <MovePicker key={movingId} id={movingId} />}
+      <BlockMovePicker />
       {searchOpen && <SearchPalette />}
       <ConfirmHost />
       {toast && (

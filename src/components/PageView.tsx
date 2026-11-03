@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
 import { Database, Images, LayoutTemplate, ListChecks, Pin, Star, Trash2 } from 'lucide-react'
 import { PAGE_TEMPLATES } from '@/lib/templates'
+import { FindBar } from '@/components/FindBar'
 import { addOption } from '@/components/DatabaseView'
 import { PropertyEditor } from '@/components/PropertyEditor'
 import { allColumns, cellValue, parseSchema } from '@/lib/database'
@@ -44,6 +45,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   const scroller = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [findOpen, setFindOpen] = useState(false)
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
   const [lit, setLit] = useState<{ left: number; top: number; width: number; height: number }[]>([])
   const pending = useRef<{ id: string; patch: Patch } | null>(null)
@@ -68,6 +70,18 @@ export function PageView({ pageId }: { pageId?: string }) {
     if (page && page.type !== 'row' && !page.title && isBlankContent(page.content)) requestAnimationFrame(() => titleRef.current?.focus())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page?.id])
+
+  // Ctrl+F : chercher dans la page (la barre de recherche s'ouvre ; Ctrl+F de nouveau la remet sur le champ).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault()
+        setFindOpen(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
 
   // Le champ du titre prend la hauteur de son texte (retour à la ligne automatique), y compris quand la largeur de la page change.
   useLayoutEffect(() => {
@@ -372,6 +386,7 @@ export function PageView({ pageId }: { pageId?: string }) {
         <PageOutline content={page.content} />
       </div>
     </div>
+    {findOpen && <FindBar onClose={() => setFindOpen(false)} />}
     {showFirstSteps && (
       <div className="first-steps-wrap pointer-events-none absolute inset-x-0 bottom-6 z-10 px-[var(--page-pad)]">
         <div className="pointer-events-auto mx-auto max-w-[900px]">

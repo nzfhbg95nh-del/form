@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { DragHandleMenu, useBlockNoteEditor, useComponentsContext, useExtensionState, usePortalElement } from '@blocknote/react'
 import {
-  CircleCheck, Code, Copy, Heading1, Heading2, Heading3, Heading4, Info, Link2, List, ListChecks, ListCollapse, ListOrdered, Palette, Quote, RefreshCw, Search, Smile, Trash2, Type,
+  CircleCheck, Code, Copy, CornerUpRight, Heading1, Heading2, Heading3, Heading4, Info, Link2, List, ListChecks, ListCollapse, ListOrdered, Palette, Quote, RefreshCw, Search, Smile, Trash2, Type,
 } from 'lucide-react'
 import {
   BACKGROUND_FILL, COLOR_IDS, colorLabel, colorProp, KINDS, kindOf, loadRecentColor, saveRecentColor, TEXT_INK, type ColorId, type ColorKind, type RecentColor,
 } from '@/lib/blockKinds'
-import { blockLink, countWords, strippedCopy } from '@/lib/blocks'
+import { appendBlockToContent, blockLink, countWords, strippedCopy } from '@/lib/blocks'
 import { copyText } from '@/lib/windowActions'
 import { useApp } from '@/store/app'
+import { useBlockMove } from '@/store/blockMove'
 
 const KIND_ICONS: Record<string, ReactNode> = {
   text: <Type size={16} />, h1: <Heading1 size={16} />, h2: <Heading2 size={16} />, h3: <Heading3 size={16} />, h4: <Heading4 size={16} />,
@@ -94,6 +95,19 @@ export function BlockMenu() {
   }
   const duplicate = () => editor.insertBlocks([strippedCopy(editor.getBlock(block.id) as never)] as never, block as never, 'after')
   const remove = () => editor.removeBlocks([block as never])
+  // Comme dans Notion : « Déplacer vers » une autre page. Le bloc (et ses sous-blocs) part à la fin de la page choisie, puis disparaît de celle-ci.
+  const moveToPage = () => {
+    const source = editor.getBlock(block.id)
+    if (!source) return
+    useBlockMove.getState().ask(pageId, async (targetId) => {
+      const target = useApp.getState().objects.find((o) => o.id === targetId)
+      if (!target) return
+      await useApp.getState().update(targetId, { content: appendBlockToContent(target.content, source as never) })
+      editor.removeBlocks([block.id] as never)
+      say(`Bloc déplacé vers « ${target.title || 'Nouvelle page'} ».`)
+    })
+  }
+  const blockStats = countWords([block as never])
 
   const typeName = current?.label ?? OTHER_NAMES[block.type] ?? 'Bloc'
   const modified = updatedAt ? new Date(updatedAt).toLocaleString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null
@@ -106,6 +120,7 @@ export function BlockMenu() {
     ...(canBackground ? COLOR_IDS.map((id) => ({ key: `bg-${id}`, label: colorLabel('background', id), icon: <Swatch kind="background" color={id} />, checked: currentColor('background') === id, run: () => paint('background', id) })) : []),
     { key: 'link', label: 'Copier le lien du bloc', icon: <Link2 size={16} />, run: copyLink },
     { key: 'dup', label: 'Dupliquer', icon: <Copy size={16} />, run: duplicate },
+    { key: 'move', label: 'Déplacer vers une page…', icon: <CornerUpRight size={16} />, run: moveToPage },
     { key: 'del', label: 'Supprimer', icon: <Trash2 size={16} />, run: remove },
   ]
   const results = q ? searchable.filter((a) => fold(a.label).includes(q)) : []
@@ -209,13 +224,15 @@ export function BlockMenu() {
           <c.Generic.Menu.Divider />
           <Item className="bn-menu-item" icon={<Link2 size={16} />} onClick={copyLink}><WithShortcut shortcut="Alt+⇧+L">Copier le lien du bloc</WithShortcut></Item>
           <Item className="bn-menu-item" icon={<Copy size={16} />} onClick={duplicate}><WithShortcut shortcut="Ctrl+D">Dupliquer</WithShortcut></Item>
+          <Item className="bn-menu-item" icon={<CornerUpRight size={16} />} onClick={moveToPage}>Déplacer vers une page…</Item>
           <Item className="bn-menu-item" icon={<Trash2 size={16} />} onClick={remove}><WithShortcut shortcut="Suppr">Supprimer</WithShortcut></Item>
 
           <c.Generic.Menu.Divider />
           <div className="px-3 pb-2 pt-1 text-xs text-[var(--fg-muted)]">
             <div className="mb-0.5 font-semibold">Date de modification</div>
             {modified && <div>{modified}</div>}
-            <div>{stats.words} mot{stats.words > 1 ? 's' : ''}, {stats.chars} caractère{stats.chars > 1 ? 's' : ''}</div>
+            {hasText && <div>Ce bloc : {blockStats.words} mot{blockStats.words > 1 ? 's' : ''}, {blockStats.chars} caractère{blockStats.chars > 1 ? 's' : ''}</div>}
+            <div>La page : {stats.words} mot{stats.words > 1 ? 's' : ''}, {stats.chars} caractère{stats.chars > 1 ? 's' : ''}</div>
           </div>
         </>
       )}
