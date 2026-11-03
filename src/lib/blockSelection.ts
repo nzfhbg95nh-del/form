@@ -44,6 +44,22 @@ export function afterRemoval(order: readonly string[], removed: readonly string[
   return null
 }
 
+/**
+ * Des images rangées en grille : des lignes de `perRow` colonnes côte à côte (une liste de colonnes par ligne). La dernière ligne est complétée par des colonnes
+ * vides pour que ses images aient la même taille que les autres. Moins de deux images : rien à ranger.
+ */
+export function imageGrid(images: readonly object[], perRow = 4): object[] {
+  if (images.length < 2) return []
+  const rows: object[] = []
+  for (let i = 0; i < images.length; i += perRow) {
+    const slice = images.slice(i, i + perRow)
+    const columns = slice.map((img) => ({ type: 'column', props: { width: 1 }, children: [img] }))
+    while (columns.length < Math.min(perRow, images.length)) columns.push({ type: 'column', props: { width: 1 }, children: [{ type: 'paragraph' }] } as never)
+    rows.push({ type: 'columnList', children: columns })
+  }
+  return rows
+}
+
 /** Un bloc sans ses identifiants (lui et ses enfants) : prêt à être inséré comme copie. */
 export function withoutIds<T extends { id?: string; children?: unknown[] }>(block: T): Omit<T, 'id'> {
   const { id: _id, children, ...rest } = block

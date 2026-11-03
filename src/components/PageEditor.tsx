@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
-import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
+import { afterRemoval, flatten, imageGrid, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
@@ -29,7 +29,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2 } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, LayoutGrid } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -555,13 +555,16 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   const selAnchor = useBlockSel((s) => (s.pageId === selKey ? s.anchor : null))
   const selFocus = useBlockSel((s) => (s.pageId === selKey ? s.focus : null))
   const [selRects, setSelRects] = useState<{ left: number; top: number; width: number; height: number }[]>([])
+  const [selImages, setSelImages] = useState(0)
   useLayoutEffect(() => {
     if (!selAnchor || !selFocus) {
       setSelRects([])
+      setSelImages(0)
       return
     }
     const compute = () => {
       const ids = rangeIds(flatten(editor.document as unknown as BlockLike[]), selAnchor, selFocus)
+      setSelImages(ids.filter((id) => (editor.getBlock(id as never) as { type?: string } | undefined)?.type === 'image').length)
       setSelRects(ids.flatMap((id) => {
         const content = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${id}"]`)?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
         if (!content) return []
@@ -579,6 +582,27 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       off?.()
     }
   }, [selAnchor, selFocus, editor])
+
+  /** Range les images sélectionnées en grille (4 par ligne), à la place de la première. */
+  const arrangeGrid = () => {
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    const sel = useBlockSel.getState()
+    if (sel.pageId !== selKey || !sel.anchor || !sel.focus) return
+    const ids = rangeIds(flatten(ed.document as unknown as BlockLike[]), sel.anchor, sel.focus)
+    const images = ids.map((id) => ed.getBlock(id as never)).filter((b): b is NonNullable<typeof b> => !!b && (b as { type: string }).type === 'image')
+    const rows = imageGrid(images.map((b) => withoutIds(b as unknown as { id?: string; children?: unknown[] })))
+    if (rows.length === 0) return
+    // La grille se pose avant le bloc de plus haut niveau qui contient la première image (jamais à l'intérieur d'une colonne).
+    let anchor = (images[0] as { id: string }).id
+    for (;;) {
+      const parent = ed.getParentBlock(anchor as never) as { id: string } | undefined
+      if (!parent) break
+      anchor = parent.id
+    }
+    sel.clear()
+    ed.insertBlocks(rows as never, anchor as never, 'before')
+    ed.removeBlocks(images.map((b) => (b as { id: string }).id) as never)
+  }
 
   /** Remplace la ligne du lien collé par un bloc (aperçu ou intégration), en gardant une ligne libre dessous. */
   const turnInto = (block: Record<string, unknown>) => {
@@ -683,6 +707,11 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       }
       return true
     }
+    if (!ctrl && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g' && selImages >= 2) {
+      stop()
+      arrangeGrid()
+      return true
+    }
     if (ctrl && e.key.toLowerCase() === 'd') {
       stop()
       // Les blocs dont le parent est déjà choisi sont copiés avec lui : on ne garde que les plus hauts.
@@ -739,6 +768,18 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
+      {selImages >= 2 && selRects.length > 0 && (
+        <button
+          type="button"
+          className="btn btn-primary fixed z-30"
+          style={{ left: Math.max(8, Math.min(...selRects.map((r) => r.left))), top: Math.max(8, Math.min(...selRects.map((r) => r.top)) - 42) }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={arrangeGrid}
+          title="Raccourci : G"
+        >
+          <LayoutGrid size={14} /> Ranger en grille
+        </button>
+      )}
     <BlockNoteView
       editor={editor}
       theme={theme}
