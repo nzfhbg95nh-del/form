@@ -44,22 +44,28 @@ export function afterRemoval(order: readonly string[], removed: readonly string[
   return null
 }
 
-/**
- * Des images rangées en grille : des lignes de `perRow` colonnes côte à côte (une liste de colonnes par ligne). La dernière ligne est complétée par des colonnes
- * vides pour que ses images aient la même taille que les autres. Moins de deux images : rien à ranger.
- */
-export function imageGrid(images: readonly object[], perRow = 4): object[] {
-  if (images.length < 2) return []
-  const rows: object[] = []
-  for (let i = 0; i < images.length; i += perRow) {
-    const slice = images.slice(i, i + perRow)
-    const columns = slice.map((img) => ({ type: 'column', props: { width: 1 }, children: [img] }))
-    while (columns.length < Math.min(perRow, images.length)) columns.push({ type: 'column', props: { width: 1 }, children: [{ type: 'paragraph' }] } as never)
-    rows.push({ type: 'columnList', children: columns })
-  }
-  return rows
-}
+/** Le nombre de colonnes d'une grille d'images : 2 pour deux images, 3 ensuite (comme une planche Pinterest). */
+export const gridColumns = (count: number) => (count <= 2 ? 2 : 3)
 
+/**
+ * Des images rangées en grille façon Pinterest : une seule liste de colonnes côte à côte, chaque colonne empile ses images à leur proportion naturelle.
+ * Chaque image va dans la colonne la moins haute à ce moment-là (`ratios` = hauteur ÷ largeur de chaque image ; 1 si inconnue), pour des colonnes
+ * de même hauteur. Moins de deux images : rien à ranger.
+ */
+export function imageGrid(images: readonly object[], ratios: readonly number[] = []): object[] {
+  if (images.length < 2) return []
+  const n = gridColumns(images.length)
+  const cols: object[][] = Array.from({ length: n }, () => [])
+  const heights = new Array<number>(n).fill(0)
+  images.forEach((img, i) => {
+    const r = ratios[i] && Number.isFinite(ratios[i]) && ratios[i] > 0 ? ratios[i] : 1
+    let k = 0
+    for (let j = 1; j < n; j++) if (heights[j] < heights[k] - 1e-9) k = j
+    cols[k].push(img)
+    heights[k] += r
+  })
+  return [{ type: 'columnList', children: cols.map((children) => ({ type: 'column', props: { width: 1 }, children })) }]
+}
 /** Un bloc sans ses identifiants (lui et ses enfants) : prêt à être inséré comme copie. */
 export function withoutIds<T extends { id?: string; children?: unknown[] }>(block: T): Omit<T, 'id'> {
   const { id: _id, children, ...rest } = block

@@ -386,6 +386,23 @@ function CalloutGlyph() {
   )
 }
 
+/** Hauteur ÷ largeur de chaque image (1 quand elle ne se charge pas), pour répartir une grille en colonnes de même hauteur. */
+function imageRatios(urls: string[]): Promise<number[]> {
+  return Promise.all(urls.map(async (url) => {
+    try {
+      const src = await resolveForEditor(url)
+      return await new Promise<number>((ok) => {
+        const img = new Image()
+        img.onload = () => ok(img.naturalWidth > 0 ? img.naturalHeight / img.naturalWidth : 1)
+        img.onerror = () => ok(1)
+        img.src = src
+      })
+    } catch {
+      return 1
+    }
+  }))
+}
+
 type Cur = { id: string; content?: unknown }
 
 /** Le bloc où l'on vient de taper « / » (à relever tout de suite, avant tout travail asynchrone). */
@@ -453,9 +470,9 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     input.onchange = () => {
       const files = Array.from(input.files ?? [])
       if (files.length === 0) return viaDefault('image')()
-      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then((images) => {
-        if (images.length === 1) putBlock(editor, images[0], at)
-        else putBlocks(editor, imageGrid(images), at)
+      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then(async (images) => {
+        if (images.length === 1) return putBlock(editor, images[0], at)
+        putBlocks(editor, imageGrid(images, await imageRatios(images.map((i) => i.props.url))), at)
       })
     }
     input.oncancel = () => viaDefault('image')()
@@ -492,7 +509,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
     { key: 'pagecard', title: 'Carte de page', aliases: ['page', 'carte', 'aperçu', 'apercu', 'lien', 'lier'], group: 'Blocs avancés', subtext: 'Un aperçu d’une autre page (titre et début du texte)', icon: ico(FileText), onItemClick: put({ type: 'pagecard' }) },
     { key: 'equation', title: 'Équation', aliases: ['équation', 'equation', 'formule', 'latex', 'maths', 'math'], group: 'Blocs avancés', subtext: 'Une formule de maths écrite en LaTeX', icon: ico(Sigma), onItemClick: put({ type: 'equation' }) },
-    { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, subtext: 'Une ou plusieurs images, rangées en grille si tu en choisis plusieurs', icon: ico(ImageIcon), onItemClick: pickImages },
+    { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, subtext: 'Une ou plusieurs images, rangées en grille façon Pinterest si tu en choisis plusieurs', icon: ico(ImageIcon), onItemClick: pickImages },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
@@ -602,14 +619,18 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     }
   }, [selAnchor, selFocus, editor])
 
-  /** Range les images sélectionnées en grille (4 par ligne), à la place de la première. */
-  const arrangeGrid = () => {
+  /** Range les images sélectionnées en grille (façon Pinterest), à la place de la première. */
+  const arrangeGrid = async () => {
     const ed = editor as unknown as BlockNoteEditor<never, never, never>
     const sel = useBlockSel.getState()
     if (sel.pageId !== selKey || !sel.anchor || !sel.focus) return
     const ids = rangeIds(flatten(ed.document as unknown as BlockLike[]), sel.anchor, sel.focus)
     const images = ids.map((id) => ed.getBlock(id as never)).filter((b): b is NonNullable<typeof b> => !!b && (b as { type: string }).type === 'image')
-    const rows = imageGrid(images.map((b) => withoutIds(b as unknown as { id?: string; children?: unknown[] })))
+    if (images.length < 2) return
+    sel.clear()
+    const ratios = await imageRatios(images.map((b) => String((b as unknown as { props: { url?: string } }).props.url ?? '')))
+    if (images.some((b) => !ed.getBlock((b as { id: string }).id as never))) return
+    const rows = imageGrid(images.map((b) => withoutIds(b as unknown as { id?: string; children?: unknown[] })), ratios)
     if (rows.length === 0) return
     // La grille se pose avant le bloc de plus haut niveau qui contient la première image (jamais à l'intérieur d'une colonne).
     let anchor = (images[0] as { id: string }).id
@@ -618,7 +639,6 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       if (!parent) break
       anchor = parent.id
     }
-    sel.clear()
     ed.insertBlocks(rows as never, anchor as never, 'before')
     ed.removeBlocks(images.map((b) => (b as { id: string }).id) as never)
   }
@@ -728,7 +748,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     }
     if (!ctrl && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g' && selImages >= 2) {
       stop()
-      arrangeGrid()
+      void arrangeGrid()
       return true
     }
     if (ctrl && e.key.toLowerCase() === 'd') {
@@ -820,7 +840,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
           className="btn btn-primary fixed z-30"
           style={{ left: Math.max(8, Math.min(...selRects.map((r) => r.left))), top: Math.max(8, Math.min(...selRects.map((r) => r.top)) - 42) }}
           onMouseDown={(e) => e.preventDefault()}
-          onClick={arrangeGrid}
+          onClick={() => void arrangeGrid()}
           title="Raccourci : G"
         >
           <LayoutGrid size={14} /> Ranger en grille

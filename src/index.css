@@ -227,6 +227,11 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   max-width: 100%;
 }
 
+/* Images dans des colonnes (grille façon Pinterest) : elles remplissent la colonne, coins arrondis, hauteur selon leur proportion. */
+.bn-column .bn-block-content[data-content-type='image'] .bn-visual-media-wrapper { width: 100%; }
+.bn-column .bn-block-content[data-content-type='image'] .bn-visual-media { width: 100% !important; max-width: 100%; height: auto; }
+.bn-block-content[data-content-type='image'] .bn-visual-media { border-radius: 10px; }
+
 /* Bloc coloré (fond jaune, bleu…), comme dans Notion : coins arrondis, et le fond déborde un peu de chaque côté du texte
    (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */
 .bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout']) {
