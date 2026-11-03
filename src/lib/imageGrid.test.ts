@@ -1,9 +1,24 @@
-import { describe, expect, it } from 'vitest'
-import { gridColumns, imageGrid } from './blockSelection'
+﻿import { describe, expect, it } from 'vitest'
+import { gridColumns, imageGrid, imagesOfGridBlock } from './blockSelection'
 
 const imgs = (n: number) => Array.from({ length: n }, (_, i) => ({ type: 'image', props: { url: `u${i}` } }))
 type List = { type: string; children: { type: string; children: { props: { url: string } }[] }[] }
 const urls = (rows: object[]) => (rows[0] as List).children.map((c) => c.children.map((i) => i.props.url))
+
+describe('reconnaître une image ou une grille d’images', () => {
+  const col = (...children: { type: string }[]) => ({ type: 'column', children })
+  it('une image seule', () => {
+    expect(imagesOfGridBlock({ type: 'image' })).toHaveLength(1)
+  })
+  it('une grille d’images : toutes les images, colonne après colonne', () => {
+    expect(imagesOfGridBlock({ type: 'columnList', children: [col({ type: 'image' }, { type: 'image' }), col({ type: 'image' })] } as never)).toHaveLength(3)
+  })
+  it('un texte, ou des colonnes qui contiennent autre chose : non', () => {
+    expect(imagesOfGridBlock({ type: 'paragraph' })).toBeNull()
+    expect(imagesOfGridBlock({ type: 'columnList', children: [col({ type: 'image' }), col({ type: 'paragraph' })] } as never)).toBeNull()
+    expect(imagesOfGridBlock(undefined)).toBeNull()
+  })
+})
 
 describe('images rangées en grille façon Pinterest', () => {
   it('moins de deux images : rien à ranger', () => {

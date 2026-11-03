@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
-import { afterRemoval, flatten, imageGrid, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
+import { afterRemoval, flatten, imageGrid, imagesOfGridBlock, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
@@ -470,7 +470,18 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     input.onchange = () => {
       const files = Array.from(input.files ?? [])
       if (files.length === 0) return viaDefault('image')()
-      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then(async (images) => {
+      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then(async (added) => {
+        // Des images ajoutées à la suite (juste sous une image ou une grille d'images) rejoignent la grille.
+        let images: { type: string; props: { url: string; name?: string } }[] = added
+        const doc = editor.document as unknown as { id: string; type: string; children?: never[]; content?: unknown[] }[]
+        const at0 = doc.findIndex((b) => b.id === at.id)
+        const here = doc[at0]
+        const before = at0 > 0 && here && Array.isArray(here.content) && here.content.length === 0 ? doc[at0 - 1] : undefined
+        const previous = imagesOfGridBlock(before as never)
+        if (previous && before) {
+          images = [...previous.map((b) => withoutIds(b as never) as never), ...added]
+          editor.removeBlocks([before.id] as never)
+        }
         if (images.length === 1) return putBlock(editor, images[0], at)
         putBlocks(editor, imageGrid(images, await imageRatios(images.map((i) => i.props.url))), at)
       })

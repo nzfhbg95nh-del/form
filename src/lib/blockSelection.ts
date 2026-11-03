@@ -66,6 +66,26 @@ export function imageGrid(images: readonly object[], ratios: readonly number[] =
   })
   return [{ type: 'columnList', children: cols.map((children) => ({ type: 'column', props: { width: 1 }, children })) }]
 }
+interface TypedBlock {
+  type: string
+  children?: TypedBlock[]
+}
+
+/** Les images d'un bloc qui n'est qu'une image ou qu'une grille d'images (liste de colonnes ne contenant que des images) ; sinon null. */
+export function imagesOfGridBlock(block: TypedBlock | undefined): TypedBlock[] | null {
+  if (!block) return null
+  if (block.type === 'image') return [block]
+  if (block.type !== 'columnList') return null
+  const found: TypedBlock[] = []
+  for (const col of block.children ?? []) {
+    for (const child of col.children ?? []) {
+      if (child.type !== 'image') return null
+      found.push(child)
+    }
+  }
+  return found.length > 0 ? found : null
+}
+
 /** Un bloc sans ses identifiants (lui et ses enfants) : prêt à être inséré comme copie. */
 export function withoutIds<T extends { id?: string; children?: unknown[] }>(block: T): Omit<T, 'id'> {
   const { id: _id, children, ...rest } = block
