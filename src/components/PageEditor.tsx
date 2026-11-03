@@ -795,7 +795,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || e.isComposing) return
       const t = e.target as HTMLElement | null
-      if (t?.closest('.bn-editor, input, textarea, select, [role="menu"], [role="listbox"], [role="dialog"]')) return
+      if (t?.closest('input, textarea, select, [role="menu"], [role="listbox"], [role="dialog"], [contenteditable="true"]:not(.bn-editor *):not(.bn-editor)')) return
       keyHandler.current(e as unknown as React.KeyboardEvent)
     }
     window.addEventListener('keydown', onKey)
