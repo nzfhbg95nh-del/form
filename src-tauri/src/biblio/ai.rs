@@ -10,7 +10,7 @@ use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
-use std::sync::OnceLock;
+use std::sync::{Mutex, OnceLock};
 use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter};
 
@@ -369,6 +369,41 @@ pub fn ai_start_embeddings(app: AppHandle, jobs: Vec<EmbedJob>) -> Result<bool, 
         let _ = app.emit("ai-done", end);
     });
     Ok(true)
+}
+
+/// Le moteur gardé pour les recherches « par image » : il s'ouvre à la première recherche, puis reste prêt (une recherche à la fois).
+static QUERY_SESSION: Mutex<Option<Session>> = Mutex::new(None);
+
+/// L'empreinte d'une seule image (celle qu'on dépose pour chercher des images semblables), au même format que celles de la bibliothèque.
+fn embed_one(app: &AppHandle, bytes: &[u8]) -> Result<String, String> {
+    let model = model_dir(app)?.join(MODEL_FILE);
+    if std::fs::metadata(&model).map(|m| m.len()).unwrap_or(0) != MODEL_SIZE {
+        return Err("Le modèle d'IA n'est pas encore téléchargé : il faut attendre la fin de son téléchargement.".to_string());
+    }
+    let img = image::load_from_memory(bytes).map_err(|_| "Cette image n'est pas lisible.".to_string())?;
+    let pixels = preprocess(&img);
+    let mut guard = QUERY_SESSION.lock().map_err(|_| "Le moteur d'IA est occupé.".to_string())?;
+    if guard.is_none() {
+        *guard = Some(open_session(&model)?.0);
+    }
+    let session = guard.as_mut().ok_or("Le moteur d'IA n'a pas démarré.")?;
+    let input = Tensor::from_array(([1usize, 3, SIDE, SIDE], pixels)).map_err(|e| e.to_string())?;
+    let outputs = session.run(ort::inputs!["pixel_values" => input]).map_err(|e| e.to_string())?;
+    let (shape, values) = outputs["image_embeds"].try_extract_tensor::<f32>().map_err(|e| e.to_string())?;
+    let dim = *shape.last().unwrap_or(&0) as usize;
+    if dim == 0 || values.len() != dim {
+        return Err("Le modèle a rendu un résultat inattendu.".to_string());
+    }
+    let mut v = values.to_vec();
+    l2_normalize(&mut v);
+    Ok(encode_vector(&v))
+}
+
+/// Calcule l'empreinte d'une image donnée (en base64) : sert à retrouver les images semblables de la bibliothèque.
+#[tauri::command]
+pub async fn ai_embed_image(app: AppHandle, data: String) -> Result<String, String> {
+    let bytes = base64::engine::general_purpose::STANDARD.decode(data).map_err(|_| "Image illisible.".to_string())?;
+    tauri::async_runtime::spawn_blocking(move || embed_one(&app, &bytes)).await.map_err(|e| e.to_string())?
 }
 
 #[cfg(test)]

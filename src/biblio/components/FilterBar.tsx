@@ -1,4 +1,4 @@
-import { Search, X } from 'lucide-react'
+import { Camera, Search, X } from 'lucide-react'
 import { PALETTE } from '@/biblio/lib/colors.ts'
 import { ColorBar } from './ColorBar.tsx'
 import { activeCount, DATE_PRESETS, datePreset, type Filters } from '@/biblio/lib/filters.ts'
@@ -20,7 +20,7 @@ const nf = new Intl.NumberFormat('fr-FR')
 
 const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] : list.filter((v) => v !== value))
 
-export function FilterBar() {
+export function FilterBar({ onImageSearch }: { onImageSearch?: () => void }) {
   const { blocks, shown, filters, setFilters, clearFilters, typeIndex, semantic, searching } = useGrid()
   const bySight = semantic ? shown.reduce((n, b) => n + (semantic.has(b.id) ? 1 : 0), 0) : 0
   const count = activeCount(filters)
@@ -51,10 +51,22 @@ export function FilterBar() {
             value={filters.query}
             onChange={(e) => setFilters({ query: e.target.value })}
             placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
-            className="lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 pr-3 text-sm outline-none"
+            className="lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 pr-11 text-sm outline-none"
             style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
             aria-label="Rechercher"
           />
+          {onImageSearch && (
+            <button
+              type="button"
+              className="absolute right-1 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
+              style={{ color: 'var(--fg-muted)' }}
+              onClick={onImageSearch}
+              title="Chercher avec une image : dépose ou choisis une image, la bibliothèque montre celles qui lui ressemblent"
+              aria-label="Rechercher avec une image"
+            >
+              <Camera size={16} />
+            </button>
+          )}
         </div>
 
         <Popover label="Type d'image" active={filters.types.length > 0} width={300}>

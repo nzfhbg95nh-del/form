@@ -3,7 +3,7 @@ import { addFiles, addPaths, ALLOWED_EXT } from '@/biblio/lib/ajouts.ts'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/States'
-import { ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
+import { Camera, ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
 import { formatDuration, layoutMasonry, visibleIndices, type Placed } from '@/biblio/lib/grid.ts'
 import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
@@ -13,6 +13,8 @@ import { BlockMenu } from './BlockMenu.tsx'
 import { SelectionBar } from './SelectionBar.tsx'
 import { CollectionHero } from './CollectionHero.tsx'
 import { FilterBar } from './FilterBar.tsx'
+import { ImageSearchDialog } from './ImageSearchDialog.tsx'
+import { isSearchableImage } from '@/biblio/lib/imageSearchPure.ts'
 
 const GAP = 12
 const OVERSCAN = 600
@@ -66,8 +68,49 @@ export const Tile = memo(function Tile({ block, place, thumbsDir, videoSrc, sele
   )
 })
 
+/** Une grande zone où déposer des fichiers pendant un glisser : elle fait ce qu'indique son titre. */
+function DropZone({ icon, title, hint, onFiles, done }: { icon: React.ReactNode; title: string; hint: string; onFiles: (files: File[]) => void; done: () => void }) {
+  const [over, setOver] = useState(false)
+  return (
+    <div
+      className="flex h-64 w-80 flex-col items-center justify-center gap-3 rounded-3xl border-2 border-dashed text-center"
+      style={{ background: over ? 'var(--bg-hover)' : 'var(--bg)', borderColor: over ? 'var(--accent)' : 'var(--border)' }}
+      onDragOver={(e) => {
+        e.preventDefault()
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setOver(false)
+        onFiles(Array.from(e.dataTransfer.files))
+        done()
+      }}
+    >
+      <span className="flex h-14 w-14 items-center justify-center rounded-full" style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)', color: 'var(--accent)' }}>{icon}</span>
+      <span className="px-4 text-base font-semibold">{title}</span>
+      <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{hint}</span>
+    </div>
+  )
+}
+
 export function AllGrid({ active, onBack }: { active: boolean; onBack: () => void }) {
-  const { blocks, shown, filters, loaded, thumbsDir, size, setSize, open, load, clearFilters } = useGrid()
+  const { blocks, shown: filteredShown, filters, loaded, thumbsDir, size, setSize, open, load, clearFilters } = useGrid()
+  const imageSearch = useGrid((s) => s.imageSearch)
+  const searchByImage = useGrid((s) => s.searchByImage)
+  const clearImageSearch = useGrid((s) => s.clearImageSearch)
+  const [imageDialog, setImageDialog] = useState(false)
+  // Une image déposée sur la page : on choisit entre chercher ses semblables et l'ajouter à la bibliothèque.
+  const [dragging, setDragging] = useState(false)
+  const dragDepth = useRef(0)
+  // Avec une recherche par image, la grille montre les blocs qui ressemblent à l'image (du plus ressemblant au moins ressemblant), à la place du résultat des filtres.
+  const shown = useMemo(() => {
+    if (imageSearch?.ids === null) return []
+    if (!imageSearch) return filteredShown
+    const byId = new Map(blocks.map((b) => [b.id, b]))
+    return imageSearch.ids.map((id) => byId.get(id)).filter((b): b is (typeof blocks)[number] => !!b)
+  }, [imageSearch, filteredShown, blocks])
   const phase = useLibrary((s) => s.phase)
   const root = useLibrary((s) => s.root)
   const scroller = useRef<HTMLDivElement>(null)
@@ -165,7 +208,19 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   const hoveredVideo = hovered && hovered.firstKind === 'video' && !hovered.missing ? fileUrl(originalPath(root, hovered.rel)) : null
 
   return (
-    <div className="flex h-full flex-col" style={{ display: active ? undefined : 'none' }}>
+    <div
+      className="flex h-full flex-col"
+      style={{ display: active ? undefined : 'none' }}
+      onDragEnter={(e) => {
+        if (!e.dataTransfer.types.includes('Files')) return
+        dragDepth.current++
+        setDragging(true)
+      }}
+      onDragLeave={() => {
+        dragDepth.current = Math.max(0, dragDepth.current - 1)
+        if (dragDepth.current === 0) setDragging(false)
+      }}
+    >
       <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         {filters.collection && (
           <button className="btn" onClick={onBack} aria-label="Retour aux collections"><ChevronLeft size={15} /> Collections</button>
@@ -197,8 +252,24 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         </div>
       </div>
 
-      <FilterBar />
-      {organize && (
+      <FilterBar onImageSearch={() => setImageDialog(true)} />
+      {imageSearch && (
+        <div className="flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
+          <img src={imageSearch.preview} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" draggable={false} />
+          <div className="min-w-0 flex-1 text-sm">
+            {imageSearch.ids === null ? (
+              'Recherche des images semblables…'
+            ) : imageSearch.error ? (
+              <span style={{ color: '#d44c47' }}>{imageSearch.error}</span>
+            ) : (
+              <span><b>{nf.format(imageSearch.ids.length)}</b> images semblables à celle que tu as donnée, de la plus ressemblante à la moins ressemblante.</span>
+            )}
+          </div>
+          <button className="btn" onClick={() => setImageDialog(true)}>Autre image</button>
+          <button className="btn" onClick={clearImageSearch}>Effacer la recherche</button>
+        </div>
+      )}
+      {imageDialog && <ImageSearchDialog onPick={(file) => void searchByImage(file)} onClose={() => setImageDialog(false)} />}      {organize && (
         <div className="flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
           <span className="text-sm font-semibold">Sélectionner et réorganiser</span>
           <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{selected.size === 0 ? 'Clique sur des images pour commencer.' : `${selected.size} sélectionnée${selected.size > 1 ? 's' : ''}`}</span>
@@ -207,14 +278,14 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         </div>
       )}
 
-      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" onDragOver={(e) => { if (e.dataTransfer.types.includes('Files')) e.preventDefault() }} onDrop={(e) => { if (e.dataTransfer.files.length > 0) { e.preventDefault(); void addFiles(Array.from(e.dataTransfer.files)) } }} onScroll={(e) => setTop(e.currentTarget.scrollTop)}>
+      <div ref={scroller} className="min-h-0 flex-1 overflow-auto" onScroll={(e) => setTop(e.currentTarget.scrollTop)}>
         {hasHero && (
           <div ref={heroRef}>
             <CollectionHero />
           </div>
         )}
-        {!loaded ? (
-          <LoadingState label="Ouverture de la bibliothèque…" />
+        {!loaded || imageSearch?.ids === null ? (
+          <LoadingState label={imageSearch?.ids === null ? 'Recherche des images semblables…' : 'Ouverture de la bibliothèque…'} />
         ) : blocks.length === 0 ? (
           <EmptyState icon={<LayoutGrid size={24} />} title="La bibliothèque est vide" hint="Va dans Réglages &gt; Bibliothèque pour l'indexer, ou télécharge tes enregistrements." />
         ) : loaded && shown.length === 0 && hasHero ? (
@@ -249,6 +320,20 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
       </div>
       {menu && <BlockMenu x={menu.x} y={menu.y} blockIds={menu.ids} onClose={() => setMenu(null)} onDone={clearSelection} />}
       <SelectionBar />
-    </div>
+      {dragging && (
+        <div className="fixed inset-0 z-40 flex items-center justify-center gap-6 bg-black/45 p-10">
+          <DropZone
+            icon={<Camera size={30} />}
+            title="Chercher les images semblables"
+            hint="Dépose l'image ici"
+            onFiles={(files) => {
+              const image = files.find(isSearchableImage)
+              if (image) void searchByImage(image)
+            }}
+            done={() => { dragDepth.current = 0; setDragging(false) }}
+          />
+          <DropZone icon={<Plus size={30} />} title="Ajouter à la bibliothèque" hint="Dépose les images ici" onFiles={(files) => void addFiles(files)} done={() => { dragDepth.current = 0; setDragging(false) }} />
+        </div>
+      )}    </div>
   )
 }

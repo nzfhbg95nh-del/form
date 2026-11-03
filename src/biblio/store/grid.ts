@@ -8,6 +8,7 @@ import { getTextStatus, textVectors } from '@/biblio/lib/aiText.ts'
 import { getSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { isSearchable, searchPrompts } from '@/biblio/lib/searchText.ts'
 import { averageVector, bestPerBlock, pickMatches } from '@/biblio/lib/semanticSearch.ts'
+import { similarBlocksTo } from '@/biblio/lib/imageSearch.ts'
 import { EMPTY_TYPE_INDEX, loadTypeIndex, type TypeIndex } from '@/biblio/lib/types.ts'
 
 const SIZE_KEY = 'klippr.gridSize'
@@ -47,6 +48,10 @@ interface GridState {
   semantic: ReadonlyMap<string, number> | null
   /** Une recherche par contenu est en cours de calcul. */
   searching: boolean
+  /** Recherche par image : l'image donnée (aperçu), les blocs qui lui ressemblent (vide tant que ça calcule) et l'erreur éventuelle. */
+  imageSearch: { preview: string; ids: string[] | null; error: string | null } | null
+  searchByImage: (image: Blob) => Promise<void>
+  clearImageSearch: () => void
   loaded: boolean
   thumbsDir: string
   size: number
@@ -105,6 +110,26 @@ export const useGrid = create<GridState>((set, get) => {
     subBlocks: null,
     semantic: null,
     searching: false,
+    imageSearch: null,
+    async searchByImage(image) {
+      const previous = get().imageSearch
+      if (previous) URL.revokeObjectURL(previous.preview)
+      const preview = URL.createObjectURL(image)
+      set({ imageSearch: { preview, ids: null, error: null } })
+      try {
+        const ids = await similarBlocksTo(image)
+        if (get().imageSearch?.preview !== preview) return // une autre image a pris le relais, ou la recherche a été effacée
+        set({ imageSearch: { preview, ids, error: null } })
+      } catch (e) {
+        if (get().imageSearch?.preview !== preview) return
+        set({ imageSearch: { preview, ids: [], error: e instanceof Error ? e.message : String(e) } })
+      }
+    },
+    clearImageSearch() {
+      const previous = get().imageSearch
+      if (previous) URL.revokeObjectURL(previous.preview)
+      set({ imageSearch: null })
+    },
     loaded: false,
     thumbsDir: '',
     size: savedSize(),

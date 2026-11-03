@@ -201,6 +201,7 @@ pub fn run() {
             biblio::ai::ai_status,
             biblio::ai::ai_download_model,
             biblio::ai::ai_start_embeddings,
+            biblio::ai::ai_embed_image,
             biblio::ai_text::ai_text_status,
             biblio::ai_text::ai_download_text,
             biblio::ai_text::ai_encode_texts,
