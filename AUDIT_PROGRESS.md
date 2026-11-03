@@ -18,7 +18,7 @@ Voir la section « Tests » de `SOFTWARE_AUDIT_REPORT.md`. En résumé : démarr
 | 2 | P2 | La carte de recette (accueil) importait toute la page Recettes et son éditeur | Corrigé (fichier `RecipeCard.tsx`) |
 | 3 | P3 | Fenêtre de recherche sans rôles d'accessibilité (dialogue, liste, options) | Corrigé |
 | 4 | P3 | Écrans de la bibliothèque (Collections, Carte) : appels Tauri sans garde dans le navigateur (« Chargement… » sans fin, erreur `invoke`) | Non corrigé (n'existe que hors de l'app Windows) |
-| 5 | P3 | 135 avertissements du lecteur de code (surtout règles React « composant défini dans un composant », « setState dans un effet ») | Non corrigé (aucun bug constaté) |
+| 5 | P3 | 135 avertissements du lecteur de code | Corrigé en partie : 89 restants (conseils de style React : export mixte, setState dans un effet, référence lue à l'affichage, Date.now à l'affichage) ; aucun bug constaté |
 | 6 | Info | SIREN/SIRET invalides acceptés avec un avertissement (choix voulu : avertissement, pas blocage) | Conforme à la conception |
 
 ## Tests ajoutés / exécutés
@@ -28,7 +28,7 @@ Voir la section « Tests » de `SOFTWARE_AUDIT_REPORT.md`. En résumé : démarr
 ## À faire / non testé
 - Tests Rust (`cargo test --lib`) : lancés le 2026-11-03, app fermée : 83 réussis, 0 échec, 3 ignorés (modèle IA, HEIC, corbeille Windows réels).
 - Aucune vérification dans l'app Windows elle-même (Tauri) : IA, téléchargements, fenêtres flottantes, notifications.
-- Pas de test de bout en bout automatique (pas de Playwright dans le projet).
+- Tests de bout en bout : 22 scénarios Playwright (Edge) réussis, mais sans la partie Windows de Form ; un devis est testé (total, acompte, mention) mais pas l'émission d'une facture.
 - Accessibilité : pas de vérification de contraste ni de lecteur d'écran.
 - Mesures de performance de l'éditeur (rendus, mémoire) : non faites.
 

@@ -6,7 +6,7 @@ Date : 2026-11-03. Branche : `travail`. Portée : audit réel mais borné (une s
 Form est en bon état : le projet compile sans erreur, les 736 tests automatiques passent, aucune faille connue dans les dépendances (`npm audit` : 0), et tous les écrans de la barre latérale s'ouvrent sans erreur dans un navigateur de test. Le défaut le plus net était le temps de démarrage : tout le code (éditeur compris) était chargé d'un bloc, 2 258 ko. Il est maintenant de 634 ko (−72 %), les gros écrans se chargent à leur première ouverture.
 
 Points forts : logique d'argent testée (numérotation, totaux, acomptes, verrouillage), données locales, import/export de moodboard testés, sélection de blocs et raccourcis testés.
-Points faibles : aucun test de bout en bout, le code Rust et les fonctions propres à l'app Windows ne sont pas vérifiables dans le navigateur de test, 135 avertissements du lecteur de code.
+Points faibles : les tests de bout en bout ne couvrent pas la partie Windows de Form (Rust, IA, téléchargements, fenêtres flottantes), qui ne se vérifie pas dans le navigateur de test ; il reste des avertissements de style du lecteur de code (voir plus bas).
 
 ## 2. Inventaire
 - Écrans : Accueil, Tableau de bord, Clients, Tarifs, Devis, Factures, Paiements / Livre des recettes, Réglages (Général, Interface, Bibliothèque, Mon entreprise, Importer), Corbeille, Pages (éditeur de blocs), Bases de données (5 vues), Recettes, Moodboards (liste + éditeur), Bibliothèque (Tout, Collections, Moodboards, Carte, Doublons).
@@ -58,16 +58,17 @@ Limites : le temps de démarrage « avant » n'a pas été mesuré en conditions
 - Non fait : revue du code Rust, des permissions Tauri en détail, des imports de fichiers (Notion) face à des fichiers piégés.
 
 ## 8. Tests
-- `tsc` : 0 erreur. `vitest` : 79 fichiers, 736 tests réussis. `vite build` : réussi. `oxlint` : 135 avertissements, 0 erreur.
+- `tsc` : 0 erreur. `vitest` : 81 fichiers, 747 tests réussis. `vite build` : réussi. `oxlint` : 135 avertissements au départ, 89 après les corrections (le menu du moodboard est sorti de l'affichage, expressions et clés corrigées), 0 erreur.
+- Tests de bout en bout (Playwright dans Microsoft Edge, `npm run e2e`) : 22 scénarios réussis. Ils tapent avec un vrai clavier : saisie `# `, `- `, `1. `, `[] `, `> `, guillemet, `---`, `**gras**`, `*italique*`, `code`, `~barré~` ; Ctrl+Maj+1/4/7, Ctrl+Entrée, Ctrl+Alt+T, Ctrl+D, Ctrl+A, Ctrl+F, Ctrl+K ; sélection de blocs ; images collées, grille (touche G), bouton « Ajouter une image », glisser une image vers une page de la liste ; création et déplacement de pages, corbeille ; clients (avertissement SIREN) ; import / export / refus de moodboard et menu du clic droit ; tous les écrans de la barre latérale.
 - `cargo test --lib` (code Rust, app fermée) : 86 tests, 83 réussis, 0 échec, 3 ignorés volontairement (ils exigent le vrai modèle d'IA, un vrai fichier HEIC ou la vraie corbeille Windows : `real_tokenizer_matches_openai_clip`, `real_heic_gets_a_thumbnail_through_windows`, `really_sends_a_file_to_the_recycle_bin`). Durée : 5 min 35 s, dont la compilation.
-- Non exécutés : tests de bout en bout, accessibilité automatique (contrastes, lecteur d'écran), responsive mobile/tablette (app Windows seulement).
+- Non exécutés : accessibilité automatique (contrastes, lecteur d'écran), responsive mobile/tablette (app Windows seulement).
 
 ## 9. Reste à faire
-3 tests Rust ignorés (matériel ou modèle réels) ; app Windows non vérifiée ; 135 avertissements ; pas de test de bout en bout ; contrastes non vérifiés.
+3 tests Rust ignorés (matériel ou modèle réels) ; app Windows non vérifiée ; 89 avertissements de style ; les tests de bout en bout ne couvrent pas la partie Windows ; contrastes non vérifiés.
 
 ## 10. Feuille de route proposée
 - Tout de suite : essayer les parcours dans l'app Windows.
-- Court terme : Playwright sur 5 parcours (page, facture, moodboard, recherche, corbeille) ; réduire les avertissements « composant défini dans un composant ».
+- Court terme : ajouter aux tests de bout en bout l'émission d'une facture (SIRET et réglages requis) ; réduire les avertissements restants (export mixte composants / constantes, setState dans un effet, référence lue à l'affichage).
 - Moyen terme : mesurer la mémoire de l'éditeur sur de longues pages ; vérifier les contrastes en thème clair et sombre.
 - Long terme : phase 4 (facture électronique), qui demandera de nouveaux tests sur les mentions.
 

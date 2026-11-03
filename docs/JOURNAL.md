@@ -1112,5 +1112,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-11-03 - Finitions : grille, glisser vers une page, tests de bout en bout, avertissements (branche travail, pas publie)
 - Bouton « Ajouter une image » sous une grille d'images (les images rejoignent la grille, reclassee). Glisser une image ou un bloc (poignee) sur une page de la liste « Pages » de la barre laterale : il y est deplace (Alt : copie). Corrige aussi l'apercu de glissement qui restait a l'ecran quand l'image changeait de place.
-- Tests de bout en bout : Playwright dans Microsoft Edge (rien a telecharger), 21 scenarios dans e2e/, lancer avec npm run e2e (tous reussis). Exclus de vitest.
+- Tests de bout en bout : Playwright dans Microsoft Edge (rien a telecharger), 22 scenarios dans e2e/, lancer avec npm run e2e (tous reussis). Exclus de vitest.
 - Avertissements du lecteur de code : 135 -> 89 (menu du moodboard sorti du rendu, expressions et cles corrigees). Restent 89, surtout des conseils de style React sans bug constate.
+- Test de bout en bout ajoute : un devis a partir d'un tarif (total 300 EUR, acompte 30 % = 90 EUR, mention art. 293 B). 22 scenarios reussis. Rapports d'audit mis a jour (89 avertissements, tests de bout en bout).
