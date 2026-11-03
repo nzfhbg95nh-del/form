@@ -7,7 +7,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
-import { afterRemoval, flatten, imageGrid, imagesOfGridBlock, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
+import { afterRemoval, flatten, imageGrid, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
@@ -459,36 +459,6 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
       if (id) putBlock(editor, { type: blockType, props: blockType === 'moodboard' ? { boardId: id } : blockType === 'database' ? { dbId: id } : { pageId: id } }, at)
     })
   }
-  // « /image » : on choisit une ou plusieurs images tout de suite ; une seule = un bloc image, plusieurs = une grille de 4 colonnes.
-  // Si on referme la fenêtre sans choisir, on retrouve le bloc image vide habituel (avec ses onglets).
-  const pickImages = () => {
-    const at = cursorBlock(editor)
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.multiple = true
-    input.onchange = () => {
-      const files = Array.from(input.files ?? [])
-      if (files.length === 0) return viaDefault('image')()
-      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then(async (added) => {
-        // Des images ajoutées à la suite (juste sous une image ou une grille d'images) rejoignent la grille.
-        let images: { type: string; props: { url: string; name?: string } }[] = added
-        const doc = editor.document as unknown as { id: string; type: string; children?: never[]; content?: unknown[] }[]
-        const at0 = doc.findIndex((b) => b.id === at.id)
-        const here = doc[at0]
-        const before = at0 > 0 && here && Array.isArray(here.content) && here.content.length === 0 ? doc[at0 - 1] : undefined
-        const previous = imagesOfGridBlock(before as never)
-        if (previous && before) {
-          images = [...previous.map((b) => withoutIds(b as never) as never), ...added]
-          editor.removeBlocks([before.id] as never)
-        }
-        if (images.length === 1) return putBlock(editor, images[0], at)
-        putBlocks(editor, imageGrid(images, await imageRatios(images.map((i) => i.props.url))), at)
-      })
-    }
-    input.oncancel = () => viaDefault('image')()
-    input.click()
-  }
   const B = 'Blocs de base'
   const M = 'Médias'
   const mod = (k: string) => std(k)?.badge
@@ -520,7 +490,7 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
     { key: 'pagecard', title: 'Carte de page', aliases: ['page', 'carte', 'aperçu', 'apercu', 'lien', 'lier'], group: 'Blocs avancés', subtext: 'Un aperçu d’une autre page (titre et début du texte)', icon: ico(FileText), onItemClick: put({ type: 'pagecard' }) },
     { key: 'equation', title: 'Équation', aliases: ['équation', 'equation', 'formule', 'latex', 'maths', 'math'], group: 'Blocs avancés', subtext: 'Une formule de maths écrite en LaTeX', icon: ico(Sigma), onItemClick: put({ type: 'equation' }) },
-    { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, subtext: 'Une ou plusieurs images, rangées en grille façon Pinterest si tu en choisis plusieurs', icon: ico(ImageIcon), onItemClick: pickImages },
+    { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
     { key: 'file', title: 'Fichier', aliases: ['fichier', 'file', 'pièce jointe'], group: M, icon: ico(Paperclip), onItemClick: viaDefault('file') },
@@ -715,7 +685,29 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
           const recent = loadRecentColor()
           ed.updateBlock(b.id as never, { props: { [colorProp(recent.kind)]: nextColor(String(b.props?.[colorProp(recent.kind)] ?? 'default'), recent) } } as never)
         })
-      }      // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
+      }
+      // Ctrl+A comme dans Notion : un premier appui sélectionne le texte du bloc ; si tout son texte l'est déjà (ou s'il est vide), le suivant sélectionne tous les blocs.
+      if (ctrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a') {
+        try {
+          const block = ed.getTextCursorPosition().block as { id: string }
+          const inline = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${block.id}"] > .bn-block > .bn-block-content .bn-inline-content`)
+          const text = (inline?.textContent ?? '').trim()
+          const picked = window.getSelection()?.toString().trim() ?? ''
+          if (!inline || text === '' || picked === text) {
+            const all = flatten(ed.document as unknown as BlockLike[])
+            sel.set(selKey, all[0], all[all.length - 1])
+          } else {
+            const range = document.createRange()
+            range.selectNodeContents(inline)
+            const s = window.getSelection()
+            s?.removeAllRanges()
+            s?.addRange(range)
+          }
+          stop()
+          return true
+        } catch { /* pas de curseur dans l'éditeur */ }
+      }
+      // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
       if (e.key === 'Escape' && !ctrl && !e.shiftKey && !e.altKey && !document.querySelector('[role="listbox"]')) {
         try {
           const block = ed.getTextCursorPosition().block as { id: string }
@@ -747,11 +739,21 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       ed.setTextCursorPosition(focus as never, 'end')
       return true
     }
+    if (ctrl && !e.shiftKey && !e.altKey && e.key.toLowerCase() === 'a') {
+      stop()
+      sel.set(selKey, order[0], order[order.length - 1])
+      return true
+    }
     if (e.key === 'Backspace' || e.key === 'Delete') {
       stop()
       const target = afterRemoval(order, ids)
       sel.clear()
-      ed.removeBlocks(ids as never)
+      // Un bloc dont le parent est déjà choisi part avec lui : on ne supprime que les plus hauts.
+      const top = ids.filter((id) => {
+        const parent = ed.getParentBlock(id as never) as { id: string } | undefined
+        return !parent || !ids.includes(parent.id)
+      })
+      ed.removeBlocks(top as never)
       if (target) {
         try { ed.setTextCursorPosition(target as never, 'end') } catch { /* le bloc n'existe plus */ }
       }
