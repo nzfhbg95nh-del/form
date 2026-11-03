@@ -29,7 +29,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, LayoutGrid } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2 } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -834,18 +834,6 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
-      {selImages >= 2 && selRects.length > 0 && (
-        <button
-          type="button"
-          className="btn btn-primary fixed z-30"
-          style={{ left: Math.max(8, Math.min(...selRects.map((r) => r.left))), top: Math.max(8, Math.min(...selRects.map((r) => r.top)) - 42) }}
-          onMouseDown={(e) => e.preventDefault()}
-          onClick={() => void arrangeGrid()}
-          title="Raccourci : G"
-        >
-          <LayoutGrid size={14} /> Ranger en grille
-        </button>
-      )}
     <BlockNoteView
       editor={editor}
       theme={theme}
