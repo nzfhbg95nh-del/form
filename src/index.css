@@ -224,8 +224,8 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
    (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */
 .bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout']) {
   border-radius: 6px;
-  padding-inline: 8px;
-  margin-inline: -8px;
+  padding-inline: 6px;
+  margin-inline: -6px;
 }
 
 /* Couleurs de fond des blocs, celles de Notion : pastel en mode clair, ton sourd en mode sombre (le jaune d'origine du mode sombre était trop vif). */

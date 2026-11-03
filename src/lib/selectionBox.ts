@@ -13,11 +13,11 @@ export function selectionBox(r: { left: number; top: number; width: number; heig
   return { left: r.left - 10, top: r.top + 1, width: r.width + 20, height: Math.max(0, r.height - 2) }
 }
 
-/** Le rectangle du texte d'un bloc : un bloc coloré déborde déjà de 8 px de chaque côté (voir index.css), on le ramène à l'alignement des autres. */
+/** Le rectangle du texte d'un bloc : un bloc coloré déborde déjà de 6 px de chaque côté (voir index.css), on le ramène à l'alignement des autres : son fond reste donc 4 px à l'intérieur du rectangle de sélection, comme dans Notion. */
 export function textRect(el: HTMLElement): Box {
   const r = el.getBoundingClientRect()
   const bg = el.getAttribute('data-background-color')
-  const grown = bg && bg !== 'default' && el.getAttribute('data-content-type') !== 'callout' ? 8 : 0
+  const grown = bg && bg !== 'default' && el.getAttribute('data-content-type') !== 'callout' ? 6 : 0
   return { left: r.left + grown, top: r.top, width: r.width - 2 * grown, height: r.height }
 }
 
