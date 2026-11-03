@@ -11,7 +11,8 @@ import { useLibrary } from '@/biblio/store/library.ts'
 import { processImage } from '@/lib/images'
 import { addedMessage, assetName, assetPrefix, placeNewItems, slidesOf } from '@/biblio/lib/formBoardsPure.ts'
 import { withCoverAsset } from '@/biblio/lib/moodboardList.ts'
-import { makeImage, parseBoard, serializeBoard, type BoardItem } from '@/lib/moodboard'
+import { makeImage, makeVideo, parseBoard, serializeBoard, type BoardItem } from '@/lib/moodboard'
+import { videoTitle } from '@/lib/video'
 import { useApp } from '@/store/app'
 
 /** Les moodboards de Form (ceux qui ne sont pas à la corbeille). */
@@ -84,6 +85,12 @@ export async function addBlocksToBoard(boardId: string, blocks: readonly GridBlo
   let failed = 0
   for (const block of blocks) {
     for (const f of slidesOf(await loadBlockFiles(block.id))) {
+      // Une vidéo reste dans la bibliothèque : le moodboard garde son emplacement et la lit (il ne copie qu'une image fixe pour les autres fichiers).
+      if (f.kind === 'video' && !f.missing) {
+        const path = originalPath(root, f.rel)
+        created.push(makeVideo({ x: 0, y: 0 }, path, videoTitle(path)))
+        continue
+      }
       let prepared = null
       // L'original d'abord (sauf pour une vidéo : on prend son image d'aperçu) ; sinon la miniature (HEIC, fichier absent…).
       const original = f.kind === 'image' && !f.missing ? await toBlob(fileUrl(originalPath(root, f.rel))) : null
