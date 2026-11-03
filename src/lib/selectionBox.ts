@@ -10,7 +10,15 @@ export interface Box {
 
 /** Le rectangle à dessiner autour d'un bloc dont la zone de contenu mesure `r`. */
 export function selectionBox(r: { left: number; top: number; width: number; height: number }): Box {
-  return { left: r.left - 10, top: r.top + 1, width: r.width + 14, height: Math.max(0, r.height - 2) }
+  return { left: r.left - 10, top: r.top + 1, width: r.width + 20, height: Math.max(0, r.height - 2) }
+}
+
+/** Le rectangle du texte d'un bloc : un bloc coloré déborde déjà de 8 px de chaque côté (voir index.css), on le ramène à l'alignement des autres. */
+export function textRect(el: HTMLElement): Box {
+  const r = el.getBoundingClientRect()
+  const bg = el.getAttribute('data-background-color')
+  const grown = bg && bg !== 'default' && el.getAttribute('data-content-type') !== 'callout' ? 8 : 0
+  return { left: r.left + grown, top: r.top, width: r.width - 2 * grown, height: r.height }
 }
 
 /** La couleur de remplissage : l'accent de l'appli à 15 % (le texte et les couleurs de fond restent visibles dessous). */
