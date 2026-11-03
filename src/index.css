@@ -48,7 +48,7 @@ body {
 
 /* Marges d'une page, comme dans Notion : colonne de texte de 708 px, jusqu'à 96 px de marge de chaque côté (moins sur une petite fenêtre) ; le titre et le texte
    partent exactement du même bord (le texte de l'éditeur est décalé de la même marge que le titre). */
-.page-body { --page-pad: clamp(32px, 7vw, 96px); }
+.page-body, .first-steps-wrap { --page-pad: clamp(32px, 7vw, 96px); }
 .page-body .bn-editor { padding-inline: var(--page-pad) !important; }
 
 /* Texte réduit (option « Texte réduit » du menu d'une page). */
@@ -74,6 +74,21 @@ body {
   opacity: 0.7;
   pointer-events: none;
 }
+
+/* Boutons « Premiers pas… » d'une page toute vide (pastilles claires, comme dans Notion). */
+.first-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--bg-hover);
+  color: var(--fg);
+  font-size: 13px;
+  font-weight: 500;
+  transition: background-color 0.15s;
+}
+.first-step:hover { background: color-mix(in srgb, var(--fg) 12%, var(--bg)); }
 
 /* Une fois l'aide comprise (assez de texte tapé), plus aucune phrase d'aide dans les lignes vides. */
 html.hint-off .bn-block-content::after,

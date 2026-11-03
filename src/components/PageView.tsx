@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
-import { Pin, Star, Trash2 } from 'lucide-react'
+import { Database, Images, LayoutTemplate, ListChecks, Pin, Star, Trash2 } from 'lucide-react'
+import { PAGE_TEMPLATES } from '@/lib/templates'
 import { addOption } from '@/components/DatabaseView'
 import { PropertyEditor } from '@/components/PropertyEditor'
 import { allColumns, cellValue, parseSchema } from '@/lib/database'
@@ -42,6 +43,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   const titleRef = useRef<HTMLTextAreaElement>(null)
   const scroller = useRef<HTMLDivElement>(null)
   const drag = useRef<{ x: number; y: number; moved: boolean } | null>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
   const [marquee, setMarquee] = useState<{ x1: number; y1: number; x2: number; y2: number } | null>(null)
   const [lit, setLit] = useState<{ left: number; top: number; width: number; height: number }[]>([])
   const pending = useRef<{ id: string; patch: Patch } | null>(null)
@@ -212,7 +214,36 @@ export function PageView({ pageId }: { pageId?: string }) {
     } catch { /* sélection impossible : le surlignage disparaît simplement */ }
   }
 
+  // « Premiers pas… » : sur une page toute vide, des raccourcis pour démarrer (comme sur une nouvelle page de Notion). Ils disparaissent dès qu'on écrit.
+  const showFirstSteps = page.type === 'page' && !ui.locked && isBlankContent(page.content)
+  const fill = (blocks: unknown[]) => {
+    const ed = editorRef.current
+    if (!ed) return
+    ed.replaceBlocks(ed.document as never, blocks as never)
+    setTemplatesOpen(false)
+    ed.focus()
+  }
+  const fillWithChild = (kind: 'database' | 'moodboard') => {
+    void useApp.getState().createEmbeddedChild(page.id, kind).then((id) => {
+      if (id) fill([kind === 'database' ? { type: 'database', props: { dbId: id } } : { type: 'moodboard', props: { boardId: id } }, { type: 'paragraph' }])
+    })
+  }
+  const applyTemplate = (templateId: string) => {
+    const tpl = PAGE_TEMPLATES.find((t) => t.id === templateId)
+    if (!tpl) return
+    if (templateId === 'recette') {
+      setTemplatesOpen(false)
+      void useApp.getState().createFromTemplate(templateId)
+      return
+    }
+    const next = tpl.title()
+    setTitle(next)
+    void update(page.id, { title: next, icon: tpl.icon })
+    fill(tpl.content)
+  }
+
   return (
+    <div className="relative h-full">
     <div
       ref={scroller}
       className="h-full overflow-y-auto"
@@ -340,6 +371,29 @@ export function PageView({ pageId }: { pageId?: string }) {
         <Backlinks pageId={page.id} />
         <PageOutline content={page.content} />
       </div>
+    </div>
+    {showFirstSteps && (
+      <div className="first-steps-wrap pointer-events-none absolute inset-x-0 bottom-6 z-10 px-[var(--page-pad)]">
+        <div className="pointer-events-auto mx-auto max-w-[900px]">
+          <div className="mb-2 text-xs text-[var(--fg-muted)]">Premiers pas…</div>
+          <div className="relative flex flex-wrap gap-2">
+            <button type="button" className="first-step" onClick={() => fill([{ type: 'checkListItem' }])}><ListChecks size={15} /> Liste de tâches</button>
+            <button type="button" className="first-step" onClick={() => fillWithChild('database')}><Database size={15} /> Base de données</button>
+            <button type="button" className="first-step" onClick={() => fillWithChild('moodboard')}><Images size={15} /> Moodboard</button>
+            <button type="button" className="first-step" aria-expanded={templatesOpen} onClick={() => setTemplatesOpen((o) => !o)}><LayoutTemplate size={15} /> Modèles</button>
+            {templatesOpen && (
+              <div className="absolute bottom-full left-0 mb-2 w-52 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1 text-sm shadow-lg">
+                {PAGE_TEMPLATES.map((t) => (
+                  <button key={t.id} type="button" className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-[var(--bg-hover)]" onClick={() => applyTemplate(t.id)}>
+                    <span>{t.icon}</span> {t.label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
     </div>
   )
 }
