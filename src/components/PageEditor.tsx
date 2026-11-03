@@ -8,7 +8,7 @@ import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultP
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
-import { SELECTION_FILL, selectionBox, textRect } from '@/lib/selectionBox'
+import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
 import { blockLink, strippedCopy } from '@/lib/blocks'
 import { copyText } from '@/lib/windowActions'
@@ -564,7 +564,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       setSelRects(ids.flatMap((id) => {
         const content = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${id}"]`)?.querySelector<HTMLElement>(':scope > .bn-block > .bn-block-content')
         if (!content) return []
-        return [selectionBox(textRect(content))]
+        return [blockBox(content)]
       }))
     }
     compute()

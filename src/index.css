@@ -224,9 +224,10 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
    (le texte reste aligné avec les autres blocs). Les encadrés ont leur propre fond. */
 .bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout']) {
   border-radius: 6px;
-  padding-inline: 4px;
-  margin-inline: -4px;
-  width: calc(100% + 8px);
+  padding-inline: 3px;
+  margin-inline: -3px;
+  margin-block: 4px;
+  width: calc(100% + 6px);
   box-sizing: border-box;
 }
 

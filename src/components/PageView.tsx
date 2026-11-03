@@ -14,7 +14,7 @@ import { PageStyleMenu, pageFontFamily } from '@/components/PageStyleMenu'
 import { parsePageStyle } from '@/lib/pageStyle'
 import { firstImageUrl } from '@/lib/content'
 import { useBlockSel } from '@/store/blockSel'
-import { SELECTION_FILL, selectionBox, textRect } from '@/lib/selectionBox'
+import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 type Patch = Parameters<ReturnType<typeof useApp.getState>['update']>[1]
@@ -151,7 +151,7 @@ export function PageView({ pageId }: { pageId?: string }) {
   // Le surlignage est dessiné par-dessus (l'éditeur réécrit lui-même ses éléments, on ne peut pas y poser de marque).
   const mark = (hit: HTMLElement[]) => {
     setLit(hit.map((el) => {
-      return selectionBox(textRect((el.querySelector(':scope > .bn-block > .bn-block-content') ?? el) as HTMLElement))
+      return blockBox((el.querySelector(':scope > .bn-block > .bn-block-content') ?? el) as HTMLElement)
     }))
   }
   // Comme dans Notion : un clic dans le vide sous le dernier bloc met le curseur à la fin de la page ; si ce bloc n'est pas du texte
