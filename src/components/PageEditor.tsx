@@ -784,7 +784,18 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     const img = t instanceof HTMLImageElement ? t : null
     return img && editable && !plain && img.closest('.bn-block-content[data-content-type="image"]') ? img : null
   }
-  const onImageHover = (e: React.MouseEvent) => {
+  // Un clic ailleurs désélectionne les blocs ; un clic sur une image la sélectionne (Maj+clic étend), pour qu'on puisse la supprimer au clavier.
+  const onPointerDownCapture = (e: React.PointerEvent) => {
+    const sel = useBlockSel.getState()
+    const before = sel.pageId === selKey ? sel.anchor : null
+    sel.clear()
+    const t = e.target as HTMLElement
+    if (!editable || e.button !== 0 || !(t instanceof HTMLImageElement) || !t.closest('.bn-block-content[data-content-type="image"]')) return
+    const id = t.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+    if (!id) return
+    useBlockSel.getState().set(selKey, e.shiftKey && before ? before : id, id)
+  }
+  const onImageHover =(e: React.MouseEvent) => {
     const img = imageOf(e.target)
     if (img && !img.draggable) img.draggable = true
   }
@@ -799,7 +810,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (imageOf(e.target)) editor.getExtension(SideMenuExtension)?.blockDragEnd()
   }
   return (
-    <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()} onMouseOver={onImageHover} onDragStartCapture={onImageDragStart} onDragEndCapture={onImageDragEnd}>
+    <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={onPointerDownCapture} onMouseOver={onImageHover} onDragStartCapture={onImageDragStart} onDragEndCapture={onImageDragEnd}>
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
