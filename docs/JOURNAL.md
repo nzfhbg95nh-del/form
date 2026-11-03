@@ -1099,3 +1099,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Images : on peut les attraper directement (clic maintenu) pour les déplacer, y compris en colonnes ; le bloc d'une image se resserre autour d'elle pour que « déposer à droite » marche. Plusieurs images sélectionnées : bouton « Ranger en grille » (ou touche G) = lignes de 4 colonnes, dernière ligne complétée de colonnes vides (`imageGrid`, testé). À venir : case « + Ajouter une image » en fin de grille.
 - Marges recopiées d'une capture Notion (mesurées) : bloc ordinaire = bleu à 6 px du texte à gauche et à droite, 2 px de retrait en haut/en bas (4 px entre deux blocs) ; bloc coloré = fond à 3 px du texte, 4 px d'espace en haut/en bas, bleu à 3 px (côtés) et 2 px (haut/bas) autour du fond.
 - Correctif : le champ « Rechercher des actions » du menu d'un bloc ne prenait pas le curseur à l'ouverture (la frappe partait dans la page) ; il le reprend maintenant.
+
