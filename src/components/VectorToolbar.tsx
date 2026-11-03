@@ -193,34 +193,41 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
 
       {/* Remplissage et contour, comme dans la barre d'Illustrator */}
       <div className="flex shrink-0 flex-col items-center gap-1.5 px-1 pb-2 pt-1" style={{ borderTop: `1px solid ${PANEL_EDGE}` }}>
-        <div className="relative" style={{ width: single ? 36 : 70, height: single ? 38 : 66 }}>
+        {/* Barre étroite, comme celle de Photoshop : petits boutons « couleurs par défaut » et « permuter » au-dessus de deux carrés qui se chevauchent. */}
+        {single && (
+          <div className="flex w-full items-center justify-between px-0.5">
+            <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="relative h-3 w-3 shrink-0 border border-[var(--border)] bg-white" style={{ outline: '2px solid #000', outlineOffset: -4 }} />
+            <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="text-xs leading-none hover:text-white">↷</button>
+          </div>
+        )}
+        <div className="relative" style={{ width: single ? 32 : 70, height: single ? 32 : 66 }}>
           <button
             title="Contour (X pour passer du remplissage au contour)"
             aria-label="Couleur du contour"
             onClick={() => { setActive('stroke'); strokeInput.current?.click() }}
-            className="absolute bottom-0 right-0 h-[40px] w-[40px]"
-            style={{ background: paint.stroke ?? '#fff', border: `${active === 'stroke' ? 2 : 1}px solid ${active === 'stroke' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'stroke' ? 2 : 1 }}
+            className="absolute bottom-0 right-0"
+            style={{ background: paint.stroke ?? '#fff', border: `${active === 'stroke' ? 2 : 1}px solid ${active === 'stroke' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'stroke' ? 2 : 1, width: single ? 22 : 40, height: single ? 22 : 40 }}
           >
-            <span className="absolute inset-[9px]" style={{ background: PANEL, border: '1px solid var(--border)' }} />
+            <span className="absolute" style={{ inset: single ? 5 : 9, background: PANEL, border: '1px solid var(--border)' }} />
             {paint.stroke === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
           </button>
           <button
             title="Remplissage"
             aria-label="Couleur de remplissage"
             onClick={() => { setActive('fill'); fillInput.current?.click() }}
-            className="absolute left-0 top-0 h-[40px] w-[40px]"
-            style={{ background: paint.fill ?? '#fff', border: `${active === 'fill' ? 2 : 1}px solid ${active === 'fill' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'fill' ? 2 : 1 }}
+            className="absolute left-0 top-0"
+            style={{ background: paint.fill ?? '#fff', border: `${active === 'fill' ? 2 : 1}px solid ${active === 'fill' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'fill' ? 2 : 1, width: single ? 22 : 40, height: single ? 22 : 40 }}
           >
             {paint.fill === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
           </button>
-          <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="absolute -right-1 -top-1 text-sm leading-none hover:text-white">↷</button>
-          <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="absolute -bottom-1 -left-1 h-3 w-3 border border-[var(--border)] bg-white text-[0px]" style={{ outline: '2px solid #000', outlineOffset: -4 }}>d</button>
+          {!single && <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="absolute -right-1 -top-1 text-sm leading-none hover:text-white">↷</button>}
+          {!single && <button title="Remplissage et contour par défaut (D)" aria-label="Par défaut" onClick={() => onPaint(DEFAULT_PAINT)} className="absolute -bottom-1 -left-1 h-3 w-3 border border-[var(--border)] bg-white text-[0px]" style={{ outline: '2px solid #000', outlineOffset: -4 }}>d</button>}
           <input ref={fillInput} type="color" className="sr-only" tabIndex={-1} value={paint.fill ?? '#ffffff'} onChange={(e) => onPaint({ ...paint, fill: e.target.value })} aria-hidden />
           <input ref={strokeInput} type="color" className="sr-only" tabIndex={-1} value={paint.stroke ?? '#000000'} onChange={(e) => onPaint({ ...paint, stroke: e.target.value, sw: paint.sw > 0 ? paint.sw : 1 })} aria-hidden />
         </div>
         <label className="flex items-center gap-1 text-[11px] opacity-80" title="Épaisseur du contour (pt)">
-          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className="w-10 rounded border border-[var(--border)] bg-transparent px-1 py-0.5 text-xs outline-none focus:border-[var(--accent)]" style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
-          pt
+          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className={(single ? 'w-8 px-0.5' : 'w-10 px-1') + ' rounded border border-[var(--border)] bg-transparent py-0.5 text-xs outline-none focus:border-[var(--accent)]'} style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
+          {!single && 'pt'}
         </label>
       </div>
     </div>
