@@ -220,6 +220,11 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         dragDepth.current = Math.max(0, dragDepth.current - 1)
         if (dragDepth.current === 0) setDragging(false)
       }}
+      onDrop={() => {
+        // Tout dépôt, où qu'il ait lieu, referme les deux zones.
+        dragDepth.current = 0
+        setDragging(false)
+      }}
     >
       <div className="flex items-center gap-4 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         {filters.collection && (
