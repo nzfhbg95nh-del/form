@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type, ALargeSmall, Pilcrow, FileDown } from 'lucide-react'
 import { exportBoard } from '@/lib/boardTransfer'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
@@ -58,7 +58,7 @@ const group = 'pointer-events-auto flex items-center gap-0.5 rounded-xl bg-[colo
 const item = 'flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs text-[var(--fg)] transition-colors hover:bg-[color-mix(in_srgb,var(--fg)_9%,transparent)] aria-pressed:bg-[var(--bg)] aria-pressed:text-[var(--accent)] aria-pressed:shadow-sm'
 
 // Presse-papiers interne : copier / coller des éléments de la toile.
-let internalClip: { stamp: string; items: BoardItem[] } | null = null
+const clipboardHolder: { current: { stamp: string; items: BoardItem[] } | null } = { current: null }
 
 /** `compact` : version allégée pour le cadre d'une page (juste Images et Ajuster, sans barre du bas ni palette). */
 /** Découpe l'aide d'un outil en une ligne par conseil (le texte original les sépare par « | »). */
@@ -75,6 +75,25 @@ function hintLines(segments: readonly (readonly [string, boolean])[]): React.Rea
   return lines.filter((l) => l.length > 0)
 }
 
+/** Les petites pièces du menu contextuel : définies ici (et non dans la page) pour ne pas être recréées à chaque affichage. Choisir une ligne ferme le menu. */
+const MenuCloseContext = createContext<() => void>(() => undefined)
+
+function MenuBtn({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) {
+  const close = useContext(MenuCloseContext)
+  return (
+    <button
+      onClick={() => { close(); onClick() }}
+      className={'flex w-full items-center justify-between gap-6 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)] ' + (danger ? 'text-red-500' : '')}
+    >
+      <span>{label}</span>
+      {hint && <span className="text-xs text-[var(--fg-muted)]">{hint}</span>}
+    </button>
+  )
+}
+
+function MenuHead({ children }: { children: React.ReactNode }) {
+  return <div className="px-2 pb-0.5 pt-2 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">{children}</div>
+}
 export function MoodboardView({ board, compact = false }: { board: ObjectRow; compact?: boolean }) {
   const initial = useMemo(() => parseBoard(board.content), [board.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const repo = useApp((s) => s.repo)
@@ -492,9 +511,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (files.some((f) => f.type.startsWith('image/'))) {
         e.preventDefault()
         void addFiles(files, center)
-      } else if (text.startsWith('form-board-items:') && internalClip && text === `form-board-items:${internalClip.stamp}`) {
+      } else if (text.startsWith('form-board-items:') && clipboardHolder.current && text === `form-board-items:${clipboardHolder.current.stamp}`) {
         e.preventDefault()
-        const { items: both, newIds } = duplicateItems(internalClip.items, new Set(internalClip.items.map((i) => i.id)), 30)
+        const { items: both, newIds } = duplicateItems(clipboardHolder.current.items, new Set(clipboardHolder.current.items.map((i) => i.id)), 30)
         commitItems([...itemsRef.current, ...both.filter((i) => newIds.has(i.id))])
         setSelection(newIds)
       } else if (looksLikeUrl(text)) {
@@ -605,7 +624,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         const group = expandGroups(cur, [id])
         sel = new Set(sel)
         const all = [...group].every((g) => sel.has(g))
-        for (const g of group) all ? sel.delete(g) : sel.add(g)
+        for (const g of group) {
+          if (all) sel.delete(g)
+          else sel.add(g)
+        }
       } else if (!sel.has(id)) {
         sel = expandGroups(cur, [id])
       }
@@ -783,8 +805,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const copySelection = () => {
     const list = itemsRef.current.filter((i) => selRef.current.has(i.id))
     if (list.length === 0) return
-    internalClip = { stamp: String(Date.now()), items: list }
-    void navigator.clipboard.writeText(`form-board-items:${internalClip.stamp}`)
+    clipboardHolder.current = { stamp: String(Date.now()), items: list }
+    void navigator.clipboard.writeText(`form-board-items:${clipboardHolder.current.stamp}`)
     say(`${list.length} élément${list.length > 1 ? 's' : ''} copié${list.length > 1 ? 's' : ''}`)
   }
 
@@ -827,16 +849,16 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     else if (!mod && e.shiftKey && key === 'a') setMenu({ x: lastPt.current.x, y: lastPt.current.y, world: screenToWorld(viewRef.current, lastPt.current), mode: 'full', add: true })
     else if (mod && key === 'a') act.selectAll()
     else if (mod && key === 'd') act.duplicate()
-    else if (mod && key === 'g') (e.shiftKey ? act.ungroup() : act.group())
-    else if (mod && key === 'z') (e.shiftKey ? doRedo() : doUndo())
+    else if (mod && key === 'g') { if (e.shiftKey) act.ungroup(); else act.group() }
+    else if (mod && key === 'z') { if (e.shiftKey) doRedo(); else doUndo() }
     else if (mod && key === 'y') doRedo()
     else if (mod && key === 'c') copySelection()
     else if (mod && key === 'x') { copySelection(); act.remove() }
     else if (mod && key === '0') setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))
     else if (!mod && key === 'f') fitTo(selRef.current.size > 0 ? itemsRef.current.filter((i) => selRef.current.has(i.id)) : itemsRef.current)
     else if (e.key === 'Home') fitTo(itemsRef.current)
-    else if (mod && (key === ']' || e.code === 'BracketRight')) (e.shiftKey ? act.front() : act.forward())
-    else if (mod && (key === '[' || e.code === 'BracketLeft')) (e.shiftKey ? act.back() : act.backward())
+    else if (mod && (key === ']' || e.code === 'BracketRight')) { if (e.shiftKey) act.front(); else act.forward() }
+    else if (mod && (key === '[' || e.code === 'BracketLeft')) { if (e.shiftKey) act.back(); else act.backward() }
     else if (!mod && SHORTCUTS[e.shiftKey ? 'shift+' + key : key]) setTool(SHORTCUTS[e.shiftKey ? 'shift+' + key : key])
     else if (e.key === 'Escape') {
       setSelection(new Set()); setMenu(null); setEditing(null); setTool('select')
@@ -1068,18 +1090,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const showTextPanel = !compact && textSel.length > 0 && !marquee && !live
   const selGrouped = selected.some((i) => i.group)
 
-  const MenuBtn = ({ label, onClick, danger, hint }: { label: string; onClick: () => void; danger?: boolean; hint?: string }) => (
-    <button
-      onClick={() => { setMenu(null); onClick() }}
-      className={'flex w-full items-center justify-between gap-6 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)] ' + (danger ? 'text-red-500' : '')}
-    >
-      <span>{label}</span>
-      {hint && <span className="text-xs text-[var(--fg-muted)]">{hint}</span>}
-    </button>
-  )
-  const MenuHead = ({ children }: { children: React.ReactNode }) => <div className="px-2 pb-0.5 pt-2 text-[11px] font-semibold uppercase text-[var(--fg-muted)]">{children}</div>
+  const closeMenu = () => setMenu(null)
 
   return (
+    <MenuCloseContext.Provider value={closeMenu}>
     <div
       ref={containerRef}
       tabIndex={0}
@@ -1288,8 +1302,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                 [st.caps === 'small', 'Tt', 'Petites capitales', () => setTextProps({ caps: st.caps === 'small' ? 'none' : 'small' })],
                 [st.script === 'sup', 'T¹', 'Exposant', () => setTextProps({ script: st.script === 'sup' ? 'none' : 'sup' })],
                 [st.script === 'sub', 'T₁', 'Indice', () => setTextProps({ script: st.script === 'sub' ? 'none' : 'sub' })],
-                [st.under, <Underline size={13} />, 'Souligné', () => setTextProps({ under: !st.under })],
-                [st.strike, <Strikethrough size={13} />, 'Barré', () => setTextProps({ strike: !st.strike })],
+                [st.under, <Underline key="underline" size={13} />, 'Souligné', () => setTextProps({ under: !st.under })],
+                [st.strike, <Strikethrough key="strike" size={13} />, 'Barré', () => setTextProps({ strike: !st.strike })],
               ])}
             </div>
             <div className={row}>
@@ -1533,5 +1547,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         </>
       )}
     </div>
+    </MenuCloseContext.Provider>
   )
 }

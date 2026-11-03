@@ -1109,3 +1109,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Marges recopiées d'une capture Notion (mesurées) : bloc ordinaire = bleu à 6 px du texte à gauche et à droite, 2 px de retrait en haut/en bas (4 px entre deux blocs) ; bloc coloré = fond à 3 px du texte, 4 px d'espace en haut/en bas, bleu à 3 px (côtés) et 2 px (haut/bas) autour du fond.
 - Correctif : le champ « Rechercher des actions » du menu d'un bloc ne prenait pas le curseur à l'ouverture (la frappe partait dans la page) ; il le reprend maintenant.
 
+
+## 2026-11-03 - Finitions : grille, glisser vers une page, tests de bout en bout, avertissements (branche travail, pas publie)
+- Bouton « Ajouter une image » sous une grille d'images (les images rejoignent la grille, reclassee). Glisser une image ou un bloc (poignee) sur une page de la liste « Pages » de la barre laterale : il y est deplace (Alt : copie). Corrige aussi l'apercu de glissement qui restait a l'ecran quand l'image changeait de place.
+- Tests de bout en bout : Playwright dans Microsoft Edge (rien a telecharger), 21 scenarios dans e2e/, lancer avec npm run e2e (tous reussis). Exclus de vitest.
+- Avertissements du lecteur de code : 135 -> 89 (menu du moodboard sorti du rendu, expressions et cles corrigees). Restent 89, surtout des conseils de style React sans bug constate.

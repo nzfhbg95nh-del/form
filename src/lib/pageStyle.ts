@@ -47,6 +47,8 @@ export function withPageStyle(properties: string | null | undefined, patch: Part
 
 /** Nom de fichier sûr pour l'export d'une page. */
 export function exportFileName(title: string, extension: string): string {
+  // Les caractères de contrôle (\u0000-\u001f) sont interdits dans un nom de fichier Windows : c'est voulu de les chercher ici.
+  // oxlint-disable-next-line no-control-regex
   const base = title.replace(/[\\/:*?"<>|\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80)
   return `${base || 'Sans titre'}.${extension}`
 }

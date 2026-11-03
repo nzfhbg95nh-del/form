@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useBlockMove } from '@/store/blockMove'
 import {
   Banknote, Briefcase, CheckSquare, ChefHat, ChevronDown, FileSignature, Images, LayoutDashboard, LayoutGrid, Map as MapIcon, FolderOpen, Receipt, ChevronRight, Clock, Database, FileText, MoreHorizontal, Moon, Pin, Plus, Search, Settings, Sun, Trash2, Users, Home, RotateCw } from 'lucide-react'
 import { LibraryStatus } from '@/biblio/components/LibraryStatus'
@@ -124,6 +125,10 @@ function TreeItem({
 }) {
   const { objects, selectedId, view, expanded, toggleExpanded, createPage, move, renamingId, pinned } = useApp()
   const handlers = useOpenHandlers(page.id)
+  // Un bloc (une image…) glissé depuis une page : on peut le déposer sur une autre page de la liste, il y est déplacé (Alt : copié).
+  const blockDrag = useBlockMove((s) => s.dragging)
+  const [blockOver, setBlockOver] = useState(false)
+  const canTakeBlock = !!blockDrag && page.type === 'page' && page.id !== blockDrag.from
   // Les moodboards ne se rangent pas dans « Pages » : ils vivent dans Bibliothèque > Moodboards.
   const kids = childrenOf(objects, page.id).filter((o) => o.type !== 'moodboard')
   const open = !!expanded[page.id]
@@ -148,20 +153,31 @@ function TreeItem({
         }}
         onDragEnd={() => setDrag({ dragId: null, over: null })}
         onDragOver={(e) => {
+          if (canTakeBlock) {
+            e.preventDefault()
+            setBlockOver(true)
+            return
+          }
           if (!drag.dragId || drag.dragId === page.id) return
           e.preventDefault()
           const zone = zoneAt(e)
           if (drag.over?.id !== page.id || drag.over.zone !== zone) setDrag({ ...drag, over: { id: page.id, zone } })
         }}
+        onDragLeave={() => setBlockOver(false)}
         onDrop={(e) => {
           e.preventDefault()
+          setBlockOver(false)
+          if (canTakeBlock) {
+            void blockDrag.drop(page.id)
+            return
+          }
           if (drag.dragId) void move(drag.dragId, page.id, zoneAt(e))
           setDrag({ dragId: null, over: null })
         }}
         className={cn(
           'group relative flex items-center gap-1 rounded py-1 pr-1 text-sm hover:bg-[var(--bg-hover)]',
           active && 'bg-[var(--bg-hover)] font-medium',
-          over === 'into' && 'outline outline-2 outline-[var(--accent)]',
+          (over === 'into' || (blockOver && canTakeBlock)) && 'outline outline-2 outline-[var(--accent)]',
         )}
         style={{ paddingLeft: 4 + depth * 14 }}
       >

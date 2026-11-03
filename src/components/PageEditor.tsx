@@ -11,11 +11,11 @@ import { Extension, markInputRule } from '@tiptap/core'
 import { BlockNoteSchema, createExtension, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
-import { afterRemoval, flatten, imageGrid, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
+import { afterRemoval, flatten, imageGrid, imagesOfGridBlock, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
-import { blockLink, strippedCopy } from '@/lib/blocks'
+import { appendBlockToContent, blockLink, strippedCopy } from '@/lib/blocks'
 import { copyText } from '@/lib/windowActions'
 import { BlockNoteView } from '@blocknote/mantine'
 import {
@@ -33,7 +33,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2, ChevronsRight, MousePointerClick } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2, ChevronsRight, MousePointerClick, Plus } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -49,6 +49,7 @@ import { openFloatingBoard } from '@/lib/floating'
 import { normalize } from '@/lib/search'
 import { isSystemDatabase } from '@/lib/database'
 import { useApp } from '@/store/app'
+import { useBlockMove } from '@/store/blockMove'
 
 // Couleurs de fond / de texte des blocs (mêmes noms que ceux du menu « Couleur » de l'éditeur).
 const CALLOUT_BG: Record<string, [string, string]> = {
@@ -963,11 +964,21 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   // Le bouton « ··· » qui apparaît au survol d'une image (en haut à droite), comme dans Notion : dupliquer, supprimer.
   const [hoverImg, setHoverImg] = useState<{ id: string; right: number; top: number } | null>(null)
   const [imgMenu, setImgMenu] = useState(false)
+  // Sous une grille d'images : le bouton « + Ajouter une image » (les images choisies rejoignent la grille, qui est reclassée).
+  const [hoverGrid, setHoverGrid] = useState<{ id: string; left: number; top: number } | null>(null)
   const onImageHover = (e: React.MouseEvent) => {
     const img = imageOf(e.target)
     if (img && !img.draggable) img.draggable = true
     if (!editable || plain) return
-    if ((e.target as HTMLElement).closest('[data-image-menu]')) return
+    if ((e.target as HTMLElement).closest('[data-image-menu], [data-grid-add]')) return
+    const list = (e.target as HTMLElement).closest<HTMLElement>('.bn-block-column-list')
+    const listId = list?.dataset.id
+    if (list && listId && !list.querySelector('.bn-block-content:not([data-content-type="image"]):not([data-content-type="column"]):not([data-content-type="columnList"])')) {
+      const lr = list.getBoundingClientRect()
+      setHoverGrid((cur) => (cur && cur.id === listId && cur.left === lr.left && cur.top === lr.bottom ? cur : { id: listId, left: lr.left, top: lr.bottom }))
+    } else {
+      setHoverGrid(null)
+    }
     const holder = (e.target as HTMLElement).closest<HTMLElement>('.bn-block-content[data-content-type="image"]')
     const id = holder?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
     const media = holder?.querySelector<HTMLElement>('.bn-visual-media-wrapper')
@@ -988,6 +999,34 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     window.addEventListener('scroll', off, true)
     return () => window.removeEventListener('scroll', off, true)
   }, [hoverImg])
+  useEffect(() => {
+    if (!hoverGrid) return
+    const off = () => setHoverGrid(null)
+    window.addEventListener('scroll', off, true)
+    return () => window.removeEventListener('scroll', off, true)
+  }, [hoverGrid])
+  const addToGrid = (listId: string) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.multiple = true
+    input.onchange = () => {
+      const files = Array.from(input.files ?? [])
+      const ed = editor as unknown as BlockNoteEditor<never, never, never>
+      const list = ed.getBlock(listId as never)
+      const existing = imagesOfGridBlock(list as never)
+      if (files.length === 0 || !existing) return
+      void Promise.all(files.map((f) => readFileAsDataUrl(f).then((url) => ({ type: 'image', props: { url, name: f.name } })))).then(async (added) => {
+        if (!ed.getBlock(listId as never)) return
+        const all = [...existing.map((b) => withoutIds(b as never) as never), ...added] as { props?: { url?: string } }[]
+        const rows = imageGrid(all, await imageRatios(all.map((i) => String(i.props?.url ?? ''))))
+        ed.insertBlocks(rows as never, listId as never, 'before')
+        ed.removeBlocks([listId] as never)
+      })
+    }
+    input.click()
+    setHoverGrid(null)
+  }
   const imageAction = (action: 'duplicate' | 'delete') => {
     const ed = editor as unknown as BlockNoteEditor<never, never, never>
     const id = hoverImg?.id
@@ -999,35 +1038,93 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (action === 'delete') ed.removeBlocks([id] as never)
     else ed.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
   }
-  // Alt + glisser (comme dans Notion) : le bloc tiré est copié, l'original reste en place. On pose la copie juste après l'original dès le début du glissement.
-  const duplicateWhileDragging = (e: React.DragEvent) => {
-    if (!e.altKey || !editable || plain) return
-    const t = e.target as HTMLElement
-    const imageId = imageOf(t)?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+  // Le bloc qu'on est en train de glisser : une image, ou n'importe quel bloc tiré par sa poignée ⋮⋮.
+  const draggedBlockId = (e: React.DragEvent) => {
+    const imageId = imageOf(e.target)?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
     const store = (editor.getExtension(SideMenuExtension) as unknown as { store?: { state?: { block?: { id: string } } } } | undefined)?.store
-    const id = imageId ?? store?.state?.block?.id
-    if (!id) return
+    return imageId ?? store?.state?.block?.id
+  }
+  // Alt + glisser (comme dans Notion) : le bloc tiré est copié, l'original reste en place. On pose la copie juste après l'original dès le début du glissement.
+  const altCopyId = useRef<string | null>(null)
+  const duplicateWhileDragging = (e: React.DragEvent, id: string) => {
+    if (!e.altKey) return
+    altCopyId.current = null
     window.setTimeout(() => {
       const block = editor.getBlock(id)
-      if (block) editor.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
+      if (block) altCopyId.current = (editor.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')[0] as unknown as { id: string } | undefined)?.id ?? null
     }, 0)
   }
+  // Déposer le bloc sur une page de la barre latérale : il part à la fin de cette page (avec Alt : une copie y est envoyée, rien ne bouge ici).
+  const offerToSidebar = (e: React.DragEvent, id: string) => {
+    if (!pageId) return
+    const copy = e.altKey
+    useBlockMove.getState().setDragging({
+      from: pageId,
+      drop: async (targetId) => {
+        const block = editor.getBlock(id)
+        const target = useApp.getState().objects.find((o) => o.id === targetId)
+        if (!block || !target) return
+        await useApp.getState().update(targetId, { content: appendBlockToContent(target.content, block as never) })
+        if (copy) {
+          if (altCopyId.current && editor.getBlock(altCopyId.current)) editor.removeBlocks([altCopyId.current] as never)
+        } else {
+          editor.removeBlocks([id] as never)
+        }
+        useApp.setState({ toast: `${copy ? 'Copie envoyée' : 'Bloc déplacé'} vers « ${target.title || 'Nouvelle page'} ».` })
+        window.setTimeout(() => useApp.setState({ toast: null }), 2500)
+      },
+    })
+  }
+  // Vrai quand c'est nous (pas la poignée ⋮⋮) qui avons lancé le glissement d'une image : il faudra le terminer nous-mêmes.
+  const endDrag = useRef<(() => void) | null>(null)
   const onImageDragStart = (e: React.DragEvent) => {
-    duplicateWhileDragging(e)
+    if (editable && !plain) {
+      const id = draggedBlockId(e)
+      if (id) {
+        duplicateWhileDragging(e, id)
+        offerToSidebar(e, id)
+      }
+    }
     const img = imageOf(e.target)
     const id = img?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
     const block = id ? editor.getBlock(id) : undefined
     if (!block) return
+    // L'image peut disparaître de l'écran pendant le glissement (déplacée ailleurs) : son « dragend » n'arrive alors plus jusqu'ici, donc on termine aussi à la fin du dépôt.
+    const cleanup = () => {
+      document.removeEventListener('drop', onDrop, true)
+      document.removeEventListener('dragend', cleanup, true)
+      endDrag.current = null
+      useBlockMove.getState().setDragging(null)
+      editor.getExtension(SideMenuExtension)?.blockDragEnd()
+    }
+    const onDrop = () => { window.setTimeout(cleanup, 50) }
+    endDrag.current?.()
+    endDrag.current = cleanup
+    document.addEventListener('drop', onDrop, true)
+    document.addEventListener('dragend', cleanup, true)
     editor.getExtension(SideMenuExtension)?.blockDragStart(e.nativeEvent, block as never)
   }
-  const onImageDragEnd = (e: React.DragEvent) => {
-    if (imageOf(e.target)) editor.getExtension(SideMenuExtension)?.blockDragEnd()
+  const onImageDragEnd = () => {
+    useBlockMove.getState().setDragging(null)
+    endDrag.current?.()
   }
   return (
     <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={onPointerDownCapture} onMouseOver={onImageHover} onDragStartCapture={onImageDragStart} onDragEndCapture={onImageDragEnd}>
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
+      {hoverGrid && (
+        <button
+          type="button"
+          data-grid-add
+          className="btn fixed z-30"
+          style={{ left: hoverGrid.left, top: hoverGrid.top + 6 }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={() => addToGrid(hoverGrid.id)}
+        >
+          <Plus size={14} /> Ajouter une image
+        </button>
+      )}
       {hoverImg && (
         <div data-image-menu className="fixed z-30" style={{ left: hoverImg.right - 36, top: hoverImg.top + 8 }} onMouseLeave={() => setImgMenu(false)}>
           <button

@@ -15,3 +15,7 @@ src-tauri/resources/gallery-dl.exe
 
 # Copie de la base de Victor (transfert d'un PC a l'autre) : ne jamais l'envoyer sur GitHub
 Form - transfert/
+
+# Tests de bout en bout (Playwright) : résultats locaux
+test-results/
+playwright-report/

@@ -10,6 +10,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "test": "vitest run",
+    "e2e": "playwright test",
     "tauri": "tauri"
   },
   "dependencies": {
@@ -42,6 +43,7 @@
     "zustand": "^5.0.15"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@tauri-apps/cli": "^2.12.1",
     "@types/node": "^24.13.3",

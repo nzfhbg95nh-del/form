@@ -13,5 +13,5 @@ export default defineConfig({
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   // Délais larges : la machine de fabrication de GitHub est plus lente que la nôtre (un test trivial a déjà dépassé 5 s).
-  test: { environment: 'node', testTimeout: 30000, hookTimeout: 30000 },
+  test: { environment: 'node', testTimeout: 30000, hookTimeout: 30000, exclude: ['e2e/**', 'node_modules/**', 'dist/**'] },
 })

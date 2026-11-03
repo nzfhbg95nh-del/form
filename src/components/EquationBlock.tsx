@@ -27,7 +27,7 @@ export function EquationBlock({ latex, update }: { latex: string; update: (latex
           value={draft}
           rows={2}
           onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { e.stopPropagation(); if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') done(); if (e.key === 'Escape') { setDraft(latex); setEditing(!!latex ? false : true) } }}
+          onKeyDown={(e) => { e.stopPropagation(); if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') done(); if (e.key === 'Escape') { setDraft(latex); setEditing(!latex) } }}
           placeholder="Écris la formule en LaTeX, par exemple : \frac{a}{b} + \sqrt{x^2 + 1}"
           aria-label="Formule LaTeX"
           className="lib-input w-full resize-none rounded-lg border px-3 py-2 font-mono text-sm outline-none"
