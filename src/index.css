@@ -230,6 +230,10 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   width: calc(100% + 6px);
   box-sizing: border-box;
 }
+/* BlockNote peint aussi la couleur sur le bloc entier (carré, sans les marges) : ce second fond dépassait derrière le premier et « cassait » le rectangle. */
+.bn-block:has(> .bn-block-content[data-background-color]:not([data-background-color='default']):not([data-content-type='callout'])) {
+  background-color: transparent !important;
+}
 
 /* Couleurs de fond des blocs, celles de Notion : pastel en mode clair, ton sourd en mode sombre (le jaune d'origine du mode sombre était trop vif). */
 .bn-container[data-color-scheme='light'] {
