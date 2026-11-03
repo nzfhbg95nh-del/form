@@ -8,6 +8,9 @@ import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultP
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
+import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
+import { blockLink, strippedCopy } from '@/lib/blocks'
+import { copyText } from '@/lib/windowActions'
 import { BlockNoteView } from '@blocknote/mantine'
 import {
   createReactBlockSpec,
@@ -608,7 +611,36 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       } catch (err) { console.warn('[blocs] déplacement impossible', err) }
       return true
     }    if (sel.pageId !== selKey || !sel.anchor || !sel.focus) {
-      // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
+      // Raccourcis de Notion sur le bloc du curseur : Ctrl+D (dupliquer), Alt+Maj+L (copier le lien du bloc), Ctrl+Maj+H (dernière couleur utilisée).
+      const isLetter = (letter: string) => e.key.toLowerCase() === letter
+      const onBlock = (action: (block: { id: string; props?: Record<string, unknown> }) => void) => {
+        try {
+          action(ed.getTextCursorPosition().block as unknown as { id: string; props?: Record<string, unknown> })
+          stop()
+          return true
+        } catch {
+          return false
+        }
+      }
+      if (ctrl && !e.shiftKey && !e.altKey && isLetter('d')) {
+        return onBlock((b) => {
+          ed.insertBlocks([strippedCopy(ed.getBlock(b.id as never) as never)] as never, b.id as never, 'after')
+        })
+      }
+      if (e.altKey && e.shiftKey && !ctrl && isLetter('l') && pageId) {
+        return onBlock((b) => {
+          void copyText(blockLink(pageId, b.id)).then(() => {
+            useApp.setState({ toast: 'Lien du bloc copié.' })
+            window.setTimeout(() => useApp.setState({ toast: null }), 2500)
+          })
+        })
+      }
+      if (ctrl && e.shiftKey && !e.altKey && isLetter('h')) {
+        return onBlock((b) => {
+          const recent = loadRecentColor()
+          ed.updateBlock(b.id as never, { props: { [colorProp(recent.kind)]: nextColor(String(b.props?.[colorProp(recent.kind)] ?? 'default'), recent) } } as never)
+        })
+      }      // Échap dans le texte (et pas dans un menu ouvert) : le bloc du curseur est sélectionné.
       if (e.key === 'Escape' && !ctrl && !e.shiftKey && !e.altKey && !document.querySelector('[role="listbox"]')) {
         try {
           const block = ed.getTextCursorPosition().block as { id: string }
