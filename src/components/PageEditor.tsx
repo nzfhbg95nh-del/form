@@ -1,11 +1,11 @@
-﻿import { dateText, dateTimeText } from '@/lib/dateShortcuts'
+import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT } from '@/lib/editorKeys'
 import { isTyping, noteTyped } from '@/lib/editorHint'
 import { EquationBlock } from '@/components/EquationBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
+import { BlockNoteSchema, createExtension, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, imageGrid, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
@@ -370,9 +370,37 @@ const createMention = createReactInlineContentSpec(
   { render: (props) => <MentionLink pageId={props.inlineContent.props.pageId} /> },
 )
 
+/**
+ * Comme dans Notion : "> " + espace crée un menu déroulant (BlockNote en faisait une citation) ; la citation se crée avec un guillemet + espace.
+ */
+const quoteSpec = {
+  ...defaultBlockSpecs.quote,
+  extensions: [
+    createExtension({
+      key: 'quote-block-shortcuts',
+      keyboardShortcuts: {
+        'Mod-Alt-q': ({ editor }: { editor: BlockNoteEditor<never, never, never> }) => {
+          const block = editor.getTextCursorPosition().block as unknown as { id: string; content?: unknown }
+          if (!Array.isArray(block.content)) return false
+          editor.updateBlock(block.id as never, { type: 'quote', props: {} } as never)
+          return true
+        },
+      },
+      inputRules: [{ find: /^\p{Quotation_Mark}\s$/u, replace: () => ({ type: 'quote', props: {} }) }],
+    } as never),
+  ],
+}
+const toggleSpec = {
+  ...defaultBlockSpecs.toggleListItem,
+  extensions: [
+    ...(defaultBlockSpecs.toggleListItem.extensions ?? []),
+    createExtension({ key: 'toggle-markdown-shortcut', inputRules: [{ find: /^>\s$/, replace: () => ({ type: 'toggleListItem', props: {} }) }] } as never),
+  ],
+}
+
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock() },
+    blockSpecs: { ...defaultBlockSpecs, quote: quoteSpec, toggleListItem: toggleSpec, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock() },
     inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
   }),
 )
@@ -646,7 +674,55 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       e.preventDefault()
       e.stopPropagation()
     }
-    // Ctrl+Maj+↑/↓ avec des blocs sélectionnés : ils montent ou descendent ensemble. (Sans sélection, l'éditeur déplace déjà le bloc du curseur.)
+    // Ctrl+Alt+T (comme dans Notion) : déplie tous les menus déroulants de la page, ou les replie tous s'ils sont déjà dépliés.
+    if (ctrl && e.altKey && !e.shiftKey && e.code === 'KeyT') {
+      stop()
+      const wrappers = Array.from(document.querySelectorAll<HTMLElement>('.page-body [data-show-children]'))
+      const anyClosed = wrappers.some((w) => w.getAttribute('data-show-children') === 'false')
+      for (const w of wrappers) {
+        if ((w.getAttribute('data-show-children') === 'false') === anyClosed) w.querySelector<HTMLElement>('.bn-toggle-button')?.click()
+      }
+      return true
+    }
+    // Ctrl+Maj+0 à 8 (comme dans Notion) : le bloc du curseur devient texte, titre 1 à 3, tâche, puce, numéroté, déroulant, code. (e.code : marche aussi au clavier AZERTY.)
+    if (ctrl && e.shiftKey && !e.altKey && /^Digit[0-8]$/.test(e.code)) {
+      try {
+        const block = ed.getTextCursorPosition().block as unknown as { id: string; content?: unknown }
+        if (Array.isArray(block.content)) {
+          const n = Number(e.code.slice(5))
+          const kinds: Record<number, { type: string; props?: Record<string, unknown> }> = {
+            0: { type: 'paragraph' }, 1: { type: 'heading', props: { level: 1 } }, 2: { type: 'heading', props: { level: 2 } }, 3: { type: 'heading', props: { level: 3 } },
+            4: { type: 'checkListItem' }, 5: { type: 'bulletListItem' }, 6: { type: 'numberedListItem' }, 7: { type: 'toggleListItem' }, 8: { type: 'codeBlock' },
+          }
+          const kind = kinds[n]
+          ed.updateBlock(block.id as never, { type: kind.type, props: kind.props ?? {} } as never)
+          stop()
+          return true
+        }
+      } catch { /* pas de curseur dans l'éditeur */ }
+    }
+    // Ctrl+Entrée (comme dans Notion) : coche une tâche, déplie ou replie un menu déroulant, ouvre une sous-page.
+    if (ctrl && !e.shiftKey && !e.altKey && e.key === 'Enter' && !(sel.pageId === selKey && sel.anchor)) {
+      try {
+        const block = ed.getTextCursorPosition().block as unknown as { id: string; type: string; props?: Record<string, unknown> }
+        if (block.type === 'checkListItem') {
+          ed.updateBlock(block.id as never, { props: { checked: !block.props?.checked } } as never)
+          stop()
+          return true
+        }
+        const toggle = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${block.id}"] .bn-toggle-button`)
+        if (toggle) {
+          toggle.click()
+          stop()
+          return true
+        }
+        if (block.type === 'subpage' && typeof block.props?.pageId === 'string') {
+          useApp.getState().select(block.props.pageId)
+          stop()
+          return true
+        }
+      } catch { /* pas de curseur dans l'éditeur */ }
+    }    // Ctrl+Maj+↑/↓ avec des blocs sélectionnés : ils montent ou descendent ensemble. (Sans sélection, l'éditeur déplace déjà le bloc du curseur.)
     if (ctrl && e.shiftKey && !e.altKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown') && sel.pageId === selKey && sel.anchor && sel.focus) {
       stop()
       try {
@@ -823,8 +899,17 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   const onPointerDownCapture = (e: React.PointerEvent) => {
     const sel = useBlockSel.getState()
     const before = sel.pageId === selKey ? sel.anchor : null
-    sel.clear()
     const t = e.target as HTMLElement
+    // Maj+clic quand des blocs sont déjà sélectionnés : la sélection s'étend jusqu'au bloc cliqué (comme dans Notion).
+    if (editable && e.button === 0 && e.shiftKey && before && !t.closest('button, input, textarea, [role="menu"], [role="dialog"], .fixed')) {
+      const target = t.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+      if (target) {
+        e.preventDefault()
+        sel.set(selKey, before, target)
+        return
+      }
+    }
+    sel.clear()
     if (!editable || e.button !== 0 || !(t instanceof HTMLImageElement) || !t.closest('.bn-block-content[data-content-type="image"]')) return
     const id = t.closest<HTMLElement>('.bn-block-outer')?.dataset.id
     if (!id) return
@@ -869,7 +954,21 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (action === 'delete') ed.removeBlocks([id] as never)
     else ed.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
   }
+  // Alt + glisser (comme dans Notion) : le bloc tiré est copié, l'original reste en place. On pose la copie juste après l'original dès le début du glissement.
+  const duplicateWhileDragging = (e: React.DragEvent) => {
+    if (!e.altKey || !editable || plain) return
+    const t = e.target as HTMLElement
+    const imageId = imageOf(t)?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+    const store = (editor.getExtension(SideMenuExtension) as unknown as { store?: { state?: { block?: { id: string } } } } | undefined)?.store
+    const id = imageId ?? store?.state?.block?.id
+    if (!id) return
+    window.setTimeout(() => {
+      const block = editor.getBlock(id)
+      if (block) editor.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
+    }, 0)
+  }
   const onImageDragStart = (e: React.DragEvent) => {
+    duplicateWhileDragging(e)
     const img = imageOf(e.target)
     const id = img?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
     const block = id ? editor.getBlock(id) : undefined
