@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { ImagePlus, Shuffle } from 'lucide-react'
-import { RecipeCard } from '@/components/RecipesView'
+import { RecipeCard } from '@/components/RecipeCard'
 import { addFiles, addPaths, ALLOWED_EXT } from '@/biblio/lib/ajouts'
 import { getDb } from '@/biblio/lib/db'
 import { blockLabel, memories, randomBlock, thumbUrl, triageStats, type HomeBlock, type TriageStats } from '@/biblio/lib/homeData'

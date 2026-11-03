@@ -129,6 +129,9 @@ export function SearchPalette() {
   const row = (e: Entry, i: number) => (
     <button
       key={e.type + e.id}
+      id={`search-option-${i}`}
+      role="option"
+      aria-selected={i === index}
       data-active={i === index}
       onMouseEnter={() => setIndex(i)}
       onClick={(ev) => open(e, searchNewTab || ev.ctrlKey || ev.metaKey)}
@@ -174,6 +177,9 @@ export function SearchPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onMouseDown={() => setSearch(false)}>
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Recherche"
         className="flex h-[78vh] max-h-full w-[1000px] max-w-[96vw] flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl"
         onMouseDown={(e) => e.stopPropagation()}
       >
@@ -181,6 +187,11 @@ export function SearchPalette() {
           <Search size={20} className="text-[var(--fg-muted)]" />
           <input
             autoFocus
+            role="combobox"
+            aria-expanded="true"
+            aria-controls="search-results"
+            aria-activedescendant={flat.length > 0 ? `search-option-${index}` : undefined}
+            aria-label="Rechercher dans Form"
             value={query}
             placeholder={placeholder}
             onChange={(e) => setQuery(e.target.value)}
@@ -195,7 +206,7 @@ export function SearchPalette() {
         </div>
 
         <div className="flex min-h-0 flex-1">
-          <div ref={list} className="min-w-0 flex-1 overflow-y-auto p-3">
+          <div ref={list} id="search-results" role="listbox" aria-label="Résultats" className="min-w-0 flex-1 overflow-y-auto p-3">
             {actions.map((a, i) => row(a, i))}
             {sections.map((s) => (
               <div key={s.label || 'results'}>

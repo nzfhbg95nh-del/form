@@ -1,30 +1,33 @@
-import { useEffect, useState } from 'react'
-import { LibraryOverlays, LibraryPage } from '@/biblio/LibraryPage'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useBoardReload } from '@/biblio/store/boardReload'
-import { ClientsView, ServicesView } from '@/components/BusinessViews'
-import { InvoicesView } from '@/components/InvoicesView'
-import { PaymentsView } from '@/components/PaymentsView'
-import { QuotesView } from '@/components/QuotesView'
-import { DashboardView } from '@/components/DashboardView'
 import { HomeView } from '@/components/HomeView'
-import { DatabaseView } from '@/components/DatabaseView'
-import { MoodboardView } from '@/components/MoodboardView'
 import { MovePicker } from '@/components/MovePicker'
-import { PageView } from '@/components/PageView'
-import { PeekPanel } from '@/components/PeekPanel'
 import { SearchPalette } from '@/components/SearchPalette'
 import { ConfirmHost } from '@/components/ConfirmHost'
-import { SettingsPage } from '@/components/SettingsPage'
 import { Sidebar } from '@/components/Sidebar'
 import { TabBar } from '@/components/TabBar'
 import { UpdateBanner } from '@/components/UpdateBanner'
-import { TrashView } from '@/components/TrashView'
 import { FLOATING_EVENT, openFloatingBoardIds } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { copyText, pageLink, windowActions } from '@/lib/windowActions'
 import { useReminders } from '@/lib/useReminders'
 import { useApp } from '@/store/app'
 
+/** Les gros écrans (éditeur, moodboard, factures, bibliothèque…) ne sont chargés qu'à leur premier affichage : l'application démarre plus vite. */
+const LibraryPage = lazy(() => import('@/biblio/LibraryPage').then((m) => ({ default: m.LibraryPage })))
+const LibraryOverlays = lazy(() => import('@/biblio/LibraryPage').then((m) => ({ default: m.LibraryOverlays })))
+const ClientsView = lazy(() => import('@/components/BusinessViews').then((m) => ({ default: m.ClientsView })))
+const ServicesView = lazy(() => import('@/components/BusinessViews').then((m) => ({ default: m.ServicesView })))
+const InvoicesView = lazy(() => import('@/components/InvoicesView').then((m) => ({ default: m.InvoicesView })))
+const PaymentsView = lazy(() => import('@/components/PaymentsView').then((m) => ({ default: m.PaymentsView })))
+const QuotesView = lazy(() => import('@/components/QuotesView').then((m) => ({ default: m.QuotesView })))
+const DashboardView = lazy(() => import('@/components/DashboardView').then((m) => ({ default: m.DashboardView })))
+const DatabaseView = lazy(() => import('@/components/DatabaseView').then((m) => ({ default: m.DatabaseView })))
+const MoodboardView = lazy(() => import('@/components/MoodboardView').then((m) => ({ default: m.MoodboardView })))
+const PeekPanel = lazy(() => import('@/components/PeekPanel').then((m) => ({ default: m.PeekPanel })))
+const PageView = lazy(() => import('@/components/PageView').then((m) => ({ default: m.PageView })))
+const SettingsPage = lazy(() => import('@/components/SettingsPage').then((m) => ({ default: m.SettingsPage })))
+const TrashView = lazy(() => import('@/components/TrashView').then((m) => ({ default: m.TrashView })))
 export default function App() {
   const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, toast, setSearch, peekId, movingId, sidebarHidden } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
@@ -190,6 +193,7 @@ export default function App() {
         )}
         <div className="relative flex min-h-0 flex-1">
           <main className="relative min-w-0 flex-1 overflow-y-auto">
+            <Suspense fallback={null}>
             {view === 'page' && (selected?.type === 'database' ? <DatabaseView key={selected.id} db={selected} /> : selected?.type === 'moodboard' ? <MoodboardView key={`${selected.id}:${boardReloads[selected.id] ?? 0}`} board={selected} /> : <PageView />)}
             {view === 'home' && <HomeView />}
             {view === 'trash' && <TrashView />}
@@ -201,10 +205,11 @@ export default function App() {
             {view === 'payments' && <PaymentsView />}
             {view === 'dashboard' && <DashboardView />}
             {libraryOpened && <div className="h-full" hidden={view !== 'library'}><LibraryPage active={view === 'library'} /></div>}
+            </Suspense>
           </main>
-          {peekId && <PeekPanel key={peekId} id={peekId} />}
+          {peekId && <Suspense fallback={null}><PeekPanel key={peekId} id={peekId} /></Suspense>}
           {/* La vue détail d'une image reste dans la zone de contenu : la barre latérale et les onglets (précédent / suivant) restent accessibles. */}
-          <LibraryOverlays />
+          <Suspense fallback={null}><LibraryOverlays /></Suspense>
         </div>
       </div>
       {movingId && <MovePicker key={movingId} id={movingId} />}
