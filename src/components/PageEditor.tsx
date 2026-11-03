@@ -5,6 +5,7 @@ import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/compo
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useLayoutEffect, useState } from 'react'
 import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
+import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
@@ -713,8 +714,28 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (!el.closest('.bn-editor') || el.closest('input, textarea, select, [role="menu"], [role="listbox"]')) return
     blockSelectionKey(e)
   }
+  // Une image se déplace en la prenant directement (clic maintenu, puis glisser), comme dans Notion : même mécanisme que la poignée ⋮⋮,
+  // donc on peut la lâcher entre deux blocs, ou à gauche / à droite d'un autre bloc pour faire des colonnes.
+  const imageOf = (t: EventTarget | null) => {
+    const img = t instanceof HTMLImageElement ? t : null
+    return img && editable && !plain && img.closest('.bn-block-content[data-content-type="image"]') ? img : null
+  }
+  const onImageHover = (e: React.MouseEvent) => {
+    const img = imageOf(e.target)
+    if (img && !img.draggable) img.draggable = true
+  }
+  const onImageDragStart = (e: React.DragEvent) => {
+    const img = imageOf(e.target)
+    const id = img?.closest<HTMLElement>('.bn-block-outer')?.dataset.id
+    const block = id ? editor.getBlock(id) : undefined
+    if (!block) return
+    editor.getExtension(SideMenuExtension)?.blockDragStart(e.nativeEvent, block as never)
+  }
+  const onImageDragEnd = (e: React.DragEvent) => {
+    if (imageOf(e.target)) editor.getExtension(SideMenuExtension)?.blockDragEnd()
+  }
   return (
-    <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()}>
+    <div className="contents" onKeyDownCapture={onKeyDownCapture} onPointerDownCapture={() => useBlockSel.getState().clear()} onMouseOver={onImageHover} onDragStartCapture={onImageDragStart} onDragEndCapture={onImageDragEnd}>
       {selRects.map((b, i) => (
         <div key={i} className="pointer-events-none fixed z-20 rounded-md" style={{ ...b, background: SELECTION_FILL }} />
       ))}
