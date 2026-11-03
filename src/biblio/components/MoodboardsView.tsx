@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { EmptyState } from '@/components/States'
-import { Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { FileDown, FileUp, Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { exportBoard, importBoard } from '@/lib/boardTransfer'
 import { getDb } from '@/biblio/lib/db.ts'
 import { createBoard, createBoardWithCover, setBoardCoverFromFile } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
@@ -140,6 +141,7 @@ function CardMenu({ card, coverSrc }: { card: BoardCard; coverSrc: string | null
             {mode === 'menu' && (
               <>
                 <MenuItem icon={<Pencil size={14} />} onClick={() => setMode('edit')}>Modifier…</MenuItem>
+                <MenuItem icon={<FileDown size={14} />} onClick={() => { close(); void exportBoard(card.id) }}>Exporter en fichier…</MenuItem>
                 <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void remove()}>Mettre à la corbeille</MenuItem>
               </>
             )}
@@ -158,6 +160,7 @@ export function MoodboardsView() {
   const objects = useApp((s) => s.objects)
   const select = useApp((s) => s.select)
   const [naming, setNaming] = useState(false)
+  const importInput = useRef<HTMLInputElement>(null)
   const [thumbs, setThumbs] = useState<Record<string, string[]>>({})
   const boards = useMemo(() => listBoards(objects), [objects])
   // Les aperçus sont relus quand un moodboard change (images ajoutées depuis la bibliothèque ou sur sa toile).
@@ -187,6 +190,11 @@ export function MoodboardsView() {
     setNaming(false)
     select(cover ? (await createBoardWithCover(name, cover)).id : await createBoard(name))
   }
+  const importFile = async (file: File | undefined) => {
+    if (!file) return
+    const id = await importBoard(file)
+    if (id) select(id)
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -195,7 +203,9 @@ export function MoodboardsView() {
           <h1 className="text-base font-semibold">Moodboards</h1>
           <span className="lib-count">{boards.length} moodboard{boards.length > 1 ? 's' : ''}</span>
         </div>
-        <div className="ml-auto">
+        <div className="ml-auto flex items-center gap-2">
+          <input ref={importInput} type="file" accept=".formboard,application/json" className="hidden" onChange={(e) => { void importFile(e.target.files?.[0]); e.target.value = '' }} />
+          <button className="btn" title="Ouvrir un moodboard exporté depuis Form (fichier .formboard)" onClick={() => importInput.current?.click()}><FileUp size={15} /> Importer</button>
           <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
           {naming && <NewMoodboardDialog onCreate={(name, cover) => void create(name, cover)} onClose={() => setNaming(false)} />}
         </div>
