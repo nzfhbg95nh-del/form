@@ -96,6 +96,45 @@ export async function deleteForever(ids: readonly string[], root: string): Promi
   return { deleted, failed }
 }
 
+/**
+ * Supprime définitivement des images prises dans des carrousels : seuls ces fichiers partent dans la Corbeille Windows, les autres images du carrousel restent.
+ * Un carrousel qui n'a plus aucune image disparaît avec elles (et ne sera pas réimporté).
+ */
+export async function deleteFilesForever(rels: readonly string[], root: string): Promise<{ deleted: number; failed: number }> {
+  const d = await getDb()
+  let deleted = 0
+  let failed = 0
+  for (let i = 0; i < rels.length; i += 200) {
+    const batch = rels.slice(i, i + 200)
+    const outcomes = await invoke<Outcome[]>('trash_files', { root, rels: batch })
+    const gone = outcomes.filter((o) => o.ok).map((o) => o.rel)
+    failed += outcomes.filter((o) => !o.ok).length
+    deleted += gone.length
+    if (gone.length === 0) continue
+    const blocks = new Set<string>()
+    await inChunks([...gone], async (marks, chunk) => {
+      for (const r of await d.select<{ block: string }[]>(`SELECT DISTINCT block_id AS block FROM lib_files WHERE path_rel IN (${marks})`, chunk)) blocks.add(r.block)
+      await d.execute(`DELETE FROM lib_embeddings WHERE path_rel IN (${marks})`, chunk)
+      await d.execute(`DELETE FROM lib_colors WHERE path_rel IN (${marks})`, chunk)
+      await d.execute(`DELETE FROM lib_files WHERE path_rel IN (${marks})`, chunk)
+    })
+    // Un carrousel dont toutes les images sont parties n'existe plus : on l'oublie comme une image supprimée.
+    const empty: string[] = []
+    await inChunks([...blocks], async (marks, chunk) => {
+      empty.push(...(await d.select<{ id: string }[]>(`SELECT id FROM lib_blocks WHERE id IN (${marks}) AND NOT EXISTS (SELECT 1 FROM lib_files WHERE block_id = lib_blocks.id)`, chunk)).map((r) => r.id))
+    })
+    const now = new Date().toISOString()
+    await inChunks([...empty], async (marks, chunk) => {
+      await d.execute(`DELETE FROM lib_block_types WHERE block_id IN (${marks})`, chunk)
+      await d.execute(`DELETE FROM lib_block_collections WHERE block_id IN (${marks})`, chunk)
+      await d.execute(`DELETE FROM lib_links WHERE block_a IN (${marks}) OR block_b IN (${marks})`, chunk)
+      await d.execute(`DELETE FROM lib_blocks WHERE id IN (${marks})`, chunk)
+    })
+    for (const id of empty) await d.execute('INSERT OR IGNORE INTO lib_forgotten (block_id, deleted_at) VALUES ($1, $2)', [id, now])
+  }
+  return { deleted, failed }
+}
+
 /** Les identifiants des images supprimées définitivement. */
 export async function loadForgotten(): Promise<Set<string>> {
   const d = await getDb()

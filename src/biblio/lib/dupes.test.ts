@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { blocksToDelete, defaultChoices, isDeletable, orderGroups, pickKeeper, wastedBytes, type DupeGroup, type DupeMember } from './dupes.ts'
+import { defaultChoices, deletionPlan, inCarousel, orderGroups, pickKeeper, wastedBytes, type DupeGroup, type DupeMember } from './dupes.ts'
 
 const member = (rel: string, extra: Partial<DupeMember> = {}): DupeMember => ({
   rel, block: `b:${rel}`, kind: 'image', size: 1000, mtime: 100, width: 1000, height: 1000, thumb: null, source: 'instagram', owner: 'x', board: null, filesInBlock: 1, ...extra,
@@ -21,29 +21,32 @@ describe('pickKeeper', () => {
 
 describe('choix de départ et suppression', () => {
   const g = group(0, [member('grande', { width: 2000, height: 2000 }), member('copie'), member('carrousel', { filesInBlock: 4 })])
-  it('garde la meilleure ; supprime les autres, sauf un carrousel', () => {
+  it('garde la meilleure image et propose de supprimer toutes les autres, carrousel compris', () => {
     const c = defaultChoices([g])
     expect(c.get('grande')).toBe('keep')
     expect(c.get('copie')).toBe('delete')
-    expect(c.get('carrousel')).toBe('keep')
+    expect(c.get('carrousel')).toBe('delete')
   })
-  it('un carrousel n\'est pas supprimable d\'ici', () => {
-    expect(isDeletable(member('x', { filesInBlock: 2 }))).toBe(false)
-    expect(isDeletable(member('x'))).toBe(true)
+  it('reconnaît une image prise dans un carrousel', () => {
+    expect(inCarousel(member('x', { filesInBlock: 2 }))).toBe(true)
+    expect(inCarousel(member('x'))).toBe(false)
   })
-  it('liste les blocs à envoyer à la Corbeille Windows', () => {
-    expect(blocksToDelete([g], defaultChoices([g]))).toEqual(['b:copie'])
+  it('une image seule part avec son bloc, une image de carrousel part seule', () => {
+    expect(deletionPlan([g], defaultChoices([g]))).toEqual({ blocks: ['b:copie'], files: ['carrousel'] })
+  })
+  it('deux doublons dans des carrousels : l’un est gardé, l’autre peut être supprimé', () => {
+    const two = group(1, [member('p1', { filesInBlock: 3 }), member('p2', { filesInBlock: 2 })])
+    expect(deletionPlan([two], defaultChoices([two]))).toEqual({ blocks: [], files: ['p2'] })
   })
   it('ne supprime jamais tout un groupe', () => {
     const all = new Map<string, 'keep' | 'delete'>([['grande', 'delete'], ['copie', 'delete'], ['carrousel', 'delete']])
-    expect(blocksToDelete([g], all)).toEqual([])
+    expect(deletionPlan([g], all)).toEqual({ blocks: [], files: [] })
   })
-  it('un carrousel marqué « supprimer » n\'est pas supprimé', () => {
-    const c = new Map<string, 'keep' | 'delete'>([['grande', 'keep'], ['copie', 'keep'], ['carrousel', 'delete']])
-    expect(blocksToDelete([g], c)).toEqual([])
+  it('ce qui est gardé n’est jamais supprimé', () => {
+    const c = new Map<string, 'keep' | 'delete'>([['grande', 'keep'], ['copie', 'keep'], ['carrousel', 'keep']])
+    expect(deletionPlan([g], c)).toEqual({ blocks: [], files: [] })
   })
 })
-
 describe('classement des groupes', () => {
   it('place gagnée = tout sauf le plus gros fichier', () => {
     expect(wastedBytes(group(0, [member('a', { size: 300 }), member('b', { size: 100 }), member('c', { size: 50 })]))).toBe(150)

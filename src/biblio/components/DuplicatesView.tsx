@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 import {
-  blocksToDelete, defaultChoices, DEFAULT_DISTANCE, DISTANCES, isDeletable, scanDuplicates, wastedBytes, type DupeGroup, type DupeMember, type DupeMode, type ScanProgress,
+  deletionPlan, defaultChoices, DEFAULT_DISTANCE, DISTANCES, inCarousel, scanDuplicates, wastedBytes, type DupeGroup, type DupeMember, type DupeMode, type ScanProgress,
 } from '@/biblio/lib/dupes.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
@@ -23,6 +23,7 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
   const thumbsDir = useGrid((s) => s.thumbsDir)
   const root = useLibrary((s) => s.root)
   const purge = useTrash((s) => s.purge)
+  const purgeFiles = useTrash((s) => s.purgeFiles)
   const [mode, setMode] = useState<DupeMode>('near')
   const [distance, setDistance] = useState(DEFAULT_DISTANCE)
   const [groups, setGroups] = useState<DupeGroup[] | null>(null)
@@ -63,12 +64,14 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
     }
   }
 
-  const toDelete = useMemo(() => (groups ? blocksToDelete(groups, choices) : []), [groups, choices])
+  const plan = useMemo(() => (groups ? deletionPlan(groups, choices) : { blocks: [], files: [] }), [groups, choices])
+  const deleteCount = plan.blocks.length + plan.files.length
   const freed = useMemo(() => {
     if (!groups) return 0
-    const wanted = new Set(toDelete)
-    return groups.flatMap((g) => g.members).filter((m) => wanted.has(m.block)).reduce((n, m) => n + m.size, 0)
-  }, [groups, toDelete])
+    const blocks = new Set(plan.blocks)
+    const files = new Set(plan.files)
+    return groups.flatMap((g) => g.members).filter((m) => (inCarousel(m) ? files.has(m.rel) : blocks.has(m.block))).reduce((n, m) => n + m.size, 0)
+  }, [groups, plan])
   const savings = useMemo(() => (groups ?? []).reduce((n, g) => n + wastedBytes(g), 0), [groups])
 
   /** Garder / supprimer une image ; un groupe garde toujours au moins une image. */
@@ -77,7 +80,7 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
       const next = new Map(prev)
       const now = next.get(m.rel)
       if (now === 'delete') next.set(m.rel, 'keep')
-      else if (isDeletable(m) && g.members.filter((x) => next.get(x.rel) !== 'delete').length > 1) next.set(m.rel, 'delete')
+      else if (g.members.filter((x) => next.get(x.rel) !== 'delete').length > 1) next.set(m.rel, 'delete')
       return next
     })
 
@@ -86,11 +89,13 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
   const doDelete = async () => {
     setBusy(true)
     try {
-      const deletedBlocks = new Set(toDelete)
-      const { failed } = await purge(toDelete)
+      const deletedBlocks = new Set(plan.blocks)
+      const deletedFiles = new Set(plan.files)
+      const blocksResult = plan.blocks.length > 0 ? await purge(plan.blocks) : { deleted: 0, failed: 0 }
+      const filesResult = plan.files.length > 0 ? await purgeFiles(plan.files) : { deleted: 0, failed: 0 }
       // Les groupes traités disparaissent de la liste ; ce qui n'a pas pu partir reste visible.
-      if (failed === 0) {
-        setGroups((gs) => (gs ?? []).map((g) => ({ ...g, members: g.members.filter((m) => !deletedBlocks.has(m.block)) })).filter((g) => g.members.length > 1))
+      if (blocksResult.failed + filesResult.failed === 0) {
+        setGroups((gs) => (gs ?? []).map((g) => ({ ...g, members: g.members.filter((m) => !(inCarousel(m) ? deletedFiles.has(m.rel) : deletedBlocks.has(m.block))) })).filter((g) => g.members.length > 1))
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -156,7 +161,7 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
                         <div className="p-2 text-xs">
                           <div className="font-medium">{m.width && m.height ? `${nf.format(m.width)} × ${nf.format(m.height)}` : m.kind === 'video' ? 'Vidéo' : '—'} · {formatBytes(m.size)}</div>
                           <div style={{ color: 'var(--fg-muted)' }}>{dateOf(m)} · {originOf(m)}</div>
-                          {!isDeletable(m) && <div style={{ color: 'var(--fg-muted)' }}>Dans un carrousel : à garder (ne se supprime pas d'ici).</div>}
+                          {inCarousel(m) && <div style={{ color: 'var(--fg-muted)' }}>Dans un carrousel : seule cette image est supprimée, les autres du carrousel restent.</div>}
                         </div>
                       </button>
                     )
@@ -167,8 +172,8 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
           </div>
 
           <div className="fixed inset-x-0 bottom-0 z-40 flex items-center justify-center gap-4 border-t px-6 py-3" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
-            <span className="text-sm">{toDelete.length === 0 ? 'Rien à supprimer' : `${nf.format(toDelete.length)} image${toDelete.length > 1 ? 's' : ''} à supprimer · ${formatBytes(freed)} gagnés`}</span>
-            <button className="btn" disabled={toDelete.length === 0 || busy} onClick={() => setConfirm(true)}><Trash2 size={15} /> Mettre à la Corbeille Windows…</button>
+            <span className="text-sm">{deleteCount === 0 ? 'Rien à supprimer' : `${nf.format(deleteCount)} image${deleteCount > 1 ? 's' : ''} à supprimer · ${formatBytes(freed)} gagnés`}</span>
+            <button className="btn" disabled={deleteCount === 0 || busy} onClick={() => setConfirm(true)}><Trash2 size={15} /> Mettre à la Corbeille Windows…</button>
           </div>
         </>
       )}
@@ -176,10 +181,10 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
       {confirm && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={() => !busy && setConfirm(false)}>
           <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Mettre les doublons à la Corbeille Windows" onMouseDown={(e) => e.stopPropagation()}>
-            <h2 className="text-lg font-semibold">Mettre {toDelete.length} image{toDelete.length > 1 ? 's' : ''} à la Corbeille Windows ?</h2>
+            <h2 className="text-lg font-semibold">Mettre {deleteCount} image{deleteCount > 1 ? 's' : ''} à la Corbeille Windows ?</h2>
             <p className="mt-2 text-sm">
               Les fichiers partent dans la <b>Corbeille Windows</b> ({formatBytes(freed)}) et Form les oublie : ils ne reviendront pas, même si les fichiers reviennent dans le dossier.
-              Les images marquées « Garder » ne sont pas touchées. Tu pourras récupérer les fichiers dans la Corbeille Windows.
+              Les images marquées « Garder » ne sont pas touchées, et une image prise dans un carrousel part seule : le reste du carrousel reste. Tu pourras récupérer les fichiers dans la Corbeille Windows.
             </p>
             <div className="mt-5 flex justify-end gap-2">
               <button className="btn" disabled={busy} onClick={() => setConfirm(false)}>Annuler</button>

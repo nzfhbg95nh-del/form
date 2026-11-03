@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { deleteForever, restoreBlocks, trashBlocks, trashCount } from '@/biblio/lib/trash.ts'
+import { deleteFilesForever, deleteForever, restoreBlocks, trashBlocks, trashCount } from '@/biblio/lib/trash.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
@@ -14,6 +14,8 @@ interface TrashState {
   restore: (ids: string[]) => Promise<void>
   /** Supprime définitivement : les fichiers partent dans la Corbeille Windows et Form oublie les images. */
   purge: (ids: string[]) => Promise<{ deleted: number; failed: number }>
+  /** Comme purge, pour des images prises dans des carrousels : seules elles partent, le reste du carrousel reste. */
+  purgeFiles: (rels: string[]) => Promise<{ deleted: number; failed: number }>
 }
 
 /** Après un changement : la grille, les tableaux et leurs comptes se relisent. */
@@ -53,6 +55,20 @@ export const useTrash = create<TrashState>((set, get) => ({
       failed > 0
         ? `${deleted} supprimée${deleted > 1 ? 's' : ''}, ${failed} impossible${failed > 1 ? 's' : ''} (fichier ouvert ailleurs ?).`
         : `${deleted} image${deleted > 1 ? 's' : ''} supprimée${deleted > 1 ? 's' : ''} : fichiers envoyés dans la Corbeille Windows.`,
+    )
+    return result
+  },
+  async purgeFiles(rels) {
+    const root = useLibrary.getState().root
+    if (!root) throw new Error('Le dossier de la bibliothèque est inconnu.')
+    const result = await deleteFilesForever(rels, root)
+    await reloadAll()
+    await get().refresh()
+    const { deleted, failed } = result
+    useToast.getState().show(
+      failed > 0
+        ? `${deleted} supprimée${deleted > 1 ? 's' : ''}, ${failed} impossible${failed > 1 ? 's' : ''} (fichier ouvert ailleurs ?).`
+        : `${deleted} image${deleted > 1 ? 's' : ''} de carrousel supprimée${deleted > 1 ? 's' : ''} : fichiers envoyés dans la Corbeille Windows.`,
     )
     return result
   },

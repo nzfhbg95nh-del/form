@@ -28,7 +28,7 @@ export interface DupeMember {
   source: Source
   owner: string
   board: string | null
-  /** Nombre de fichiers de son bloc : un carrousel (plusieurs fichiers) ne se supprime pas d'un coup depuis ici. */
+  /** Nombre de fichiers de son bloc : plus d'un = l'image est dans un carrousel. */
   filesInBlock: number
 }
 
@@ -47,8 +47,8 @@ export function pickKeeper(members: readonly DupeMember[]): string {
   return sorted[0].rel
 }
 
-/** On ne supprime depuis ici que des images seules dans leur bloc (un carrousel perdrait ses autres images). */
-export const isDeletable = (m: DupeMember) => m.filesInBlock === 1
+/** Dans un carrousel (plusieurs fichiers dans son bloc) : on supprime alors cette image seule, les autres images du carrousel restent. */
+export const inCarousel = (m: DupeMember) => m.filesInBlock > 1
 
 /** Place gagnée si on ne garde que le plus gros fichier du groupe. */
 export const wastedBytes = (g: DupeGroup) => g.members.reduce((n, m) => n + m.size, 0) - Math.max(...g.members.map((m) => m.size))
@@ -56,27 +56,36 @@ export const wastedBytes = (g: DupeGroup) => g.members.reduce((n, m) => n + m.si
 /** Les groupes qui font gagner le plus de place d'abord. */
 export const orderGroups = (groups: readonly DupeGroup[]): DupeGroup[] => [...groups].sort((a, b) => wastedBytes(b) - wastedBytes(a) || a.id - b.id)
 
-/** Choix de départ : on garde la meilleure image de chaque groupe ; les autres sont à supprimer, sauf celles qu'on ne peut pas supprimer d'ici. */
+/** Choix de départ : on garde la meilleure image de chaque groupe ; toutes les autres sont à supprimer (au choix de l'utilisateur ensuite). */
 export function defaultChoices(groups: readonly DupeGroup[]): Map<string, 'keep' | 'delete'> {
   const out = new Map<string, 'keep' | 'delete'>()
   for (const g of groups) {
     const keeper = pickKeeper(g.members)
-    for (const m of g.members) out.set(m.rel, m.rel !== keeper && isDeletable(m) ? 'delete' : 'keep')
+    for (const m of g.members) out.set(m.rel, m.rel !== keeper ? 'delete' : 'keep')
   }
   return out
 }
 
-/** Les blocs à envoyer dans la Corbeille Windows : les images choisies « à supprimer » (jamais celles gardées, jamais un carrousel). */
-export function blocksToDelete(groups: readonly DupeGroup[], choices: ReadonlyMap<string, 'keep' | 'delete'>): string[] {
-  const out = new Set<string>()
-  for (const g of groups) {
-    const kept = g.members.filter((m) => choices.get(m.rel) !== 'delete')
-    if (kept.length === 0) continue // sécurité : un groupe garde toujours au moins une image
-    for (const m of g.members) if (choices.get(m.rel) === 'delete' && isDeletable(m)) out.add(m.block)
-  }
-  return [...out]
+/** Ce qui part dans la Corbeille Windows : des blocs entiers (images seules) et des images seules prises dans des carrousels. */
+export interface DupePlan {
+  blocks: string[]
+  files: string[]
 }
 
+/** Ce qu'il faut supprimer d'après les choix (jamais un groupe en entier : au moins une image est gardée dans chaque groupe). */
+export function deletionPlan(groups: readonly DupeGroup[], choices: ReadonlyMap<string, 'keep' | 'delete'>): DupePlan {
+  const blocks = new Set<string>()
+  const files = new Set<string>()
+  for (const g of groups) {
+    if (g.members.every((m) => choices.get(m.rel) === 'delete')) continue // sécurité : un groupe garde toujours au moins une image
+    for (const m of g.members) {
+      if (choices.get(m.rel) !== 'delete') continue
+      if (inCarousel(m)) files.add(m.rel)
+      else blocks.add(m.block)
+    }
+  }
+  return { blocks: [...blocks], files: [...files] }
+}
 interface Row {
   rel: string
   block: string

@@ -104,7 +104,27 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   // Une image déposée sur la page : on choisit entre chercher ses semblables et l'ajouter à la bibliothèque.
   const [dragging, setDragging] = useState(false)
   const dragDepth = useRef(0)
-  // Avec une recherche par image, la grille montre les blocs qui ressemblent à l'image (du plus ressemblant au moins ressemblant), à la place du résultat des filtres.
+  // Garde-fou : les deux zones de dépôt ne doivent jamais rester bloquées. Pendant un vrai glisser, la souris ne produit pas d'événement de déplacement ;
+  // dès qu'elle bouge ou qu'on appuie sur une touche ou qu'on clique, c'est que le glisser est fini : on referme.
+  useEffect(() => {
+    if (!dragging) return
+    const stop = () => {
+      dragDepth.current = 0
+      setDragging(false)
+    }
+    window.addEventListener('mousemove', stop)
+    window.addEventListener('keydown', stop)
+    window.addEventListener('pointerdown', stop)
+    window.addEventListener('dragend', stop)
+    window.addEventListener('drop', stop)
+    return () => {
+      window.removeEventListener('mousemove', stop)
+      window.removeEventListener('keydown', stop)
+      window.removeEventListener('pointerdown', stop)
+      window.removeEventListener('dragend', stop)
+      window.removeEventListener('drop', stop)
+    }
+  }, [dragging])  // Avec une recherche par image, la grille montre les blocs qui ressemblent à l'image (du plus ressemblant au moins ressemblant), à la place du résultat des filtres.
   const shown = useMemo(() => {
     if (imageSearch?.ids === null) return []
     if (!imageSearch) return filteredShown
