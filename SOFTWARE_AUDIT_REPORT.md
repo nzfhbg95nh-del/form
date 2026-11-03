@@ -59,13 +59,14 @@ Limites : le temps de démarrage « avant » n'a pas été mesuré en conditions
 
 ## 8. Tests
 - `tsc` : 0 erreur. `vitest` : 79 fichiers, 736 tests réussis. `vite build` : réussi. `oxlint` : 135 avertissements, 0 erreur.
-- Non exécutés : `cargo test` (l'app en direct bloque la base), tests de bout en bout, accessibilité automatique (contrastes, lecteur d'écran), responsive mobile/tablette (app Windows seulement).
+- `cargo test --lib` (code Rust, app fermée) : 86 tests, 83 réussis, 0 échec, 3 ignorés volontairement (ils exigent le vrai modèle d'IA, un vrai fichier HEIC ou la vraie corbeille Windows : `real_tokenizer_matches_openai_clip`, `real_heic_gets_a_thumbnail_through_windows`, `really_sends_a_file_to_the_recycle_bin`). Durée : 5 min 35 s, dont la compilation.
+- Non exécutés : tests de bout en bout, accessibilité automatique (contrastes, lecteur d'écran), responsive mobile/tablette (app Windows seulement).
 
 ## 9. Reste à faire
-Rust non testé ; app Windows non vérifiée ; 135 avertissements ; pas de test de bout en bout ; contrastes non vérifiés.
+3 tests Rust ignorés (matériel ou modèle réels) ; app Windows non vérifiée ; 135 avertissements ; pas de test de bout en bout ; contrastes non vérifiés.
 
 ## 10. Feuille de route proposée
-- Tout de suite : lancer `cargo test --lib` app fermée ; essayer les parcours dans l'app Windows.
+- Tout de suite : essayer les parcours dans l'app Windows.
 - Court terme : Playwright sur 5 parcours (page, facture, moodboard, recherche, corbeille) ; réduire les avertissements « composant défini dans un composant ».
 - Moyen terme : mesurer la mémoire de l'éditeur sur de longues pages ; vérifier les contrastes en thème clair et sombre.
 - Long terme : phase 4 (facture électronique), qui demandera de nouveaux tests sur les mentions.

@@ -26,7 +26,7 @@ Voir la section « Tests » de `SOFTWARE_AUDIT_REPORT.md`. En résumé : démarr
 - Exécutés : `tsc`, `vitest` (736/736), `oxlint`, `vite build`, `npm audit` (0 faille), parcours dans le navigateur de l'aperçu.
 
 ## À faire / non testé
-- Tests Rust (`cargo test --lib`) : non lancés (l'app en direct tourne ; elle bloque la base).
+- Tests Rust (`cargo test --lib`) : lancés le 2026-11-03, app fermée : 83 réussis, 0 échec, 3 ignorés (modèle IA, HEIC, corbeille Windows réels).
 - Aucune vérification dans l'app Windows elle-même (Tauri) : IA, téléchargements, fenêtres flottantes, notifications.
 - Pas de test de bout en bout automatique (pas de Playwright dans le projet).
 - Accessibilité : pas de vérification de contraste ni de lecteur d'écran.
