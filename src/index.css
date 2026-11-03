@@ -75,6 +75,10 @@ body {
   pointer-events: none;
 }
 
+/* Une fois l'aide comprise (assez de texte tapé), plus aucune phrase d'aide dans les lignes vides. */
+html.hint-off .bn-block-content::after,
+html.hint-off .bn-block-content[data-content-type='callout'] [data-node-view-wrapper]::before { content: none !important; }
+
 /* Fenêtre flottante d'un moodboard : fond transparent (le curseur de transparence laisse voir le bureau). */
 html.floating,
 html.floating body,

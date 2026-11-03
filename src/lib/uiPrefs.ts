@@ -7,6 +7,8 @@ export const TEXT_SCALE_MAX = 140
 export const TEXT_SCALE_STEP = 5
 export const TEXT_SCALE_DEFAULT = 100
 
+import { applyHint } from './editorHint'
+
 const SCALE_KEY = 'form-text-scale'
 const MOTION_KEY = 'form-motion'
 
@@ -82,6 +84,7 @@ export function applyUiPrefs() {
   applyAccent(loadAccent(), document.documentElement.classList.contains('dark'))
   applyTextScale(loadTextScale())
   applyMotion(loadMotion())
+  applyHint()
 }
 
 // ───────────────────────── Couleur d'accent ─────────────────────────

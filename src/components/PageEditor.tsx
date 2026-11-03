@@ -1,5 +1,6 @@
 ﻿import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT } from '@/lib/editorKeys'
+import { isTyping, noteTyped } from '@/lib/editorHint'
 import { EquationBlock } from '@/components/EquationBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
@@ -807,6 +808,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   // Tab et Maj+Tab gardent le comportement de Notion (décaler le bloc sous le précédent / le ramener) : c'est celui de l'éditeur.
   const onKeyDownCapture = (e: React.KeyboardEvent) => {
     if (!editable || e.nativeEvent.isComposing) return
+    if (isTyping(e)) noteTyped()
     const el = e.target as HTMLElement
     if (!el.closest('.bn-editor') || el.closest('input, textarea, select, [role="menu"], [role="listbox"]')) return
     blockSelectionKey(e)
