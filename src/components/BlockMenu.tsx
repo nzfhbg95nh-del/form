@@ -21,7 +21,7 @@ const KIND_ICONS: Record<string, ReactNode> = {
 
 /** Les types qui ne sont pas dans « Transformer en » mais qu'on sait nommer. */
 const OTHER_NAMES: Record<string, string> = {
-  image: 'Image', table: 'Tableau', moodboard: 'Moodboard', database: 'Base de données', subpage: 'Page', toc: 'Table des matières', video: 'Vidéo', audio: 'Audio', file: 'Fichier',
+  image: 'Image', table: 'Tableau', moodboard: 'Moodboard', database: 'Base de données', subpage: 'Page', toc: 'Table des matières', breadcrumb: 'Fil d’Ariane', button: 'Bouton', equation: 'Équation', video: 'Vidéo', audio: 'Audio', file: 'Fichier',
 }
 
 const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()

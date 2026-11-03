@@ -1,10 +1,13 @@
 import { dateText, dateTimeText } from '@/lib/dateShortcuts'
 import { EMPTY_LINE_HINT } from '@/lib/editorKeys'
 import { isTyping, noteTyped } from '@/lib/editorHint'
-import { EquationBlock } from '@/components/EquationBlock'
+import { EquationBlock, InlineEquation } from '@/components/EquationBlock'
+import { BreadcrumbBlock } from '@/components/BreadcrumbBlock'
+import { ButtonBlock, type ButtonAction } from '@/components/ButtonBlock'
 import { BookmarkBlock, EmbedBlock, PageCardBlock, PasteLinkMenu } from '@/components/LinkBlocks'
 import { embedFor, isUrl } from '@/lib/embeds'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { Extension, markInputRule } from '@tiptap/core'
 import { BlockNoteSchema, createExtension, defaultBlockSpecs, defaultInlineContentSpecs, defaultProps, filterSuggestionItems, type BlockNoteEditor } from '@blocknote/core'
 import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
@@ -30,7 +33,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2 } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2, ChevronsRight, MousePointerClick } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -305,6 +308,23 @@ const createEquationBlock = createReactBlockSpec(
   { render: (props) => <EquationBlock latex={props.block.props.latex} update={(latex) => props.editor.updateBlock(props.block, { props: { latex } } as never)} /> },
 )
 
+const createBreadcrumbBlock = createReactBlockSpec(
+  { type: 'breadcrumb', propSchema: {}, content: 'none' },
+  { render: () => <BreadcrumbBlock /> },
+)
+
+const createButtonBlock = createReactBlockSpec(
+  { type: 'button', propSchema: { label: { default: 'Bouton' }, action: { default: 'url' }, target: { default: '' } }, content: 'none' },
+  {
+    render: (props) => (
+      <ButtonBlock
+        props={{ label: props.block.props.label, action: props.block.props.action as ButtonAction, target: props.block.props.target }}
+        update={(p) => props.editor.updateBlock(props.block, { props: p } as never)}
+      />
+    ),
+  },
+)
+
 type Ed = BlockNoteEditor<never, never, never>
 
 // Bloc « Table des matières » : liste cliquable des titres de la page, mise à jour pendant la frappe.
@@ -365,6 +385,12 @@ function MentionLink({ pageId }: { pageId: string }) {
   )
 }
 
+// Équation « en ligne » : une petite formule dans une phrase.
+const createInlineEquation = createReactInlineContentSpec(
+  { type: 'equationInline', propSchema: { latex: { default: '' } }, content: 'none' },
+  { render: (props) => <InlineEquation latex={props.inlineContent.props.latex} update={(latex) => props.updateInlineContent({ type: 'equationInline', props: { latex } })} /> },
+)
+
 const createMention = createReactInlineContentSpec(
   { type: 'mention', propSchema: { pageId: { default: '' } }, content: 'none' },
   { render: (props) => <MentionLink pageId={props.inlineContent.props.pageId} /> },
@@ -398,10 +424,24 @@ const toggleSpec = {
   ],
 }
 
+// Comme dans Notion : ~texte~ (un seul tilde de chaque côté) barre le texte ; ~~texte~~ marchait déjà.
+const strikeSingleTilde = createExtension({
+  key: 'strike-single-tilde',
+  tiptapExtensions: [
+    Extension.create({
+      name: 'strikeSingleTilde',
+      addInputRules() {
+        const type = this.editor.schema.marks.strike
+        return type ? [markInputRule({ find: /(?:^|\s)(~([^~\s](?:[^~]*[^~\s])?)~)$/, type })] : []
+      },
+    }),
+  ],
+} as never)
+
 const schema = withMultiColumn(
   BlockNoteSchema.create({
-    blockSpecs: { ...defaultBlockSpecs, quote: quoteSpec, toggleListItem: toggleSpec, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock() },
-    inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention },
+    blockSpecs: { ...defaultBlockSpecs, quote: quoteSpec, toggleListItem: toggleSpec, callout: createCallout(), todo: createTodo(), moodboard: createMoodboardBlock(), subpage: createSubpageBlock(), toc: createTocBlock(), database: createDatabaseBlock(), portions: createPortionsBlock(), recipephoto: createRecipePhotoBlock(), bookmark: createBookmarkBlock(), embed: createEmbedBlock(), pagecard: createPageCardBlock(), equation: createEquationBlock(), breadcrumb: createBreadcrumbBlock(), button: createButtonBlock() },
+    inlineContentSpecs: { ...defaultInlineContentSpecs, mention: createMention, equationInline: createInlineEquation },
   }),
 )
 
@@ -473,6 +513,7 @@ const SLASH_DESCRIPTIONS: Record<string, string> = {
   th1: 'Un titre grand format qui déplie son contenu.', th2: 'Un titre moyen qui déplie son contenu.', th3: 'Un petit titre qui déplie son contenu.',
   c2: 'Deux blocs côte à côte.', c3: 'Trois blocs côte à côte.', c4: 'Quatre blocs côte à côte.', c5: 'Cinq blocs côte à côte.',
   image: 'Ajoute une image.', video: 'Ajoute un fichier vidéo.', audio: 'Ajoute un fichier audio.', file: 'Joins un fichier à la page.',
+  equationInline: 'Une petite formule au milieu d’une phrase.', breadcrumb: 'Le chemin de cette page, cliquable.', button: 'Un bouton qui ouvre un lien ou une page.',
   toc: 'Les titres de la page, cliquables.', today: 'Insère la date du jour.', tomorrow: 'Insère la date de demain.', yesterday: 'Insère la date d’hier.', now: 'Insère la date et l’heure.',
 }
 
@@ -519,6 +560,9 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'embed', title: 'Intégrer', aliases: ['intégrer', 'integrer', 'embed', 'youtube', 'vimeo', 'spotify', 'figma', 'loom', 'maps', 'carte', 'vidéo en ligne'], group: M, subtext: 'YouTube, Vimeo, Spotify, Figma, Loom, Google Maps', icon: ico(Link2), onItemClick: put({ type: 'embed' }) },
     { key: 'pagecard', title: 'Carte de page', aliases: ['page', 'carte', 'aperçu', 'apercu', 'lien', 'lier'], group: 'Blocs avancés', subtext: 'Un aperçu d’une autre page (titre et début du texte)', icon: ico(FileText), onItemClick: put({ type: 'pagecard' }) },
     { key: 'equation', title: 'Équation', aliases: ['équation', 'equation', 'formule', 'latex', 'maths', 'math'], group: 'Blocs avancés', subtext: 'Une formule de maths écrite en LaTeX', icon: ico(Sigma), onItemClick: put({ type: 'equation' }) },
+    { key: 'equationInline', title: 'Équation en ligne', aliases: ['équation', 'equation', 'formule', 'latex', 'maths', 'en ligne', 'inline'], group: 'Blocs avancés', subtext: 'Une petite formule au milieu d’une phrase', icon: ico(Sigma), onItemClick: () => editor.insertInlineContent([{ type: 'equationInline', props: { latex: '' } }, ' '] as never) },
+    { key: 'breadcrumb', title: 'Fil d’Ariane', aliases: ['fil', 'ariane', 'chemin', 'breadcrumb', 'navigation'], group: 'Blocs avancés', subtext: 'Le chemin de cette page, cliquable', icon: ico(ChevronsRight), onItemClick: put({ type: 'breadcrumb' }) },
+    { key: 'button', title: 'Bouton', aliases: ['bouton', 'button', 'lien', 'action'], group: 'Blocs avancés', subtext: 'Un bouton qui ouvre un lien ou une page', icon: ico(MousePointerClick), onItemClick: put({ type: 'button' }) },
     { key: 'image', title: 'Image', aliases: ['image', 'photo', 'img'], group: M, icon: ico(ImageIcon), onItemClick: viaDefault('image') },
     { key: 'video', title: 'Vidéo', aliases: ['vidéo', 'video'], group: M, icon: ico(Video), onItemClick: viaDefault('video') },
     { key: 'audio', title: 'Audio', aliases: ['audio', 'son', 'musique'], group: M, icon: ico(Volume2), onItemClick: viaDefault('audio') },
@@ -572,6 +616,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
   const [pasted, setPasted] = useState<{ url: string; blockId: string; x: number; y: number } | null>(null)
   const editor = useCreateBlockNote({
     schema,
+    extensions: [strikeSingleTilde],
     pasteHandler: ({ event, editor: ed, defaultPasteHandler }) => {
       const text = event.clipboardData?.getData('text/plain')?.trim() ?? ''
       const block = ed.getTextCursorPosition().block as unknown as { id: string; type: string; content?: unknown }
