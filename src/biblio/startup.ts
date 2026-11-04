@@ -6,6 +6,8 @@ import { autoDownload, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, setAlert } from
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
+const FOLDERS_SCAN_KEY = 'library_folders_scan'
+
 /**
  * Travail automatique de la bibliothèque, quelques secondes après le lancement de Form, dans la fenêtre principale seulement :
  * - le téléchargement des nouveaux enregistrements Instagram / Pinterest, à son rythme (Réglages > Bibliothèque > Téléchargement) ;
@@ -22,7 +24,9 @@ export async function startLibraryBackground() {
   const frequency = parseFrequency(await getSetting('library_auto_frequency'), await getSetting('library_auto_update'))
   const updateDue = shouldAutoUpdate(frequency, await getSetting('library_auto_last_day'), now)
   const downloadDue = shouldAutoUpdate(await downloadFrequency(), await getSetting(DOWNLOAD_LAST_DAY_KEY), now)
-  if (!updateDue && !downloadDue) return
+  // Une seule fois : les dossiers de « images ajoutées » (IA, Ceramique…) sont lus même si la mise à jour du jour est déjà faite.
+  const foldersDue = (await getSetting(FOLDERS_SCAN_KEY)) !== '1'
+  if (!updateDue && !downloadDue && !foldersDue) return
 
   let downloaded = false
   if (downloadDue) {
@@ -40,7 +44,8 @@ export async function startLibraryBackground() {
     }
   }
   // Mise à jour due, ou nouveaux fichiers téléchargés : la bibliothèque lit son dossier, fait les miniatures, etc.
-  if (updateDue || downloaded) await useLibrary.getState().update()
+  if (updateDue || downloaded || foldersDue) await useLibrary.getState().update()
+  if (foldersDue) await setSetting(FOLDERS_SCAN_KEY, '1')
   await useAi.getState().init(true)
   // Le jour n'est noté qu'une fois la mise à jour allée au bout : fermée en route, elle sera relancée au prochain démarrage.
   if (updateDue) await setSetting('library_auto_last_day', dayKey(now))
