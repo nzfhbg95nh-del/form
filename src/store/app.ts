@@ -28,16 +28,6 @@ export type CompanyPanelId = 'identity' | 'billing' | 'taxes' | 'reminders' | 'c
 
 export type View = 'home' | 'page' | 'trash' | 'settings' | 'clients' | 'services' | 'quotes' | 'invoices' | 'payments' | 'dashboard' | 'library'
 
-/** Si un écran (Devis, Tout…) est affiché sans onglet à lui, on lui en crée un et on le rend actif : il ne disparaît pas quand on ouvre un autre onglet. */
-function withShownView(t: Tabs, view: View): Tabs {
-  if (view === 'page' || parseViewTab(t.ids[t.active] ?? '')) return t
-  const lib = view === 'library' ? useLibraryNav.getState().page : undefined
-  const id = viewTabId(view, lib)
-  const existing = t.ids.indexOf(id)
-  if (existing >= 0) return { ids: t.ids, active: existing }
-  return { ids: [...t.ids, id], active: t.ids.length }
-}
-
 /** L'écran à afficher pour l'onglet actif : une page, ou un écran (et sa page de bibliothèque) pour un onglet « view: ». */
 function viewOfTab(t: Tabs): { view: View } {
   const parsed = parseViewTab(t.ids[t.active] ?? '')
@@ -420,7 +410,8 @@ export const useApp = create<AppState>((set, get) => ({
         pinned,
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
         selectedId: first?.id ?? null,
-        tabs: first ? { ids: [first.id], active: 0 } : { ids: [], active: 0 },
+        // L'accueil a son propre onglet (actif) ; la dernière page consultée reste ouverte à côté.
+        tabs: { ids: first ? [viewTabId('home'), first.id] : [viewTabId('home')], active: 0 },
       })
       try {
         const done = await runDailyBackup(repo)
@@ -443,10 +434,9 @@ export const useApp = create<AppState>((set, get) => ({
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
     const previous = get().selectedId
-    // Par défaut, la page (ou l'écran) qu'on quitte reste ouverte : la nouvelle page s'ouvre dans un autre onglet (ou on revient à son onglet s'il existe déjà).
-    // Chaque page s'ouvre dans son propre onglet : celle qu'on quitte reste ouverte (sauf demande contraire).
-    const keep = opts?.newTab ?? true
-    const tabs = openTab(keep ? withShownView(get().tabs, get().view) : get().tabs, id, keep)
+    // Comme dans Notion : un clic change le contenu de l'onglet actif ; seuls Ctrl+clic, clic molette, « Nouvel onglet » et le bouton + en ouvrent un autre.
+    const keep = opts?.newTab ?? false
+    const tabs = openTab(get().tabs, id, keep)
     // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
     const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
     set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
@@ -510,10 +500,12 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   closeTabAt(index) {
+    // Comme dans Notion, il reste toujours au moins un onglet.
+    if (get().tabs.ids.length <= 1) return
     const closedId = get().tabs.ids[index]
     const tabs = closeTab(get().tabs, index)
-    // Fermer l'onglet d'un écran qu'on regarde : on passe à l'écran (ou à la page) de l'onglet voisin.
-    const wasShown = get().view !== 'page' && index === get().tabs.active && parseViewTab(closedId ?? '')
+    // Fermer l'onglet qu'on regarde : on passe à la page ou à l'écran de l'onglet voisin.
+    const wasShown = index === get().tabs.active
     set({ tabs, selectedId: currentId(tabs), ...(wasShown ? viewOfTab(tabs) : {}), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs, pinnedTabs: get().pinnedTabs.filter((p) => tabs.ids.includes(p)) })
   },
 
@@ -555,22 +547,21 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   show(view) {
-    // Si l'onglet actif montre un écran, il suit : il prend le nom du nouvel écran.
-    const { tabs } = get()
-    const active = tabs.ids[tabs.active]
-    if (view !== 'page' && parseViewTab(active ?? '')) {
-      const id = viewTabId(view, view === 'library' ? useLibraryNav.getState().page : undefined)
-      set({ view, tabs: { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active }, selectedId: null })
+    // Comme dans Notion : l'écran choisi prend la place du contenu de l'onglet actif (jamais d'onglet qui s'ajoute ou disparaît tout seul).
+    if (view === 'page') {
+      set({ view })
       return
     }
-    set({ view })
+    const { tabs } = get()
+    const id = viewTabId(view, view === 'library' ? useLibraryNav.getState().page : undefined)
+    const next = tabs.ids.length === 0 ? { ids: [id], active: 0 } : { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active }
+    set({ view, tabs: next, selectedId: null })
   },
 
   openViewTab(view, libPage) {
-    // L'écran qu'on regarde devient lui-même un onglet avant d'en ouvrir un autre : il reste là, rien n'est écrasé.
-    const base = withShownView(get().tabs, get().view)
+    // Nouvel onglet pour un écran : l'onglet actuel reste tel quel.
     if (libPage) useLibraryNav.getState().go(libPage)
-    const tabs = openTab(base, viewTabId(view, view === 'library' ? libPage : undefined), true)
+    const tabs = openTab(get().tabs, viewTabId(view, view === 'library' ? libPage : undefined), true)
     set({ tabs, selectedId: null, view })
   },
 
@@ -1052,3 +1043,13 @@ if (typeof window !== 'undefined' && window.matchMedia) {
     useApp.setState({ theme })
   })
 }
+
+// Un écran de la bibliothèque (Tout, Collections, Moodboards, Carte) garde son nom dans l'onglet quand on change de page de bibliothèque.
+useLibraryNav.subscribe((state, previous) => {
+  if (state.page === previous.page) return
+  const { tabs, view } = useApp.getState()
+  const active = tabs.ids[tabs.active] ?? ''
+  if (view !== 'library' || parseViewTab(active)?.view !== 'library') return
+  const id = viewTabId('library', state.page)
+  if (id !== active) useApp.setState({ tabs: { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active } })
+})

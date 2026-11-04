@@ -1144,3 +1144,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Incoherences corrigees et signalees dans les Notes de chaque fiche (ex. tiramisu : cacao et speculoos, houmous : jus de citron, dahl : bouillon / pulpe de tomate, buns au tilleul : sel). 3 fiches vides dans Notion (Cake sale a la feta, Couscous, Moussaka) importees comme fiches a completer.
 - Inspirations (`D:\Inspi & autres`, 1 742 fichiers, 1,30 Go) copiees (la source reste intacte, verification fichier par fichier : 0 difference) dans `Bibliotheque\images ajoutees`, sous-dossiers conserves. La bibliotheque les lit au prochain demarrage : miniatures, couleurs, empreintes IA et classement suivent tout seuls.
 - Bibliotheque : chaque sous-dossier de « images ajoutees » (3d, Photo, Art graphique, A trier…) devient aussi une collection a son nom, en plus de « Images ajoutees » (src/biblio/lib/scan.ts + 2 tests).
+
+
+## 2026-11-04 - Onglets comme dans Notion (branche travail, pas publie)
+- Repere : la video d'un Notion de Victor (ecran enregistre) : onglets de meme largeur, « + » juste apres le dernier, aucun onglet ne disparait sauf s'il est ferme, un clic dans une page change le contenu de l'onglet, le bouton + ouvre « Ouvrir dans un nouvel onglet… », clic droit : dupliquer, etc.
+- Un clic sur une page de la barre laterale ou sur un ecran (Accueil, Devis, Tout, Moodboards…) change le contenu de l'onglet actif ; Ctrl+clic, clic molette, « Nouvel onglet » du menu et le bouton + en ouvrent un autre. Fini l'onglet « fantome » qui apparaissait ou disparaissait selon l'ecran.
+- Tous les onglets ont la meme largeur (180 px, ils se resserrent ensemble quand il y en a beaucoup) ; la croix s'affiche au survol et sur l'onglet actif ; il reste toujours au moins un onglet. Au demarrage : un onglet « Accueil » (actif) et, a cote, la derniere page consultee.
+- L'onglet d'un ecran de la bibliotheque suit la page choisie (Tout, Collections, Moodboards, Carte).
+- Tests : 4 scenarios de bout en bout (e2e/tabs.spec.ts) ; 26 scenarios et 769 tests reussis.
