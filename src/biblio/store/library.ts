@@ -49,6 +49,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     // La bibliothèque choisie décide où sont les images ajoutées à la main et le cache (miniatures, modèle d'IA).
     const layout = await applyLibraryRoot(saved ?? DEFAULT_ROOT)
     set({ root: saved ?? DEFAULT_ROOT, layout, stats: await getStats().catch(() => EMPTY_STATS), ready: true })
+    // Les types de départ (dont les nouveaux, comme Céramique et IA) apparaissent dès l'ouverture, sans attendre une mise à jour.
+    await seedAndApplyTypes().catch(() => undefined)
 
     if (!listening) {
       listening = true

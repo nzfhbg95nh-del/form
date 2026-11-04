@@ -1179,3 +1179,13 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Barre d'onglets : le « + » et les boutons de gauche sont centres sur la hauteur des onglets.
 - Bibliotheque / IA locale : deux nouveaux types, « Ceramique » et « IA » (images generees par IA), decrits en mots pour l'IA (comme Typo et Recette). Les dossiers deja ranges de « images ajoutees » donnent leur type a leurs images, qui servent d'exemples a l'IA pour classer le reste, dont « A trier » : Art graphique → Art graphic, 3d → 3D & CGI, Architecture → Architecture & Interior design, Photo → Photography & Clip, Couture & Sappes → Fashion & sewing projects, Meuble & Objets deco → Product design & objects, Ceramique → Ceramique, IA → IA. « Motion », « Aerotecc », « Autres » et « A trier » n'ont pas de type propre.
 - Tests : 7 nouveaux, anciens tests mis a jour ; 786 tests et 30 scenarios de bout en bout reussis.
+
+
+## 2026-11-04 — Types Céramique et IA visibles dès l'ouverture
+
+**Fait**
+- Les types de départ (dont Céramique et IA) n'étaient créés que sur « Mettre à jour » : ils sont maintenant créés à l'ouverture de la bibliothèque et avant chaque classement.
+- Règle de classement passée à la version 9 : Form refait le classement une fois au démarrage pour que les nouveaux types servent.
+
+**Reste**
+- Victor vérifie dans la bêta que Céramique et IA apparaissent dans les types d'image.

@@ -8,10 +8,11 @@ import { applyExclusive, blockVector, withFallback, type Row } from './classify.
 import type { WorkerInput, WorkerOutput } from './classify.worker.ts'
 import { buildExampleSet, DEFAULT_OPTIONS, vectorDim } from './neighbours.ts'
 import { allPrompts, buildPromptMatrix, SEMANTIC_TYPES, thresholdsOf } from './semantic.ts'
+import { seedAndApplyTypes } from './types.ts'
 import { decodeVector } from './vectors.ts'
 
 /** À changer quand la règle de classement change : Form refait alors le classement une fois au démarrage. */
-export const CLASSIFY_VERSION = '8'
+export const CLASSIFY_VERSION = '9'
 export const OTHER_TYPE_ID = 'autres'
 /** Types exclusifs, par ordre de priorité : une image qui en reçoit un n'a plus que celui-là. */
 export const EXCLUSIVE_TYPES = ['recette', OTHER_TYPE_ID]
@@ -35,8 +36,10 @@ export interface ClassifyRun {
 export async function classifyAll(threshold: number, onProgress?: (done: number, total: number) => void): Promise<ClassifyRun> {
   const started = performance.now()
   const d = await getDb()
+  // Les types de départ (Céramique, IA…) et les dossiers qui leur donnent des exemples existent avant de classer.
+  await seedAndApplyTypes()
 
-  const blockIds = (await d.select<{ id: string }[]>('SELECT id FROM lib_blocks')).map((b) => b.id)
+  const blockIds =(await d.select<{ id: string }[]>('SELECT id FROM lib_blocks')).map((b) => b.id)
   const known = new Set((await d.select<{ id: string }[]>('SELECT id FROM lib_types')).map((t) => t.id))
 
   // Une empreinte par bloc (moyenne de ses images).
