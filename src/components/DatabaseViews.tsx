@@ -142,7 +142,7 @@ export function ListView({ db, schema, view, rows, change }: ViewProps) {
             </div>
           )}
           {g.rows.map((row) => (
-            <button key={row.id} onClick={() => select(row.id)} className="flex w-full items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
+            <button key={row.id} data-page-id={row.id} onClick={() => select(row.id)} className="flex w-full items-center gap-3 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
               <RowTitle row={row} />
               <span className="ml-auto flex shrink-0 items-center"><ChoiceChips row={row} schema={schema} skip={gcol?.id} /></span>
             </button>
@@ -166,7 +166,7 @@ export function GalleryView({ db, schema, rows, change }: ViewProps) {
           // Image de la carte : la couverture, sinon la première image de la page (la photo de la recette).
           const photo = row.cover ? null : displayUrl(firstImageUrl(row.content, `${row.id}:${row.updated_at}`))
           return (
-            <button key={row.id} onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
+            <button key={row.id} data-page-id={row.id} onClick={() => select(row.id)} className="overflow-hidden rounded-md border border-[var(--border)] text-left hover:bg-[var(--bg-hover)]">
               <div
                 className="flex h-28 items-center justify-center bg-[var(--bg-side)] text-4xl"
                 style={row.cover ? coverStyle(row.cover) : photo ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
@@ -222,7 +222,7 @@ export function KanbanView({ db, schema, view, rows }: ViewProps) {
               draggable
               onDragStart={(e) => { e.dataTransfer.setData('text/plain', row.id); setDragId(row.id) }}
               onDragEnd={() => { setDragId(null); setOverId(null) }}
-              onClick={() => select(row.id)}
+              data-page-id={row.id} onClick={() => select(row.id)}
               className="mb-2 cursor-pointer rounded-lg border border-[var(--border)] bg-[var(--bg)] p-2 text-sm shadow-sm hover:bg-[var(--bg-hover)]"
             >
               <RowTitle row={row} />
@@ -287,7 +287,7 @@ export function CalendarView({ db, schema, view, rows }: ViewProps) {
               </button>
             </div>
             {(byDate.get(day.date) ?? []).map((r) => (
-              <button key={r.id} onClick={() => select(r.id)} className="mt-0.5 block w-full truncate rounded bg-[var(--bg-hover)] px-1 py-0.5 text-left text-xs hover:underline">
+              <button key={r.id} data-page-id={r.id} onClick={() => select(r.id)} className="mt-0.5 block w-full truncate rounded bg-[var(--bg-hover)] px-1 py-0.5 text-left text-xs hover:underline">
                 {r.title || 'Nouvelle page'}
               </button>
             ))}
@@ -298,7 +298,7 @@ export function CalendarView({ db, schema, view, rows }: ViewProps) {
         <div className="mt-3 text-sm">
           <div className="mb-1 text-xs font-semibold text-[var(--fg-muted)]">Sans date ({undated.length})</div>
           {undated.map((r) => (
-            <button key={r.id} onClick={() => select(r.id)} className="mr-2 rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs hover:underline">
+            <button key={r.id} data-page-id={r.id} onClick={() => select(r.id)} className="mr-2 rounded bg-[var(--bg-hover)] px-1.5 py-0.5 text-xs hover:underline">
               {r.title || 'Nouvelle page'}
             </button>
           ))}

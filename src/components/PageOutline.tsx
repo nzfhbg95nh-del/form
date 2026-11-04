@@ -56,7 +56,7 @@ export function Backlinks({ pageId }: { pageId: string }) {
       <div className="lib-count mb-2">Mentionné dans</div>
       <div className="flex flex-wrap gap-2">
         {from.map((o) => (
-          <button key={o.id} onClick={() => select(o.id)} className="btn !px-2.5 !py-1 !text-xs" title={displayTitle(o.title)}>
+          <button key={o.id} data-page-id={o.id} onClick={() => select(o.id)} className="btn !px-2.5 !py-1 !text-xs" title={displayTitle(o.title)}>
             <Icon value={o.icon ?? '📄'} size={14} />
             <span className="max-w-[16rem] truncate">{displayTitle(o.title)}</span>
           </button>

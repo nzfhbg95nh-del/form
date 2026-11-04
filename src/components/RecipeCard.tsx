@@ -27,7 +27,7 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
       ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' }
       : undefined
   return (
-    <button onClick={() => select(row.id)} className="group overflow-hidden rounded-xl border border-[var(--border)] text-left shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--bg-hover)]">
+    <button data-page-id={row.id} onClick={() => select(row.id)} className="group overflow-hidden rounded-xl border border-[var(--border)] text-left shadow-[var(--shadow-soft)] transition-colors hover:bg-[var(--bg-hover)]">
       {/* La photo et le texte sont dans le même cadre arrondi. */}
       <div
         className={'relative flex items-center justify-center bg-[var(--bg-side)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[\'\'] group-hover:after:bg-black/10 ' + (tall ? 'h-44' : 'h-32')}

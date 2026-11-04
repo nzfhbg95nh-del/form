@@ -102,7 +102,7 @@ export function RecentBoardsWidget() {
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {boards.map((b) => (
-        <button key={b.id} data-lift onClick={() => select(b.id)} className="flex flex-col gap-2 text-left" title={b.name}>
+        <button key={b.id} data-lift data-page-id={b.id} onClick={() => select(b.id)} className="flex flex-col gap-2 text-left" title={b.name}>
           <div
             className="aspect-[4/3] w-full overflow-hidden rounded-2xl bg-[var(--bg-hover)] shadow-[var(--shadow-soft)]"
             style={previews[b.id] ? { backgroundImage: `url("${previews[b.id]}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}

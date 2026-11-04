@@ -172,7 +172,7 @@ export function DashboardView() {
         <Card title="Tâches du jour">
           {data.tasks.length === 0 && <p className="text-sm text-[var(--fg-muted)]">Aucune tâche pour aujourd'hui.</p>}
           {data.tasks.slice(0, 8).map((t) => (
-            <button key={t.id} onClick={() => select(t.id)} className="flex w-full items-center gap-2 rounded px-1 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
+            <button key={t.id} data-page-id={t.id} onClick={() => select(t.id)} className="flex w-full items-center gap-2 rounded px-1 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
               <span className="flex-1 truncate">{t.title}</span>
               <span className={cn('text-xs', t.overdue ? 'text-red-500' : 'text-[var(--fg-muted)]')}>{t.overdue ? `en retard (${formatDateFr(t.due)})` : "aujourd'hui"}</span>
             </button>

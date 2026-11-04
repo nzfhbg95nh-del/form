@@ -3,6 +3,7 @@ import { useBoardReload } from '@/biblio/store/boardReload'
 import { HomeView } from '@/components/HomeView'
 import { BlockMovePicker } from '@/components/BlockMovePicker'
 import { MovePicker } from '@/components/MovePicker'
+import { PageContextMenu } from '@/components/PageContextMenu'
 import { SearchPalette } from '@/components/SearchPalette'
 import { ConfirmHost } from '@/components/ConfirmHost'
 import { Sidebar } from '@/components/Sidebar'
@@ -188,6 +189,7 @@ export default function App() {
       {!sidebarHidden && <Sidebar />}
       <div className="flex min-w-0 flex-1 flex-col">
         <TabBar />
+        <PageContextMenu />
         <UpdateBanner />
         {backupMessage && (
           <div className="bg-[var(--bg-side)] px-4 py-1 text-center text-xs text-[var(--fg-muted)]">{backupMessage}</div>

@@ -193,7 +193,7 @@ export function PageCardBlock({ pageId, update }: { pageId: string; update: (id:
     <button
       type="button"
       contentEditable={false}
-      onClick={() => select(page.id)}
+      data-page-id={page.id} onClick={() => select(page.id)}
       className="flex w-full items-start gap-3 rounded-xl border border-[var(--border)] px-4 py-3 text-left transition-colors hover:bg-[var(--bg-hover)]"
     >
       <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={26} />

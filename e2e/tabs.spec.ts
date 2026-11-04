@@ -25,6 +25,17 @@ test.describe('onglets comme Notion', () => {
     await expect(page.getByRole('tab', { selected: true })).toContainText('Corbeille')
   })
 
+  test('clic droit sur une page de l’accueil : « Ouvrir dans un nouvel onglet »', async ({ page }) => {
+    await twoPages(page)
+    await page.locator('aside').getByRole('button', { name: 'Accueil', exact: true }).click()
+    const card = page.locator('[data-page-id]').first()
+    await expect(card).toBeVisible()
+    const before = await tabs(page).count()
+    await card.click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Ouvrir dans un nouvel onglet' }).click()
+    await expect(tabs(page)).toHaveCount(before + 1)
+  })
+
   test('tous les onglets ont la même largeur', async ({ page }) => {
     await twoPages(page)
     await page.getByRole('tab', { selected: true }).click({ button: 'right' })

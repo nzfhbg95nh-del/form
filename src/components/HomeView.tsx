@@ -44,7 +44,7 @@ function PageCard({ page }: { page: ObjectRow }) {
   return (
     <button
       data-lift
-      onClick={() => select(page.id)}
+      data-page-id={page.id} onClick={() => select(page.id)}
       className="flex h-28 w-40 shrink-0 flex-col justify-between rounded-xl border border-[var(--border)] p-3 text-left shadow-[var(--shadow-soft)] hover:bg-[var(--bg-hover)]"
     >
       <Icon value={page.icon ?? (page.type === 'database' ? '📊' : page.type === 'moodboard' ? '🖼️' : '📄')} size={28} />
@@ -291,7 +291,7 @@ function WidgetBody({ widget }: { widget: Widget }) {
       : (
         <div>
           {tasks.slice(0, 8).map((t) => (
-            <button key={t.id} onClick={() => select(t.id)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
+            <button key={t.id} data-page-id={t.id} onClick={() => select(t.id)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
               <span className="flex-1 truncate">{t.title}</span>
               <span className={cn('text-xs', t.overdue ? 'text-red-500' : 'text-[var(--fg-muted)]')}>{t.overdue ? `en retard (${formatDateFr(t.due)})` : 'aujourd’hui'}</span>
             </button>
@@ -314,12 +314,12 @@ function WidgetBody({ widget }: { widget: Widget }) {
   const rows = databaseRows(objects, db.id, 8)
   return (
     <div>
-      <button onClick={() => select(db.id)} className="mb-1 flex items-center gap-2 rounded px-2 py-1 text-sm font-medium hover:bg-[var(--bg-hover)]">
+      <button data-page-id={db.id} onClick={() => select(db.id)} className="mb-1 flex items-center gap-2 rounded px-2 py-1 text-sm font-medium hover:bg-[var(--bg-hover)]">
         <Icon value={db.icon ?? '📊'} size={16} />{displayTitle(db.title)} <span className="text-xs font-normal text-[var(--fg-muted)]">Ouvrir ↗</span>
       </button>
       {rows.length === 0 && none('Cette base est vide.')}
       {rows.map((r) => (
-        <button key={r.id} onClick={() => select(r.id)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
+        <button key={r.id} data-page-id={r.id} onClick={() => select(r.id)} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]">
           <span className="flex-1 truncate">{displayTitle(r.title)}</span>
           <span className="text-xs text-[var(--fg-muted)]">{lastEditText(r.updated_at)}</span>
         </button>
