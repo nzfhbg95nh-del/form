@@ -1201,3 +1201,13 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-04, suite) Recettes : la photo reprise du dossier devient aussi la couverture (et donc la miniature de la carte), pour les recettes déjà présentes sans couverture comme pour les nouvelles.
 
 - (2026-11-05) Carte : le bouton « Plus pareil » s'appelle maintenant « Similaire ».
+
+
+## 2026-11-05 - Version 0.50.0
+
+**Fait**
+- Version définitive 0.50.0 : onglets façon Notion (largeur égale, glisser-déposer, dupliquer, Précédent/Suivant par onglet), barres de sous-navigation ajustées, catégorie de recettes « Découverte », types d'image « Céramique » et « IA » appris par l'IA locale à partir de leurs dossiers, clic droit / clic du milieu « Ouvrir dans un nouvel onglet », photos de recettes reprises du dossier (couverture et miniature), bouton « Similaire » sur la carte.
+- 788 tests automatiques et 31 tests de bout en bout passent.
+
+**Reste**
+- Victor installe la 0.50.0 et vérifie.
