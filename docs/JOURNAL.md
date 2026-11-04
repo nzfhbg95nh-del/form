@@ -1159,3 +1159,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Mettre a la corbeille la page qu'on regarde passe a l'onglet voisin ; il reste toujours un onglet (Accueil si besoin).
 - L'ancien historique commun (navBack / navForward) est retire. Le nom de l'onglet d'un ecran de la bibliotheque change quand on choisit une autre page dans la barre laterale (pas quand elle change depuis l'interieur de la bibliotheque).
 - Tests : 6 nouveaux (tabs.test.ts) + 1 scenario de bout en bout ; 775 tests et 27 scenarios reussis.
+
+
+## 2026-11-04 - Onglets : glisser-deposer, largeur corrigee, « + » (branche travail, pas publie)
+- On deplace un onglet en le glissant (trait bleu a l'endroit ou il se posera). L'onglet actif reste le meme et chaque onglet garde son historique ; les onglets epingles restent groupes a gauche.
+- Correctif : la largeur de 180 px des onglets n'etait pas appliquee (l'onglet Accueil ne faisait que 82 px) ; elle l'est maintenant (test : au moins 170 px).
+- Correctif : le « + » (Nouvel onglet) remplacait l'onglet actif pour « Recettes », les clients et les tarifs ; ils s'ouvrent maintenant dans un nouvel onglet, comme les autres choix.
+- Le message « Sauvegarde du … effectuee. » en haut de l'ecran est supprime (un echec de sauvegarde reste signale).
+- Tests : 4 nouveaux (moveTab) + 2 scenarios de bout en bout ; 779 tests et 29 scenarios reussis.

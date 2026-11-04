@@ -114,6 +114,21 @@ export function pinTab(t: Tabs, index: number, pinned: readonly string[]): { tab
   return { tabs: { ids, active: Math.max(0, order.indexOf(t.active)), ...history }, pinned: [...pinned, id] }
 }
 
+/**
+ * Déplace un onglet (glisser-déposer) à sa nouvelle place 	o (son rang une fois déplacé). L'onglet actif reste le même et chaque onglet garde son historique.
+ * Les onglets épinglés restent groupés à gauche : un onglet ordinaire ne passe pas devant eux, un épinglé ne sort pas de leur groupe.
+ */
+export function moveTab(t: Tabs, from: number, to: number, pinned: readonly string[] = []): Tabs {
+  if (from < 0 || from >= t.ids.length) return t
+  const pins = t.ids.filter((id) => pinned.includes(id)).length
+  const isPinned = pinned.includes(t.ids[from])
+  const target = isPinned ? Math.min(Math.max(to, 0), pins - 1) : Math.min(Math.max(to, pins), t.ids.length - 1)
+  if (target === from) return t
+  const order = t.ids.map((_, i) => i).filter((i) => i !== from)
+  order.splice(target, 0, from)
+  return { ids: order.map((i) => t.ids[i]), active: order.indexOf(t.active), ...(t.history ? { history: order.map((i) => t.history![i]) } : {}) }
+}
+
 /** Y a-t-il un « Précédent » ou un « Suivant » dans l'onglet actif ? */
 export function canGo(t: Tabs, direction: 'back' | 'forward'): boolean {
   const h = t.history?.[t.active]

@@ -15,12 +15,21 @@ const VIEW_ICONS: Record<string, React.ReactNode> = {
 }
 const LIBRARY_ICONS: Record<string, React.ReactNode> = { all: <LayoutGrid size={14} />, collections: <FolderOpen size={14} />, moodboards: <Images size={14} />, map: <MapIcon size={14} /> }
 
+/** Largeur d'un onglet (comme Notion) ; ils se resserrent tous ensemble quand il y en a trop. */
+const TAB_WIDTH = 180
+
 export function TabBar() {
-  const { tabs, objects, activate, closeTabAt, setSearch, goBack, goForward, toggleSidebar, pinnedTabs } = useApp()
+  const { tabs, objects, activate, closeTabAt, setSearch, goBack, goForward, toggleSidebar, pinnedTabs, moveTabTo } = useApp()
   const openedCollection = useGrid((s) => s.filters.collection)
   // Clic droit sur un onglet : le menu de la page (favori, épingler, renommer, supprimer…), ou juste « Fermer » pour un écran.
   const [menu, setMenu] = useState<{ i: number; x: number; y: number; page?: boolean } | null>(null)
   const menuId = menu ? tabs.ids[menu.i] : undefined
+  // Glisser un onglet pour le déplacer : rom = l'onglet tenu, slot = l'endroit (entre deux onglets) où il se poserait.
+  const [drag, setDrag] = useState<{ from: number; slot: number } | null>(null)
+  const dropAt = () => {
+    if (drag) moveTabTo(drag.from, drag.slot > drag.from ? drag.slot - 1 : drag.slot)
+    setDrag(null)
+  }
 
   return (
     <div className="flex items-end gap-0.5 border-b border-[var(--border)] bg-[var(--bg-side)] px-1 pt-1">
@@ -39,16 +48,24 @@ export function TabBar() {
             <div
               key={id + i}
               role="tab"
+              draggable
+              onDragStart={(e) => { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/x-form-tab', String(i)); setDrag({ from: i, slot: i }) }}
+              onDragOver={(e) => { if (!drag) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); setDrag({ from: drag.from, slot: e.clientX > r.left + r.width / 2 ? i + 1 : i }) }}
+              onDrop={(e) => { e.preventDefault(); dropAt() }}
+              onDragEnd={() => setDrag(null)}
               aria-selected={active}
               onMouseDown={(e) => { if (e.button === 1) { e.preventDefault(); if (!pinned) closeTabAt(i) } }}
               onContextMenu={(e) => { e.preventDefault(); setMenu({ i, x: e.clientX, y: e.clientY }) }}
-              style={{ flex: pinned ? '0 0 44px' : '0 1 180px', minWidth: pinned ? 44 : 64 }}
-              className={'group flex h-8 items-center gap-1 rounded-t-md px-2 text-sm ' + (active ? 'bg-[var(--bg)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
+              style={{ width: pinned ? 44 : TAB_WIDTH, flexShrink: pinned ? 0 : 1, minWidth: pinned ? 44 : 64 }}
+              className={'group relative flex h-8 items-center gap-1 rounded-t-md px-2 text-sm ' + (drag?.from === i ? 'opacity-50 ' : '') + (active ? 'bg-[var(--bg)] font-medium' : 'text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
             >
               <button onClick={() => activate(i)} title={title} className="flex min-w-0 flex-1 items-center gap-1.5 text-left">
                 <span className="shrink-0">{vt ? (vt.libPage ? LIBRARY_ICONS[vt.libPage] : VIEW_ICONS[vt.view]) : <Icon value={o?.icon ?? (o?.type === 'database' ? '📊' : '📄')} size={15} />}</span>
                 {!pinned && <span className="truncate">{title}</span>}
               </button>
+              {drag && drag.slot !== drag.from && drag.slot !== drag.from + 1 && (drag.slot === i || (i === tabs.ids.length - 1 && drag.slot === tabs.ids.length)) && (
+                <span aria-hidden className={'pointer-events-none absolute inset-y-1 w-0.5 rounded bg-[var(--accent)] ' + (drag.slot === i ? '-left-px' : '-right-px')} />
+              )}
               {pinned ? <Pin size={10} className="shrink-0 text-[var(--fg-muted)]" aria-label="Onglet épinglé" /> : tabs.ids.length > 1 && (
                 <button
                   title="Fermer l'onglet"

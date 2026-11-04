@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activateTab, canGo, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, openTab, pinTab, type Tabs } from './tabs'
+import { activateTab, canGo, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, moveTab, openTab, pinTab, type Tabs } from './tabs'
 
 describe('onglets', () => {
   it("ouvre dans l'onglet actif ou dans un nouvel onglet", () => {
@@ -111,5 +111,30 @@ describe('historique propre à chaque onglet', () => {
     expect(pinned.ids[0]).toBe('w')
     expect(pinned.history?.[0].back).toEqual(['y', 'z'])
     expect(closeAround(t, 2, 'others').tabs.history).toEqual([{ back: ['y', 'z'], forward: [] }])
+  })
+})
+
+describe('déplacer un onglet', () => {
+  const t: Tabs = { ids: ['a', 'b', 'c', 'd'], active: 1, history: [{ back: ['1'], forward: [] }, { back: ['2'], forward: [] }, { back: ['3'], forward: [] }, { back: ['4'], forward: [] }] }
+  it('un onglet change de place, l’onglet actif et les historiques le suivent', () => {
+    const m = moveTab(t, 0, 2)
+    expect(m.ids).toEqual(['b', 'c', 'a', 'd'])
+    expect(m.active).toBe(0)
+    expect(m.history?.map((h) => h.back[0])).toEqual(['2', '3', '1', '4'])
+  })
+  it('déplacer l’onglet actif garde l’onglet actif', () => {
+    const m = moveTab(t, 1, 3)
+    expect(m.ids).toEqual(['a', 'c', 'd', 'b'])
+    expect(m.active).toBe(3)
+  })
+  it('rien ne change si la place est la même ou hors limites', () => {
+    expect(moveTab(t, 2, 2)).toBe(t)
+    expect(moveTab(t, 9, 0)).toBe(t)
+    expect(moveTab(t, 0, 99).ids).toEqual(['b', 'c', 'd', 'a'])
+  })
+  it('les onglets épinglés restent à gauche', () => {
+    expect(moveTab(t, 3, 0, ['a']).ids).toEqual(['a', 'd', 'b', 'c'])
+    expect(moveTab(t, 0, 3, ['a']).ids).toEqual(t.ids)
+    expect(moveTab(t, 1, 0, ['a', 'b']).ids).toEqual(['b', 'a', 'c', 'd'])
   })
 })

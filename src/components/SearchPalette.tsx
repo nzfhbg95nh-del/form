@@ -104,7 +104,7 @@ export function SearchPalette() {
     if (entry.type === 'new') void createPage(null, newTab)
     else if (entry.type === 'screen') {
       const s = entry.screen
-      if (s.recipes) void openRecipes()
+      if (s.recipes) void openRecipes(newTab)
       else if (s.view && newTab) openViewTab(s.view, s.lib)
       else if (s.view) {
         if (s.lib) useLibraryNav.getState().go(s.lib)
@@ -118,7 +118,9 @@ export function SearchPalette() {
       if (blockId) window.setTimeout(() => document.querySelector(`[data-id="${blockId}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 500)
     }
     else {
-      show(entry.type === 'client' ? 'clients' : 'services')
+      const screen = entry.type === 'client' ? 'clients' : 'services'
+      if (newTab) openViewTab(screen)
+      else show(screen)
       setEditing({ kind: entry.type, id: entry.id })
     }
   }

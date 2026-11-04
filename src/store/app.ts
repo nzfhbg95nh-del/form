@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
-import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, isViewTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
+import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, isViewTab, moveTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
@@ -155,6 +155,8 @@ interface AppState {
   pinnedTabs: string[]
   duplicateTabAt(index: number): void
   togglePinTab(index: number): void
+  /** Glisser-déposer d'un onglet : 	o est sa place une fois déplacé. */
+  moveTabTo(from: number, to: number): void
   closeTabsAround(index: number, side: CloseSide): void
   openPeek(id: string): void
   closePeek(): void
@@ -173,7 +175,7 @@ interface AppState {
   /** Ajoute des recettes lues dans le dossier « recette » (celles dont le titre existe déjà sont laissées telles quelles). */
   importRecipeRows(items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[]): Promise<{ created: number; skipped: number }>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
-  openRecipes(): Promise<void>
+  openRecipes(newTab?: boolean): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
   addRecipe(values?: Record<string, unknown>, cover?: string): Promise<void>
   /** Relève le courrier reconnu et crée une ligne par nouveau message. Renvoie le nombre de nouveaux courriers. */
@@ -411,8 +413,7 @@ export const useApp = create<AppState>((set, get) => ({
         tabs: { ids: first ? [viewTabId('home'), first.id] : [viewTabId('home')], active: 0 },
       })
       try {
-        const done = await runDailyBackup(repo)
-        if (done) set({ backupMessage: `Sauvegarde du ${done} effectuée.` })
+        await runDailyBackup(repo)
       } catch (e) {
         set({ backupMessage: `La sauvegarde automatique a échoué : ${String(e)}` })
       }
@@ -506,6 +507,11 @@ export const useApp = create<AppState>((set, get) => ({
   duplicateTabAt(index) {
     const tabs = duplicateTab(get().tabs, index)
     set({ tabs, selectedId: currentId(tabs), ...viewOfTab(tabs) })
+  },
+
+  moveTabTo(from, to) {
+    const tabs = moveTab(get().tabs, from, to, get().pinnedTabs)
+    if (tabs !== get().tabs) set({ tabs })
   },
 
   togglePinTab(index) {
@@ -823,9 +829,9 @@ export const useApp = create<AppState>((set, get) => ({
     if (repo) set({ objects: await repo.listObjects() })
   },
 
-  async openRecipes() {
+  async openRecipes(newTab = false) {
     const db = await ensureRecipesDb(get, set)
-    if (db) get().select(db.id)
+    if (db) get().select(db.id, { newTab })
   },
 
   async addRecipe(values, cover) {
