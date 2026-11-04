@@ -53,6 +53,7 @@ const PIN_RE = /^pinterest\/([^/]+)\/(.+)\/([^/]+)\.(\w+)$/
 
 const MANUAL_PREFIX = 'ajouts/'
 export const MANUAL_COLLECTION = 'man:ajouts'
+export const manualFolderCollectionId = (folder: string) => `man:ajouts/${folder}`
 
 export const fileKindOf = (ext: string): FileKind => (VIDEO_EXT.has(ext.toLowerCase()) ? 'video' : 'image')
 
@@ -93,6 +94,14 @@ export function buildBlocks(files: ScannedFile[]): { blocks: BlockDraft[]; colle
       const name = file.rel.slice(MANUAL_PREFIX.length)
       const stem = name.replace(/\.\w+$/, '')
       collections.set(MANUAL_COLLECTION, { id: MANUAL_COLLECTION, name: 'Images ajoutées', kind: 'manual', owner: 'Images ajoutées' })
+      const collectionIds = [MANUAL_COLLECTION]
+      // Un dossier rangé dans « images ajoutées » (3d, Photo…) devient aussi une collection à son nom.
+      const folder = name.includes('/') ? name.slice(0, name.indexOf('/')) : null
+      if (folder) {
+        const id = manualFolderCollectionId(folder)
+        collections.set(id, { id, name: folder, kind: 'manual', owner: 'Images ajoutées' })
+        collectionIds.push(id)
+      }
       const bf = [toBlockFile(file, 0)]
       blocks.push({
         id: `man:${stem}`,
@@ -103,7 +112,7 @@ export function buildBlocks(files: ScannedFile[]): { blocks: BlockDraft[]; colle
         originUrl: '',
         kind: blockKind(bf),
         publishedAt: new Date(file.mtime || Date.now()).toISOString().slice(0, 10),
-        collectionIds: [MANUAL_COLLECTION],
+        collectionIds,
         files: bf,
       })
       continue
