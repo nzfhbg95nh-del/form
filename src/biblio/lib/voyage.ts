@@ -3,7 +3,7 @@
 export type StepKind = 'same' | 'different' | 'colors' | 'surprise'
 
 export const STEP_LABELS: Record<StepKind, string> = {
-  same: 'Plus pareil',
+  same: 'Similaire',
   different: 'Un peu différent',
   colors: 'Mêmes couleurs',
   surprise: 'Surprends-moi',

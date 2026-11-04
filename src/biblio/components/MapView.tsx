@@ -244,7 +244,7 @@ export function MapView() {
     if (fly) flyTo(viewFor([i, ...list], 120, 3, true))
   }
 
-  /** Un saut du voyage : « plus pareil », « un peu différent », « mêmes couleurs » ou « surprends-moi ». */
+  /** Un saut du voyage : « similaire », « un peu différent », « mêmes couleurs » ou « surprends-moi ». */
   const step = async (kind: StepKind) => {
     const P = ptsRef.current
     const from = focusRef.current ? P?.index.get(focusRef.current) : undefined

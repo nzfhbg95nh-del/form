@@ -1199,3 +1199,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-04, suite) 3 photos de plus copiées dans Bibliotheque\recette (Poulet tikka masala, Sirop de fleurs de sureau, Sirop de lilas). Restent sans photo : Cake salé, Couscous, Salade croquante, Tiramisu (Victor : « pas grave »).
 
 - (2026-11-04, suite) Recettes : la photo reprise du dossier devient aussi la couverture (et donc la miniature de la carte), pour les recettes déjà présentes sans couverture comme pour les nouvelles.
+
+- (2026-11-05) Carte : le bouton « Plus pareil » s'appelle maintenant « Similaire ».

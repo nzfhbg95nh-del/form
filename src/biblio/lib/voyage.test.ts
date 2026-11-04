@@ -4,7 +4,7 @@ import { pickStep, type Candidate } from './voyage.ts'
 const ranked: Candidate[] = Array.from({ length: 60 }, (_, i) => ({ index: 100 + i, score: 1 - i / 100 }))
 
 describe('pickStep', () => {
-  it('« plus pareil » : la plus proche pas encore vue', () => {
+  it('« similaire » : la plus proche pas encore vue', () => {
     expect(pickStep('same', ranked, new Set())).toBe(100)
     expect(pickStep('same', ranked, new Set([100, 101]))).toBe(102)
   })
