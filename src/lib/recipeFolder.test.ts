@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseRecipeJson, planRecipe, recipeDirName, recipeJsonText, recipeMarkdown, restoreBlocks, utf8ToBase64 } from './recipeFolder'
+import { parseRecipeJson, planRecipe, recipeDirName, recipeJsonText, recipeMarkdown, restoreBlocks, utf8ToBase64, firstPhotoUrl, withFirstPhoto } from './recipeFolder'
 
 const PNG = 'data:image/png;base64,iVBORw0KGgo='
 const JPG = 'data:image/jpeg;base64,/9j/4AAQSkZJRg=='
@@ -142,5 +142,19 @@ describe('texte en base64', () => {
     expect(utf8ToBase64('Crêpes')).toBe('Q3LDqnBlcw==')
     const long = 'é'.repeat(50_000)
     expect(atob(utf8ToBase64(long)).length).toBe(100_000)
+  })
+})
+
+describe('photo manquante d\'une recette', () => {
+  it('lit la première photo, vide si le bloc photo est vide', () => {
+    expect(firstPhotoUrl([{ type: 'image' }, { type: 'paragraph' }])).toBe('')
+    expect(firstPhotoUrl([{ type: 'image', props: { url: 'photo-1.jpg' } }])).toBe('photo-1.jpg')
+    expect(firstPhotoUrl([])).toBe('')
+  })
+  it('met la photo dans le bloc vide, ou crée le bloc en tête, sans toucher aux blocs reçus', () => {
+    const blocks = [{ type: 'image' }, { type: 'portions' }]
+    expect(withFirstPhoto(blocks, 'form-lib:a.jpg')[0]).toEqual({ type: 'image', props: { url: 'form-lib:a.jpg' } })
+    expect(blocks[0]).toEqual({ type: 'image' })
+    expect(withFirstPhoto([{ type: 'portions' }], 'x.jpg')).toEqual([{ type: 'image', props: { url: 'x.jpg' } }, { type: 'portions' }])
   })
 })

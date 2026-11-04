@@ -95,7 +95,7 @@ export function RecipeFolder({ disabled }: { disabled: boolean }) {
         <p className="mt-3 text-sm" style={muted}>
           {imported.found === 0
             ? 'Aucune recette trouvée dans le dossier « recette ».'
-            : `${plural(imported.found, 'recette')} trouvée${imported.found > 1 ? 's' : ''} : ${plural(imported.created, 'ajoutée')}, ${plural(imported.skipped, 'déjà présente')} (jamais écrasée${imported.skipped > 1 ? 's' : ''}).`}
+            : `${plural(imported.found, 'recette')} trouvée${imported.found > 1 ? 's' : ''} : ${plural(imported.created, 'ajoutée')}, ${plural(imported.skipped, 'déjà présente')} (jamais écrasée${imported.skipped > 1 ? 's' : ''}).${imported.photos > 0 ? ` ${plural(imported.photos, 'photo')} ajoutée${imported.photos > 1 ? 's' : ''} aux recettes qui n'en avaient pas.` : ''}`}
           {imported.errors.length > 0 && ` Problèmes : ${imported.errors.join(' · ')}`}
         </p>
       )}

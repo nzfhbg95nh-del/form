@@ -192,6 +192,30 @@ export function restoreBlocks(content: unknown[], dir: string): unknown[] {
   return copy
 }
 
+/** L'adresse de la première photo d'une recette (vide si le bloc photo est vide ou absent). */
+export function firstPhotoUrl(blocks: unknown): string {
+  let found = ''
+  let seen = false
+  eachBlock(blocks, (b) => {
+    if (seen || b.type !== 'image') return
+    seen = true
+    found = typeof b.props?.url === 'string' ? b.props.url : ''
+  })
+  return found
+}
+
+/** La recette avec une photo dans son premier bloc photo (le bloc est créé en tête s'il n'y en a pas). Les blocs reçus ne sont pas modifiés. */
+export function withFirstPhoto(blocks: unknown[], url: string): unknown[] {
+  const copy = structuredClone(blocks)
+  let done = false
+  eachBlock(copy, (b) => {
+    if (done || b.type !== 'image') return
+    done = true
+    b.props = { ...b.props, url }
+  })
+  return done ? copy : [{ type: 'image', props: { url } }, ...copy]
+}
+
 /** Du texte en base64 (UTF-8), pour l'écrire dans un fichier. */
 export function utf8ToBase64(text: string): string {
   const bytes = new TextEncoder().encode(text)

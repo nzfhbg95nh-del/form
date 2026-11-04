@@ -1193,3 +1193,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-04, suite) Les dossiers de « images ajoutées » (IA, Ceramique…) sont lus une fois au premier démarrage, même si la mise à jour du jour est déjà faite : sans cela, l'IA ne les connaissait pas et les types restaient à 0.
 
 - (2026-11-04, suite) Clic droit sur une page affichée en carte ou en ligne (recettes, bases, accueil, liens de page) : « Ouvrir » / « Ouvrir dans un nouvel onglet » ; le clic du milieu ouvre aussi dans un nouvel onglet. Composant PageContextMenu, attribut data-page-id.
+
+- (2026-11-04, suite) Photos des recettes : 19 images du dossier « Nouveau dossier » copiées dans Bibliotheque\recette\<recette>\photo-1.*. Le bouton « reprendre les recettes du dossier » donne maintenant leur photo aux recettes déjà présentes qui n'en ont pas (sans rien écraser d'autre). Restent sans photo : Cake salé à la feta, Couscous, Poulet tikka masala, Salade croquante, Sirop de fleurs de sureau, Sirop de lilas, Tiramisu aux spéculoos.

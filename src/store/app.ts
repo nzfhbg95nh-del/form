@@ -6,6 +6,8 @@ import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, 
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
+import { parseContent } from '@/lib/content'
+import { firstPhotoUrl, withFirstPhoto } from '@/lib/recipeFolder'
 import { computeMove, descendantsOf, duplicationOrder, isDescendant, childrenOf, type DropZone } from '@/lib/tree'
 import { checkForUpdate, isNewer, type AvailableUpdate } from '@/lib/updates'
 import { parsePinned, PINNED_SETTING, togglePinned } from '@/lib/pinned'
@@ -173,7 +175,7 @@ interface AppState {
   /** Crée un moodboard enfant de la page (sans l'ouvrir) pour l'intégrer dans son contenu ; renvoie son identifiant. */
   createEmbeddedChild(parentId: string | null, kind: 'page' | 'database' | 'moodboard'): Promise<string | null>
   /** Ajoute des recettes lues dans le dossier « recette » (celles dont le titre existe déjà sont laissées telles quelles). */
-  importRecipeRows(items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[]): Promise<{ created: number; skipped: number }>
+  importRecipeRows(items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[]): Promise<{ created: number; skipped: number; photos: number }>
   /** Ouvre la base « Recettes » (la crée au premier usage). */
   openRecipes(newTab?: boolean): Promise<void>
   /** Nouvelle recette vide dans la base « Recettes », ouverte aussitôt. */
@@ -277,14 +279,27 @@ async function importRecipeRowsInto(
   get: () => AppState,
   set: SetFn,
   items: { title: string; icon: string | null; cover: string | null; values: Record<string, unknown>; content: unknown[] }[],
-): Promise<{ created: number; skipped: number }> {
+): Promise<{ created: number; skipped: number; photos: number }> {
   const repo = get().repo
   const db = await ensureRecipesDb(get, set)
-  if (!repo || !db) return { created: 0, skipped: items.length }
-  const known = new Set(get().objects.filter((o) => o.parent_id === db.id && o.type === 'row' && !o.deleted_at).map((o) => (o.title ?? '').trim().toLowerCase()))
+  if (!repo || !db) return { created: 0, skipped: items.length, photos: 0 }
+  const existing = new Map(get().objects.filter((o) => o.parent_id === db.id && o.type === 'row' && !o.deleted_at).map((o) => [(o.title ?? '').trim().toLowerCase(), o]))
+  const known = new Set(existing.keys())
   const added: ObjectRow[] = []
+  const photoed: ObjectRow[] = []
   for (const it of items) {
     const key = it.title.trim().toLowerCase()
+    // Une recette qui existe déjà n'est jamais écrasée ; seule sa photo manquante est reprise du dossier.
+    const mine = existing.get(key)
+    if (mine) {
+      const photo = firstPhotoUrl(it.content)
+      if (photo && !mine.cover && !firstPhotoUrl(parseContent(mine.content))) {
+        const patch = { content: JSON.stringify(withFirstPhoto(parseContent(mine.content) ?? [], photo)) }
+        await repo.updateObject(mine.id, patch)
+        photoed.push({ ...mine, ...patch })
+      }
+      continue
+    }
     if (!key || known.has(key)) continue
     known.add(key)
     const row = await repo.createPage(db.id, 'row', JSON.stringify(it.values))
@@ -292,8 +307,11 @@ async function importRecipeRowsInto(
     await repo.updateObject(row.id, patch)
     added.push({ ...row, ...patch })
   }
-  if (added.length > 0) set((s) => ({ objects: [...s.objects, ...added] }))
-  return { created: added.length, skipped: items.length - added.length }
+  if (added.length > 0 || photoed.length > 0) {
+    const byId = new Map(photoed.map((o) => [o.id, o]))
+    set((s) => ({ objects: [...s.objects.map((o) => byId.get(o.id) ?? o), ...added] }))
+  }
+  return { created: added.length, skipped: items.length - added.length, photos: photoed.length }
 }
 
 export const useApp = create<AppState>((set, get) => ({

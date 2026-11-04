@@ -100,6 +100,8 @@ export interface ImportResult {
   found: number
   created: number
   skipped: number
+  /** Recettes déjà présentes qui n'avaient pas de photo et en ont reçu une du dossier. */
+  photos: number
   errors: string[]
 }
 
@@ -120,6 +122,6 @@ export async function importRecipes(root: string): Promise<ImportResult> {
       // Un dossier sans recette.json (autre chose rangé là) est simplement ignoré.
     }
   }
-  const { created, skipped } = await useApp.getState().importRecipeRows(items)
-  return { found: items.length, created, skipped, errors: errors.slice(0, 10) }
+  const { created, skipped, photos } = await useApp.getState().importRecipeRows(items)
+  return { found: items.length, created, skipped, photos, errors: errors.slice(0, 10) }
 }
