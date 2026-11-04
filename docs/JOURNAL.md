@@ -1152,3 +1152,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Tous les onglets ont la meme largeur (180 px, ils se resserrent ensemble quand il y en a beaucoup) ; la croix s'affiche au survol et sur l'onglet actif ; il reste toujours au moins un onglet. Au demarrage : un onglet « Accueil » (actif) et, a cote, la derniere page consultee.
 - L'onglet d'un ecran de la bibliotheque suit la page choisie (Tout, Collections, Moodboards, Carte).
 - Tests : 4 scenarios de bout en bout (e2e/tabs.spec.ts) ; 26 scenarios et 769 tests reussis.
+
+
+## 2026-11-04 - Precedent / Suivant propres a chaque onglet (branche travail, pas publie)
+- Chaque onglet garde son propre historique (50 pas) : changer son contenu (clic dans la barre laterale, lien, ecran) range l'ancien dans son « Precedent » ; « Precedent » et « Suivant » (boutons, menu, Alt+fleches) ne jouent que dans l'onglet actif. Un nouveau contenu efface le « Suivant ». Dupliquer un onglet copie son historique ; fermer, epingler ou deplacer un onglet le garde avec lui. Les pages supprimees ou a la corbeille sont sautees.
+- Mettre a la corbeille la page qu'on regarde passe a l'onglet voisin ; il reste toujours un onglet (Accueil si besoin).
+- L'ancien historique commun (navBack / navForward) est retire. Le nom de l'onglet d'un ecran de la bibliotheque change quand on choisit une autre page dans la barre laterale (pas quand elle change depuis l'interieur de la bibliotheque).
+- Tests : 6 nouveaux (tabs.test.ts) + 1 scenario de bout en bout ; 775 tests et 27 scenarios reussis.

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { canGo } from '@/lib/tabs'
 import { ChevronDown, ChevronRight } from 'lucide-react'
 import { copyText, pageLink, windowActions } from '@/lib/windowActions'
 import { useApp } from '@/store/app'
@@ -68,8 +69,8 @@ export function AppMenu() {
       { label: 'Basculer en plein écran', shortcut: 'F11', action: () => needsApp(windowActions.toggleFullscreen) },
     ],
     Historique: [
-      { label: 'Précédent', shortcut: 'Alt+←', action: s.goBack, disabled: s.navBack.length === 0 },
-      { label: 'Suivant', shortcut: 'Alt+→', action: s.goForward, disabled: s.navForward.length === 0 },
+      { label: 'Précédent', shortcut: 'Alt+←', action: s.goBack, disabled: !canGo(s.tabs, 'back') },
+      { label: 'Suivant', shortcut: 'Alt+→', action: s.goForward, disabled: !canGo(s.tabs, 'forward') },
     ],
     Fenêtre: [
       { label: 'Réduire', shortcut: 'Ctrl+M', action: () => needsApp(windowActions.minimize) },

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, openTab, pinTab } from './tabs'
+import { activateTab, canGo, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, openTab, pinTab, type Tabs } from './tabs'
 
 describe('onglets', () => {
   it("ouvre dans l'onglet actif ou dans un nouvel onglet", () => {
     const start = { ids: ['a'], active: 0 }
-    expect(openTab(start, 'b')).toEqual({ ids: ['b'], active: 0 })
+    expect(openTab(start, 'b')).toEqual({ ids: ['b'], active: 0, history: [{ back: ['a'], forward: [] }] })
     expect(openTab(start, 'b', true)).toEqual({ ids: ['a', 'b'], active: 1 })
     expect(openTab({ ids: [], active: 0 }, 'x')).toEqual({ ids: ['x'], active: 0 })
   })
@@ -61,5 +61,55 @@ describe("menu d'un onglet", () => {
     const r = pinTab({ ids: ['a', 'b'], active: 0 }, 0, ['a'])
     expect(r.tabs.ids).toEqual(['a', 'b'])
     expect(r.pinned).toEqual([])
+  })
+})
+
+describe('historique propre à chaque onglet', () => {
+  it("changer le contenu d'un onglet garde l'ancien dans son « Précédent », sans toucher aux autres onglets", () => {
+    let t: Tabs = { ids: ['a', 'b'], active: 0 }
+    t = openTab(t, 'c')
+    expect(t.ids).toEqual(['c', 'b'])
+    expect(canGo(t, 'back')).toBe(true)
+    expect(t.history?.[1]).toEqual({ back: [], forward: [] })
+    t = activateTab(t, 1)
+    expect(canGo(t, 'back')).toBe(false)
+  })
+  it('Précédent puis Suivant retrouvent le contenu, onglet par onglet', () => {
+    let t = openTab(openTab({ ids: ['a'], active: 0 }, 'b'), 'c')
+    const back = goInTab(t, 'back')!
+    expect(back.ids).toEqual(['b'])
+    expect(canGo(back, 'forward')).toBe(true)
+    const back2 = goInTab(back, 'back')!
+    expect(back2.ids).toEqual(['a'])
+    expect(goInTab(back2, 'back')).toBeNull()
+    t = goInTab(back2, 'forward')!
+    expect(t.ids).toEqual(['b'])
+  })
+  it('ouvrir autre chose après un retour efface le « Suivant »', () => {
+    const t = goInTab(openTab({ ids: ['a'], active: 0 }, 'b'), 'back')!
+    expect(canGo(openTab(t, 'z'), 'forward')).toBe(false)
+  })
+  it('les pages qui n’existent plus sont sautées', () => {
+    const t = openTab(openTab(openTab({ ids: ['a'], active: 0 }, 'b'), 'c'), 'd')
+    const back = goInTab(t, 'back', (id) => id !== 'c')!
+    expect(back.ids).toEqual(['b'])
+    expect(goInTab(openTab({ ids: ['a'], active: 0 }, 'b'), 'back', () => false)).toBeNull()
+  })
+  it('ouvrir la même page ne remplit pas l’historique', () => {
+    const t = { ids: ['a'], active: 0 }
+    expect(openTab(t, 'a')).toBe(t)
+  })
+  it('l’historique suit son onglet quand on ferme, duplique ou épingle', () => {
+    const t = openTab(openTab({ ids: ['a', 'x', 'y'], active: 2 }, 'z'), 'w')
+    expect(t.history?.[2].back).toEqual(['y', 'z'])
+    expect(closeTab(t, 0).history?.[1].back).toEqual(['y', 'z'])
+    const copy = duplicateTab(t, 2)
+    expect(copy.history?.[3].back).toEqual(['y', 'z'])
+    copy.history![3].back.push('n')
+    expect(copy.history?.[2].back).toEqual(['y', 'z'])
+    const pinned = pinTab(t, 2, []).tabs
+    expect(pinned.ids[0]).toBe('w')
+    expect(pinned.history?.[0].back).toEqual(['y', 'z'])
+    expect(closeAround(t, 2, 'others').tabs.history).toEqual([{ back: ['y', 'z'], forward: [] }])
   })
 })

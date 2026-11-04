@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
-import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
+import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, isViewTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
@@ -138,10 +138,9 @@ interface AppState {
   select(id: string, opts?: { newTab?: boolean }): void
   activate(index: number): void
   /** Historique de navigation (flèches Précédent / Suivant). */
-  navBack: string[]
-  navForward: string[]
   goBack(): void
   goForward(): void
+  goInActiveTab(direction: 'back' | 'forward'): void
   /** Onglets fermés récemment, pour « Rouvrir le dernier onglet fermé ». */
   closedTabs: string[]
   reopenTab(): void
@@ -321,8 +320,6 @@ export const useApp = create<AppState>((set, get) => ({
   error: null,
   backupMessage: null,
   expanded: savedExpanded(),
-  navBack: [],
-  navForward: [],
   closedTabs: [],
   pinnedTabs: [],
   sidebarHidden: localStorage.getItem('form-sidebar-hidden') === '1',
@@ -433,13 +430,11 @@ export const useApp = create<AppState>((set, get) => ({
       expanded[p.parent_id] = true
     }
     localStorage.setItem('form-expanded', JSON.stringify(expanded))
-    const previous = get().selectedId
     // Comme dans Notion : un clic change le contenu de l'onglet actif ; seuls Ctrl+clic, clic molette, « Nouvel onglet » et le bouton + en ouvrent un autre.
     const keep = opts?.newTab ?? false
     const tabs = openTab(get().tabs, id, keep)
-    // On retient d'où l'on vient pour que « Précédent » fonctionne (sauf quand on revient en arrière).
-    const history = previous && previous !== id && get().view === 'page' ? { navBack: [...get().navBack.slice(-49), previous], navForward: [] } : {}
-    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded, ...history })
+    // L'onglet se souvient de ce qu'il montrait avant : « Précédent » et « Suivant » sont propres à chaque onglet.
+    set({ tabs, selectedId: currentId(tabs), view: 'page', expanded })
     const opened = get().objects.find((o) => o.id === currentId(tabs))
     if (opened && isPageLike(opened) && !isSystemDatabase(opened)) {
       try { localStorage.setItem(LAST_PAGE_KEY, opened.id) } catch { /* sans importance */ }
@@ -447,21 +442,20 @@ export const useApp = create<AppState>((set, get) => ({
   },
 
   goBack() {
-    const { navBack, selectedId, tabs } = get()
-    const target = navBack[navBack.length - 1]
-    if (!target) return
-    const next = openTab(tabs, target, false)
-    set({ tabs: next, selectedId: currentId(next), view: 'page', navBack: navBack.slice(0, -1), navForward: selectedId ? [...get().navForward, selectedId] : get().navForward })
+    get().goInActiveTab('back')
   },
 
   goForward() {
-    const { navForward, selectedId, tabs } = get()
-    const target = navForward[navForward.length - 1]
-    if (!target) return
-    const next = openTab(tabs, target, false)
-    set({ tabs: next, selectedId: currentId(next), view: 'page', navForward: navForward.slice(0, -1), navBack: selectedId ? [...get().navBack, selectedId] : get().navBack })
+    get().goInActiveTab('forward')
   },
 
+  goInActiveTab(direction) {
+    // Les pages mises à la corbeille ou supprimées sont sautées ; les écrans (Accueil, Devis…) existent toujours.
+    const { tabs, objects } = get()
+    const next = goInTab(tabs, direction, (id) => isViewTab(id) || objects.some((o) => o.id === id && !o.deleted_at))
+    if (!next) return
+    set({ tabs: next, selectedId: currentId(next), ...viewOfTab(next) })
+  },
   reopenTab() {
     const closed = get().closedTabs
     const id = closed[closed.length - 1]
@@ -554,8 +548,7 @@ export const useApp = create<AppState>((set, get) => ({
     }
     const { tabs } = get()
     const id = viewTabId(view, view === 'library' ? useLibraryNav.getState().page : undefined)
-    const next = tabs.ids.length === 0 ? { ids: [id], active: 0 } : { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active }
-    set({ view, tabs: next, selectedId: null })
+    set({ view, tabs: openTab(tabs, id, false), selectedId: null })
   },
 
   openViewTab(view, libPage) {
@@ -978,12 +971,10 @@ export const useApp = create<AppState>((set, get) => ({
     const ids = [id, ...descendantsOf(get().objects, id).filter((o) => !o.deleted_at).map((o) => o.id)]
     for (const i of ids) await get().update(i, { deleted_at: stamp })
     // Les onglets et l'aperçu qui montraient ces pages se ferment.
+    const wasShown = ids.includes(get().selectedId ?? '')
     let tabs = dropTabs(get().tabs, ids)
-    if (tabs.ids.length === 0) {
-      const next = get().objects.find((o) => !o.deleted_at && isPageLike(o))
-      if (next) tabs = { ids: [next.id], active: 0 }
-    }
-    set((s) => ({ tabs, selectedId: currentId(tabs), peekId: s.peekId && ids.includes(s.peekId) ? null : s.peekId }))
+    if (tabs.ids.length === 0) tabs = { ids: [viewTabId('home')], active: 0 }
+    set((s) => ({ tabs, selectedId: currentId(tabs), ...(wasShown ? viewOfTab(tabs) : {}), peekId: s.peekId && ids.includes(s.peekId) ? null : s.peekId }))
   },
 
   async restore(id) {
@@ -1043,13 +1034,3 @@ if (typeof window !== 'undefined' && window.matchMedia) {
     useApp.setState({ theme })
   })
 }
-
-// Un écran de la bibliothèque (Tout, Collections, Moodboards, Carte) garde son nom dans l'onglet quand on change de page de bibliothèque.
-useLibraryNav.subscribe((state, previous) => {
-  if (state.page === previous.page) return
-  const { tabs, view } = useApp.getState()
-  const active = tabs.ids[tabs.active] ?? ''
-  if (view !== 'library' || parseViewTab(active)?.view !== 'library') return
-  const id = viewTabId('library', state.page)
-  if (id !== active) useApp.setState({ tabs: { ids: tabs.ids.map((x, i) => (i === tabs.active ? id : x)), active: tabs.active } })
-})

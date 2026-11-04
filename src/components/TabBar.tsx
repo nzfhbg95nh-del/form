@@ -6,7 +6,7 @@ import { Icon } from '@/components/Icon'
 import { useGrid } from '@/biblio/store/grid.ts'
 import { displayTitle } from '@/lib/lastEdit'
 import { viewTitle } from '@/lib/viewTitle'
-import { closeAround, parseViewTab } from '@/lib/tabs'
+import { canGo, closeAround, parseViewTab } from '@/lib/tabs'
 import { pageLink } from '@/lib/windowActions'
 
 const VIEW_ICONS: Record<string, React.ReactNode> = {
@@ -16,7 +16,7 @@ const VIEW_ICONS: Record<string, React.ReactNode> = {
 const LIBRARY_ICONS: Record<string, React.ReactNode> = { all: <LayoutGrid size={14} />, collections: <FolderOpen size={14} />, moodboards: <Images size={14} />, map: <MapIcon size={14} /> }
 
 export function TabBar() {
-  const { tabs, objects, activate, closeTabAt, setSearch, goBack, goForward, navBack, navForward, toggleSidebar, pinnedTabs } = useApp()
+  const { tabs, objects, activate, closeTabAt, setSearch, goBack, goForward, toggleSidebar, pinnedTabs } = useApp()
   const openedCollection = useGrid((s) => s.filters.collection)
   // Clic droit sur un onglet : le menu de la page (favori, épingler, renommer, supprimer…), ou juste « Fermer » pour un écran.
   const [menu, setMenu] = useState<{ i: number; x: number; y: number; page?: boolean } | null>(null)
@@ -25,8 +25,8 @@ export function TabBar() {
   return (
     <div className="flex items-end gap-0.5 border-b border-[var(--border)] bg-[var(--bg-side)] px-1 pt-1">
       <button title="Afficher / masquer la barre latérale (Ctrl+\)" onClick={toggleSidebar} className="mb-0.5 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"><PanelLeft size={16} /></button>
-      <button title="Précédent (Alt+←)" disabled={navBack.length === 0} onClick={goBack} className="mb-0.5 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
-      <button title="Suivant (Alt+→)" disabled={navForward.length === 0} onClick={goForward} className="mb-0.5 mr-1 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
+      <button title="Précédent (Alt+←)" disabled={!canGo(tabs, 'back')} onClick={goBack} className="mb-0.5 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
+      <button title="Suivant (Alt+→)" disabled={!canGo(tabs, 'forward')} onClick={goForward} className="mb-0.5 mr-1 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
       {/* Comme dans Notion : tous les onglets ont la même largeur (ils se resserrent ensemble quand il y en a beaucoup), le « + » suit le dernier onglet, et aucun ne disparaît sauf si on le ferme. */}
       <div role="tablist" className="flex min-w-0 items-end">
         {tabs.ids.map((id, i) => {
