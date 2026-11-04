@@ -1131,3 +1131,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-04 - Version 0.49.0
 - Videos : `/video` dans les pages (fichier de l'ordinateur ou lien YouTube / Vimeo / Loom), videos dans les moodboards (Ajouter > Video…, collage d'un lien, ajout depuis l'onglet « Tout » de la bibliotheque). Lecture au survol (sans le son), double-clic pour le son et les commandes ; les fichiers ne sont jamais copies (seul leur emplacement est garde).
 - Rangement : ancien dossier Social Saver supprime (la bibliotheque vit dans Bibliotheque).
+
+
+## 2026-11-04 - Menu des onglets comme Notion, correctif du classement (branche travail, pas publie)
+- Clic droit sur un onglet : Copier le lien, Dupliquer l'onglet, Epingler cet onglet (reste a gauche, sans croix, jamais ferme par « fermer les autres »), Options de la page…, Rouvrir le dernier onglet ferme, Fermer l'onglet / les autres / a gauche / a droite. Non repris de Notion : Actualiser, groupes d'onglets, nouvelle fenetre.
+- Correctif : « Refaire le classement » (Bibliotheque) affichait « RangeError: offset is out of bounds » quand aucune image n'etait rangee a la main ou par tableau (aucun exemple : taille des empreintes calculee a 0). La taille vient maintenant des images a classer ; les types decrits en mots fonctionnent sans exemple.
+- Tests : 11 nouveaux (src/lib/tabs.test.ts, neighbours.test.ts) ; 767 reussis.

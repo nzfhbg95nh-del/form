@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildExampleSet, choleskySolve, fitRidge, proposeEnsemble, proposeFor, ridgeProbs } from './neighbours.ts'
+import { buildExampleSet, choleskySolve, fitRidge, proposeEnsemble, proposeFor, ridgeProbs, vectorDim } from './neighbours.ts'
 
 const unit = (...v: number[]) => {
   const n = Math.sqrt(v.reduce((s, x) => s + x * x, 0))
@@ -123,5 +123,19 @@ describe('régression et ensemble', () => {
     const m = fitRidge(multi)
     const p = ridgeProbs(unit(1, 0.02, 0), m)
     expect(p.get('art')! + p.get('typo')!).toBeGreaterThan(p.get('photo')!)
+  })
+})
+
+describe('taille des empreintes', () => {
+  it('sans aucun exemple (rien rangé à la main), on prend la taille des images à classer', () => {
+    const none = buildExampleSet([])
+    expect(none.dim).toBe(0)
+    expect(vectorDim(none, [unit(1, 0, 0), unit(0, 1, 0)])).toBe(3)
+  })
+  it('avec des exemples, ce sont celles des exemples taille', () => {
+    expect(vectorDim(set, [unit(1, 0, 0, 0, 0)])).toBe(3)
+  })
+  it('sans exemple ni image : 0', () => {
+    expect(vectorDim(buildExampleSet([]), [])).toBe(0)
   })
 })

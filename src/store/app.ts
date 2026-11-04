@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
 import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
-import { activateTab, closeTab, currentId, dropTabs, openTab, parseViewTab, viewTabId, type Tabs } from '@/lib/tabs'
+import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
 import { tasksSchema } from '@/lib/tasks'
@@ -162,6 +162,11 @@ interface AppState {
   zoom: number
   setZoom(zoom: number): void
   closeTabAt(index: number): void
+  /** Onglets épinglés (à gauche, sans croix, jamais fermés par « fermer les autres »). */
+  pinnedTabs: string[]
+  duplicateTabAt(index: number): void
+  togglePinTab(index: number): void
+  closeTabsAround(index: number, side: CloseSide): void
   openPeek(id: string): void
   closePeek(): void
   setRenaming(id: string | null): void
@@ -329,6 +334,7 @@ export const useApp = create<AppState>((set, get) => ({
   navBack: [],
   navForward: [],
   closedTabs: [],
+  pinnedTabs: [],
   sidebarHidden: localStorage.getItem('form-sidebar-hidden') === '1',
   zoom: Number(localStorage.getItem('form-zoom') ?? '1') || 1,
   searchOpen: false,
@@ -508,7 +514,23 @@ export const useApp = create<AppState>((set, get) => ({
     const tabs = closeTab(get().tabs, index)
     // Fermer l'onglet d'un écran qu'on regarde : on passe à l'écran (ou à la page) de l'onglet voisin.
     const wasShown = get().view !== 'page' && index === get().tabs.active && parseViewTab(closedId ?? '')
-    set({ tabs, selectedId: currentId(tabs), ...(wasShown ? viewOfTab(tabs) : {}), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs })
+    set({ tabs, selectedId: currentId(tabs), ...(wasShown ? viewOfTab(tabs) : {}), closedTabs: closedId ? [...get().closedTabs.slice(-19), closedId] : get().closedTabs, pinnedTabs: get().pinnedTabs.filter((p) => tabs.ids.includes(p)) })
+  },
+
+  duplicateTabAt(index) {
+    const tabs = duplicateTab(get().tabs, index)
+    set({ tabs, selectedId: currentId(tabs), ...viewOfTab(tabs) })
+  },
+
+  togglePinTab(index) {
+    const r = pinTab(get().tabs, index, get().pinnedTabs)
+    set({ tabs: r.tabs, pinnedTabs: r.pinned })
+  },
+
+  closeTabsAround(index, side) {
+    const r = closeAround(get().tabs, index, side, get().pinnedTabs)
+    if (r.closed.length === 0) return
+    set({ tabs: r.tabs, selectedId: currentId(r.tabs), ...viewOfTab(r.tabs), closedTabs: [...get().closedTabs, ...r.closed].slice(-20), pinnedTabs: get().pinnedTabs.filter((p) => r.tabs.ids.includes(p)) })
   },
 
   openPeek(id) {

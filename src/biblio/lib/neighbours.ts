@@ -228,6 +228,13 @@ export function proposeEnsemble(
   return keepBest(ranked, o)
 }
 
+/** La taille des empreintes : celle des exemples, ou à défaut celle des images à classer (sans exemple, les types décrits en mots restent possibles). */
+export function vectorDim(examples: ExampleSet, vectors: Iterable<ArrayLike<number>>): number {
+  if (examples.dim > 0) return examples.dim
+  for (const v of vectors) return v.length
+  return 0
+}
+
 /** Rassemble des exemples dans la forme attendue par `proposeFor`. */
 export function buildExampleSet(examples: { vec: ArrayLike<number>; types: string[] }[]): ExampleSet {
   const dim = examples[0]?.vec.length ?? 0

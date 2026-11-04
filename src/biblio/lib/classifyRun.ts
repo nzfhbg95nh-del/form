@@ -6,7 +6,7 @@ import { MODEL_ID } from './ai.ts'
 import { getTextStatus, textVectors } from './aiText.ts'
 import { applyExclusive, blockVector, withFallback, type Row } from './classify.ts'
 import type { WorkerInput, WorkerOutput } from './classify.worker.ts'
-import { buildExampleSet, DEFAULT_OPTIONS } from './neighbours.ts'
+import { buildExampleSet, DEFAULT_OPTIONS, vectorDim } from './neighbours.ts'
 import { allPrompts, buildPromptMatrix, SEMANTIC_TYPES, thresholdsOf } from './semantic.ts'
 import { decodeVector } from './vectors.ts'
 
@@ -68,7 +68,7 @@ export async function classifyAll(threshold: number, onProgress?: (done: number,
   // Les types sans tableau ni exemple n'ont pas de voisines : seuls les types qui ont des exemples peuvent être donnés.
   const examples = buildExampleSet([...labels].filter(([id]) => vectors.has(id)).map(([id, types]) => ({ vec: vectors.get(id)!, types })))
   const queryIds = [...vectors.keys()].filter((id) => !labels.has(id))
-  const dim = examples.dim
+  const dim = vectorDim(examples, vectors.values())
   const queries = new Float32Array(queryIds.length * dim)
   queryIds.forEach((id, i) => queries.set(vectors.get(id)!, i * dim))
 

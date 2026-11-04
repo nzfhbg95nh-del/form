@@ -52,3 +52,38 @@ export function dropTabs(t: Tabs, removed: string[]): Tabs {
   }
   return result
 }
+
+/** Les onglets à fermer en gardant celui qui est cliqué : tous les autres, ceux de gauche ou ceux de droite. Les onglets épinglés restent toujours. */
+export type CloseSide = 'others' | 'left' | 'right'
+
+export function closeAround(t: Tabs, index: number, side: CloseSide, pinned: readonly string[] = []): { tabs: Tabs; closed: string[] } {
+  if (index < 0 || index >= t.ids.length) return { tabs: t, closed: [] }
+  const drop = new Set<number>()
+  t.ids.forEach((id, i) => {
+    if (i === index || pinned.includes(id)) return
+    if (side === 'others' || (side === 'left' && i < index) || (side === 'right' && i > index)) drop.add(i)
+  })
+  if (drop.size === 0) return { tabs: t, closed: [] }
+  const shift = (i: number) => i - [...drop].filter((d) => d < i).length
+  const ids = t.ids.filter((_, i) => !drop.has(i))
+  return { tabs: { ids, active: shift(drop.has(t.active) ? index : t.active) }, closed: [...drop].sort((a, b) => a - b).map((i) => t.ids[i]) }
+}
+
+/** Dupliquer un onglet : une copie juste à sa droite, qui devient l'onglet actif. */
+export function duplicateTab(t: Tabs, index: number): Tabs {
+  if (index < 0 || index >= t.ids.length) return t
+  const ids = [...t.ids.slice(0, index + 1), t.ids[index], ...t.ids.slice(index + 1)]
+  return { ids, active: index + 1 }
+}
+
+/** Épingler un onglet : il se range à gauche, après les onglets déjà épinglés (désépingler le laisse où il est). */
+export function pinTab(t: Tabs, index: number, pinned: readonly string[]): { tabs: Tabs; pinned: string[] } {
+  const id = t.ids[index]
+  if (id === undefined) return { tabs: t, pinned: [...pinned] }
+  if (pinned.includes(id)) return { tabs: t, pinned: pinned.filter((p) => p !== id) }
+  const target = t.ids.filter((x) => pinned.includes(x)).length
+  const activeId = t.ids[t.active]
+  const ids = [...t.ids.slice(0, index), ...t.ids.slice(index + 1)]
+  ids.splice(target, 0, id)
+  return { tabs: { ids, active: Math.max(0, ids.indexOf(activeId)) }, pinned: [...pinned, id] }
+}
