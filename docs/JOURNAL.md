@@ -1126,3 +1126,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Moodboard : Ajouter > Video… (fichier), ou coller un lien YouTube / Vimeo / Loom. La video se deplace et se redimensionne comme une image ; double-clic pour la lire sur place, un clic ailleurs l'arrete. Le glisser-deposer d'un fichier video affiche un message (Windows ne donne pas l'emplacement du fichier dans ce mode).
 - Export .formboard : les videos y gardent leur chemin ou leur lien, sans etre copiees ; sur un autre ordinateur un fichier absent affiche « Video introuvable ».
 - Tests : 9 nouveaux (src/lib/video.test.ts, boardFile.test.ts) ; 756 tests reussis.
+
+
+## 2026-11-04 - Version 0.49.0
+- Videos : `/video` dans les pages (fichier de l'ordinateur ou lien YouTube / Vimeo / Loom), videos dans les moodboards (Ajouter > Video…, collage d'un lien, ajout depuis l'onglet « Tout » de la bibliotheque). Lecture au survol (sans le son), double-clic pour le son et les commandes ; les fichiers ne sont jamais copies (seul leur emplacement est garde).
+- Rangement : ancien dossier Social Saver supprime (la bibliotheque vit dans Bibliotheque).
