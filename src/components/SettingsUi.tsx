@@ -58,7 +58,7 @@ export interface SubNavItem<T extends string> {
 /** Onglets d'une page de réglages : une seule partie est visible à la fois, au lieu d'une page interminable. */
 export function SubNav<T extends string>({ items, value, onChange }: { items: SubNavItem<T>[]; value: T; onChange: (id: T) => void }) {
   return (
-    <div role="tablist" className="mb-6 flex flex-wrap gap-1 rounded-xl bg-[var(--bg-side)] p-1">
+    <div role="tablist" className="mb-6 flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-[var(--bg-side)] p-1">
       {items.map((it) => {
         const active = it.id === value
         return (

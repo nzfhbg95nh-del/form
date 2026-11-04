@@ -1167,3 +1167,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Correctif : le « + » (Nouvel onglet) remplacait l'onglet actif pour « Recettes », les clients et les tarifs ; ils s'ouvrent maintenant dans un nouvel onglet, comme les autres choix.
 - Le message « Sauvegarde du … effectuee. » en haut de l'ecran est supprime (un echec de sauvegarde reste signale).
 - Tests : 4 nouveaux (moveTab) + 2 scenarios de bout en bout ; 779 tests et 29 scenarios reussis.
+
+- Reglages : la barre de sous-navigation (Ma bibliotheque / Telechargement / Recettes…, Identite et logo / Factures et TVA…) n'occupe plus toute la largeur : elle epouse ses onglets (composant SubNav, w-fit).
