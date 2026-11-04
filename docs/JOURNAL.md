@@ -1169,3 +1169,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Tests : 4 nouveaux (moveTab) + 2 scenarios de bout en bout ; 779 tests et 29 scenarios reussis.
 
 - Reglages : la barre de sous-navigation (Ma bibliotheque / Telechargement / Recettes…, Identite et logo / Factures et TVA…) n'occupe plus toute la largeur : elle epouse ses onglets (composant SubNav, w-fit).
+
+- Recettes > Gerer les categories : un bouton « Ajouter » (a cote du champ « Nouvelle categorie… ») valide la nouvelle categorie ; avant, seule la touche Entree le faisait et rien ne l'indiquait. Test de bout en bout (e2e/recipes.spec.ts).

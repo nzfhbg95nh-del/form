@@ -454,13 +454,15 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           }
         }}
       >
-        <Plus size={16} className="text-[var(--fg-muted)]" />
+        <Plus size={16} className="shrink-0 text-[var(--fg-muted)]" />
         <input
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nouvelle catégorie…"
+          aria-label="Nom de la nouvelle catégorie"
           className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-[var(--fg-muted)]"
         />
+        <button type="submit" disabled={!newName.trim()} className="shrink-0 rounded bg-[var(--accent)] px-3 py-1 text-xs text-white disabled:opacity-40">Ajouter</button>
       </form>
           </div>
         </div>
