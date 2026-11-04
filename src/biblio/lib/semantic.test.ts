@@ -60,7 +60,7 @@ describe('réglages', () => {
       expect(t.threshold).toBeGreaterThanOrEqual(0.5)
       expect(t.threshold).toBeLessThan(1)
     }
-    expect(SEMANTIC_TYPES.map((t) => t.typeId)).toEqual(['typo', 'recette', 'autres'])
+    expect(SEMANTIC_TYPES.map((t) => t.typeId)).toEqual(['typo', 'recette', 'ceramique', 'ia', 'autres'])
   })
   it('aucune description en double (le cache en base les retrouve par leur texte)', () => {
     const all = allPrompts()
@@ -73,7 +73,7 @@ describe('réglages', () => {
     expect(pm.groups.length).toBe(allPrompts().length)
     expect(pm.groups.slice(0, 6)).toEqual(Array(6).fill('typo'))
     expect(pm.groups.slice(-CONTRAST_PROMPTS.length)).toEqual(Array(CONTRAST_PROMPTS.length).fill(''))
-    expect(thresholdsOf()).toEqual({ typo: 0.7, recette: 0.9, autres: 0.9 })
-    expect(thresholdsOf(undefined, true)).toEqual({ typo: 0.5, recette: 0.65, autres: 0.9 })
+    expect(thresholdsOf()).toEqual({ typo: 0.7, recette: 0.9, ceramique: 0.9, ia: 0.9, autres: 0.9 })
+    expect(thresholdsOf(undefined, true)).toEqual({ typo: 0.5, recette: 0.65, ceramique: 0.7, ia: 0.75, autres: 0.9 })
   })
 })

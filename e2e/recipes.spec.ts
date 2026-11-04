@@ -7,7 +7,11 @@ test.describe('recettes', () => {
     await page.getByText('Catégorie', { exact: true }).first().click()
     await page.getByText('Gérer les catégories…').click()
     const dlg = page.getByRole('dialog', { name: 'Gérer les catégories' })
-    const add = dlg.getByRole('button', { name: 'Ajouter' })
+    await expect(dlg.getByText('Découverte')).toBeVisible()
+    // Le « + » est un vrai bouton : sans texte, il met le curseur dans le champ.
+    await dlg.getByRole('button', { name: 'Ajouter la catégorie' }).click()
+    await expect(dlg.getByLabel('Nom de la nouvelle catégorie')).toBeFocused()
+    const add = dlg.getByRole('button', { name: 'Ajouter', exact: true })
     await expect(add).toBeDisabled()
     await dlg.getByLabel('Nom de la nouvelle catégorie').fill('Sauces')
     await add.click()

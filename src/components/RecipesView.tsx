@@ -11,7 +11,7 @@ import { IconPicker } from '@/components/PagePickers'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { parseValues, type Schema } from '@/lib/database'
 import {
-  addCategory, filterRecipes, groupByCategory, moveEntry, normalizeRecipesSchema, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
+  addCategory, DISCOVERY_ID, DISCOVERY_SETTING, discoveryRowIds, filterRecipes, groupByCategory, moveEntry, normalizeRecipesSchema, withDiscoveryCategory, recipeCategories, recipeEntries, RECIPE, RECIPE_SORTS, removeCategory, renameEntry,
   setEntryEmoji, sortRecipes, defaultSortDescending, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
@@ -254,12 +254,30 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
+  const newCategoryInput = useRef<HTMLInputElement>(null)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
+  // Une seule fois, la catégorie « Découverte » est ajoutée et reçoit les recettes originales ; ensuite on n'y touche plus.
+  const discoveryRunning = useRef(false)
   useEffect(() => {
-    const clean = normalizeRecipesSchema(schema)
-    if (clean !== schema) void saveSchema(db.id, clean)
-  }, [schema, db.id, saveSchema])
+    void (async () => {
+      let current = schema
+      const clean = normalizeRecipesSchema(current)
+      if (clean !== current) { await saveSchema(db.id, clean); current = clean }
+      if (!repo || discoveryRunning.current || (await repo.getSetting(DISCOVERY_SETTING)) === '1') return
+      discoveryRunning.current = true
+      try {
+        const withCategory = withDiscoveryCategory(current)
+        if (withCategory !== current) await saveSchema(db.id, withCategory)
+        const mine = useApp.getState().objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at)
+        for (const id of discoveryRowIds(mine)) await setCell(id, RECIPE.type, DISCOVERY_ID)
+        await repo.setSetting(DISCOVERY_SETTING, '1')
+      } finally {
+        discoveryRunning.current = false
+      }
+    })()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schema, db.id, repo])
 
   const categories = useMemo(() => recipeCategories(schema), [schema])
   const rows = useMemo(() => objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at), [objects, db.id])
@@ -454,8 +472,17 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           }
         }}
       >
-        <Plus size={16} className="shrink-0 text-[var(--fg-muted)]" />
+        <button
+          type="submit"
+          title="Ajouter la catégorie"
+          aria-label="Ajouter la catégorie"
+          onClick={(e) => { if (!newName.trim()) { e.preventDefault(); newCategoryInput.current?.focus() } }}
+          className="shrink-0 rounded p-0.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]"
+        >
+          <Plus size={16} />
+        </button>
         <input
+          ref={newCategoryInput}
           value={newName}
           onChange={(e) => setNewName(e.target.value)}
           placeholder="Nouvelle catégorie…"

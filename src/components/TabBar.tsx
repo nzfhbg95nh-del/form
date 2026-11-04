@@ -33,9 +33,9 @@ export function TabBar() {
 
   return (
     <div className="flex items-end gap-0.5 border-b border-[var(--border)] bg-[var(--bg-side)] px-1 pt-1">
-      <button title="Afficher / masquer la barre latérale (Ctrl+\)" onClick={toggleSidebar} className="mb-0.5 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"><PanelLeft size={16} /></button>
-      <button title="Précédent (Alt+←)" disabled={!canGo(tabs, 'back')} onClick={goBack} className="mb-0.5 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
-      <button title="Suivant (Alt+→)" disabled={!canGo(tabs, 'forward')} onClick={goForward} className="mb-0.5 mr-1 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
+      <button title="Afficher / masquer la barre latérale (Ctrl+\)" onClick={toggleSidebar} className="shrink-0 self-center rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"><PanelLeft size={16} /></button>
+      <button title="Précédent (Alt+←)" disabled={!canGo(tabs, 'back')} onClick={goBack} className="shrink-0 self-center rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronLeft size={16} /></button>
+      <button title="Suivant (Alt+→)" disabled={!canGo(tabs, 'forward')} onClick={goForward} className="mr-1 shrink-0 self-center rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] disabled:opacity-30"><ChevronRight size={16} /></button>
       {/* Comme dans Notion : tous les onglets ont la même largeur (ils se resserrent ensemble quand il y en a beaucoup), le « + » suit le dernier onglet, et aucun ne disparaît sauf si on le ferme. */}
       <div role="tablist" className="flex min-w-0 items-end">
         {tabs.ids.map((id, i) => {
@@ -80,7 +80,7 @@ export function TabBar() {
         })}
       </div>      {menu && menuId && !menu.page && <TabMenu index={menu.i} id={menuId} x={menu.x} y={menu.y} onClose={() => setMenu(null)} onPageOptions={() => setMenu({ ...menu, page: true })} />}
       {menu && menuId && menu.page && <PageMenu id={menuId} x={menu.x} y={menu.y} onClose={() => setMenu(null)} closeTab={tabs.ids.length > 1 ? () => closeTabAt(menu.i) : undefined} />}
-      <button title="Nouvel onglet (Ctrl+T)" onClick={() => setSearch(true, true)} className="mb-0.5 ml-1 shrink-0 rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
+      <button title="Nouvel onglet (Ctrl+T)" onClick={() => setSearch(true, true)} className="ml-1 shrink-0 self-center rounded p-1.5 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]">
         <Plus size={14} />
       </button>
     </div>

@@ -1,6 +1,7 @@
 // Types d'image : lecture, règles des tableaux, classement automatique, ajout et retrait à la main.
 
 import { getDb } from './db.ts'
+import { manualFolderCollectionId } from './scan.ts'
 import { tagKey } from './text.ts'
 
 export interface TypeInfo {
@@ -30,19 +31,24 @@ export interface TypeIndex {
 
 export const EMPTY_TYPE_INDEX: TypeIndex = { types: [], index: new Map() }
 
-/** Types de départ, avec les tableaux Pinterest de DYSARTADD dont ils reprennent les images. */
-export const DEFAULT_TYPES: { name: string; boards: string[] }[] = [
-  { name: 'Art graphic', boards: ['Art graphic'] },
+/**
+ * Types de départ, avec les tableaux Pinterest de DYSARTADD dont ils reprennent les images, et les dossiers de « images ajoutées »
+ * (ceux que Victor a déjà rangés à la main : leurs images servent d'exemples à l'IA pour classer le reste, dont le dossier « A trier »).
+ */
+export const DEFAULT_TYPES: { name: string; boards: string[]; folders?: string[] }[] = [
+  { name: 'Art graphic', boards: ['Art graphic'], folders: ['Art graphique'] },
   { name: 'Typo', boards: ['Typo', 'Typographie', 'Typography', 'Typographie & lettering'] },
   { name: 'Brand identity', boards: ['Brand identity'] },
-  { name: 'Photography & Clip', boards: ['Photography & Clip'] },
-  { name: 'Fashion & sewing projects', boards: ['Fashion & sewing projects'] },
-  { name: 'Architecture & Interior design', boards: ['Architecture & Interior design'] },
-  { name: '3D & CGI', boards: ['3D & CGI'] },
-  { name: 'Product design & objects', boards: ['Product design & objects'] },
+  { name: 'Photography & Clip', boards: ['Photography & Clip'], folders: ['Photo'] },
+  { name: 'Fashion & sewing projects', boards: ['Fashion & sewing projects'], folders: ['Couture & Sappes'] },
+  { name: 'Architecture & Interior design', boards: ['Architecture & Interior design'], folders: ['Architecture'] },
+  { name: '3D & CGI', boards: ['3D & CGI'], folders: ['3d'] },
+  { name: 'Product design & objects', boards: ['Product design & objects'], folders: ['Meuble & Objets deco'] },
   { name: 'Drawing & Painting', boards: ['Drawing & Painting'] },
   { name: 'Website', boards: ['Website'] },
   { name: 'Tattoo', boards: ['Tattoo'] },
+  { name: 'Céramique', boards: ['Ceramique', 'Céramique'], folders: ['Ceramique'] },
+  { name: 'IA', boards: [], folders: ['IA'] },
   // Types sans tableau. Recette : trouvé par l'IA (description). Autres : les astuces (3D, graphisme…) et tout ce qui n'est dans aucun tableau.
   { name: 'Recette', boards: [] },
   { name: 'Autres', boards: [] },
@@ -71,6 +77,13 @@ export async function seedAndApplyTypes() {
       await d.execute(
         'INSERT OR IGNORE INTO lib_type_boards (type_id, collection_id) SELECT $1, c.id FROM lib_collections c WHERE c.id = $2 AND EXISTS (SELECT 1 FROM lib_types WHERE id = $1)',
         [id, boardCollectionId(b)],
+      )
+    }
+    // Un dossier de « images ajoutées » (3d, Photo, Ceramique…) donne son type à ses images : ce sont des exemples sûrs pour l'IA.
+    for (const f of t.folders ?? []) {
+      await d.execute(
+        'INSERT OR IGNORE INTO lib_type_boards (type_id, collection_id) SELECT $1, c.id FROM lib_collections c WHERE c.id = $2 AND EXISTS (SELECT 1 FROM lib_types WHERE id = $1)',
+        [id, manualFolderCollectionId(f)],
       )
     }
   }

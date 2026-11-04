@@ -23,9 +23,26 @@ export const DEFAULT_CATEGORIES = [
   { id: 'desserts', label: 'Desserts', emoji: '🍩', color: '#f5e0e9' },
   { id: 'entrees', label: 'Entrée', emoji: '🥣', color: '#dbeddb' },
   { id: 'biscuits', label: 'Biscuits, etc…', emoji: '🍪', color: '#ede0d4' },
+  { id: 'decouverte', label: 'Découverte', emoji: '🧭', color: '#d9e8f5' },
 ]
 
 export const CATEGORY_FALLBACK_EMOJI = '🍽️'
+
+/** La catégorie « Découverte » : les recettes un peu originales (fleurs, feuilles, ingrédients inhabituels…). */
+export const DISCOVERY_ID = 'decouverte'
+/** Réglage qui retient que la catégorie a été ajoutée et remplie une fois : si Victor la supprime ou déplace des recettes, elle ne revient pas toute seule. */
+export const DISCOVERY_SETTING = 'recipes_discovery_category'
+/** Les recettes rangées une seule fois dans « Découverte » (elles peuvent être déplacées ensuite). */
+export const DISCOVERY_TITLES = [
+  'Huile de feuilles de figuier',
+  'Faux thon à la pastèque',
+  'Farine de tilleul et buns',
+  'Boisson chocolatée aux fruits de tilleul',
+  'Sirop de lilas (1 litre)',
+  'Sirop de fleurs de sureau (1 litre)',
+  'Osmanthus blue coconut (cocktail)',
+  'Boisson poire, osmanthus et oolong',
+]
 
 /**
  * La base « Recettes » : les catégories (choix de la propriété « Catégorie »), une galerie, et deux autres propriétés :
@@ -142,6 +159,19 @@ export function addCategory(schema: Schema, label: string, emoji = CATEGORY_FALL
   const name = label.trim()
   if (!name) return schema
   return patchCategories(schema, (options) => [...options, { id: newId(), label: name, emoji, color: OPTION_COLORS[options.length % OPTION_COLORS.length] }])
+}
+
+/** Ajoute la catégorie « Découverte » si elle n'existe pas (le même schéma est renvoyé sinon). */
+export function withDiscoveryCategory(schema: Schema): Schema {
+  if (recipeCategories(schema).some((c) => c.id === DISCOVERY_ID)) return schema
+  const d = DEFAULT_CATEGORIES.find((c) => c.id === DISCOVERY_ID)!
+  return patchCategories(schema, (options) => [...options, opt(d.id, d.label, d.color, d.emoji)])
+}
+
+/** Les recettes à ranger dans « Découverte » (d'après leur titre, sans tenir compte des majuscules ni des espaces en trop). */
+export function discoveryRowIds(rows: readonly { id: string; title: string | null }[]): string[] {
+  const wanted = new Set(DISCOVERY_TITLES.map((t) => t.trim().toLowerCase()))
+  return rows.filter((r) => wanted.has((r.title ?? '').trim().toLowerCase())).map((r) => r.id)
 }
 
 export function renameCategory(schema: Schema, id: string, label: string): Schema {

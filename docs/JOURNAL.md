@@ -1171,3 +1171,11 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Reglages : la barre de sous-navigation (Ma bibliotheque / Telechargement / Recettes…, Identite et logo / Factures et TVA…) n'occupe plus toute la largeur : elle epouse ses onglets (composant SubNav, w-fit).
 
 - Recettes > Gerer les categories : un bouton « Ajouter » (a cote du champ « Nouvelle categorie… ») valide la nouvelle categorie ; avant, seule la touche Entree le faisait et rien ne l'indiquait. Test de bout en bout (e2e/recipes.spec.ts).
+
+
+## 2026-11-04 - Categorie « Decouverte », types « Ceramique » et « IA », « + » (branche travail, pas publie)
+- Recettes : nouvelle categorie « Decouverte » (🧭) pour les recettes originales. Elle est dans les categories de depart et, pour la base existante, ajoutee une seule fois a l'ouverture de « Recettes » (reglage `recipes_discovery_category` : si Victor la supprime ou deplace des recettes, elle ne revient pas). Rangees dedans une seule fois : huile de feuilles de figuier, faux thon a la pasteque, farine de tilleul et buns, boisson chocolatee aux fruits de tilleul, sirops de lilas et de sureau, osmanthus blue coconut, boisson poire-osmanthus-oolong.
+- Recettes > Gerer les categories : le « + » est un vrai bouton (sans texte, il met le curseur dans le champ ; avec du texte, il ajoute) en plus du bouton « Ajouter » et de la touche Entree.
+- Barre d'onglets : le « + » et les boutons de gauche sont centres sur la hauteur des onglets.
+- Bibliotheque / IA locale : deux nouveaux types, « Ceramique » et « IA » (images generees par IA), decrits en mots pour l'IA (comme Typo et Recette). Les dossiers deja ranges de « images ajoutees » donnent leur type a leurs images, qui servent d'exemples a l'IA pour classer le reste, dont « A trier » : Art graphique → Art graphic, 3d → 3D & CGI, Architecture → Architecture & Interior design, Photo → Photography & Clip, Couture & Sappes → Fashion & sewing projects, Meuble & Objets deco → Product design & objects, Ceramique → Ceramique, IA → IA. « Motion », « Aerotecc », « Autres » et « A trier » n'ont pas de type propre.
+- Tests : 7 nouveaux, anciens tests mis a jour ; 786 tests et 30 scenarios de bout en bout reussis.

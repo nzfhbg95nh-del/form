@@ -3,6 +3,7 @@ import { isSystemDatabase, parseSchema } from './database'
 import {
   addCategory, emptyRecipeBlocks, groupByCategory, RECIPE, recipeCategories, recipeSlashBlocks, recipesSchema,
   moveCategory, moveEntry, NONE_ID, normalizeRecipesSchema, recipeEntries, sortRecipes, removeCategory, renameEntry, setEntryEmoji, renameCategory, setCategoryEmoji,
+  DISCOVERY_ID, discoveryRowIds, withDiscoveryCategory,
 } from './recipes'
 
 describe('base de recettes', () => {
@@ -13,7 +14,7 @@ describe('base de recettes', () => {
     expect(parsed.views.map((v) => v.type)).toEqual(['gallery'])
     expect(parsed.columns.find((c) => c.id === RECIPE.type)!.name).toBe('Catégorie')
     expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
-      ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'],
+      ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'], ['🧭', 'Découverte'],
     ])
     expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'source'])
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
@@ -41,14 +42,14 @@ describe('catégories de recettes', () => {
     schema = addCategory(schema, '  Apéro  ')
     const added = recipeCategories(schema).at(-1)!
     expect([added.label, added.emoji]).toEqual(['Apéro', '🍽️'])
-    expect(recipeCategories(addCategory(schema, '   '))).toHaveLength(8)
+    expect(recipeCategories(addCategory(schema, '   '))).toHaveLength(9)
 
     schema = renameCategory(schema, added.id, 'Apéritifs')
     schema = setCategoryEmoji(schema, added.id, '🥂')
     expect(recipeCategories(schema).at(-1)).toMatchObject({ label: 'Apéritifs', emoji: '🥂' })
     expect(recipeCategories(renameCategory(schema, added.id, '  '))).toEqual(recipeCategories(schema))
 
-    expect(recipeCategories(removeCategory(schema, added.id))).toHaveLength(7)
+    expect(recipeCategories(removeCategory(schema, added.id))).toHaveLength(8)
   })
 
   it('met un emoji de départ aux anciennes catégories qui n’en ont pas', () => {
@@ -76,7 +77,7 @@ describe('catégories de recettes', () => {
     expect(labels(moveCategory(base, 'plats', -1)).slice(0, 2)).toEqual(['plats', 'boissons'])
     expect(labels(moveCategory(base, 'boissons', 1)).slice(0, 2)).toEqual(['plats', 'boissons'])
     expect(labels(moveCategory(base, 'boissons', -1))).toEqual(labels(base))
-    expect(labels(moveCategory(base, 'biscuits', 1))).toEqual(labels(base))
+    expect(labels(moveCategory(base, 'decouverte', 1))).toEqual(labels(base))
     expect(labels(moveCategory(base, 'inconnue', 1))).toEqual(labels(base))
   })
 })
@@ -108,7 +109,7 @@ describe('« Sans catégorie » comme les autres lignes', () => {
   it('est la dernière ligne par défaut, avec un nom et un emoji', () => {
     const entries = recipeEntries(recipesSchema())
     expect(entries.at(-1)).toMatchObject({ id: NONE_ID, label: 'Sans catégorie', emoji: '📄', isNone: true })
-    expect(entries).toHaveLength(8)
+    expect(entries).toHaveLength(9)
   })
 
   it('se renomme et change d’emoji', () => {
@@ -123,8 +124,8 @@ describe('« Sans catégorie » comme les autres lignes', () => {
   it('monte et descend, au milieu des catégories', () => {
     const base = recipesSchema()
     const up = moveEntry(base, NONE_ID, -1)
-    expect(ids(up).slice(-2)).toEqual([NONE_ID, 'biscuits'])
-    expect(ids(moveEntry(up, NONE_ID, -1)).slice(-3)).toEqual([NONE_ID, 'entrees', 'biscuits'])
+    expect(ids(up).slice(-2)).toEqual([NONE_ID, 'decouverte'])
+    expect(ids(moveEntry(up, NONE_ID, -1)).slice(-3)).toEqual([NONE_ID, 'biscuits', 'decouverte'])
     expect(ids(moveEntry(base, NONE_ID, 1))).toEqual(ids(base))
     expect(ids(moveEntry(base, 'boissons', -1))).toEqual(ids(base))
     expect(ids(moveEntry(base, 'boissons', 1)).slice(0, 2)).toEqual(['plats', 'boissons'])
@@ -147,4 +148,27 @@ describe('tri des recettes', () => {
   it('par note ascendante : les moins bien notées d\'abord, sans note à la fin', () => expect(names(sortRecipes(list, 'rating', (i) => i.title))).toBe('BCA'))
   it('par préparation : la plus courte d\'abord', () => expect(names(sortRecipes(list, 'prep', (i) => i.title))).toBe('CBA'))
   it('par difficulté : la plus facile d\'abord', () => expect(names(sortRecipes(list, 'difficulty', (i) => i.title))).toBe('CBA'))
+})
+
+describe('catégorie « Découverte »', () => {
+  it('fait partie des catégories de départ', () => {
+    expect(recipeCategories(recipesSchema()).some((c) => c.id === DISCOVERY_ID && c.label === 'Découverte')).toBe(true)
+  })
+  it('s’ajoute à une base qui ne l’a pas, une seule fois', () => {
+    const old = recipesSchema()
+    const without = { ...old, columns: old.columns.map((c) => (c.id === RECIPE.type ? { ...c, options: (c.options ?? []).filter((o) => o.id !== DISCOVERY_ID) } : c)) }
+    expect(recipeCategories(without).some((c) => c.id === DISCOVERY_ID)).toBe(false)
+    const withIt = withDiscoveryCategory(without)
+    expect(recipeCategories(withIt).at(-1)).toMatchObject({ id: DISCOVERY_ID, label: 'Découverte', emoji: '🧭' })
+    expect(withDiscoveryCategory(withIt)).toBe(withIt)
+  })
+  it('range les recettes originales par leur titre, sans tenir compte des majuscules ni des espaces', () => {
+    const rows = [
+      { id: 'a', title: 'Huile de feuilles de figuier' },
+      { id: 'b', title: '  FAUX THON À LA PASTÈQUE'.replace('À', 'à').replace('PASTÈQUE', 'pastèque') },
+      { id: 'c', title: 'Houmous' },
+      { id: 'd', title: null },
+    ]
+    expect(discoveryRowIds(rows)).toEqual(['a', 'b'])
+  })
 })
