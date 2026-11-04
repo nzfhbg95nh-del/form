@@ -293,8 +293,10 @@ async function importRecipeRowsInto(
     const mine = existing.get(key)
     if (mine) {
       const photo = firstPhotoUrl(it.content)
-      if (photo && !mine.cover && !firstPhotoUrl(parseContent(mine.content))) {
-        const patch = { content: JSON.stringify(withFirstPhoto(parseContent(mine.content) ?? [], photo)) }
+      // La photo du dossier devient aussi la couverture (donc la miniature de la carte), comme pour les autres recettes.
+      if (photo && !mine.cover) {
+        const blocks = parseContent(mine.content) ?? []
+        const patch = { cover: photo, ...(firstPhotoUrl(blocks) ? {} : { content: JSON.stringify(withFirstPhoto(blocks, photo)) }) }
         await repo.updateObject(mine.id, patch)
         photoed.push({ ...mine, ...patch })
       }
@@ -303,7 +305,7 @@ async function importRecipeRowsInto(
     if (!key || known.has(key)) continue
     known.add(key)
     const row = await repo.createPage(db.id, 'row', JSON.stringify(it.values))
-    const patch = { title: it.title, icon: it.icon === '🍳' ? null : (it.icon ?? null), content: JSON.stringify(it.content), ...(it.cover ? { cover: it.cover } : {}) }
+    const patch = { title: it.title, icon: it.icon === '🍳' ? null : (it.icon ?? null), content: JSON.stringify(it.content), ...((it.cover || firstPhotoUrl(it.content)) ? { cover: it.cover || firstPhotoUrl(it.content) } : {}) }
     await repo.updateObject(row.id, patch)
     added.push({ ...row, ...patch })
   }
