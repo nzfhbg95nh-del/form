@@ -13,7 +13,7 @@ import {
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { pixelColor } from '@/lib/imageColor'
-import { Lock, Minus, Ruler } from 'lucide-react'
+import { Lock, Ruler } from 'lucide-react'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
@@ -1656,15 +1656,6 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
-      )}
-      {/* Zoom : où on en est, et de quoi zoomer sans la molette */}
-      {!compact && (
-        <div data-ui className={group + ' absolute bottom-3 right-3'}>
-          <button className={item} title="Dézoomer" aria-label="Dézoomer" onClick={() => setView((v) => zoomAt(v, 0.8, { x: size.w / 2, y: size.h / 2 }))}><Minus size={14} /></button>
-          <button className={item + ' min-w-[3.25rem] justify-center tabular-nums'} title="Revenir à 100 %" aria-label={`Zoom ${Math.round(zoom * 100)} %, cliquer pour revenir à 100 %`} onClick={() => setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))}>{Math.round(zoom * 100)} %</button>
-          <button className={item} title="Zoomer" aria-label="Zoomer" onClick={() => setView((v) => zoomAt(v, 1.25, { x: size.w / 2, y: size.h / 2 }))}><Plus size={14} /></button>
-          <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} />Tout afficher</button>
-        </div>
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
       {!compact && !showTextPanel && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
