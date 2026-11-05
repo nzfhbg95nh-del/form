@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Pencil, Trash2, X } from 'lucide-react'
 import { loadCollectionBlocks, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
@@ -63,8 +64,10 @@ export function CollectionSettings({ card, onClose }: { card: CollectionCard; on
     onClose()
   }
 
-  return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={onClose}>
+  // La fenêtre est posée tout en haut de la page (portail) : sinon elle hérite du cadre « pointer-events-none » de la carte
+  // et les clics la traversent pour tomber sur les cartes en dessous (ouvrir un autre tableau, « Supprimer » qui ne répond pas).
+  return createPortal(
+    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={onClose} onClick={(e) => e.stopPropagation()}>
       <div
         className="flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-3xl shadow-2xl"
         style={{ background: 'var(--bg)' }}
@@ -139,6 +142,7 @@ export function CollectionSettings({ card, onClose }: { card: CollectionCard; on
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

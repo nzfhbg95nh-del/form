@@ -1266,3 +1266,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les images ajoutées à la main ne créent plus de collection « Images ajoutées » ; celle qui existait est retirée au démarrage (les images restent dans la bibliothèque). Les sous-dossiers (IA, Ceramique…) restent des collections pour l'apprentissage de l'IA.
 - Suppression d'une collection : confirmation plus claire (« Non » / « Oui, supprimer »), bouton bloqué pendant la suppression.
 - Reste : Victor teste en bêta.
+
+## 2026-11-05 — Version 0.51.1 (officielle)
+- Version officielle qui reprend tout le travail de la branche `travail` (moodboards, types Céramique et IA, photos de recettes, fin de la collection « Images ajoutées »). `main` rattrape `travail`.
+- Correction : la fenêtre « Modifier ton tableau » laissait passer les clics (elle était posée dans un cadre qui les ignore) : « Supprimer » ouvrait un autre tableau. Elle est maintenant posée tout en haut de la page.
