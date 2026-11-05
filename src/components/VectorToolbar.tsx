@@ -230,6 +230,25 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
           <input ref={fillInput} type="color" className="sr-only" tabIndex={-1} value={paint.fill ?? '#ffffff'} onChange={(e) => onPaint({ ...paint, fill: e.target.value })} aria-hidden />
           <input ref={strokeInput} type="color" className="sr-only" tabIndex={-1} value={paint.stroke ?? '#000000'} onChange={(e) => onPaint({ ...paint, stroke: e.target.value, sw: paint.sw > 0 ? paint.sw : 1 })} aria-hidden />
         </div>
+        {/* Aucun : supprime le fond (ou le contour) de ce qui est choisi, il devient transparent. S'applique à ce qui est actif : remplissage ou contour. */}
+        <div className="flex items-center justify-center gap-1.5">
+          {/* Comme dans Illustrator : « Couleur » (le carré de la couleur active) et « Aucun » (un carré blanc barré de rouge). */}
+          <button
+            title={active === 'fill' ? 'Remplissage : une couleur' : 'Contour : une couleur'}
+            aria-label={active === 'fill' ? 'Remplissage en couleur' : 'Contour en couleur'}
+            onClick={() => { if (active === 'fill') onPaint({ ...paint, fill: paint.fill ?? '#000000' }); else onPaint({ ...paint, stroke: paint.stroke ?? '#000000', sw: paint.sw > 0 ? paint.sw : 1 }) }}
+            className="h-4 w-4 border border-[var(--border)]"
+            style={{ background: (active === 'fill' ? paint.fill : paint.stroke) ?? '#000000' }}
+          />
+          <button
+            title={active === 'fill' ? 'Remplissage : aucun (fond transparent)' : 'Contour : aucun'}
+            aria-label={active === 'fill' ? 'Remplissage aucun' : 'Contour aucun'}
+            onClick={() => onPaint(active === 'fill' ? { ...paint, fill: null } : { ...paint, stroke: null })}
+            className="relative h-4 w-4 overflow-hidden border border-[var(--border)] bg-white"
+          >
+            <span aria-hidden className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" />
+          </button>
+        </div>
         <label className="flex items-center gap-1 text-[11px] opacity-80" title="Épaisseur du contour (pt)">
           <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className={(single ? 'w-8 px-0.5' : 'w-10 px-1') + ' rounded border border-[var(--border)] bg-transparent py-0.5 text-xs outline-none focus:border-[var(--accent)]'} style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
           {!single && 'pt'}
