@@ -1251,3 +1251,13 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-05, suite) Moodboard : plus d'ombre derrière les images et les vidéos.
 
 - (2026-11-05, suite) Moodboard : images et vidéos sans coins arrondis ; le sous-menu « Disposition » s'ouvre toujours à droite (le menu clic droit se décale pour lui laisser la place).
+
+
+## 2026-11-05 - Version 0.51.0
+
+**Fait**
+- Version définitive 0.51.0 : tout ce qui a été fait sur les moodboards depuis la 0.50.0 — molette (monter/descendre, Ctrl gauche/droite, Alt zoom), Espace corrigé, sous-menu « Disposition » toujours à droite, outils Rotation / Échelle / Déformation / Miroir et pipette sur les images, outil Recadrage, verrouillage, panneau « Mesures », fond « Aucun » transparent, barre d'outils plus fine, barre latérale repliée dans un moodboard, images sans ombre ni coins arrondis, bouton « Similaire » ; et côté bibliothèque / recettes : types Céramique et IA, photos de recettes en couverture, clic droit « Ouvrir dans un nouvel onglet ».
+- 794 tests automatiques et 31 tests de bout en bout passent.
+
+**Reste**
+- Victor installe la 0.51.0 et vérifie.
