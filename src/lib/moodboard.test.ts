@@ -3,8 +3,7 @@ import {
   alignItems, distributeItems, distributeSpacing, itemBounds, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, boundsOf, bringToFront, clampZoom, commit, duplicateItems,
   emptyBoard, expandGroups, fitView, flipItems, groupItems, hitTest, importSize, itemsInRect, looksLikeUrl, moveItems, newHistory,
   normalizeItems, normalizeRect, parseBoard, redo, removeItems, scaleItems, screenToWorld, sendToBack, serializeBoard, undo,
-  ungroupItems, worldToScreen, zoomAt, MAX_ZOOM, MIN_ZOOM, type BoardItem,
-} from './moodboard'
+  ungroupItems, worldToScreen, zoomAt, MAX_ZOOM, MIN_ZOOM, type BoardItem, cropDrag, uncropItem } from './moodboard'
 import { extractPalette, hexToRgb, mergePalettes, readableOn, rgbToHex } from './palette'
 
 const item = (id: string, x: number, y: number, w: number, h: number, extra: Partial<BoardItem> = {}): BoardItem => ({ id, kind: 'image', x, y, w, h, ...extra })
@@ -283,5 +282,39 @@ describe('panneau Aligner', () => {
   it('répartir les espaces autour d’un objet clé : il ne bouge pas', () => {
     const out = distributeSpacing([item('a', 0, 0, 10, 10), item('b', 15, 0, 10, 10), item('c', 100, 0, 10, 10)], ids('a', 'b', 'c'), 'x', { gap: 5, keyId: 'c' })
     expect(out.map((i) => i.x)).toEqual([70, 85, 100])
+  })
+})
+
+describe('recadrage d\'une image', () => {
+  it('tirer le côté gauche resserre le cadre sans bouger l\'image', () => {
+    const a = item('a', 100, 50, 200, 100)
+    const c = cropDrag(a, 'w', { x: 150, y: 80 })
+    expect(c.x).toBeCloseTo(150)
+    expect(c.w).toBeCloseTo(150)
+    expect(c.crop?.l).toBeCloseTo(0.25)
+    expect(c.crop?.r).toBeCloseTo(0)
+    // l'image garde sa taille : 150 px de cadre pour 0,75 de l'image = 200 px
+    expect(c.w / (1 - (c.crop?.l ?? 0) - (c.crop?.r ?? 0))).toBeCloseTo(200)
+  })
+  it('ne dépasse jamais l\'image entière et garde une taille minimale', () => {
+    const a = item('a', 100, 50, 200, 100)
+    expect(cropDrag(a, 'w', { x: -500, y: 0 }).crop?.l).toBeCloseTo(0)
+    const tiny = cropDrag(a, 'e', { x: 0, y: 0 })
+    expect(tiny.w).toBeGreaterThanOrEqual(12)
+  })
+  it('un coin recadre les deux côtés', () => {
+    const c = cropDrag(item('a', 0, 0, 100, 100), 'se', { x: 50, y: 60 })
+    expect(c.crop?.r).toBeCloseTo(0.5)
+    expect(c.crop?.b).toBeCloseTo(0.4)
+  })
+  it('annuler le recadrage rend l\'image entière au même endroit', () => {
+    const a = item('a', 100, 50, 200, 100)
+    const c = cropDrag(cropDrag(a, 'w', { x: 150, y: 0 }), 'n', { x: 0, y: 75 })
+    const back = uncropItem(c)
+    expect(back.crop).toBeUndefined()
+    expect(back.x).toBeCloseTo(100)
+    expect(back.y).toBeCloseTo(50)
+    expect(back.w).toBeCloseTo(200)
+    expect(back.h).toBeCloseTo(100)
   })
 })

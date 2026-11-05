@@ -14,6 +14,9 @@ export const SHAPES: { id: ShapeKind; label: string }[] = [
   { id: 'arrow', label: 'Flèche' },
 ]
 
+/** Recadrage d'une image : la part cachée à gauche, en haut, à droite et en bas (chacune de 0 à 1 de l'image entière). */
+export interface Crop { l: number; t: number; r: number; b: number }
+
 export interface BoardItem {
   id: string
   kind: ItemKind
@@ -62,6 +65,10 @@ export interface BoardItem {
   list?: 'none' | 'bullet' | 'number'
   /** Rotation, en degrés (sens des aiguilles d'une montre), autour du centre de l'élément. */
   rot?: number
+  /** Déformation (outil Déformation) : inclinaison horizontale, en degrés, autour du centre. */
+  skew?: number
+  /** image : recadrage, la part de l'image cachée de chaque côté (0 à 1, de l'image entière). */
+  crop?: Crop
   /** texte : `false` = zone de texte (largeur fixe, retour à la ligne automatique) ; sinon texte de point (s'agrandit en tapant). */
   auto?: boolean
   /** forme : laquelle. La couleur est dans `color` ; `filled` : remplie (sinon, seulement le contour) ; `sw` : épaisseur du trait. */
@@ -700,4 +707,57 @@ export function undo<T>(h: History<T>): History<T> {
 export function redo<T>(h: History<T>): History<T> {
   if (h.future.length === 0) return h
   return { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) }
+}
+
+/** Le recadrage d'une image (rien caché si elle n'est pas recadrée). */
+export const cropOf = (i: BoardItem): Crop => i.crop ?? { l: 0, t: 0, r: 0, b: 0 }
+
+/**
+ * Recadrer en tirant un côté ou un coin du cadre : l'image reste où elle est, seul le cadre se resserre (ou se rouvre, jusqu'à l'image entière).
+ * Marche aussi pour une image tournée (le geste est lu dans le sens de l'image).
+ */
+export function cropDrag(item: BoardItem, h: Handle, world: Pt2): BoardItem {
+  const rot = item.rot ?? 0
+  const c = centerOf(item)
+  const p = rot ? rotatePoint(world, c, -rot) : world
+  const { l, t, r, b } = cropOf(item)
+  const sx = item.w / Math.max(0.02, 1 - l - r)
+  const sy = item.h / Math.max(0.02, 1 - t - b)
+  const fullL = item.x - l * sx
+  const fullT = item.y - t * sy
+  const fullR = fullL + sx
+  const fullB = fullT + sy
+  const MIN = 12
+  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), Math.max(lo, hi))
+  const { hx, hy } = axis(h)
+  let left = item.x
+  let right = item.x + item.w
+  let top = item.y
+  let bottom = item.y + item.h
+  if (hx < 0) left = clamp(p.x, fullL, right - MIN)
+  if (hx > 0) right = clamp(p.x, left + MIN, fullR)
+  if (hy < 0) top = clamp(p.y, fullT, bottom - MIN)
+  if (hy > 0) bottom = clamp(p.y, top + MIN, fullB)
+  const nw = right - left
+  const nh = bottom - top
+  const localCenter = { x: left + nw / 2, y: top + nh / 2 }
+  const wc = rot ? rotatePoint(localCenter, c, rot) : localCenter
+  const crop = { l: (left - fullL) / sx, t: (top - fullT) / sy, r: (fullR - right) / sx, b: (fullB - bottom) / sy }
+  return { ...item, x: wc.x - nw / 2, y: wc.y - nh / 2, w: nw, h: nh, crop }
+}
+
+/** Annule le recadrage : l'image entière revient, à la même échelle et au même endroit. */
+export function uncropItem(item: BoardItem): BoardItem {
+  if (!item.crop) return item
+  const { l, t, r, b } = item.crop
+  const w = item.w / Math.max(0.02, 1 - l - r)
+  const h = item.h / Math.max(0.02, 1 - t - b)
+  const rot = item.rot ?? 0
+  const c = centerOf(item)
+  // Le nouveau cadre, dans le sens de l'image : même point fixe (le coin haut-gauche de la partie visible).
+  const local = { x: item.x - l * w + w / 2, y: item.y - t * h + h / 2 }
+  const wc = rot ? rotatePoint(local, c, rot) : local
+  const { crop: _crop, ...rest } = item
+  void _crop
+  return { ...rest, x: wc.x - w / 2, y: wc.y - h / 2, w, h }
 }

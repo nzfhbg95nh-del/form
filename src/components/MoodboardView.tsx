@@ -5,7 +5,7 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  cropDrag, cropOf, uncropItem, alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, makeVideo, importSize, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
@@ -49,8 +49,20 @@ type Drag =
   | { type: 'marquee'; start: Pt; base: Set<string>; items: BoardItem[] }
   | { type: 'text'; start: Pt; end: Pt }
   | { type: 'engine' }
+  /** Outils Rotation, Mise à l'échelle et Déformation sur les éléments qui ne sont pas des tracés (images, notes, textes…). */
+  | { type: 'xform'; mode: 'rotate' | 'scale' | 'shear'; center: Pt; start: Pt; items: BoardItem[]; ids: Set<string>; box: Rect }
+  | { type: 'crop'; handle: Handle; item: BoardItem }
 
 /** Couleurs proposées pour les formes et les textes. */
+/** La place de l'image dans son cadre : entière, ou recadrée (le cadre n'en montre qu'une partie ; le reste dépasse et est caché). */
+function cropBox(it: BoardItem): React.CSSProperties {
+  const { l, t, r, b } = cropOf(it)
+  const vw = Math.max(0.02, 1 - l - r)
+  const vh = Math.max(0.02, 1 - t - b)
+  if (!it.crop) return { width: '100%', height: '100%' }
+  return { position: 'absolute', left: `${(-l / vw) * 100}%`, top: `${(-t / vh) * 100}%`, width: `${100 / vw}%`, height: `${100 / vh}%` }
+}
+
 /** Le curseur de rotation (une flèche en arc), pour la zone juste à l'extérieur d'un coin du cadre de sélection. */
 const ROTATE_CURSOR = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 12a8 8 0 1 1-2.5-5.8'/%3E%3Cpath d='M20 3v5h-5'/%3E%3C/svg%3E") 12 12, crosshair`
 type Tool = string
@@ -125,6 +137,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const [flash, setFlash] = useState<string | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [arrangeOpen, setArrangeOpen] = useState(false)
+  const [arrangePos, setArrangePos] = useState({ x: 0, y: 0 })
+  // Le sous-menu « Disposition » est refermé à chaque fois que le menu se ferme.
+  useEffect(() => { if (!menu) setArrangeOpen(false) }, [menu])
   // Moteur de dessin (VectorCraft) : sa conversation, ce qu'il demande de dessiner par-dessus, la forme du curseur, et les éléments tels qu'il les connaît.
   const vc = useRef<VectorSession>(new VectorSession())
   const [vcOverlays, setVcOverlays] = useState<VcOverlay[]>([])
@@ -244,20 +259,44 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (dirty.current) void useApp.getState().update(boardId, { content: serializeBoard(latest.current) })
   }, [boardId])
 
-  // ── Zoom à la molette ──
+  // ── Molette : monter / descendre ; Ctrl (ou Maj) + molette : gauche / droite ; Alt + molette : zoom ──
   useEffect(() => {
     const el = containerRef.current
     if (!el) return
     const onWheel = (e: WheelEvent) => {
       if ((e.target as HTMLElement).closest('[data-scroll]')) return
       e.preventDefault()
-      const rect = el.getBoundingClientRect()
-      const factor = Math.exp(-e.deltaY * (e.ctrlKey ? 0.01 : 0.0015))
-      setView((v) => zoomAt(v, factor, { x: e.clientX - rect.left, y: e.clientY - rect.top }))
+      const delta = e.deltaY || e.deltaX
+      if (e.altKey) {
+        const rect = el.getBoundingClientRect()
+        setView((v) => zoomAt(v, Math.exp(-delta * 0.0015), { x: e.clientX - rect.left, y: e.clientY - rect.top }))
+      } else if (e.ctrlKey || e.metaKey || e.shiftKey) setView((v) => ({ ...v, x: v.x - delta }))
+      else setView((v) => ({ ...v, x: v.x - e.deltaX, y: v.y - e.deltaY }))
     }
     el.addEventListener('wheel', onWheel, { passive: false })
     return () => el.removeEventListener('wheel', onWheel)
   }, [])
+
+  // Espace : déplacer la toile avec la souris. Même si le focus est resté sur un bouton (barre latérale, onglets, outils), Espace ne doit pas l'activer.
+  useEffect(() => {
+    const editable = (t: EventTarget | null) => t instanceof HTMLElement && (['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName) || t.isContentEditable || !!t.closest('[role="dialog"]'))
+    const down = (e: KeyboardEvent) => {
+      if (e.key !== ' ' || editable(e.target)) return
+      e.preventDefault()
+      setSpaceDown(true)
+    }
+    const up = (e: KeyboardEvent) => {
+      if (e.key !== ' ' || editable(e.target)) return
+      e.preventDefault() // sinon le bouton qui a le focus se déclenche au relâchement
+      setSpaceDown(false)
+    }
+    const lost = () => setSpaceDown(false)
+    if (compact) return // un moodboard dans une page ne prend pas la touche Espace à la page
+    window.addEventListener('keydown', down, true)
+    window.addEventListener('keyup', up, true)
+    window.addEventListener('blur', lost)
+    return () => { window.removeEventListener('keydown', down, true); window.removeEventListener('keyup', up, true); window.removeEventListener('blur', lost) }
+  }, [compact])
 
   // ── Importer des images, du texte, des liens ──
   const viewCenter = useCallback((): Pt => screenToWorld(viewRef.current, { x: size.w / 2, y: size.h / 2 }), [size])
@@ -619,6 +658,49 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return
     }
 
+    // Recadrage : tirer une poignée du cadre de l'image.
+    const cropAt = target.dataset.crop as Handle | undefined
+    if (cropAt) {
+      const img = cur.find((i) => selRef.current.has(i.id) && i.kind === 'image')
+      if (img) {
+        dragRef.current = { type: 'crop', handle: cropAt, item: img }
+        e.currentTarget.setPointerCapture(e.pointerId)
+        return
+      }
+    }
+
+    // Rotation, Mise à l'échelle, Déformation : le moteur ne connaît que les tracés ; les images, notes, textes… sont transformés ici.
+    if (engine === 'reflect') {
+      // Miroir : un clic retourne les éléments choisis (ou celui qu'on clique) ; Alt = haut-bas, sinon gauche-droite.
+      const hitEl = target.closest('[data-item]') as HTMLElement | null
+      let ids = new Set(selRef.current)
+      if (hitEl && !ids.has(hitEl.dataset.item as string)) ids = new Set(expandGroups(cur, [hitEl.dataset.item as string]))
+      const flipIds = new Set(cur.filter((i) => ids.has(i.id) && !isPathItem(i)).map((i) => i.id))
+      if (flipIds.size > 0) {
+        setSelection(ids); selRef.current = ids
+        commitItems(flipItems(cur, flipIds, e.altKey ? 'y' : 'x'))
+        return
+      }
+    }
+    if (engine === 'rotate' || engine === 'scale' || engine === 'shear') {
+      // Un clic sur un élément qui n'est pas choisi le choisit d'abord.
+      const hitEl = target.closest('[data-item]') as HTMLElement | null
+      let ids = new Set(selRef.current)
+      if (hitEl && !ids.has(hitEl.dataset.item as string)) {
+        const hit = cur.find((i) => i.id === hitEl.dataset.item)
+        if (hit && !isPathItem(hit)) { ids = new Set(expandGroups(cur, [hit.id])); setSelection(ids); selRef.current = ids }
+      }
+      const others = cur.filter((i) => ids.has(i.id) && !isPathItem(i))
+      if (others.length > 0) {
+        const box = boundsOf(others)
+        if (box) {
+          dragRef.current = { type: 'xform', mode: engine, center: { x: box.x + box.w / 2, y: box.y + box.h / 2 }, start: world, items: cur, ids: new Set(others.map((i) => i.id)), box }
+          e.currentTarget.setPointerCapture(e.pointerId)
+          return
+        }
+      }
+    }
+
     if (engine) {
       e.currentTarget.setPointerCapture(e.pointerId)
       dragRef.current = { type: 'engine' }
@@ -684,7 +766,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     lastPt.current = local(e)
     const d = dragRef.current
-    if (engine) { vcSend(d ? 'drag' : 'move', screenToWorld(viewRef.current, local(e)), e); return }
+    if (engine && d?.type !== 'xform') { vcSend(d ? 'drag' : 'move', screenToWorld(viewRef.current, local(e)), e); return }
     if (!d) return
     const pt = local(e)
     const v = viewRef.current
@@ -726,6 +808,28 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       if (e.shiftKey) delta = snapRotation(d.base + delta) - d.base
       setLive(rotateItems(d.items, d.ids, d.center, delta))
       setFlash(`${Math.round((((d.base + delta) % 360) + 360) % 360)}°`)
+    } else if (d.type === 'crop') {
+      setLive(itemsRef.current.map((i) => (i.id === d.item.id ? cropDrag(d.item, d.handle, world) : i)))
+    } else if (d.type === 'xform') {
+      if (d.mode === 'rotate') {
+        let delta = ((Math.atan2(world.y - d.center.y, world.x - d.center.x) - Math.atan2(d.start.y - d.center.y, d.start.x - d.center.x)) * 180) / Math.PI
+        if (e.shiftKey) delta = Math.round(delta / 15) * 15
+        setLive(rotateItems(d.items, d.ids, d.center, delta))
+        setFlash(`${Math.round(delta)}°`)
+      } else if (d.mode === 'scale') {
+        // Plus la souris s'éloigne du centre (par rapport au départ), plus l'élément grandit ; les proportions sont gardées.
+        const d0 = Math.max(Math.hypot(d.start.x - d.center.x, d.start.y - d.center.y), 24 / v.zoom)
+        const f = Math.max(0.05, Math.hypot(world.x - d.center.x, world.y - d.center.y) / d0)
+        setLive(scaleTexts(scaleItems(d.items, d.ids, d.center, f, f), d.items, d.ids, f, f))
+        setFlash(`${Math.round(f * 100)} %`)
+      } else {
+        // Déformation : tirer de gauche à droite incline l'élément (autour de son centre) ; Maj arrondit de 5° en 5°.
+        const reach = Math.max(80, d.box.h)
+        let deg = (Math.atan((world.x - d.start.x) / reach) * 180) / Math.PI
+        if (e.shiftKey) deg = Math.round(deg / 5) * 5
+        setLive(d.items.map((i) => (d.ids.has(i.id) ? { ...i, skew: Math.max(-75, Math.min(75, (i.skew ?? 0) + deg)) } : i)))
+        setFlash(`${Math.round(deg)}°`)
+      }
     } else if (d.type === 'text') {
       d.end = world
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
@@ -747,8 +851,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       else addText(d.start)
     }
     if (d.type === 'engine' && e) vcSend('up', screenToWorld(viewRef.current, local(e)), e)
-    if ((d.type === 'move' || d.type === 'resize' || d.type === 'rotate') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
-    if (d.type === 'rotate') setFlash(null)
+    if ((d.type === 'move' || d.type === 'resize' || d.type === 'rotate' || d.type === 'crop' || d.type === 'xform') && live) commitItems(d.type === 'resize' ? live.map((i) => (d.ids.has(i.id) ? fit(i) : i)) : live)
+    if (d.type === 'rotate' || d.type === 'xform') setFlash(null)
     setGuides([])
     setLive(null)
     setMarquee(null)
@@ -949,7 +1053,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const base: React.CSSProperties = {
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
-      transform: it.rot ? `rotate(${it.rot}deg)` : undefined, transformOrigin: 'center',
+      transform: it.rot || it.skew ? `${it.rot ? `rotate(${it.rot}deg)` : ''}${it.skew ? ` skewX(${-it.skew}deg)` : ''}`.trim() : undefined, transformOrigin: 'center',
       ...(it.kind === 'image' || it.kind === 'note' ? { borderRadius: 8 } : {}),
       ...(it.kind === 'image' ? { overflow: 'hidden', boxShadow: '0 10px 24px -14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.12)' } : {}),
     }
@@ -959,7 +1063,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       return (
         <div key={it.id} data-item={it.id} style={base}>
           {src ? (
-            <img src={src} alt="" draggable={false} style={{ width: '100%', height: '100%', display: 'block', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }} />
+            <img src={src} alt="" draggable={false} style={{ ...cropBox(it), display: 'block', pointerEvents: 'none', transform: `scale(${it.flipX ? -1 : 1}, ${it.flipY ? -1 : 1})` }} />
           ) : (
             <div style={{ width: '100%', height: '100%', background: '#555' }} />
           )}
@@ -1204,13 +1308,14 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
             ))}
             {HANDLES.filter((h) => isCorner(h) || !(selected.length === 1 && isPointText(selected[0]))).map((h) => {
               const at = handlePoint({ x: 0, y: 0, w: frame.w, h: frame.h }, h)
+              const cropMode = tool === 'crop' && selected.length === 1 && selected[0].kind === 'image'
               return (
                 <div
                   key={h}
-                  data-handle={h}
+                  {...(cropMode ? { 'data-crop': h } : { 'data-handle': h })}
                   style={{
-                    position: 'absolute', width: hs, height: hs, background: '#fff', border: `${1.5 / zoom}px solid #4da3ff`, pointerEvents: 'auto',
-                    left: at.x - hs / 2, top: at.y - hs / 2,
+                    position: 'absolute', width: cropMode ? hs * 1.3 : hs, height: cropMode ? hs * 1.3 : hs, background: cropMode ? '#111' : '#fff', border: `${1.5 / zoom}px solid ${cropMode ? '#fff' : '#4da3ff'}`, pointerEvents: 'auto',
+                    left: at.x - (cropMode ? hs * 1.3 : hs) / 2, top: at.y - (cropMode ? hs * 1.3 : hs) / 2,
                     cursor: h === 'n' || h === 's' ? 'ns-resize' : h === 'e' || h === 'w' ? 'ew-resize' : h === 'nw' || h === 'se' ? 'nwse-resize' : 'nesw-resize',
                   }}
                 />
@@ -1235,7 +1340,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-center" style={{ color: textColor, opacity: 0.55 }}>
           <div>
             <div className={compact ? 'text-base font-semibold' : 'mb-2 text-2xl font-semibold'}>Dépose tes images ici</div>
-            {!compact && <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note · clic droit ou Maj+A pour ajouter<br />molette = zoom · clic molette ou Espace + glisser = déplacer la toile</div>}
+            {!compact && <div className="text-sm">ou colle-les avec Ctrl+V · double-clic pour une note · clic droit ou Maj+A pour ajouter<br />molette = monter / descendre · Ctrl + molette = gauche / droite · Alt + molette = zoom<br />clic molette ou Espace + glisser = déplacer la toile</div>}
           </div>
         </div>
       )}
@@ -1571,19 +1676,32 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                         }}
                       />
                     )}
+                    {selected.length === 1 && selected[0].kind === 'image' && (
+                      <>
+                        <MenuBtn label="Recadrer" onClick={() => setTool('crop')} />
+                        {selected[0].crop && <MenuBtn label="Annuler le recadrage" onClick={() => { const id = selected[0].id; commitItems(itemsRef.current.map((i) => (i.id === id ? uncropItem(i) : i))) }} />}
+                      </>
+                    )}
                     <MenuBtn label="Retourner (gauche-droite)" onClick={() => act.flip('x')} />
                     <MenuBtn label="Retourner (haut-bas)" onClick={() => act.flip('y')} />
                     {/* Disposition (comme « Arrange » d'Illustrator) : l'ordre des éléments, dans un sous-menu qui se déplie. */}
                     <button
                       className="flex w-full items-center justify-between gap-6 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]"
+                      aria-haspopup="menu"
                       aria-expanded={arrangeOpen}
-                      onClick={() => setArrangeOpen(!arrangeOpen)}
+                      onClick={(e) => {
+                        const r = e.currentTarget.getBoundingClientRect()
+                        // Le sous-menu s'ouvre à droite du menu, en dehors de lui (à gauche s'il n'y a pas de place).
+                        const w = 288
+                        setArrangePos({ x: r.right + 8 + w <= window.innerWidth ? r.right + 8 : Math.max(8, r.left - w - 8), y: Math.min(r.top - 4, Math.max(8, window.innerHeight - 190)) })
+                        setArrangeOpen(!arrangeOpen)
+                      }}
                     >
                       <span>Disposition</span>
-                      <span className="text-xs text-[var(--fg-muted)]">{arrangeOpen ? '▾' : '▸'}</span>
+                      <span className="text-xs text-[var(--fg-muted)]">▸</span>
                     </button>
                     {arrangeOpen && (
-                      <div className="ml-3 border-l border-[var(--border)] pl-1">
+                      <div data-ui role="menu" className="fixed z-[60] w-72 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: arrangePos.x, top: arrangePos.y }}>
                         <MenuBtn label="Mettre au premier plan" hint="Ctrl+Maj+]" onClick={act.front} />
                         <MenuBtn label="Avancer d'un cran" hint="Ctrl+]" onClick={act.forward} />
                         <MenuBtn label="Reculer d'un cran" hint="Ctrl+[" onClick={act.backward} />

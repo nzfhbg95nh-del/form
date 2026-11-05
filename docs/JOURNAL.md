@@ -1211,3 +1211,18 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 **Reste**
 - Victor installe la 0.50.0 et vérifie.
+
+
+## 2026-11-05 — Moodboard : navigation, outils sur les images, recadrage
+
+**Fait**
+- Molette : monter / descendre ; Ctrl (ou Maj) + molette : gauche / droite ; Alt + molette : zoom.
+- Espace : plus de bouton déclenché par erreur (la fenêtre qui s'ouvrait 1 s) ; Espace ne sert qu'à déplacer la toile.
+- Menu clic droit : « Disposition » s'ouvre à droite, en dehors du menu.
+- Outils Rotation, Échelle, Déformation et Miroir : ils marchent aussi sur les images, notes et textes (clic sur l'élément, puis glisser ; Miroir : un clic, Alt = haut-bas). Nouveau champ `skew` pour la déformation.
+- Outil Modelage retiré de la barre.
+- Nouvel outil Recadrage pour les images (barre d'outils ou clic droit > Recadrer) ; « Annuler le recadrage » dans le menu. Champ `crop`.
+- 792 tests automatiques, 31 de bout en bout.
+
+**Reste**
+- Victor teste ces outils dans l'appli.

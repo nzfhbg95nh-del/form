@@ -16,14 +16,16 @@ export interface BarTool extends ToolInfo {
  * Les groupes de la barre, dans l'ordre de celle d'Illustrator (deux colonnes, de gauche à droite puis ligne par ligne) :
  * Sélection, Sélection directe / Baguette magique, Lasso / Plume, Courbure / Texte, Trait / Forme, Pinceau / Crayon, Gomme / Rotation, Échelle / …
  */
-const GROUP_FIRST = ['selection', 'directSelection', 'magicWand', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'eyedropper', 'hand']
+const GROUP_FIRST = ['selection', 'directSelection', 'magicWand', 'lasso', 'pen', 'curvature', 'type', 'lineSegment', 'rectangle', 'paintbrush', 'shaper', 'eraser', 'rotate', 'scale', 'crop', 'eyedropper', 'hand']
 const OURS: Record<string, string> = { selection: 'select', type: 'text', areaType: 'text', hand: 'hand' }
-const HIDDEN = new Set(['typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType', 'puppetWarp', 'livePaintBucket', 'livePaintSelection', 'freeTransform', 'shapeBuilder'])
+const HIDDEN = new Set(['reshape', 'typeOnPath', 'verticalType', 'verticalAreaType', 'verticalTypeOnPath', 'touchType', 'puppetWarp', 'livePaintBucket', 'livePaintSelection', 'freeTransform', 'shapeBuilder'])
 
 const HAND: ToolInfo = { id: 'hand', en: 'Hand Tool', label: 'Outil Main', shortcut: 'H', svg: 'hand' }
+/** Le recadrage des images : un outil de Form (le moteur ne connaît que les tracés). */
+const CROP: ToolInfo = { id: 'crop', en: 'Crop Tool', label: 'Outil Recadrage (images)', shortcut: null, svg: 'crop' }
 
 export const BAR_GROUPS: BarTool[][] = GROUP_FIRST.map((first) => {
-  const g = first === 'hand' ? [HAND] : TOOL_GROUPS.find((x) => x[0].id === first) ?? []
+  const g = first === 'hand' ? [HAND] : first === 'crop' ? [CROP] : TOOL_GROUPS.find((x) => x[0].id === first) ?? []
   return g.filter((t) => !HIDDEN.has(t.id)).map((t) => ({ ...t, tool: OURS[t.id] ?? t.id }))
 }).filter((g) => g.length > 0)
 

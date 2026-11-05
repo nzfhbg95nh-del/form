@@ -9,7 +9,7 @@ import { worldPoints, worldSubs, rebuildPathItem } from './boardPathEdit'
 import { penToItem, type PenPoint, type SubPath } from './boardPath'
 
 /** Les outils qui restent ceux de Form (les autres sont ceux du moteur, qui les connaît par le même nom). */
-export const OUR_TOOLS = ['select', 'hand', 'text'] as const
+export const OUR_TOOLS = ['select', 'hand', 'text', 'crop'] as const
 export const isEngineTool = (tool: string) => !(OUR_TOOLS as readonly string[]).includes(tool)
 
 export interface VcPoint { x: number; y: number; ix: number; iy: number; ox: number; oy: number }
