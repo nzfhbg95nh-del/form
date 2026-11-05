@@ -1105,7 +1105,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       ...(it.kind !== 'shape' && it.opacity !== undefined ? { opacity: it.opacity } : {}),
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
       transform: it.rot || it.skew ? `${it.rot ? `rotate(${it.rot}deg)` : ''}${it.skew ? ` skewX(${-it.skew}deg)` : ''}`.trim() : undefined, transformOrigin: 'center',
-      ...(it.kind === 'image' || it.kind === 'note' ? { borderRadius: 8 } : {}),
+      ...(it.kind === 'note' ? { borderRadius: 8 } : {}),
       ...(it.kind === 'image' ? { overflow: 'hidden' } : {}),
     }
     if (it.kind === 'image') {
@@ -1251,7 +1251,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (it.kind === 'video') {
       const src = videoSource(it.url ?? '')
       const live = playing === it.id && isSel
-      const card: React.CSSProperties = { ...base, borderRadius: 8, overflow: 'hidden', background: '#000' }
+      const card: React.CSSProperties = { ...base, overflow: 'hidden', background: '#000' }
       const label: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 12px 8px', color: '#fff', fontSize: 13, background: 'linear-gradient(transparent, rgba(0,0,0,.7))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none' }
       const playBadge = (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -1705,7 +1705,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {menu && (
         <>
           <div data-ui className="fixed inset-0 z-40" onPointerDown={() => setMenu(null)} onContextMenu={(e) => { e.preventDefault(); setMenu(null) }} />
-          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.max(0, Math.min(menu.x, size.w - 290)), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
+          <div data-ui data-scroll className="absolute z-50 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--bg)] p-1 text-[var(--fg)] shadow-xl" style={{ left: Math.max(0, Math.min(menu.x, size.w - 290 - 300)), top: Math.min(menu.y, Math.max(8, size.h - 400)) }}>
             {menu.mode === 'full' && (
               <>
                 <button
@@ -1770,9 +1770,9 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                       aria-expanded={arrangeOpen}
                       onClick={(e) => {
                         const r = e.currentTarget.getBoundingClientRect()
-                        // Le sous-menu s'ouvre à droite du menu, en dehors de lui (à gauche s'il n'y a pas de place).
+                        // Le sous-menu s'ouvre toujours à droite du menu, en dehors de lui (le menu laisse la place à l'ouverture).
                         const w = 288
-                        setArrangePos({ x: r.right + 8 + w <= window.innerWidth ? r.right + 8 : Math.max(8, r.left - w - 8), y: Math.min(r.top - 4, Math.max(8, window.innerHeight - 190)) })
+                        setArrangePos({ x: Math.min(r.right + 8, Math.max(8, window.innerWidth - w - 8)), y: Math.min(r.top - 4, Math.max(8, window.innerHeight - 190)) })
                         setArrangeOpen(!arrangeOpen)
                       }}
                     >

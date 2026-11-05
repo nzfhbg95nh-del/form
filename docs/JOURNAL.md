@@ -1249,3 +1249,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-05, suite) Moodboard : le bloc de zoom en bas à droite était un doublon de celui du bas à gauche (−, %, +) : retiré. Le bouton « Tout afficher » reste dans la barre du haut (Ajuster).
 
 - (2026-11-05, suite) Moodboard : plus d'ombre derrière les images et les vidéos.
+
+- (2026-11-05, suite) Moodboard : images et vidéos sans coins arrondis ; le sous-menu « Disposition » s'ouvre toujours à droite (le menu clic droit se décale pour lui laisser la place).
