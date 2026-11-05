@@ -1228,3 +1228,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Victor teste ces outils dans l'appli.
 
 - (2026-11-05, suite) Moodboard : la pipette marche sur les images (clic = couleur du point en remplissage et copiée dans le presse-papiers ; Alt + clic = contour).
+
+- (2026-11-05, suite) Barre d'outils du moodboard : la liste d'un groupe d'outils s'ouvre juste à droite de l'outil cliqué.

@@ -67,8 +67,11 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   const [chosen, setChosen] = useState<Record<number, string>>({})
   // La liste d'un groupe : sa position à l'écran (la barre défile, la liste ne doit pas être coupée par elle).
   const [open, setOpen] = useState<{ i: number; x: number; y: number } | null>(null)
-  // La liste s'ouvre juste à côté de la barre (pas sur sa deuxième colonne), à la hauteur du bouton.
-  const openAt = (i: number, el: HTMLElement) => { const r = el.getBoundingClientRect(); const bar = boxRef.current?.getBoundingClientRect(); setOpen({ i, x: (bar?.right ?? r.right) + 6, y: r.top }) }
+  // La liste s'ouvre juste à côté de l'outil (à droite de son bouton), à sa hauteur ; elle remonte si elle dépasserait le bas de la fenêtre.
+  const openAt = (i: number, el: HTMLElement) => {
+    const r = el.getBoundingClientRect()
+    setOpen({ i, x: r.right + 6, y: Math.max(8, Math.min(r.top, window.innerHeight - 40 * (BAR_GROUPS[i]?.length ?? 1) - 24)) })
+  }
   const timer = useRef<number | undefined>(undefined)
   const fired = useRef(false)
   const [active, setActive] = useState<'fill' | 'stroke'>('fill')
