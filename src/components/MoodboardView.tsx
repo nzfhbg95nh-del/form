@@ -5,13 +5,14 @@ import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
 import {
-  cropDrag, cropOf, uncropItem, alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
+  cropDrag, cropOf, imageUV, uncropItem, alignItems, arrangeColumn, distributeItems, distributeSpacing, arrowHead, bringForward, centerOf, handlePoint, HANDLES, isCorner, itemBounds, resizeRotated, resizeScale, rotateItems, sendBackward, snapMove, snapRotation, arrangeFlow, arrangeGrid, arrangeRow, BACKGROUNDS, boundsOf, bringToFront, commit, duplicateItems,
   expandGroups, fitView, flipItems, groupItems, itemsInRect, looksLikeUrl, makeImage, makeLink, makeNote, makeSwatch, makeText, makeVideo, importSize, moveItems,
   newHistory, newId, normalizeItems, normalizeRect, NOTE_COLORS, parseBoard, PATTERNS, redo, removeItems, scaleItems, screenToWorld, SHAPES,
   sendToBack, serializeBoard, undo, ungroupItems, worldToScreen, zoomAt,
   type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
+import { pixelColor } from '@/lib/imageColor'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
@@ -670,6 +671,23 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     }
 
     // Rotation, Mise à l'échelle, Déformation : le moteur ne connaît que les tracés ; les images, notes, textes… sont transformés ici.
+    // Pipette sur une image : la couleur du point cliqué devient le remplissage (Alt : le contour) et se copie.
+    if (engine === 'eyedropper') {
+      const hitEl = target.closest('[data-item]') as HTMLElement | null
+      const img = hitEl ? cur.find((i) => i.id === hitEl.dataset.item && i.kind === 'image' && i.assetId) : undefined
+      const asset = img?.assetId ? assets[img.assetId] : undefined
+      const spot = img ? imageUV(img, world) : null
+      if (img && asset && spot) {
+        const stroke = e.altKey
+        void pixelColor(asset.data || asset.thumb, spot.u, spot.v).then((color) => {
+          if (!color) { say('Impossible de lire la couleur de cette image.'); return }
+          changePaint(stroke ? { ...paint, stroke: color } : { ...paint, fill: color })
+          void navigator.clipboard.writeText(color).catch(() => undefined)
+          say(`${stroke ? 'Contour' : 'Remplissage'} : ${color.toUpperCase()} (copié)`)
+        })
+        return
+      }
+    }
     if (engine === 'reflect') {
       // Miroir : un clic retourne les éléments choisis (ou celui qu'on clique) ; Alt = haut-bas, sinon gauche-droite.
       const hitEl = target.closest('[data-item]') as HTMLElement | null

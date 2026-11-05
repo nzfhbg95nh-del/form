@@ -761,3 +761,18 @@ export function uncropItem(item: BoardItem): BoardItem {
   void _crop
   return { ...rest, x: wc.x - w / 2, y: wc.y - h / 2, w, h }
 }
+
+/** Où un point du monde tombe dans l'image d'un élément : (0,0) = coin haut-gauche de l'image entière, (1,1) = coin bas-droit ; tient compte de la rotation, du recadrage et des retournements. Rien s'il est hors du cadre. */
+export function imageUV(item: BoardItem, world: Pt2): { u: number; v: number } | null {
+  const rot = item.rot ?? 0
+  const p = rot ? rotatePoint(world, centerOf(item), -rot) : world
+  const du = (p.x - item.x) / Math.max(1, item.w)
+  const dv = (p.y - item.y) / Math.max(1, item.h)
+  if (du < 0 || du > 1 || dv < 0 || dv > 1) return null
+  const { l, t, r, b } = cropOf(item)
+  let u = l + du * (1 - l - r)
+  let v = t + dv * (1 - t - b)
+  if (item.flipX) u = 1 - u
+  if (item.flipY) v = 1 - v
+  return { u: Math.min(1, Math.max(0, u)), v: Math.min(1, Math.max(0, v)) }
+}

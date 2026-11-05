@@ -3,7 +3,7 @@ import {
   alignItems, distributeItems, distributeSpacing, itemBounds, arrangeColumn, arrangeFlow, arrangeGrid, arrangeRow, boundsOf, bringToFront, clampZoom, commit, duplicateItems,
   emptyBoard, expandGroups, fitView, flipItems, groupItems, hitTest, importSize, itemsInRect, looksLikeUrl, moveItems, newHistory,
   normalizeItems, normalizeRect, parseBoard, redo, removeItems, scaleItems, screenToWorld, sendToBack, serializeBoard, undo,
-  ungroupItems, worldToScreen, zoomAt, MAX_ZOOM, MIN_ZOOM, type BoardItem, cropDrag, uncropItem } from './moodboard'
+  ungroupItems, worldToScreen, zoomAt, MAX_ZOOM, MIN_ZOOM, type BoardItem, cropDrag, uncropItem, imageUV } from './moodboard'
 import { extractPalette, hexToRgb, mergePalettes, readableOn, rgbToHex } from './palette'
 
 const item = (id: string, x: number, y: number, w: number, h: number, extra: Partial<BoardItem> = {}): BoardItem => ({ id, kind: 'image', x, y, w, h, ...extra })
@@ -316,5 +316,18 @@ describe('recadrage d\'une image', () => {
     expect(back.y).toBeCloseTo(50)
     expect(back.w).toBeCloseTo(200)
     expect(back.h).toBeCloseTo(100)
+  })
+})
+
+describe('point d\'une image sous la souris', () => {
+  it('donne la place dans l\'image entière', () => {
+    const a = item('a', 100, 100, 200, 100)
+    expect(imageUV(a, { x: 200, y: 150 })).toEqual({ u: 0.5, v: 0.5 })
+    expect(imageUV(a, { x: 50, y: 150 })).toBeNull()
+  })
+  it('tient compte du recadrage et du retournement', () => {
+    const cropped = item('a', 100, 100, 100, 100, { crop: { l: 0.5, t: 0, r: 0, b: 0 } })
+    expect(imageUV(cropped, { x: 100, y: 100 })?.u).toBeCloseTo(0.5)
+    expect(imageUV(item('a', 0, 0, 100, 100, { flipX: true }), { x: 10, y: 50 })?.u).toBeCloseTo(0.9)
   })
 })
