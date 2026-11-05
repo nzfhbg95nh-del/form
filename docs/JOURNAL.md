@@ -1232,3 +1232,16 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - (2026-11-05, suite) Barre d'outils du moodboard : la liste d'un groupe d'outils s'ouvre juste à droite de l'outil cliqué.
 
 - (2026-11-05, suite) Moodboard : bouton « Aucun » (carré blanc barré de rouge, comme Illustrator) sous le remplissage et le contour : fond ou contour transparent ; à côté, bouton « Couleur ».
+
+
+## 2026-11-05 — Moodboard : zoom, verrouillage, mesures, barre fine
+
+**Fait**
+- Indicateur de zoom en bas à droite (− / % cliquable pour revenir à 100 % / + / Tout afficher).
+- Verrouiller un élément (clic droit > Verrouiller) : il ne se choisit plus à la souris (cadenas affiché) ; « Déverrouiller tout » dans le clic droit de la toile.
+- Panneau « Mesures » (barre du haut) : X, Y, largeur, hauteur, rotation, opacité de l'élément choisi.
+- La barre latérale se replie en entrant dans un moodboard et revient en le quittant.
+- Barre d'outils du moodboard un peu plus fine (deux colonnes plus étroites).
+
+**Reste**
+- Victor teste dans l'appli ; il a validé l'idée n° 4 de la liste (à préciser).

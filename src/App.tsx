@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState } from 'react'
 import { useBoardReload } from '@/biblio/store/boardReload'
 import { HomeView } from '@/components/HomeView'
 import { BlockMovePicker } from '@/components/BlockMovePicker'
@@ -33,6 +33,19 @@ const TrashView = lazy(() => import('@/components/TrashView').then((m) => ({ def
 export default function App() {
   const { init, view, error, backupMessage, repo, objects, selectedId, searchOpen, toast, setSearch, peekId, movingId, sidebarHidden } = useApp()
   const selected = objects.find((o) => o.id === selectedId && !o.deleted_at)
+
+  // En arrivant dans un moodboard, la barre latérale se replie pour laisser toute la place à la toile ; elle revient en le quittant
+  // (sauf si elle était déjà repliée, ou si on la rouvre à la main entre-temps).
+  const boardId = view === 'page' && selected?.type === 'moodboard' ? selected.id : null
+  const hidByBoard = useRef(false)
+  useEffect(() => {
+    if (boardId) {
+      if (!useApp.getState().sidebarHidden) { hidByBoard.current = true; useApp.setState({ sidebarHidden: true }) }
+    } else if (hidByBoard.current) {
+      hidByBoard.current = false
+      useApp.setState({ sidebarHidden: false })
+    }
+  }, [boardId])
 
   useReminders()
   const boardReloads = useBoardReload((s) => s.n)

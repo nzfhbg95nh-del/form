@@ -129,7 +129,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
   }
 
   return (
-    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-200px)] flex-col overflow-hidden rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'color-mix(in srgb, var(--bg-side) 35%, var(--bg))', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 44 : 80 }}>
+    <div ref={boxRef} data-ui data-scroll className="absolute z-30 flex max-h-[calc(100%-200px)] flex-col overflow-hidden rounded-2xl shadow-[var(--shadow-lift)]" style={{ left: pos.x, top: pos.y, background: 'color-mix(in srgb, var(--bg-side) 35%, var(--bg))', border: `1px solid ${PANEL_EDGE}`, color: ICON, width: single ? 40 : 66 }}>
       {/* En-tête : replier (deux colonnes ↔ une colonne), masquer, poignée */}
       <div className="flex items-center justify-between px-1.5 pt-1 text-[11px] text-[var(--fg-muted)]">
         <button title={single ? 'Deux colonnes' : 'Une colonne'} aria-label={single ? 'Deux colonnes' : 'Une colonne'} onClick={() => setSingle(!single)} className="rounded px-0.5 hover:bg-[var(--bg-hover)]">{single ? '»' : '«'}</button>
@@ -159,7 +159,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
                 onPointerLeave={() => window.clearTimeout(timer.current)}
                 onContextMenu={g.length > 1 ? (e) => { e.preventDefault(); openAt(i, e.currentTarget) } : undefined}
                 onClick={() => { if (fired.current) { fired.current = false; return } onTool(t.tool) }}
-                className="flex h-9 w-9 items-center justify-center rounded-xl"
+                className="flex h-8 w-8 items-center justify-center rounded-xl"
                 style={{ background: isActive(g) ? ACTIVE : 'transparent', color: isActive(g) ? 'var(--accent)' : ICON, boxShadow: isActive(g) ? 'var(--shadow-soft)' : undefined }}
                 onMouseEnter={(e) => { if (!isActive(g)) e.currentTarget.style.background = HOVER }}
                 onMouseLeave={(e) => { e.currentTarget.style.background = isActive(g) ? ACTIVE : 'transparent' }}
@@ -205,13 +205,13 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
             <button title="Permuter le remplissage et le contour (Maj+X)" aria-label="Permuter" onClick={swap} className="text-xs leading-none hover:text-white">↷</button>
           </div>
         )}
-        <div className="relative" style={{ width: single ? 32 : 70, height: single ? 32 : 66 }}>
+        <div className="relative" style={{ width: single ? 30 : 54, height: single ? 30 : 52 }}>
           <button
             title="Contour (X pour passer du remplissage au contour)"
             aria-label="Couleur du contour"
             onClick={() => { setActive('stroke'); strokeInput.current?.click() }}
             className="absolute bottom-0 right-0"
-            style={{ background: paint.stroke ?? '#fff', border: `${active === 'stroke' ? 2 : 1}px solid ${active === 'stroke' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'stroke' ? 2 : 1, width: single ? 22 : 40, height: single ? 22 : 40 }}
+            style={{ background: paint.stroke ?? '#fff', border: `${active === 'stroke' ? 2 : 1}px solid ${active === 'stroke' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'stroke' ? 2 : 1, width: single ? 20 : 32, height: single ? 20 : 32 }}
           >
             <span className="absolute" style={{ inset: single ? 5 : 9, background: PANEL, border: '1px solid var(--border)' }} />
             {paint.stroke === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
@@ -221,7 +221,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
             aria-label="Couleur de remplissage"
             onClick={() => { setActive('fill'); fillInput.current?.click() }}
             className="absolute left-0 top-0"
-            style={{ background: paint.fill ?? '#fff', border: `${active === 'fill' ? 2 : 1}px solid ${active === 'fill' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'fill' ? 2 : 1, width: single ? 22 : 40, height: single ? 22 : 40 }}
+            style={{ background: paint.fill ?? '#fff', border: `${active === 'fill' ? 2 : 1}px solid ${active === 'fill' ? 'var(--accent)' : 'var(--border)'}`, zIndex: active === 'fill' ? 2 : 1, width: single ? 20 : 32, height: single ? 20 : 32 }}
           >
             {paint.fill === null && <span aria-hidden className="absolute inset-0 overflow-hidden"><span className="absolute left-0 top-1/2 h-[2px] w-[150%] origin-left -rotate-45 bg-red-600" /></span>}
           </button>
@@ -250,7 +250,7 @@ export function VectorToolbar({ tool, onTool, paint, onPaint }: { tool: string; 
           </button>
         </div>
         <label className="flex items-center gap-1 text-[11px] opacity-80" title="Épaisseur du contour (pt)">
-          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className={(single ? 'w-8 px-0.5' : 'w-10 px-1') + ' rounded border border-[var(--border)] bg-transparent py-0.5 text-xs outline-none focus:border-[var(--accent)]'} style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
+          <input type="number" min={0} max={100} step={0.5} value={paint.sw} onChange={(e) => { const v = Number(e.target.value); if (Number.isFinite(v)) onPaint({ ...paint, sw: Math.max(0, v), stroke: paint.stroke ?? '#000000' }) }} className={(single ? 'w-8 px-0.5' : 'w-9 px-1') + ' rounded border border-[var(--border)] bg-transparent py-0.5 text-xs outline-none focus:border-[var(--accent)]'} style={{ color: ICON }} aria-label="Épaisseur du contour (pt)" />
           {!single && 'pt'}
         </label>
       </div>

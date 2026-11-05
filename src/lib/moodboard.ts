@@ -65,6 +65,8 @@ export interface BoardItem {
   list?: 'none' | 'bullet' | 'number'
   /** Rotation, en degrés (sens des aiguilles d'une montre), autour du centre de l'élément. */
   rot?: number
+  /** Verrouillé : on ne le choisit plus à la souris (il ne bouge pas par erreur) ; « Déverrouiller tout » dans le menu de la toile. */
+  locked?: boolean
   /** Déformation (outil Déformation) : inclinaison horizontale, en degrés, autour du centre. */
   skew?: number
   /** image : recadrage, la part de l'image cachée de chaque côté (0 à 1, de l'image entière). */

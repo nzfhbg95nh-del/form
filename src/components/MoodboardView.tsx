@@ -13,6 +13,7 @@ import {
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { pixelColor } from '@/lib/imageColor'
+import { Lock, Minus, Ruler } from 'lucide-react'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
@@ -55,6 +56,35 @@ type Drag =
   | { type: 'crop'; handle: Handle; item: BoardItem }
 
 /** Couleurs proposées pour les formes et les textes. */
+/** Un champ de chiffres du panneau Mesures : la valeur est prise en compte à Entrée ou en quittant le champ (une seule étape dans l'historique). */
+function NumField({ label, unit, value, onCommit, min, max }: { label: string; unit: string; value: number; onCommit: (v: number) => void; min?: number; max?: number }) {
+  const shown = Math.round(value * 10) / 10
+  const apply = (el: HTMLInputElement) => {
+    const v = Number(el.value.replace(',', '.'))
+    if (!Number.isFinite(v)) { el.value = String(shown); return }
+    const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v))
+    if (clamped !== shown) onCommit(clamped)
+    else el.value = String(shown)
+  }
+  return (
+    <label className="flex flex-col gap-0.5 text-[11px] text-[var(--fg-muted)]">
+      {label}
+      <span className="flex items-center gap-1">
+        <input
+          key={shown}
+          defaultValue={shown}
+          inputMode="decimal"
+          aria-label={label}
+          className="lib-input w-full min-w-0 rounded-lg border px-2 py-1 text-xs outline-none"
+          onBlur={(e) => apply(e.currentTarget)}
+          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { e.currentTarget.value = String(shown); e.currentTarget.blur() } }}
+        />
+        {unit && <span>{unit}</span>}
+      </span>
+    </label>
+  )
+}
+
 /** La place de l'image dans son cadre : entière, ou recadrée (le cadre n'en montre qu'une partie ; le reste dépasse et est caché). */
 function cropBox(it: BoardItem): React.CSSProperties {
   const { l, t, r, b } = cropOf(it)
@@ -163,6 +193,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
   const vcItems = useRef<BoardItem[] | null>(null)
   // Panneau Aligner : ouvert ou non, « aligner sur » (la sélection, l'écran ou l'objet clé), et l'espace imposé entre les éléments (vide = égal).
   const [alignOpen, setAlignOpen] = useState(false)
+  const [infoOpen, setInfoOpen] = useState(false)
   const [alignRef, setAlignRef] = useState<'selection' | 'screen' | 'key'>('selection')
   const [spaceInput, setSpaceInput] = useState('')
   const [palette, setPalette] = useState<string[]>([])
@@ -853,7 +884,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
     } else if (d.type === 'marquee') {
       const rect = normalizeRect(d.start, world)
-      const hit = expandGroups(d.items, itemsInRect(d.items, rect))
+      const hit = expandGroups(d.items, itemsInRect(d.items.filter((i) => !i.locked), rect))
       setSelection(new Set([...d.base, ...hit]))
       setMarquee(normalizeRect(worldToScreen(v, d.start), pt))
     }
@@ -945,7 +976,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     toggleFill: () => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? restyleShape(it, { fill: shapeStyleOf(it).fill === 'none' ? shapeStyleOf(it).color : 'none' }) : it))),
     stroke: (d: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'shape' ? { ...it, sw: Math.min(40, Math.max(1, (it.sw ?? 4) + d)) } : it))),
     fontSize: (f: number) => withSelection((i, s2) => i.map((it) => (s2.has(it.id) && it.kind === 'text' ? { ...it, size: Math.min(400, Math.max(8, Math.round((it.size ?? 32) * f))) } : it))),
-    selectAll: () => setSelection(new Set(itemsRef.current.map((i) => i.id))),
+    selectAll: () => setSelection(new Set(itemsRef.current.filter((i) => !i.locked).map((i) => i.id))),
   }
   const doUndo = () => { setHist((h) => undo(h)); setSelection(new Set()) }
   const doRedo = () => { setHist((h) => redo(h)); setSelection(new Set()) }
@@ -1070,6 +1101,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     const isSel = forceSel || selection.has(it.id)
     const base: React.CSSProperties = {
       position: 'absolute', left: it.x, top: it.y, width: it.w, height: it.h,
+      ...(it.locked ? { pointerEvents: 'none' as const } : {}),
+      ...(it.kind !== 'shape' && it.opacity !== undefined ? { opacity: it.opacity } : {}),
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
       transform: it.rot || it.skew ? `${it.rot ? `rotate(${it.rot}deg)` : ''}${it.skew ? ` skewX(${-it.skew}deg)` : ''}`.trim() : undefined, transformOrigin: 'center',
       ...(it.kind === 'image' || it.kind === 'note' ? { borderRadius: 8 } : {}),
@@ -1317,6 +1350,10 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     >
       <div style={{ position: 'absolute', left: 0, top: 0, transformOrigin: '0 0', transform: `translate(${view.x}px, ${view.y}px) scale(${zoom})` }}>
         {items.map((it) => renderItem(it))}
+        {/* Un petit cadenas sur les éléments verrouillés (ils ne se choisissent pas à la souris). */}
+        {items.filter((i) => i.locked).map((i) => (
+          <div key={'lock-' + i.id} style={{ position: 'absolute', left: i.x + 4 / zoom, top: i.y + 4 / zoom, transform: `scale(${1 / zoom})`, transformOrigin: 'top left', pointerEvents: 'none', opacity: 0.7, color: '#fff', background: 'rgba(0,0,0,.55)', borderRadius: 6, padding: 3, lineHeight: 0 }}><Lock size={12} /></div>
+        ))}
         {engine && <VectorOverlay overlays={vcOverlays} zoom={zoom} tip={vcTip} tipAt={tipAt} />}
         {frame && !marquee && !editing && !engine && (
           <div style={{ position: 'absolute', left: frame.x, top: frame.y, width: frame.w, height: frame.h, transform: frame.rot ? `rotate(${frame.rot}deg)` : undefined, transformOrigin: 'center', outline: `${1 / zoom}px dashed #4da3ff`, pointerEvents: 'none' }}>
@@ -1382,6 +1419,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <div className={group}>
           <button className={item} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} />Organiser</button>
           <button className={item} aria-pressed={alignOpen} title="Panneau Aligner : aligner et répartir la sélection" onClick={() => setAlignOpen(!alignOpen)}><AlignStartVertical size={14} />Aligner</button>
+          <button className={item} aria-pressed={infoOpen} title="Mesures : position, taille, rotation et opacité de l'élément choisi" onClick={() => setInfoOpen(!infoOpen)}><Ruler size={14} />Mesures</button>
         </div>
 
         {/* Couleurs : la palette et le fond */}
@@ -1544,6 +1582,27 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         )
       })()}
 
+      {infoOpen && !compact && (() => {
+        const one = selected.length === 1 ? selected[0] : null
+        const change = (patch: Partial<BoardItem>) => { if (one) commitItems(itemsRef.current.map((i) => (i.id === one.id ? { ...i, ...patch } : i))) }
+        return (
+          <FloatPanel id="info" title="Mesures" icon={<Ruler size={14} />} anchor={{ x: 'left', y: 'top', dx: 104, dy: 56 }} className="w-48" onClose={() => setInfoOpen(false)}>
+            {!one ? (
+              <div className="text-[var(--fg-muted)]">Choisis un seul élément pour voir et changer ses mesures.</div>
+            ) : (
+              <div className="grid grid-cols-2 gap-x-2 gap-y-1.5">
+                <NumField label="X" unit="" value={one.x} onCommit={(v) => change({ x: v })} />
+                <NumField label="Y" unit="" value={one.y} onCommit={(v) => change({ y: v })} />
+                <NumField label="Largeur" unit="" value={one.w} min={8} onCommit={(v) => change({ w: v })} />
+                <NumField label="Hauteur" unit="" value={one.h} min={8} onCommit={(v) => change({ h: v })} />
+                <NumField label="Rotation" unit="°" value={one.rot ?? 0} onCommit={(v) => change({ rot: ((v % 360) + 360) % 360 })} />
+                <NumField label="Opacité" unit="%" value={Math.round((one.opacity ?? 1) * 100)} min={0} max={100} onCommit={(v) => change({ opacity: Math.min(1, Math.max(0, v / 100)) })} />
+              </div>
+            )}
+          </FloatPanel>
+        )
+      })()}
+
       {alignOpen && !compact && (() => {
         const n = selection.size
         const ic = (on: boolean) => 'flex h-7 w-7 items-center justify-center rounded-lg border border-[var(--border)] text-[var(--fg)] hover:bg-[var(--bg-hover)] disabled:opacity-30' + (on ? '' : '')
@@ -1597,6 +1656,15 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <button className={bar} disabled={hist.future.length === 0} onClick={doRedo} title="Rétablir (Ctrl+Y)">↷</button>
         <span>{items.length} élément{items.length > 1 ? 's' : ''}{hasSel ? ` · ${selection.size} sélectionné${selection.size > 1 ? 's' : ''}` : ''}</span>
       </div>
+      )}
+      {/* Zoom : où on en est, et de quoi zoomer sans la molette */}
+      {!compact && (
+        <div data-ui className={group + ' absolute bottom-3 right-3'}>
+          <button className={item} title="Dézoomer" aria-label="Dézoomer" onClick={() => setView((v) => zoomAt(v, 0.8, { x: size.w / 2, y: size.h / 2 }))}><Minus size={14} /></button>
+          <button className={item + ' min-w-[3.25rem] justify-center tabular-nums'} title="Revenir à 100 %" aria-label={`Zoom ${Math.round(zoom * 100)} %, cliquer pour revenir à 100 %`} onClick={() => setView((v) => zoomAt(v, 1 / v.zoom, { x: size.w / 2, y: size.h / 2 }))}>{Math.round(zoom * 100)} %</button>
+          <button className={item} title="Zoomer" aria-label="Zoomer" onClick={() => setView((v) => zoomAt(v, 1.25, { x: size.w / 2, y: size.h / 2 }))}><Plus size={14} /></button>
+          <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} />Tout afficher</button>
+        </div>
       )}
       {/* L'aide de l'outil, comme la barre d'état de VectorCraft */}
       {!compact && !showTextPanel && TOOL_HINTS[tool === 'select' ? 'selection' : tool === 'text' ? 'type' : tool] && (
@@ -1675,6 +1743,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
               <>
                 <MenuBtn label="Tout sélectionner" hint="Ctrl+A" onClick={act.selectAll} />
                 <MenuBtn label="Tout afficher" hint="F" onClick={() => fitTo(items)} />
+                {items.some((i) => i.locked) && <MenuBtn label={`Déverrouiller tout (${items.filter((i) => i.locked).length})`} onClick={() => commitItems(itemsRef.current.map((i) => (i.locked ? { ...i, locked: undefined } : i)))} />}
                 <MenuHead>Fond</MenuHead>
                 <div className="flex gap-2 px-2 py-1">{BACKGROUNDS.map((b) => <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} onClick={() => { setBg(b); setMenu(null) }} className="h-6 w-6 rounded-full border border-[var(--border)]" style={swatch(b)} />)}</div>
               </>
@@ -1700,6 +1769,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
                         {selected[0].crop && <MenuBtn label="Annuler le recadrage" onClick={() => { const id = selected[0].id; commitItems(itemsRef.current.map((i) => (i.id === id ? uncropItem(i) : i))) }} />}
                       </>
                     )}
+                    <MenuBtn label="Verrouiller" onClick={() => { withSelection((i, s) => i.map((it) => (s.has(it.id) ? { ...it, locked: true } : it))); setSelection(new Set()) }} />
                     <MenuBtn label="Retourner (gauche-droite)" onClick={() => act.flip('x')} />
                     <MenuBtn label="Retourner (haut-bas)" onClick={() => act.flip('y')} />
                     {/* Disposition (comme « Arrange » d'Illustrator) : l'ordre des éléments, dans un sous-menu qui se déplie. */}
