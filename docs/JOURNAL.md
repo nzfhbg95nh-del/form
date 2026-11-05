@@ -1247,3 +1247,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Victor teste dans l'appli ; il a validé l'idée n° 4 de la liste (à préciser).
 
 - (2026-11-05, suite) Moodboard : le bloc de zoom en bas à droite était un doublon de celui du bas à gauche (−, %, +) : retiré. Le bouton « Tout afficher » reste dans la barre du haut (Ajuster).
+
+- (2026-11-05, suite) Moodboard : plus d'ombre derrière les images et les vidéos.

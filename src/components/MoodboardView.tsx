@@ -1106,7 +1106,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       outline: isSel && !(it.kind === 'shape' && it.shape === 'path') ? `${2 / zoom}px solid #4da3ff` : undefined, outlineOffset: 0,
       transform: it.rot || it.skew ? `${it.rot ? `rotate(${it.rot}deg)` : ''}${it.skew ? ` skewX(${-it.skew}deg)` : ''}`.trim() : undefined, transformOrigin: 'center',
       ...(it.kind === 'image' || it.kind === 'note' ? { borderRadius: 8 } : {}),
-      ...(it.kind === 'image' ? { overflow: 'hidden', boxShadow: '0 10px 24px -14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.12)' } : {}),
+      ...(it.kind === 'image' ? { overflow: 'hidden' } : {}),
     }
     if (it.kind === 'image') {
       const a = it.assetId ? assets[it.assetId] : undefined
@@ -1251,7 +1251,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
     if (it.kind === 'video') {
       const src = videoSource(it.url ?? '')
       const live = playing === it.id && isSel
-      const card: React.CSSProperties = { ...base, borderRadius: 8, overflow: 'hidden', background: '#000', boxShadow: '0 10px 24px -14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.12)' }
+      const card: React.CSSProperties = { ...base, borderRadius: 8, overflow: 'hidden', background: '#000' }
       const label: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: '18px 12px 8px', color: '#fff', fontSize: 13, background: 'linear-gradient(transparent, rgba(0,0,0,.7))', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', pointerEvents: 'none' }
       const playBadge = (
         <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
