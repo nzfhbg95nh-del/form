@@ -107,16 +107,16 @@ describe('dropForgotten', () => {
 })
 
 describe('buildBlocks - images ajoutées', () => {
-  it('une image posée à la racine reste seulement dans « Images ajoutées »', () => {
+  it('une image posée à la racine ne crée aucune collection', () => {
     const { blocks, collections } = buildBlocks([f('ajouts/a.jpg')])
-    expect(blocks[0].collectionIds).toEqual(['man:ajouts'])
-    expect(collections.map((c) => c.id)).toEqual(['man:ajouts'])
+    expect(blocks[0].collectionIds).toEqual([])
+    expect(collections).toEqual([])
   })
-  it('un dossier (3d, A trier…) devient une collection à son nom, en plus de « Images ajoutées »', () => {
+  it('un dossier (3d, A trier…) devient une collection à son nom, sans « Images ajoutées »', () => {
     const { blocks, collections } = buildBlocks([f('ajouts/3d/robot.png'), f('ajouts/3d/sous/dossier/x.jpg'), f('ajouts/A trier/y.mp4')])
-    expect(blocks.find((b) => b.id === 'man:3d/robot')?.collectionIds).toEqual(['man:ajouts', 'man:ajouts/3d'])
-    expect(blocks.find((b) => b.id === 'man:3d/sous/dossier/x')?.collectionIds).toEqual(['man:ajouts', 'man:ajouts/3d'])
+    expect(blocks.find((b) => b.id === 'man:3d/robot')?.collectionIds).toEqual(['man:ajouts/3d'])
+    expect(blocks.find((b) => b.id === 'man:3d/sous/dossier/x')?.collectionIds).toEqual(['man:ajouts/3d'])
     expect(blocks.find((b) => b.id === 'man:A trier/y')?.kind).toBe('video')
-    expect(collections.filter((c) => c.kind === 'manual').map((c) => c.name).sort()).toEqual(['3d', 'A trier', 'Images ajoutées'])
+    expect(collections.filter((c) => c.kind === 'manual').map((c) => c.name).sort()).toEqual(['3d', 'A trier'])
   })
 })

@@ -93,9 +93,9 @@ export function buildBlocks(files: ScannedFile[]): { blocks: BlockDraft[]; colle
     if (file.rel.startsWith(MANUAL_PREFIX)) {
       const name = file.rel.slice(MANUAL_PREFIX.length)
       const stem = name.replace(/\.\w+$/, '')
-      collections.set(MANUAL_COLLECTION, { id: MANUAL_COLLECTION, name: 'Images ajoutées', kind: 'manual', owner: 'Images ajoutées' })
-      const collectionIds = [MANUAL_COLLECTION]
-      // Un dossier rangé dans « images ajoutées » (3d, Photo…) devient aussi une collection à son nom.
+      // Pas de collection « Images ajoutées » : une image ajoutée à la main n'est dans aucune collection tant que Victor ou l'IA ne l'y range pas.
+      const collectionIds: string[] = []
+      // Un dossier rangé dans « images ajoutées » (3d, Photo, IA…) devient une collection à son nom.
       const folder = name.includes('/') ? name.slice(0, name.indexOf('/')) : null
       if (folder) {
         const id = manualFolderCollectionId(folder)

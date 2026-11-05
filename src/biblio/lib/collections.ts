@@ -222,6 +222,13 @@ export async function deleteCollections(ids: readonly string[]) {
   }
 }
 
+/** Retire l'ancienne collection automatique « Images ajoutées » (elle n'existe plus ; les images restent dans la bibliothèque). */
+export async function dropAjoutsCollection() {
+  const d = await getDb()
+  await d.execute("DELETE FROM lib_block_collections WHERE collection_id = 'man:ajouts'")
+  await d.execute("DELETE FROM lib_collections WHERE id = 'man:ajouts'")
+}
+
 export async function addBlocksToCollection(collectionId: string, blockIds: readonly string[]) {
   await multiInsert('lib_block_collections', ['block_id', 'collection_id'], blockIds.map((b) => [b, collectionId]), { verb: 'INSERT OR IGNORE' })
 }

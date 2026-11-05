@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { listen } from '@tauri-apps/api/event'
 import { applyLibraryRoot } from '@/biblio/lib/relocate.ts'
 import type { LayoutInfo } from '@/biblio/lib/relocatePure.ts'
+import { dropAjoutsCollection } from '@/biblio/lib/collections.ts'
 import { seedAndApplyTypes } from '@/biblio/lib/types.ts'
 import { makeVideoThumbs, videosWithoutThumb } from '@/biblio/lib/videoThumbs.ts'
 import { applyThumbBatch, DEFAULT_ROOT, getSetting, getStats, setSetting, startThumbs, syncLibrary, type LibraryStats, type SyncResult, type ThumbResult } from '@/biblio/lib/library.ts'
@@ -51,6 +52,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
     set({ root: saved ?? DEFAULT_ROOT, layout, stats: await getStats().catch(() => EMPTY_STATS), ready: true })
     // Les types de départ (dont les nouveaux, comme Céramique et IA) apparaissent dès l'ouverture, sans attendre une mise à jour.
     await seedAndApplyTypes().catch(() => undefined)
+    // La collection « Images ajoutées » n'existe plus : on enlève celle qui traînait.
+    await dropAjoutsCollection().catch(() => undefined)
 
     if (!listening) {
       listening = true

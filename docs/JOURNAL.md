@@ -1261,3 +1261,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 **Reste**
 - Victor installe la 0.51.0 et vérifie.
+
+## 2026-11-05 — Fin de la collection « Images ajoutées »
+- Les images ajoutées à la main ne créent plus de collection « Images ajoutées » ; celle qui existait est retirée au démarrage (les images restent dans la bibliothèque). Les sous-dossiers (IA, Ceramique…) restent des collections pour l'apprentissage de l'IA.
+- Suppression d'une collection : confirmation plus claire (« Non » / « Oui, supprimer »), bouton bloqué pendant la suppression.
+- Reste : Victor teste en bêta.

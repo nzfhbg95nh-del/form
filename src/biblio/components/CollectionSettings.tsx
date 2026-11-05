@@ -125,10 +125,10 @@ export function CollectionSettings({ card, onClose }: { card: CollectionCard; on
 
         <div className="flex items-center gap-3 border-t px-8 py-4" style={{ borderColor: 'var(--border)' }}>
           {confirmDelete ? (
-            <div className="flex items-center gap-2 text-sm">
-              Supprimer ce tableau et ses sous-tableaux ? Les images restent dans la bibliothèque.
-              <button className="btn" onClick={() => void remove(card.id).then(onClose)}>Supprimer</button>
+            <div className="flex w-full flex-wrap items-center gap-2 text-sm">
+              <span className="min-w-0 flex-1">Supprimer ce tableau et ses sous-tableaux ? Les images restent dans la bibliothèque.</span>
               <button className="btn" onClick={() => setConfirmDelete(false)}>Non</button>
+              <button className="btn" disabled={saving} onClick={() => { setSaving(true); void remove(card.id).catch(() => undefined).finally(onClose) }}>Oui, supprimer</button>
             </div>
           ) : (
             <>
