@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
 import { EmptyState, LoadingState } from '@/components/States'
-import { FolderOpen, Pencil, Plus } from 'lucide-react'
+import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react'
+import { BoardDeleteDialog } from './BoardDeleteDialog.tsx'
 import { groupCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
@@ -50,6 +51,24 @@ function EditButton({ card }: { card: CollectionCard }) {
   )
 }
 
+/** La petite corbeille d'un tableau Pinterest : elle demande si on garde ou non ses images. */
+function BoardDeleteButton({ card }: { card: CollectionCard }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+      <button
+        className="pointer-events-auto absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-black opacity-0 shadow group-hover:opacity-100 focus:opacity-100"
+        aria-label={`Supprimer ${card.name}`}
+        title="Supprimer le tableau"
+        onClick={() => setOpen(true)}
+      >
+        <Trash2 size={15} />
+      </button>
+      {open && <BoardDeleteDialog card={card} onClose={() => setOpen(false)} />}
+    </div>
+  )
+}
+
 export function Card({ card, thumbsDir, onOpen }: { card: CollectionCard; thumbsDir: string; onOpen: (c: CollectionCard) => void }) {
   return (
     <div className="group relative">
@@ -61,6 +80,7 @@ export function Card({ card, thumbsDir, onOpen }: { card: CollectionCard; thumbs
         </div>
       </button>
       {card.kind === 'manual' && <EditButton card={card} />}
+      {card.kind === 'pinterest' && <BoardDeleteButton card={card} />}
     </div>
   )
 }
@@ -159,6 +179,7 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
               onOpen={onOpen}
               onOrder={searching ? undefined : (ids) => void reorder(ids)}
             />
+            <Section title="Mes tableaux Pinterest" cards={sections.boards} thumbsDir={thumbsDir} onOpen={onOpen} />
             <Section title="Tableaux d'autres comptes" cards={sections.otherBoards} thumbsDir={thumbsDir} onOpen={onOpen} />
             <Section title="Autres" showCount={false} cards={[...sections.unsorted, ...sections.instagram]} thumbsDir={thumbsDir} onOpen={onOpen} />
           </>

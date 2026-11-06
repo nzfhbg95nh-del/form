@@ -1270,3 +1270,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-05 — Version 0.51.1 (officielle)
 - Version officielle qui reprend tout le travail de la branche `travail` (moodboards, types Céramique et IA, photos de recettes, fin de la collection « Images ajoutées »). `main` rattrape `travail`.
 - Correction : la fenêtre « Modifier ton tableau » laissait passer les clics (elle était posée dans un cadre qui les ignore) : « Supprimer » ouvrait un autre tableau. Elle est maintenant posée tout en haut de la page.
+
+## 2026-11-06 — Tableaux Pinterest : affichage et suppression
+- La page Collections affiche maintenant « Mes tableaux Pinterest » (ton compte), qui n'était pas branchée.
+- Tous les tableaux Pinterest (les tiens et ceux d'autres comptes) ont une corbeille au survol : on choisit de garder les images ou de les mettre à la corbeille de la bibliothèque.
+- Reste : Victor teste en bêta.

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import {
   addBlocksToCollection,
   createCollection,
+  deleteBoard,
   deleteCollections,
   loadCollections,
   removeBlockFromCollection,
@@ -25,6 +26,8 @@ interface CollectionsState {
   rename: (id: string, name: string) => Promise<void>
   /** Supprime la collection et ses sous-collections ; les blocs ne sont pas touchés. */
   remove: (id: string) => Promise<void>
+  /** Supprime un tableau Pinterest ; `withImages` envoie aussi ses images à la corbeille de la bibliothèque. */
+  removeBoard: (id: string, withImages: boolean) => Promise<void>
   add: (collectionId: string, blockIds: string[]) => Promise<void>
   removeBlock: (collectionId: string, blockId: string) => Promise<void>
   /** Enregistre le nom, la description et la couverture d'une de mes collections. */
@@ -64,6 +67,13 @@ export const useCollections = create<CollectionsState>((set, get) => {
       const open = useGrid.getState().filters.collection
       if (open && withDescendants(get().cards, id).includes(open.id)) useGrid.getState().setFilters({ collection: null })
       await refresh()
+    },
+    async removeBoard(id, withImages) {
+      await deleteBoard(id, withImages)
+      const open = useGrid.getState().filters.collection
+      if (open?.id === id) useGrid.getState().setFilters({ collection: null })
+      await refresh()
+      useToast.getState().show(withImages ? 'Tableau supprimé ; ses images sont à la corbeille de la bibliothèque.' : 'Tableau supprimé ; ses images restent dans « Tout ».')
     },
     async add(collectionId, blockIds) {
       await addBlocksToCollection(collectionId, blockIds)

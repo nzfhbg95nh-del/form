@@ -3,6 +3,7 @@
 
 import { getDb, multiInsert } from './db.ts'
 import { normalize } from './text.ts'
+import { trashBlocks } from './trash.ts'
 import { MY_ACCOUNT } from './types.ts'
 
 export type CollectionKind = 'instagram' | 'pinterest' | 'manual' | 'unsorted'
@@ -220,6 +221,20 @@ export async function deleteCollections(ids: readonly string[]) {
     await d.execute("DELETE FROM lib_block_collections WHERE collection_id = $1 AND collection_id IN (SELECT id FROM lib_collections WHERE kind = 'manual')", [id])
     await d.execute("DELETE FROM lib_collections WHERE id = $1 AND kind = 'manual'", [id])
   }
+}
+
+/**
+ * Supprime un tableau Pinterest (le mien ou celui d'un autre compte) de la liste.
+ * Avec `withImages`, ses images vont aussi à la corbeille de la bibliothèque (récupérables) ; sinon elles restent dans « Tout ».
+ */
+export async function deleteBoard(id: string, withImages: boolean) {
+  const d = await getDb()
+  if (withImages) {
+    const rows = await d.select<{ block_id: string }[]>('SELECT block_id FROM lib_block_collections WHERE collection_id = $1', [id])
+    await trashBlocks(rows.map((r) => r.block_id))
+  }
+  await d.execute('DELETE FROM lib_block_collections WHERE collection_id = $1', [id])
+  await d.execute("DELETE FROM lib_collections WHERE id = $1 AND kind = 'pinterest'", [id])
 }
 
 /** Retire l'ancienne collection automatique « Images ajoutées » (elle n'existe plus ; les images restent dans la bibliothèque). */
