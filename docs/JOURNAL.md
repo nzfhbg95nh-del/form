@@ -1285,3 +1285,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Clic droit sur une carte de collection : Ouvrir, Modifier le tableau…, Changer la couverture…, Supprimer… (plus le menu du navigateur).
 - Ordre des images : les plus récentes en haut (Pinterest : numéro d'épingle le plus grand d'abord).
 - Reste : Victor teste en bêta.
+- La croix de la pastille « Collection … » fait un pas en arrière (page Collections, ou le tableau parent) au lieu d'aller sur « Tout ».

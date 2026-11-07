@@ -20,7 +20,7 @@ const nf = new Intl.NumberFormat('fr-FR')
 
 const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] : list.filter((v) => v !== value))
 
-export function FilterBar({ onImageSearch }: { onImageSearch?: () => void }) {
+export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?: () => void; onCloseCollection?: () => void }) {
   const { blocks, shown, filters, setFilters, clearFilters, typeIndex, semantic, searching } = useGrid()
   const bySight = semantic ? shown.reduce((n, b) => n + (semantic.has(b.id) ? 1 : 0), 0) : 0
   const count = activeCount(filters)
@@ -29,7 +29,11 @@ export function FilterBar({ onImageSearch }: { onImageSearch?: () => void }) {
 
   const chips: { id: string; label: string; remove: () => void }[] = []
   const add = (id: string, label: string, patch: Partial<Filters>) => chips.push({ id, label, remove: () => setFilters(patch) })
-  if (filters.collection) add('col', `Collection ${filters.collection.name}`, { collection: null })
+  // La croix de la collection ouverte fait un pas en arrière (page Collections, ou le tableau parent), comme le bouton « Collections ».
+  if (filters.collection) {
+    if (onCloseCollection) chips.push({ id: 'col', label: `Collection ${filters.collection.name}`, remove: onCloseCollection })
+    else add('col', `Collection ${filters.collection.name}`, { collection: null })
+  }
   if (filters.query.trim()) add('q', `« ${filters.query.trim()} »`, { query: '' })
   for (const s of filters.sources) add(`s-${s}`, SOURCES.find((x) => x.id === s)?.label ?? s, { sources: filters.sources.filter((v) => v !== s) })
   for (const k of filters.kinds) add(`k-${k}`, KINDS.find((x) => x.id === k)?.label ?? k, { kinds: filters.kinds.filter((v) => v !== k) })

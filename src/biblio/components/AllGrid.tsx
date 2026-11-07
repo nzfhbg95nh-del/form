@@ -277,7 +277,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         </div>
       </div>
 
-      <FilterBar onImageSearch={() => setImageDialog(true)} />
+      <FilterBar onImageSearch={() => setImageDialog(true)} onCloseCollection={onBack} />
       {imageSearch && (
         <div className="flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
           <img src={imageSearch.preview} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" draggable={false} />
