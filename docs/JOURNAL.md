@@ -1275,3 +1275,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - La page Collections affiche maintenant « Mes tableaux Pinterest » (ton compte), qui n'était pas branchée.
 - Tous les tableaux Pinterest (les tiens et ceux d'autres comptes) ont une corbeille au survol : on choisit de garder les images ou de les mettre à la corbeille de la bibliothèque.
 - Reste : Victor teste en bêta.
+
+## 2026-11-07 — Version 0.51.2 (officielle)
+- Reprend la bêta : section « Mes tableaux Pinterest » dans Collections ; corbeille sur chaque tableau Pinterest (garder ou mettre à la corbeille ses images) ; fin de la collection « Images ajoutées » ; fenêtre « Modifier ton tableau » qui ne laisse plus passer les clics.
+- Incident : la base de la vraie Form était abîmée. Restaurée depuis la sauvegarde automatique du 07/11 à 14h12, collections recopiées depuis Form Travail. Anciennes bases gardées (form.corrompue-07-11.db…).
