@@ -3,7 +3,9 @@
 import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 import { boardFileName, buildBoardFile, BOARD_FILE_EXTENSION, importedTitle, parseBoardFile } from './boardFile'
-import { serializeBoard } from './moodboard'
+import { parseBoard, serializeBoard } from './moodboard'
+import { imagesFolderName, planImageExport } from './boardImages'
+import { isTauri } from './repo'
 import { coverAssetOf, withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { saveBlob } from './pdf/savePdf'
 
@@ -19,6 +21,35 @@ export async function exportBoard(boardId: string, content?: string): Promise<vo
     const text = buildBoardFile({ title: board.title, icon: board.icon, content: content ?? board.content, coverAsset: coverAssetOf(board.properties), assets })
     const saved = await saveBlob(new Blob([text], { type: 'application/json' }), boardFileName(board.title), { name: 'Moodboard Form', extensions: [BOARD_FILE_EXTENSION] })
     if (saved) say(`« ${board.title.trim() || 'Moodboard'} » exporté.`)
+  } catch (e) {
+    say(`Export impossible : ${String(e)}`)
+  }
+}
+
+/**
+ * Range toutes les images du moodboard (celles posées sur la toile) dans un dossier : l'utilisateur choisit où, Form y crée « Titre - images »
+ * et y met 001.jpg, 002.png… dans l'ordre de lecture de la toile. content : le plan tel qu'il est à l'écran, quand il n'est pas encore enregistré.
+ */
+export async function exportBoardImages(boardId: string, content?: string): Promise<void> {
+  const { repo, objects } = useApp.getState()
+  const board = objects.find((o) => o.id === boardId && o.type === 'moodboard')
+  if (!repo || !board) return say('Ce moodboard est introuvable.')
+  if (!isTauri()) return say('L’export en dossier existe seulement dans l’application Windows.')
+  try {
+    const assets = await repo.listBoardAssets(boardId)
+    const files = planImageExport(parseBoard(content ?? board.content).items, assets)
+    if (files.length === 0) return say('Ce moodboard n’a pas encore d’image à exporter.')
+    const { open } = await import('@tauri-apps/plugin-dialog')
+    const parent = await open({ directory: true, recursive: true, title: 'Où ranger le dossier des images ?' })
+    if (typeof parent !== 'string') return
+    const { mkdir, writeFile } = await import('@tauri-apps/plugin-fs')
+    const folder = `${parent.replace(/[\\/]+$/, '')}\\${imagesFolderName(board.title)}`
+    await mkdir(folder, { recursive: true })
+    for (const f of files) {
+      const bytes = new Uint8Array(await (await fetch(f.dataUrl)).arrayBuffer())
+      await writeFile(`${folder}\\${f.name}`, bytes)
+    }
+    say(`${files.length} image${files.length > 1 ? 's' : ''} exportée${files.length > 1 ? 's' : ''} dans « ${imagesFolderName(board.title)} ».`)
   } catch (e) {
     say(`Export impossible : ${String(e)}`)
   }

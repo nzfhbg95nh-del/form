@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+﻿import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { EmptyState } from '@/components/States'
-import { FileDown, FileUp, Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
-import { exportBoard, importBoard } from '@/lib/boardTransfer'
+import { FileDown, FileUp, ImageDown, Images, MoreHorizontal, Pencil, Plus, Trash2, X } from 'lucide-react'
+import { exportBoard, exportBoardImages, importBoard } from '@/lib/boardTransfer'
 import { getDb } from '@/biblio/lib/db.ts'
 import { createBoard, createBoardWithCover, setBoardCoverFromFile } from '@/biblio/lib/formBoards.ts'
 import { imagesLabel, listBoards, withCoverAsset, type BoardCard } from '@/biblio/lib/moodboardList.ts'
@@ -142,6 +142,7 @@ function CardMenu({ card, coverSrc }: { card: BoardCard; coverSrc: string | null
               <>
                 <MenuItem icon={<Pencil size={14} />} onClick={() => setMode('edit')}>Modifier…</MenuItem>
                 <MenuItem icon={<FileDown size={14} />} onClick={() => { close(); void exportBoard(card.id) }}>Exporter en fichier…</MenuItem>
+                <MenuItem icon={<ImageDown size={14} />} onClick={() => { close(); void exportBoardImages(card.id) }}>Exporter les images en dossier…</MenuItem>
                 <MenuItem icon={<Trash2 size={14} />} danger onClick={() => void remove()}>Mettre à la corbeille</MenuItem>
               </>
             )}

@@ -1,6 +1,6 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+﻿import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type, ALargeSmall, Pilcrow, FileDown } from 'lucide-react'
-import { exportBoard } from '@/lib/boardTransfer'
+import { exportBoard, exportBoardImages } from '@/lib/boardTransfer'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
 import { samplePixels, processImage } from '@/lib/images'
@@ -13,7 +13,7 @@ import {
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { pixelColor } from '@/lib/imageColor'
-import { Lock, Ruler } from 'lucide-react'
+import { ImageDown, Lock, Ruler } from 'lucide-react'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
@@ -1441,6 +1441,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
         <div className={group + ' ml-auto'}>
           <button className={item} title={onTop ? 'Ne plus rester devant les autres fenêtres' : 'Rester devant les autres fenêtres (la fenêtre de Form reste au premier plan)'} aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}Épingler</button>
           <button className={item} title="Exporter ce moodboard dans un fichier (.formboard), pour le rouvrir dans Form sur un autre ordinateur" onClick={() => void exportBoard(board.id, serializeBoard(latest.current))}><FileDown size={14} />Exporter</button>
+          <button className={item} title="Exporter toutes les images de ce moodboard dans un dossier (001.jpg, 002.png…)" onClick={() => void exportBoardImages(board.id, serializeBoard(latest.current))}><ImageDown size={14} />Images</button>
           <button className={item} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre à part, toujours devant (comme PureRef) ; la page se ferme derrière" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={14} />Fenêtre flottante</button>
         </div>
       </div>

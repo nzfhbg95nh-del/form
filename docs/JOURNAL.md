@@ -1289,3 +1289,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-11-07 — Version 0.51.3 (officielle)
 - Reprend la bêta 45 : crayon et réglages sur les tableaux Pinterest, menu clic droit sur les cartes de collection, images les plus récentes en haut, croix du filtre de collection qui revient à la page Collections.
+
+## 2026-11-07 — Export des images d'un moodboard en dossier
+- Bouton « Images » dans la barre du moodboard et entrée « Exporter les images en dossier… » dans le menu d'une carte : on choisit où, Form crée « Titre - images » avec 001.jpg, 002.png… (ordre de lecture de la toile, sans doublon, images d'origine sans recadrage).
+- Nouvelle permission de création de dossier (fs:allow-mkdir).
+- Reste : Victor teste en bêta.
