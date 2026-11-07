@@ -1286,3 +1286,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Ordre des images : les plus récentes en haut (Pinterest : numéro d'épingle le plus grand d'abord).
 - Reste : Victor teste en bêta.
 - La croix de la pastille « Collection … » fait un pas en arrière (page Collections, ou le tableau parent) au lieu d'aller sur « Tout ».
+
+## 2026-11-07 — Version 0.51.3 (officielle)
+- Reprend la bêta 45 : crayon et réglages sur les tableaux Pinterest, menu clic droit sur les cartes de collection, images les plus récentes en haut, croix du filtre de collection qui revient à la page Collections.
