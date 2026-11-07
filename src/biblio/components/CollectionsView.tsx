@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
 import { EmptyState, LoadingState } from '@/components/States'
-import { FolderOpen, Pencil, Plus, Trash2 } from 'lucide-react'
-import { BoardDeleteDialog } from './BoardDeleteDialog.tsx'
+import { createPortal } from 'react-dom'
+import { FolderOpen, Image as ImageIcon, Pencil, Plus, Trash2 } from 'lucide-react'
 import { groupCollections, type CollectionCard } from '@/biblio/lib/collections.ts'
 import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
@@ -32,46 +32,51 @@ export function Mosaic({ card, thumbsDir }: { card: CollectionCard; thumbsDir: s
 export const cardSubtitle = (card: CollectionCard) =>
   `${nf.format(card.count)} bloc${card.count > 1 ? 's' : ''}${card.kind === 'pinterest' && card.owner ? ` · ${card.owner}` : ''}${card.kind === 'instagram' ? ' · tous les comptes' : ''}${card.kind === 'unsorted' ? ' · pas encore rangées' : ''}`
 
-/** Le petit crayon d'une de mes collections : il ouvre la fenêtre de réglages (couverture, nom, description, ordre, suppression). */
-function EditButton({ card }: { card: CollectionCard }) {
-  const [open, setOpen] = useState(false)
-  return (
-    // Un cadre de la taille de l'aperçu (4/3) posé dessus : le crayon est en bas à droite de l'image, pas de la carte entière.
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
-      <button
-        className="pointer-events-auto absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-black opacity-0 shadow group-hover:opacity-100 focus:opacity-100"
-        aria-label={`Modifier ${card.name}`}
-        title="Modifier le tableau"
-        onClick={() => setOpen(true)}
+/** Menu du clic droit sur une carte : ouvrir, régler le tableau (nom, description, couverture) ou le supprimer. */
+function CardMenu({ card, x, y, onClose, onOpen, onEdit, onCover, onDelete }: {
+  card: CollectionCard
+  x: number
+  y: number
+  onClose: () => void
+  onOpen: () => void
+  onEdit: () => void
+  onCover: () => void
+  onDelete: () => void
+}) {
+  const editable = card.kind === 'manual' || card.kind === 'pinterest'
+  const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-[var(--bg-hover)]'
+  const run = (fn: () => void) => () => { onClose(); fn() }
+  return createPortal(
+    <div className="fixed inset-0 z-[70]" onMouseDown={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }}>
+      <div
+        role="menu"
+        className="absolute w-60 rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 text-sm shadow-lg"
+        style={{ left: Math.min(x, window.innerWidth - 250), top: Math.min(y, window.innerHeight - (editable ? 190 : 60)) }}
+        onMouseDown={(e) => e.stopPropagation()}
       >
-        <Pencil size={15} />
-      </button>
-      {open && <CollectionSettings card={card} onClose={() => setOpen(false)} />}
-    </div>
+        <button role="menuitem" autoFocus className={item} onClick={run(onOpen)}><FolderOpen size={14} /> Ouvrir</button>
+        {editable && (
+          <>
+            <button role="menuitem" className={item} onClick={run(onEdit)}><Pencil size={14} /> Modifier le tableau…</button>
+            <button role="menuitem" className={item} onClick={run(onCover)}><ImageIcon size={14} /> Changer la couverture…</button>
+            <div className="my-1 h-px bg-[var(--border)]" />
+            <button role="menuitem" className={`${item} text-[#d44c47]`} onClick={run(onDelete)}><Trash2 size={14} /> Supprimer…</button>
+          </>
+        )}
+      </div>
+    </div>,
+    document.body,
   )
 }
 
-/** La petite corbeille d'un tableau Pinterest : elle demande si on garde ou non ses images. */
-function BoardDeleteButton({ card }: { card: CollectionCard }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 z-10 aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
-      <button
-        className="pointer-events-auto absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-black opacity-0 shadow group-hover:opacity-100 focus:opacity-100"
-        aria-label={`Supprimer ${card.name}`}
-        title="Supprimer le tableau"
-        onClick={() => setOpen(true)}
-      >
-        <Trash2 size={15} />
-      </button>
-      {open && <BoardDeleteDialog card={card} onClose={() => setOpen(false)} />}
-    </div>
-  )
-}
+type CardWindow = null | 'edit' | 'cover' | 'delete'
 
 export function Card({ card, thumbsDir, onOpen }: { card: CollectionCard; thumbsDir: string; onOpen: (c: CollectionCard) => void }) {
+  const [win, setWin] = useState<CardWindow>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number } | null>(null)
+  const editable = card.kind === 'manual' || card.kind === 'pinterest'
   return (
-    <div className="group relative">
+    <div className="group relative" onContextMenu={(e) => { e.preventDefault(); setMenu({ x: e.clientX, y: e.clientY }) }}>
       <button className="flex w-full flex-col gap-2 text-left" onClick={() => onOpen(card)}>
         <Mosaic card={card} thumbsDir={thumbsDir} />
         <div className="min-w-0 px-0.5">
@@ -79,8 +84,32 @@ export function Card({ card, thumbsDir, onOpen }: { card: CollectionCard; thumbs
           <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>{cardSubtitle(card)}</div>
         </div>
       </button>
-      {card.kind === 'manual' && <EditButton card={card} />}
-      {card.kind === 'pinterest' && <BoardDeleteButton card={card} />}
+      {editable && (
+        // Un cadre de la taille de l'aperçu (4/3) posé dessus : le crayon est en bas à droite de l'image, pas de la carte entière.
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-10 aspect-[4/3]" onClick={(e) => e.stopPropagation()}>
+          <button
+            className="pointer-events-auto absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/90 text-black opacity-0 shadow group-hover:opacity-100 focus:opacity-100"
+            aria-label={`Modifier ${card.name}`}
+            title="Modifier le tableau"
+            onClick={() => setWin('edit')}
+          >
+            <Pencil size={15} />
+          </button>
+        </div>
+      )}
+      {menu && (
+        <CardMenu
+          card={card}
+          x={menu.x}
+          y={menu.y}
+          onClose={() => setMenu(null)}
+          onOpen={() => onOpen(card)}
+          onEdit={() => setWin('edit')}
+          onCover={() => setWin('cover')}
+          onDelete={() => setWin('delete')}
+        />
+      )}
+      {win && <CollectionSettings card={card} startPicking={win === 'cover'} startDelete={win === 'delete'} onClose={() => setWin(null)} />}
     </div>
   )
 }

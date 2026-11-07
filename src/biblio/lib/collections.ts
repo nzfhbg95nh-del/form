@@ -211,7 +211,7 @@ export async function renameCollection(id: string, name: string) {
   const clean = name.trim()
   if (!clean) return
   const d = await getDb()
-  await d.execute("UPDATE lib_collections SET name = $2 WHERE id = $1 AND kind = 'manual'", [id, clean])
+  await d.execute("UPDATE lib_collections SET name = $2 WHERE id = $1 AND kind IN ('manual', 'pinterest')", [id, clean])
 }
 
 /** Supprime des collections à moi (avec leurs sous-collections si on les passe). Les blocs eux-mêmes ne sont jamais touchés. */
@@ -320,7 +320,7 @@ export async function saveSettings(id: string, s: CollectionSettings) {
   if (!name) throw new Error('Le nom est vide.')
   const d = await getDb()
   await d.execute(
-    "UPDATE lib_collections SET name = $2, description = $3, cover_block = $4 WHERE id = $1 AND kind = 'manual'",
+    "UPDATE lib_collections SET name = $2, description = $3, cover_block = $4 WHERE id = $1 AND kind IN ('manual', 'pinterest')",
     [id, name, s.description.trim(), s.coverBlock],
   )
 }
@@ -328,7 +328,7 @@ export async function saveSettings(id: string, s: CollectionSettings) {
 /** Choisit l'image de couverture d'une de mes collections. */
 export async function setCover(id: string, blockId: string | null) {
   const d = await getDb()
-  await d.execute("UPDATE lib_collections SET cover_block = $2 WHERE id = $1 AND kind = 'manual'", [id, blockId])
+  await d.execute("UPDATE lib_collections SET cover_block = $2 WHERE id = $1 AND kind IN ('manual', 'pinterest')", [id, blockId])
 }
 
 // ───────────────────────── Choisir une collection (façon « Enregistrer » de Pinterest) ─────────────────────────

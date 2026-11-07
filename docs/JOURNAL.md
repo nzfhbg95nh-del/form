@@ -1279,3 +1279,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-07 — Version 0.51.2 (officielle)
 - Reprend la bêta : section « Mes tableaux Pinterest » dans Collections ; corbeille sur chaque tableau Pinterest (garder ou mettre à la corbeille ses images) ; fin de la collection « Images ajoutées » ; fenêtre « Modifier ton tableau » qui ne laisse plus passer les clics.
 - Incident : la base de la vraie Form était abîmée. Restaurée depuis la sauvegarde automatique du 07/11 à 14h12, collections recopiées depuis Form Travail. Anciennes bases gardées (form.corrompue-07-11.db…).
+
+## 2026-11-07 — Collections : crayon, clic droit, ordre
+- Les tableaux Pinterest ont aussi le crayon : nom, description, couverture, et suppression (garder ou mettre à la corbeille les images) dans la même fenêtre.
+- Clic droit sur une carte de collection : Ouvrir, Modifier le tableau…, Changer la couverture…, Supprimer… (plus le menu du navigateur).
+- Ordre des images : les plus récentes en haut (Pinterest : numéro d'épingle le plus grand d'abord).
+- Reste : Victor teste en bêta.

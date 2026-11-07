@@ -56,7 +56,7 @@ interface Row {
   n: number
 }
 
-/** Instagram d'abord, du plus récent au plus ancien ; Pinterest (sans date de publication) ensuite, par date d'import. */
+/** Instagram d'abord, du plus récent au plus ancien ; Pinterest (sans date de publication) ensuite, par date d'import puis du plus récent épinglé (numéro le plus grand) au plus ancien. */
 const BLOCKS_SQL = `
 SELECT b.id, b.source, b.owner, b.board, b.origin_url, b.kind, b.published_at, b.status,
        f.path_rel AS rel, f.kind AS first_kind, f.thumb, f.thumb_ok, f.width, f.height, f.duration,
@@ -64,7 +64,7 @@ SELECT b.id, b.source, b.owner, b.board, b.origin_url, b.kind, b.published_at, b
 FROM lib_blocks b
 JOIN lib_files f ON f.block_id = b.id AND f.position = (SELECT MIN(position) FROM lib_files WHERE block_id = b.id)
 WHERE b.trashed_at IS NULL
-ORDER BY (b.published_at IS NULL), b.published_at DESC, b.imported_at DESC, b.id`
+ORDER BY (b.published_at IS NULL), b.published_at DESC, b.imported_at DESC, LENGTH(b.id) DESC, b.id DESC`
 
 export async function loadBlocks(): Promise<GridBlock[]> {
   const d = await getDb()

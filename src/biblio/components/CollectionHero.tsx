@@ -26,7 +26,7 @@ function Strip({ card, thumbsDir }: { card: CollectionCard; thumbsDir: string })
 function EditButton({ card }: { card: CollectionCard }) {
   const [open, setOpen] = useState(false)
   useEffect(() => setOpen(false), [card.id])
-  if (card.kind !== 'manual') return null
+  if (card.kind !== 'manual' && card.kind !== 'pinterest') return null
   return (
     <>
       <button className="btn" onClick={() => setOpen(true)} aria-label="Modifier le tableau" title="Modifier le tableau"><Pencil size={16} /></button>

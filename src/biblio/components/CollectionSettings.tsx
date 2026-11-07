@@ -14,16 +14,24 @@ const fieldStyle = { borderColor: 'var(--border)', background: 'var(--bg)', colo
 const PICK_LIMIT = 120
 
 /** « Modifier ton tableau » : couverture, nom et description d'une de mes collections, et sa suppression. */
-export function CollectionSettings({ card, onClose }: { card: CollectionCard; onClose: () => void }) {
-  const { update, remove } = useCollections()
+export function CollectionSettings({ card, onClose, startPicking = false, startDelete = false }: {
+  card: CollectionCard
+  onClose: () => void
+  /** Ouvre tout de suite le choix de la couverture (clic droit > Changer la couverture). */
+  startPicking?: boolean
+  /** Ouvre tout de suite la question de suppression (clic droit > Supprimer). */
+  startDelete?: boolean
+}) {
+  const { update, remove, removeBoard } = useCollections()
+  const isBoard = card.kind === 'pinterest'
   const blocks = useGrid((s) => s.blocks)
   const thumbsDir = useGrid((s) => s.thumbsDir)
   const [name, setName] = useState(card.name)
   const [description, setDescription] = useState(card.description)
   const [coverBlock, setCoverBlock] = useState<string | null>(card.coverBlock)
-  const [picking, setPicking] = useState(false)
+  const [picking, setPicking] = useState(startPicking)
   const [ids, setIds] = useState<Set<string> | null>(null)
-  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(startDelete)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -127,7 +135,18 @@ export function CollectionSettings({ card, onClose }: { card: CollectionCard; on
         </div>
 
         <div className="flex items-center gap-3 border-t px-8 py-4" style={{ borderColor: 'var(--border)' }}>
-          {confirmDelete ? (
+          {confirmDelete && isBoard ? (
+            // Un tableau Pinterest a de vraies images : on demande ce qu'on en fait.
+            <div className="flex w-full flex-col gap-2 text-sm">
+              <span>Supprimer « {card.name} » ({card.count} image{card.count > 1 ? 's' : ''}) ? Que faire de ses images ?</span>
+              <div className="flex flex-wrap gap-2">
+                <button className="btn" disabled={saving} onClick={() => { setSaving(true); void removeBoard(card.id, false).catch(() => undefined).finally(onClose) }}>Garder les images</button>
+                <button className="btn" disabled={saving} style={{ color: '#d44c47' }} onClick={() => { setSaving(true); void removeBoard(card.id, true).catch(() => undefined).finally(onClose) }}>Images à la corbeille</button>
+                <button className="btn ml-auto" onClick={() => setConfirmDelete(false)}>Annuler</button>
+              </div>
+              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>La corbeille de la bibliothèque permet de les récupérer. Aucun fichier n'est effacé de ton disque.</span>
+            </div>
+          ) : confirmDelete ? (
             <div className="flex w-full flex-wrap items-center gap-2 text-sm">
               <span className="min-w-0 flex-1">Supprimer ce tableau et ses sous-tableaux ? Les images restent dans la bibliothèque.</span>
               <button className="btn" onClick={() => setConfirmDelete(false)}>Non</button>
