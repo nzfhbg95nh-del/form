@@ -1295,3 +1295,6 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Nouvelle permission de création de dossier (fs:allow-mkdir).
 - Reste : Victor teste en bêta.
 - Correctif de l'export des images : les images sont décodées à la main (la fenêtre de Form refusait de « télécharger » une adresse data:, d'où « Failed to fetch » et un dossier vide).
+
+## 2026-11-08 — Mesures : molette et petites flèches
+- Dans le panneau Mesures du moodboard, chaque champ (X, Y, Largeur, Hauteur, Rotation, Opacité) change à la molette (au survol), avec les petites flèches haut/bas ou les touches ↑ ↓. Maj = par 10, Alt = par 0,1.

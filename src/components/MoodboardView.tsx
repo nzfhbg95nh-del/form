@@ -1,4 +1,4 @@
-﻿import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AlignCenter, AlignCenterHorizontal, AlignCenterVertical, AlignEndHorizontal, AlignEndVertical, AlignHorizontalDistributeCenter, AlignHorizontalDistributeEnd, AlignHorizontalDistributeStart, AlignHorizontalSpaceBetween, AlignJustify, AlignLeft, AlignRight, AlignStartHorizontal, AlignStartVertical, AlignVerticalDistributeCenter, AlignVerticalDistributeEnd, AlignVerticalDistributeStart, AlignVerticalSpaceBetween, Expand, ImagePlus, Italic, LayoutGrid, List, ListOrdered, Palette as PaletteIcon, PictureInPicture2, Pin, PinOff, Plus, Strikethrough, Underline, CircleHelp, ChevronDown, Type, ALargeSmall, Pilcrow, FileDown } from 'lucide-react'
 import { exportBoard, exportBoardImages } from '@/lib/boardTransfer'
 import { convertFileSrc, invoke } from '@tauri-apps/api/core'
@@ -13,7 +13,7 @@ import {
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
 import { pixelColor } from '@/lib/imageColor'
-import { ImageDown, Lock, Ruler } from 'lucide-react'
+import { ChevronUp, ImageDown, Lock, Ruler } from 'lucide-react'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
 import { isTauri } from '@/lib/repo'
 import { isVideoFileName, videoSource, videoTitle } from '@/lib/video'
@@ -57,34 +57,71 @@ type Drag =
 
 /** Couleurs proposées pour les formes et les textes. */
 /** Un champ de chiffres du panneau Mesures : la valeur est prise en compte à Entrée ou en quittant le champ (une seule étape dans l'historique). */
-function NumField({ label, unit, value, onCommit, min, max }: { label: string; unit: string; value: number; onCommit: (v: number) => void; min?: number; max?: number }) {
+function NumField({ label, unit, value, onCommit, min, max, step = 1 }: { label: string; unit: string; value: number; onCommit: (v: number) => void; min?: number; max?: number; step?: number }) {
   const shown = Math.round(value * 10) / 10
+  const input = useRef<HTMLInputElement>(null)
+  const wrap = useRef<HTMLSpanElement>(null)
+  const clamp = (v: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v))
   const apply = (el: HTMLInputElement) => {
     const v = Number(el.value.replace(',', '.'))
     if (!Number.isFinite(v)) { el.value = String(shown); return }
-    const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, v))
+    const clamped = clamp(v)
     if (clamped !== shown) onCommit(clamped)
     else el.value = String(shown)
   }
+  // Les petites flèches et la molette : +1 / -1 (Maj = ×10, Alt = ×0,1), à partir de ce qui est écrit dans la case.
+  const bump = (dir: 1 | -1, mult = 1) => {
+    const typed = Number((input.current?.value ?? '').replace(',', '.'))
+    const base = Number.isFinite(typed) ? typed : shown
+    const next = clamp(Math.round((base + dir * step * mult) * 10) / 10)
+    if (next !== shown) onCommit(next)
+  }
+  const bumpRef = useRef(bump)
+  bumpRef.current = bump
+  // La molette ne doit ni zoomer ni faire défiler la toile : un écouteur « non passif » arrête l'événement.
+  useEffect(() => {
+    const el = wrap.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault()
+      e.stopPropagation()
+      bumpRef.current(e.deltaY < 0 ? 1 : -1, e.shiftKey ? 10 : e.altKey ? 0.1 : 1)
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+  const spin = 'flex h-3 w-4 items-center justify-center rounded-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
   return (
     <label className="flex flex-col gap-0.5 text-[11px] text-[var(--fg-muted)]">
       {label}
       <span className="flex items-center gap-1">
-        <input
-          key={shown}
-          defaultValue={shown}
-          inputMode="decimal"
-          aria-label={label}
-          className="lib-input w-full min-w-0 rounded-lg border px-2 py-1 text-xs outline-none"
-          onBlur={(e) => apply(e.currentTarget)}
-          onKeyDown={(e) => { e.stopPropagation(); if (e.key === 'Enter') e.currentTarget.blur(); else if (e.key === 'Escape') { e.currentTarget.value = String(shown); e.currentTarget.blur() } }}
-        />
+        <span ref={wrap} className="relative flex w-full min-w-0 items-center">
+          <input
+            ref={input}
+            key={shown}
+            defaultValue={shown}
+            inputMode="decimal"
+            aria-label={label}
+            title="Molette ou flèches pour changer (Maj = par 10, Alt = par 0,1)"
+            className="lib-input w-full min-w-0 rounded-lg border py-1 pl-2 pr-5 text-xs outline-none"
+            onBlur={(e) => apply(e.currentTarget)}
+            onKeyDown={(e) => {
+              e.stopPropagation()
+              if (e.key === 'Enter') e.currentTarget.blur()
+              else if (e.key === 'Escape') { e.currentTarget.value = String(shown); e.currentTarget.blur() }
+              else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); bump(e.key === 'ArrowUp' ? 1 : -1, e.shiftKey ? 10 : e.altKey ? 0.1 : 1) }
+            }}
+          />
+          <span className="absolute right-1 top-1/2 flex -translate-y-1/2 flex-col">
+            <button type="button" tabIndex={-1} className={spin} aria-label={`${label} : augmenter`} onMouseDown={(e) => e.preventDefault()} onClick={(e) => bump(1, e.shiftKey ? 10 : 1)}><ChevronUp size={10} /></button>
+            <button type="button" tabIndex={-1} className={spin} aria-label={`${label} : diminuer`} onMouseDown={(e) => e.preventDefault()} onClick={(e) => bump(-1, e.shiftKey ? 10 : 1)}><ChevronDown size={10} /></button>
+          </span>
+        </span>
         {unit && <span>{unit}</span>}
       </span>
     </label>
   )
 }
-
 /** La place de l'image dans son cadre : entière, ou recadrée (le cadre n'en montre qu'une partie ; le reste dépasse et est caché). */
 function cropBox(it: BoardItem): React.CSSProperties {
   const { l, t, r, b } = cropOf(it)
