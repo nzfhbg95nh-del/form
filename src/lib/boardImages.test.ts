@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { extensionOf, imagesFolderName, planImageExport } from './boardImages'
+import { dataUrlToBytes, extensionOf, imagesFolderName, planImageExport } from './boardImages'
 import type { BoardItem } from './moodboard'
 
 const img = (id: string, assetId: string, x: number, y: number): BoardItem => ({ id, kind: 'image', assetId, x, y, w: 100, h: 100 })
@@ -28,6 +28,12 @@ describe('export des images d’un moodboard', () => {
 
   it('ne rend rien pour un moodboard sans image', () => {
     expect(planImageExport([], [asset('A')])).toEqual([])
+  })
+
+  it('décode une image sans passer par le réseau', () => {
+    expect([...dataUrlToBytes('data:image/png;base64,AQID')]).toEqual([1, 2, 3])
+    expect(new TextDecoder().decode(dataUrlToBytes('data:image/svg+xml,%3Csvg%2F%3E'))).toBe('<svg/>')
+    expect(() => dataUrlToBytes('pas une image')).toThrow()
   })
 
   it('nettoie le nom du dossier', () => {

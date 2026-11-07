@@ -1294,3 +1294,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Bouton « Images » dans la barre du moodboard et entrée « Exporter les images en dossier… » dans le menu d'une carte : on choisit où, Form crée « Titre - images » avec 001.jpg, 002.png… (ordre de lecture de la toile, sans doublon, images d'origine sans recadrage).
 - Nouvelle permission de création de dossier (fs:allow-mkdir).
 - Reste : Victor teste en bêta.
+- Correctif de l'export des images : les images sont décodées à la main (la fenêtre de Form refusait de « télécharger » une adresse data:, d'où « Failed to fetch » et un dossier vide).

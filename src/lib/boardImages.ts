@@ -32,6 +32,21 @@ export function extensionOf(dataUrl: string): string {
   return EXTENSIONS[mime] ?? 'jpg'
 }
 
+/** Les octets d'une image stockée sous forme d'adresse « data: » (lue à la main : la fenêtre de Form refuse de « télécharger » une adresse data:). */
+export function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const comma = dataUrl.indexOf(',')
+  if (!dataUrl.startsWith('data:') || comma < 0) throw new Error('Image illisible.')
+  const head = dataUrl.slice(0, comma)
+  const body = dataUrl.slice(comma + 1)
+  if (/;base64/i.test(head)) {
+    const bin = atob(body)
+    const out = new Uint8Array(bin.length)
+    for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i)
+    return out
+  }
+  return new TextEncoder().encode(decodeURIComponent(body))
+}
+
 /**
  * Les images posées sur la toile, dans l'ordre de lecture (de haut en bas, puis de gauche à droite), sans doublon :
  * une image posée deux fois n'est exportée qu'une fois. Ce sont les images d'origine, sans recadrage.

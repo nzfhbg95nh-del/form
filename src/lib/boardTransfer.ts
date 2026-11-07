@@ -4,7 +4,7 @@ import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 import { boardFileName, buildBoardFile, BOARD_FILE_EXTENSION, importedTitle, parseBoardFile } from './boardFile'
 import { parseBoard, serializeBoard } from './moodboard'
-import { imagesFolderName, planImageExport } from './boardImages'
+import { dataUrlToBytes, imagesFolderName, planImageExport } from './boardImages'
 import { isTauri } from './repo'
 import { coverAssetOf, withCoverAsset } from '@/biblio/lib/moodboardList.ts'
 import { saveBlob } from './pdf/savePdf'
@@ -46,8 +46,7 @@ export async function exportBoardImages(boardId: string, content?: string): Prom
     const folder = `${parent.replace(/[\\/]+$/, '')}\\${imagesFolderName(board.title)}`
     await mkdir(folder, { recursive: true })
     for (const f of files) {
-      const bytes = new Uint8Array(await (await fetch(f.dataUrl)).arrayBuffer())
-      await writeFile(`${folder}\\${f.name}`, bytes)
+      await writeFile(`${folder}\\${f.name}`, dataUrlToBytes(f.dataUrl))
     }
     say(`${files.length} image${files.length > 1 ? 's' : ''} exportée${files.length > 1 ? 's' : ''} dans « ${imagesFolderName(board.title)} ».`)
   } catch (e) {
