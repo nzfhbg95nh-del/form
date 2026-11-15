@@ -1303,3 +1303,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Un dossier de « images ajoutées » (Art graphique, Architecture, 3d…) range maintenant ses images dans le tableau Pinterest qui porte le même nom (ou presque : Art graphique → Art graphic), au lieu d'afficher une collection de plus. Si aucun tableau ne correspond (Ceramique, IA, Motion…), le dossier reste une collection.
 - Les images restent aussi dans la collection du dossier (cachée quand un tableau correspond) : c'est elle qui sert à l'IA pour apprendre les types.
 - Reste : Victor teste en bêta.
+
+## 2026-11-15 — Sous-tableaux Pinterest
+- Les sous-tableaux de mes tableaux Pinterest (sections) avaient disparu avec les collections « man:pin » supprimées. Ils sont remis comme sous-tableaux des tableaux Pinterest (opération sur la base, depuis la sauvegarde du 11/11).
+- Supprimer un tableau Pinterest supprime aussi ses sous-tableaux (sinon ils restaient orphelins et invisibles).
+- Pas envoyé sur GitHub (demande de Victor : seulement sur demande).

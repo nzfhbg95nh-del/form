@@ -245,12 +245,20 @@ export async function deleteCollections(ids: readonly string[]) {
  */
 export async function deleteBoard(id: string, withImages: boolean) {
   const d = await getDb()
+  // Le tableau et ses sous-tableaux (à tous les niveaux) : un sous-tableau resté sans parent disparaîtrait de la liste.
+  const family = (await d.select<{ id: string }[]>(
+    `WITH RECURSIVE fam(id) AS (SELECT $1 UNION SELECT c.id FROM lib_collections c JOIN fam ON c.parent_id = fam.id) SELECT id FROM fam`,
+    [id],
+  )).map((r) => r.id)
   if (withImages) {
-    const rows = await d.select<{ block_id: string }[]>('SELECT block_id FROM lib_block_collections WHERE collection_id = $1', [id])
-    await trashBlocks(rows.map((r) => r.block_id))
+    const ids = new Set<string>()
+    for (const cid of family) for (const r of await d.select<{ block_id: string }[]>('SELECT block_id FROM lib_block_collections WHERE collection_id = $1', [cid])) ids.add(r.block_id)
+    await trashBlocks([...ids])
   }
-  await d.execute('DELETE FROM lib_block_collections WHERE collection_id = $1', [id])
-  await d.execute("DELETE FROM lib_collections WHERE id = $1 AND kind = 'pinterest'", [id])
+  for (const cid of family) {
+    await d.execute('DELETE FROM lib_block_collections WHERE collection_id = $1', [cid])
+    await d.execute("DELETE FROM lib_collections WHERE id = $1 AND kind IN ('pinterest', 'manual')", [cid])
+  }
 }
 
 /**
