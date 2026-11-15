@@ -1298,3 +1298,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 
 ## 2026-11-08 — Mesures : molette et petites flèches
 - Dans le panneau Mesures du moodboard, chaque champ (X, Y, Largeur, Hauteur, Rotation, Opacité) change à la molette (au survol), avec les petites flèches haut/bas ou les touches ↑ ↓. Maj = par 10, Alt = par 0,1.
+
+## 2026-11-15 — Images ajoutées dans un dossier : elles vont dans le tableau du même nom
+- Un dossier de « images ajoutées » (Art graphique, Architecture, 3d…) range maintenant ses images dans le tableau Pinterest qui porte le même nom (ou presque : Art graphique → Art graphic), au lieu d'afficher une collection de plus. Si aucun tableau ne correspond (Ceramique, IA, Motion…), le dossier reste une collection.
+- Les images restent aussi dans la collection du dossier (cachée quand un tableau correspond) : c'est elle qui sert à l'IA pour apprendre les types.
+- Reste : Victor teste en bêta.

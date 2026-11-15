@@ -2,6 +2,7 @@
 // Un bloc peut être dans plusieurs collections. Ici : lecture dans la base et rangement en sections pour la page Collections.
 
 import { getDb, multiInsert } from './db.ts'
+import { isFolderCollectionId, matchBoard } from './ajoutsBoards.ts'
 import { normalize } from './text.ts'
 import { trashBlocks } from './trash.ts'
 import { MY_ACCOUNT } from './types.ts'
@@ -60,9 +61,10 @@ const byCountThenName = (a: CollectionCard, b: CollectionCard) => b.count - a.co
 export function groupCollections(cards: readonly CollectionCard[], query = ''): CollectionSections {
   const words = normalize(query).split(/\s+/).filter(Boolean)
   const kept = words.length === 0 ? cards : cards.filter((c) => words.every((w) => normalize(`${c.name} ${c.owner ?? ''}`).includes(w)))
+  const hidden = hiddenFolders(cards)
   return {
     unsorted: kept.filter((c) => c.kind === 'unsorted'),
-    mine: kept.filter((c) => c.kind === 'manual' && !c.parentId).sort(byPositionThenName),
+    mine: kept.filter((c) => c.kind === 'manual' && !c.parentId && !hidden.has(c.id)).sort(byPositionThenName),
     boards: kept.filter((c) => c.kind === 'pinterest' && c.owner === MY_ACCOUNT).sort(byCountThenName),
     otherBoards: kept.filter((c) => c.kind === 'pinterest' && c.owner !== MY_ACCOUNT).sort(byCountThenName),
     instagram: kept.filter((c) => c.kind === 'instagram').sort(byCountThenName),
@@ -181,7 +183,21 @@ export function withDescendants(cards: readonly CollectionCard[], id: string): s
 }
 
 /** Les collections où l'on peut ranger des blocs : les miennes seulement (les tableaux et comptes d'origine ne changent pas). */
-export const manualCollections = (cards: readonly CollectionCard[]) => cards.filter((c) => c.kind === 'manual')
+export const manualCollections = (cards: readonly CollectionCard[]) => {
+  const hidden = hiddenFolders(cards)
+  return cards.filter((c) => c.kind === 'manual' && !hidden.has(c.id))
+}
+
+/** Mes tableaux Pinterest : ceux où l'on range les images d'un dossier de « images ajoutées » qui porte leur nom. */
+const myBoards = (cards: readonly CollectionCard[]) => cards.filter((c) => c.kind === 'pinterest' && c.owner === MY_ACCOUNT)
+
+/** Les collections de dossier (Art graphique…) dont les images sont rangées dans un tableau : on ne les montre pas en double. */
+export function hiddenFolders(cards: readonly CollectionCard[]): Set<string> {
+  const boards = myBoards(cards)
+  const out = new Set<string>()
+  for (const c of cards) if (c.kind === 'manual' && isFolderCollectionId(c.id) && matchBoard(c.name, boards)) out.add(c.id)
+  return out
+}
 
 /** « Art graphic › Graphic tee » */
 export function collectionPath(cards: readonly CollectionCard[], id: string): string {
@@ -235,6 +251,22 @@ export async function deleteBoard(id: string, withImages: boolean) {
   }
   await d.execute('DELETE FROM lib_block_collections WHERE collection_id = $1', [id])
   await d.execute("DELETE FROM lib_collections WHERE id = $1 AND kind = 'pinterest'", [id])
+}
+
+/**
+ * Range les images des dossiers de « images ajoutées » dans le tableau Pinterest qui porte le nom du dossier
+ * (Art graphique → Art graphic). Sans doublon ; les images restent aussi dans la collection du dossier, qui sert à l'IA.
+ */
+export async function linkAjoutsToBoards() {
+  const d = await getDb()
+  const folders = await d.select<{ id: string; name: string }[]>("SELECT id, name FROM lib_collections WHERE id LIKE 'man:ajouts/%' AND kind = 'manual'")
+  const boards = await d.select<{ id: string; name: string }[]>("SELECT id, name FROM lib_collections WHERE kind = 'pinterest' AND owner = $1", [MY_ACCOUNT])
+  for (const f of folders) {
+    if (!isFolderCollectionId(f.id)) continue
+    const target = matchBoard(f.name, boards)
+    if (!target) continue
+    await d.execute('INSERT OR IGNORE INTO lib_block_collections (block_id, collection_id) SELECT block_id, $2 FROM lib_block_collections WHERE collection_id = $1', [f.id, target])
+  }
 }
 
 /** Retire l'ancienne collection automatique « Images ajoutées » (elle n'existe plus ; les images restent dans la bibliothèque). */

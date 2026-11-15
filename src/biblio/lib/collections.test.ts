@@ -16,6 +16,18 @@ const all = [
   card('man:2', 'Affiches', 'manual', null, 7),
 ]
 
+describe('dossiers de « images ajoutées » rangés dans un tableau', () => {
+  const cards = [
+    card('pin:DYSARTADD/Art graphic', 'Art graphic', 'pinterest', 'DYSARTADD', 2005),
+    card('man:ajouts/Art graphique', 'Art graphique', 'manual', 'Images ajoutées', 4),
+    card('man:ajouts/Ceramique', 'Ceramique', 'manual', 'Images ajoutées', 10),
+  ]
+  it('le dossier qui porte le nom d\'un de mes tableaux n\'apparaît pas en double dans « Mes collections »', () => {
+    expect(groupCollections(cards).mine.map((c) => c.name)).toEqual(['Ceramique'])
+    expect(manualCollections(cards).map((c) => c.name)).toEqual(['Ceramique'])
+  })
+})
+
 describe('groupCollections', () => {
   it('range en sections : les miennes, mes tableaux, les autres tableaux, Instagram', () => {
     const s = groupCollections(all)

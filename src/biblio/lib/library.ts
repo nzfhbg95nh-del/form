@@ -2,6 +2,7 @@
 // Les fichiers ne sont jamais copiés ni modifiés : la base ne garde que leurs chemins et ce qu'on en déduit.
 
 import { invoke } from '@tauri-apps/api/core'
+import { linkAjoutsToBoards } from './collections.ts'
 import { getDb, inChunks, multiInsert } from './db.ts'
 import { loadForgotten } from './trash.ts'
 import { buildBlocks, diffFiles, type ScannedFile, dropForgotten } from './scan.ts'
@@ -80,6 +81,8 @@ export async function syncLibrary(root: string, onProgress?: (label: string, don
       touched.flatMap((b) => b.collectionIds.map((c) => [b.id, c])),
       { verb: 'INSERT OR IGNORE' },
     )
+    // Les images d'un dossier de « images ajoutées » vont aussi dans le tableau Pinterest du même nom.
+    await linkAjoutsToBoards()
   }
 
   // Une image ajoutée à la main est datée du jour de son ajout (et non de la date de l'original) : c'est ce que le filtre « Date » doit voir.
