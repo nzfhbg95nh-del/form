@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { runDailyBackup } from '@/lib/backup'
 import { openRepo } from '@/lib/repo'
-import { agendaSchema, defaultSchema, isSystemDatabase, parseSchema, parseValues, type Schema } from '@/lib/database'
+import { agendaSchema, defaultSchema, parseSchema, parseValues, type Schema } from '@/lib/database'
 import { activateTab, closeAround, closeTab, currentId, dropTabs, duplicateTab, goInTab, isViewTab, moveTab, openTab, parseViewTab, pinTab, viewTabId, type CloseSide, type Tabs } from '@/lib/tabs'
 import { useLibraryNav, type LibraryPageId } from '@/biblio/store/nav'
 import { PAGE_TEMPLATES } from '@/lib/templates'
@@ -71,9 +71,8 @@ function savedExpanded(): Record<string, boolean> {
   }
 }
 
-/** Dernière page ouverte, gardée pour la rouvrir au prochain démarrage. */
+/** Ancienne mémoire de la dernière page ouverte (plus utilisée : effacée au démarrage). */
 const LAST_PAGE_KEY = 'form-last-page'
-const isPageLike = (o: ObjectRow) => o.type === 'page' || o.type === 'database' || o.type === 'moodboard'
 
 interface AppState {
   repo: Repo | null
@@ -402,10 +401,8 @@ export const useApp = create<AppState>((set, get) => ({
       const [clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments] = await Promise.all([
         repo.listClients(), repo.listServices(), loadCompany(repo), repo.listQuotes(), repo.listQuoteLines(), repo.listInvoices(), repo.listInvoiceLines(), repo.listPayments(),
       ])
-      // Au démarrage, aucun onglet n'est ouvert, sauf la dernière page consultée avant la fermeture (on reste sur l'accueil).
-      let last: string | null = null
-      try { last = localStorage.getItem(LAST_PAGE_KEY) } catch { /* sans importance */ }
-      const first = objects.find((o) => o.id === last && !o.deleted_at && isPageLike(o) && !isSystemDatabase(o))
+      // Au démarrage, Form s'ouvre sur l'accueil seul : aucune page de la fois précédente n'est rouverte (choix de Victor).
+      try { localStorage.removeItem(LAST_PAGE_KEY) } catch { /* sans importance */ }
       // Premier lancement : le catalogue reçoit les tarifs journaliers de Victor (une seule fois, même s'il les supprime ensuite).
       if (services.length === 0 && (await repo.getSetting('default_services_seeded')) !== '1') {
         for (const s of defaultServices()) {
@@ -428,9 +425,8 @@ export const useApp = create<AppState>((set, get) => ({
       set({
         pinned,
         repo, objects, clients, services, company, quotes, quoteLines, invoices, invoiceLines, payments,
-        selectedId: first?.id ?? null,
-        // L'accueil a son propre onglet (actif) ; la dernière page consultée reste ouverte à côté.
-        tabs: { ids: first ? [viewTabId('home'), first.id] : [viewTabId('home')], active: 0 },
+        selectedId: null,
+        tabs: { ids: [viewTabId('home')], active: 0 },
       })
       try {
         await runDailyBackup(repo)
@@ -456,10 +452,6 @@ export const useApp = create<AppState>((set, get) => ({
     const tabs = openTab(get().tabs, id, keep)
     // L'onglet se souvient de ce qu'il montrait avant : « Précédent » et « Suivant » sont propres à chaque onglet.
     set({ tabs, selectedId: currentId(tabs), view: 'page', expanded })
-    const opened = get().objects.find((o) => o.id === currentId(tabs))
-    if (opened && isPageLike(opened) && !isSystemDatabase(opened)) {
-      try { localStorage.setItem(LAST_PAGE_KEY, opened.id) } catch { /* sans importance */ }
-    }
   },
 
   goBack() {

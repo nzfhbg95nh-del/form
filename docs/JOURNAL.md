@@ -1340,3 +1340,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Corrigé : la bibliothèque lance l'analyse une fois les miniatures (et celles des vidéos) écrites ; au démarrage, les images en attente sont toujours rattrapées ; une analyse demandée pendant une autre est refaite juste après ; une erreur d'enregistrement des empreintes s'affiche au lieu d'être tue. Test : `embedQueue.test.ts`.
 - Moodboards : la barre latérale ne se replie plus toute seule en ouvrant un moodboard (demande de Victor).
 - Reste : bêta à fabriquer sur demande (« Envoie ») ; vérifier ensuite que les 223 images sont analysées et retrouvées par la recherche par image.
+- Démarrage : Form s'ouvre sur l'Accueil seul ; la dernière page consultée n'est plus rouverte (demande de Victor).
