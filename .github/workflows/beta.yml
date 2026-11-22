@@ -60,8 +60,13 @@ jobs:
       - name: Préparer DirectML.dll
         shell: pwsh
         run: |
-          $source = 'src-tauri/target/debug/DirectML.dll'
-          if (Test-Path $source) { Copy-Item $source src-tauri/DirectML.dll -Force }
+          # Où est la DLL ? À côté de l'exécutable si `ort` l'y a copiée ; sinon dans le dossier où `ort` télécharge ses fichiers (c'est le même fichier).
+          $candidates = @()
+          if (Test-Path 'src-tauri/target') { $candidates += Get-ChildItem 'src-tauri/target' -Recurse -Filter DirectML.dll -ErrorAction SilentlyContinue }
+          foreach ($dir in @("$env:LOCALAPPDATA\ort.pyke.io", "$HOME\.cache\ort.pyke.io")) { if (Test-Path $dir) { $candidates += Get-ChildItem $dir -Recurse -Filter DirectML.dll -ErrorAction SilentlyContinue } }
+          $best = $candidates | Where-Object { $_.Length -gt 1000000 } | Select-Object -First 1
+          if ($best) { Write-Host "DirectML.dll trouvée : $($best.FullName)"; Copy-Item $best.FullName src-tauri/DirectML.dll -Force }
+          else { Write-Host "Aucune DirectML.dll trouvée. Fichiers vus : $(($candidates | ForEach-Object { $_.FullName }) -join ', ')" }
           $size = if (Test-Path src-tauri/DirectML.dll) { (Get-Item src-tauri/DirectML.dll).Length } else { 0 }
           if ($size -lt 1000000) { throw "DirectML.dll absente ou vide ($size octets) : l'installateur n'aurait pas le moteur d'IA." }
           Write-Host "DirectML.dll prête ($size octets)"

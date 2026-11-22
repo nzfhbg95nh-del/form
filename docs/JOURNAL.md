@@ -1317,3 +1317,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les bêtas 50 et 51 échouaient sur GitHub : « resource path `DirectML.dll` doesn't exist ». Le script build.rs peut passer avant que `ort` dépose la DLL ; ça marchait tant que le cache de GitHub la gardait.
 - build.rs pose un fichier vide si la DLL manque ; bêta et version officielle remplacent ce fichier par la vraie DLL après compilation et s'arrêtent si elle est absente ou vide (moins de 1 Mo).
 - Vérifié : compilation à froid en local OK. Pas encore vérifié sur GitHub. Pas envoyé.
+- La bêta 52 passait la compilation mais ne trouvait pas DirectML.dll à côté de l'exécutable (ort ne l'y copie pas sur GitHub). L'étape de fabrication la cherche aussi dans le dossier de téléchargement d'ort (même fichier, vérifié) et affiche ce qu'elle voit si elle ne la trouve pas. Testé en local ; pas encore sur GitHub.
