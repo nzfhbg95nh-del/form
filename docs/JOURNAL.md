@@ -1332,3 +1332,4 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Correction : une image pas encore analysée ne reçoit plus « Autres » (elle attend) ; countUnclassified ne compte plus ces images ; à la fin de chaque analyse IA, le classement repasse même si quelques images ont raté (avant : seulement si toutes étaient analysées).
 - 14 958 (IA) contre 16 900 (dossier) : normal, l'IA compare les images ; les 1 841 vidéos et les fichiers introuvables ne comptent pas dans ce chiffre.
 - Tests : 816. Pas encore essayé dans l'app. Pas envoyé.
+- Recherche par image : elle ne voit que les images déjà analysées par l'IA. Message ajouté sous le résultat : « N images pas encore analysées par l'IA : elles ne peuvent pas encore apparaître ici ». Pas envoyé.

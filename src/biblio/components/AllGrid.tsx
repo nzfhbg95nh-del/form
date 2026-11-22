@@ -9,6 +9,7 @@ import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
 import { SIZE_MAX, SIZE_MIN, useGrid } from '@/biblio/store/grid.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
+import { useAi } from '@/biblio/store/ai.ts'
 import { BlockMenu } from './BlockMenu.tsx'
 import { SelectionBar } from './SelectionBar.tsx'
 import { CollectionHero } from './CollectionHero.tsx'
@@ -100,6 +101,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   const imageSearch = useGrid((s) => s.imageSearch)
   const searchByImage = useGrid((s) => s.searchByImage)
   const clearImageSearch = useGrid((s) => s.clearImageSearch)
+  const aiPending = useAi((s) => s.pending)
   const [imageDialog, setImageDialog] = useState(false)
   // Une image déposée sur la page : on choisit entre chercher ses semblables et l'ajouter à la bibliothèque.
   const [dragging, setDragging] = useState(false)
@@ -288,6 +290,11 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
               <span style={{ color: '#d44c47' }}>{imageSearch.error}</span>
             ) : (
               <span><b>{nf.format(imageSearch.ids.length)}</b> images semblables à celle que tu as donnée, de la plus ressemblante à la moins ressemblante.</span>
+            )}
+            {aiPending > 0 && imageSearch.ids !== null && (
+              <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                {nf.format(aiPending)} image{aiPending > 1 ? 's' : ''} pas encore analysée{aiPending > 1 ? 's' : ''} par l'IA : elle{aiPending > 1 ? 's' : ''} ne peu{aiPending > 1 ? 'vent' : 't'} pas encore apparaître ici. L'analyse se fait toute seule (Réglages &gt; Bibliothèque &gt; IA).
+              </div>
             )}
           </div>
           <button className="btn" onClick={() => setImageDialog(true)}>Autre image</button>
