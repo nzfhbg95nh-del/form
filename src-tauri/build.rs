@@ -9,5 +9,13 @@ fn main() {
             }
         }
     }
+    // Ce script ne dépend pas de `ort` : lors d'une compilation à froid (GitHub), il peut passer avant que `ort` ait déposé la DLL.
+    // Tauri exige que le fichier existe : on pose un fichier vide pour que la compilation continue. Les fabrications (bêta, version)
+    // remplacent ensuite ce fichier par la vraie DLL et refusent de continuer s'il reste vide.
+    let dest = std::path::Path::new("DirectML.dll");
+    if !dest.exists() {
+        let _ = std::fs::write(dest, b"");
+        println!("cargo:warning=DirectML.dll absente : fichier vide posé en attendant celle d'ort");
+    }
     tauri_build::build()
 }

@@ -1312,3 +1312,8 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 ## 2026-11-22 — Reprendre la connexion Instagram / Pinterest de l'autre Form
 - Instagram renvoie Victor sur la page de départ quand il se connecte dans la fenêtre de Form. Nouveau bouton « Reprendre la connexion de l'autre Form » (Réglages > Bibliothèque > Téléchargement) : Form reprend les cookies de l'autre version (Form Travail ou la vraie Form), sans repasser par le site. Message clair si la connexion de l'autre version a expiré.
 - Rust : `login_import`, `parse_netscape` (+ 2 tests). Compilé et testé ; pas essayé dans l'appli. Pas envoyé sur GitHub.
+
+## 2026-11-22 — Fabrication de la bêta qui échouait (DirectML.dll)
+- Les bêtas 50 et 51 échouaient sur GitHub : « resource path `DirectML.dll` doesn't exist ». Le script build.rs peut passer avant que `ort` dépose la DLL ; ça marchait tant que le cache de GitHub la gardait.
+- build.rs pose un fichier vide si la DLL manque ; bêta et version officielle remplacent ce fichier par la vraie DLL après compilation et s'arrêtent si elle est absente ou vide (moins de 1 Mo).
+- Vérifié : compilation à froid en local OK. Pas encore vérifié sur GitHub. Pas envoyé.

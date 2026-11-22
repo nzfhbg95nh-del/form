@@ -55,6 +55,17 @@ jobs:
       - name: Tests Rust de la bibliothèque
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib -- biblio::relocate biblio::layout biblio::ajouts biblio::trash
 
+      # DirectML.dll (moteur d'IA sur la carte graphique) est déposée par `ort` pendant la compilation ci-dessus. On la range là où l'installateur
+      # la prend, et on refuse de continuer si elle manque : sinon la bêta partirait sans moteur d'IA.
+      - name: Préparer DirectML.dll
+        shell: pwsh
+        run: |
+          $source = 'src-tauri/target/debug/DirectML.dll'
+          if (Test-Path $source) { Copy-Item $source src-tauri/DirectML.dll -Force }
+          $size = if (Test-Path src-tauri/DirectML.dll) { (Get-Item src-tauri/DirectML.dll).Length } else { 0 }
+          if ($size -lt 1000000) { throw "DirectML.dll absente ou vide ($size octets) : l'installateur n'aurait pas le moteur d'IA." }
+          Write-Host "DirectML.dll prête ($size octets)"
+
       # Réglages propres à la bêta, ajoutés par-dessus tauri.conf.json : nom, identifiant (donc dossier de données et programme d'installation distincts),
       # numéro de version « 0.99.N » (N = numéro de fabrication), pas d'archive de mise à jour, et une adresse de mise à jour qui ne mène nulle part.
       - name: Réglages de la bêta

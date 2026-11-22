@@ -43,6 +43,21 @@ jobs:
           $hash = (Get-FileHash src-tauri/resources/gallery-dl.exe -Algorithm SHA256).Hash.ToLower()
           if ($hash -ne '73ab3f3d09a9b0e65f73d843fae75cdaf7928d069a219ae360b636e0803119d0') { throw "gallery-dl : empreinte inattendue ($hash)" }
 
+      # DirectML.dll (moteur d'IA sur la carte graphique) est déposée par `ort` pendant la compilation. On compile d'abord (le travail est
+      # réutilisé ensuite par tauri-action), on range la DLL là où l'installateur la prend, et on refuse de continuer si elle manque.
+      - run: npm run build
+
+      - name: Compiler et préparer DirectML.dll
+        shell: pwsh
+        run: |
+          cargo build --release --manifest-path src-tauri/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { throw "La compilation a échoué" }
+          $source = 'src-tauri/target/release/DirectML.dll'
+          if (Test-Path $source) { Copy-Item $source src-tauri/DirectML.dll -Force }
+          $size = if (Test-Path src-tauri/DirectML.dll) { (Get-Item src-tauri/DirectML.dll).Length } else { 0 }
+          if ($size -lt 1000000) { throw "DirectML.dll absente ou vide ($size octets) : l'installateur n'aurait pas le moteur d'IA." }
+          Write-Host "DirectML.dll prête ($size octets)"
+
       - uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
