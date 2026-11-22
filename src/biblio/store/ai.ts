@@ -126,8 +126,8 @@ export const useAi = create<AiState>((set, get) => ({
       set({ error: e.payload.error, lastRun: e.payload.error ? null : { seconds: e.payload.seconds, provider: e.payload.provider } })
       await get().refresh()
       resetSearchIndex() // de nouvelles empreintes : la recherche par contenu les relira
-      // De nouvelles images ont leur empreinte : on les cherche parmi les types décrits en mots.
-      if (!e.payload.error && get().pending === 0 && get().embedTotal > 0) void get().classify()
+      // De nouvelles images ont leur empreinte : on les classe (même si quelques images n'ont pas pu être analysées).
+      if (!e.payload.error && get().embedTotal > 0) void get().classify()
     })
     // Couleurs dominantes : calculées sur les miniatures, sans modèle ni téléchargement.
     let colorWriting = Promise.resolve()

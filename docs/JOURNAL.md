@@ -1326,3 +1326,9 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Nouvelle table lib_trashed_files (migration 022) : la ligne du fichier y attend ; lib_forgotten_files : une image de carrousel supprimée définitivement n'est plus réimportée (même si gallery-dl la retélécharge).
 - La Corbeille de la barre latérale montre maintenant les images (onglet « Images ») en plus des pages. Bouton « Restaurer » sur chaque image, double-clic pour voir en grand, badge carrousel.
 - Tests : trashPlan.test.ts (8 tests, 814 au total). Requêtes essayées sur une copie de la vraie base Form Travail (retirer, restaurer : même carrousel, même ordre). Pas encore essayé dans l'app. Pas envoyé.
+
+## 2026-11-22 — Nouvelles images Instagram rangées dans « Autres »
+- Constat (copie de la base Form Travail) : les 77 posts Instagram téléchargés aujourd'hui sont bien dans la base (seuls 4 fichiers du dossier n'y sont pas : 2 .mp3 et 2 images ajoutées), mais tous classés « Autres » : le classement est passé avant que l'IA ait analysé ces images (83 blocs sans empreinte).
+- Correction : une image pas encore analysée ne reçoit plus « Autres » (elle attend) ; countUnclassified ne compte plus ces images ; à la fin de chaque analyse IA, le classement repasse même si quelques images ont raté (avant : seulement si toutes étaient analysées).
+- 14 958 (IA) contre 16 900 (dossier) : normal, l'IA compare les images ; les 1 841 vidéos et les fichiers introuvables ne comptent pas dans ce chiffre.
+- Tests : 816. Pas encore essayé dans l'app. Pas envoyé.

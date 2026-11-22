@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { applyExclusive, blockVector, withFallback, type Row } from './classify.ts'
+import { applyExclusive, blockVector, fallbackCandidates, withFallback, type Row } from './classify.ts'
+
+describe('fallbackCandidates', () => {
+  it('une image pas encore analysée par l\'IA ne va pas dans « Autres » : elle attend', () => {
+    expect(fallbackCandidates(['vieille', 'neuve', 'ratee'], new Set(['neuve']))).toEqual(['vieille', 'ratee'])
+    const out = withFallback([], new Set(), fallbackCandidates(['vieille', 'neuve'], new Set(['neuve'])), 'autres')
+    expect(out.map((r) => r.blockId)).toEqual(['vieille'])
+  })
+  it('sans image en attente, toutes peuvent aller dans « Autres »', () => {
+    expect(fallbackCandidates(['a', 'b'], new Set())).toEqual(['a', 'b'])
+  })
+})
 
 const unit = (...v: number[]) => {
   const n = Math.sqrt(v.reduce((s, x) => s + x * x, 0))

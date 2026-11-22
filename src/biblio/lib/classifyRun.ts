@@ -4,7 +4,7 @@
 import { getDb, multiInsert } from './db.ts'
 import { MODEL_ID } from './ai.ts'
 import { getTextStatus, textVectors } from './aiText.ts'
-import { applyExclusive, blockVector, withFallback, type Row } from './classify.ts'
+import { applyExclusive, blockVector, fallbackCandidates, withFallback, type Row } from './classify.ts'
 import type { WorkerInput, WorkerOutput } from './classify.worker.ts'
 import { buildExampleSet, DEFAULT_OPTIONS, vectorDim } from './neighbours.ts'
 import { allPrompts, buildPromptMatrix, SEMANTIC_TYPES, thresholdsOf } from './semantic.ts'
@@ -114,7 +114,10 @@ export async function classifyAll(threshold: number, onProgress?: (done: number,
 
   const found = [...neighbours, ...semantic]
   const typed = new Set(labels.keys())
-  const completed = known.has(OTHER_TYPE_ID) ? withFallback(found, typed, blockIds, OTHER_TYPE_ID, refusedOther) : found
+  // Les images pas encore analysées (une image prête sans empreinte) attendent : elles seront classées quand l'IA les aura vues.
+  const waiting = new Set((await d.select<{ id: string }[]>(WAITING_SQL, [MODEL_ID])).map((r) => r.id))
+  const candidates = fallbackCandidates(blockIds, waiting)
+  const completed = known.has(OTHER_TYPE_ID) ? withFallback(found, typed, candidates, OTHER_TYPE_ID, refusedOther) : found
   const final = applyExclusive(completed, EXCLUSIVE_TYPES, typed)
 
   // On remplace l'ancien classement automatique ; les types rangés, choisis ou retirés par Victor ne sont jamais touchés.
@@ -137,11 +140,20 @@ export async function classifyAll(threshold: number, onProgress?: (done: number,
   }
 }
 
-/** Nombre d'images qui n'ont aucun type : celles que le classement automatique doit encore traiter. */
+/** Les blocs qui ont au moins une image prête à analyser mais pas encore d'empreinte d'IA. */
+const WAITING_SQL = `SELECT DISTINCT f.block_id AS id FROM lib_files f
+  WHERE f.thumb_ok = 1 AND f.missing = 0 AND NOT EXISTS (SELECT 1 FROM lib_embeddings e WHERE e.path_rel = f.path_rel AND e.model = $1)`
+
+/**
+ * Nombre d'images qui n'ont aucun type et que le classement peut traiter maintenant : celles qui attendent encore leur analyse par l'IA
+ * ne comptent pas (le classement repassera quand l'analyse sera finie).
+ */
 export async function countUnclassified(): Promise<number> {
   const d = await getDb()
   const [row] = await d.select<{ n: number }[]>(
-    "SELECT COUNT(*) AS n FROM lib_blocks b WHERE NOT EXISTS (SELECT 1 FROM lib_block_types t WHERE t.block_id = b.id AND t.origin <> 'removed')",
+    `SELECT COUNT(*) AS n FROM lib_blocks b WHERE NOT EXISTS (SELECT 1 FROM lib_block_types t WHERE t.block_id = b.id AND t.origin <> 'removed')
+       AND b.id NOT IN (${WAITING_SQL})`,
+    [MODEL_ID],
   )
   return row.n
 }

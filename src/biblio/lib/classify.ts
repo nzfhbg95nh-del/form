@@ -27,6 +27,14 @@ export function blockVector(vecs: ArrayLike<number>[]): Float32Array {
 }
 
 /**
+ * Les images qui peuvent recevoir « Autres » : toutes, sauf celles qui attendent encore leur analyse par l'IA
+ * (sinon une image toute neuve finirait dans « Autres » avant d'avoir été regardée, et y resterait).
+ */
+export function fallbackCandidates(allBlockIds: Iterable<string>, waiting: ReadonlySet<string>): string[] {
+  return [...allBlockIds].filter((id) => !waiting.has(id))
+}
+
+/**
  * Complète le classement : les types attribués avec un seuil bas (`relaxed`) ne sont gardés que pour une image qui n'a
  * rien d'autre (ni tableau ou choix de Victor `typed`, ni type sûr) ; puis « Autres » reçoit toute image qui n'a toujours
  * aucun type. `refusedOther` : images dont Victor a retiré « Autres » (on ne le remet pas).
