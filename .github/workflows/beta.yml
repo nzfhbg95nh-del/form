@@ -55,21 +55,17 @@ jobs:
       - name: Tests Rust de la bibliothèque
         run: cargo test --manifest-path src-tauri/Cargo.toml --lib -- biblio::relocate biblio::layout biblio::ajouts biblio::trash
 
-      # DirectML.dll (moteur d'IA sur la carte graphique) est déposée par `ort` pendant la compilation ci-dessus. On la range là où l'installateur
-      # la prend, et on refuse de continuer si elle manque : sinon la bêta partirait sans moteur d'IA.
+      # DirectML.dll (moteur d'IA sur la carte graphique) : téléchargée directement chez Microsoft (paquet officiel Microsoft.AI.DirectML 1.15.4,
+      # le même fichier que celui qu'utilise `ort`, empreinte vérifiée). On ne dépend plus de ce que la compilation laisse traîner.
       - name: Préparer DirectML.dll
         shell: pwsh
         run: |
-          # Où est la DLL ? À côté de l'exécutable si `ort` l'y a copiée ; sinon dans le dossier où `ort` télécharge ses fichiers (c'est le même fichier).
-          $candidates = @()
-          if (Test-Path 'src-tauri/target') { $candidates += Get-ChildItem 'src-tauri/target' -Recurse -Filter DirectML.dll -ErrorAction SilentlyContinue }
-          foreach ($dir in @("$env:LOCALAPPDATA\ort.pyke.io", "$HOME\.cache\ort.pyke.io")) { if (Test-Path $dir) { $candidates += Get-ChildItem $dir -Recurse -Filter DirectML.dll -ErrorAction SilentlyContinue } }
-          $best = $candidates | Where-Object { $_.Length -gt 1000000 } | Select-Object -First 1
-          if ($best) { Write-Host "DirectML.dll trouvée : $($best.FullName)"; Copy-Item $best.FullName src-tauri/DirectML.dll -Force }
-          else { Write-Host "Aucune DirectML.dll trouvée. Fichiers vus : $(($candidates | ForEach-Object { $_.FullName }) -join ', ')" }
-          $size = if (Test-Path src-tauri/DirectML.dll) { (Get-Item src-tauri/DirectML.dll).Length } else { 0 }
-          if ($size -lt 1000000) { throw "DirectML.dll absente ou vide ($size octets) : l'installateur n'aurait pas le moteur d'IA." }
-          Write-Host "DirectML.dll prête ($size octets)"
+          Invoke-WebRequest -Uri "https://www.nuget.org/api/v2/package/Microsoft.AI.DirectML/1.15.4" -OutFile directml.zip
+          Expand-Archive directml.zip directml -Force
+          Copy-Item directml/bin/x64-win/DirectML.dll src-tauri/DirectML.dll -Force
+          $hash = (Get-FileHash src-tauri/DirectML.dll -Algorithm SHA256).Hash.ToLower()
+          if ($hash -ne '9c9e6d822561c6c41b90e6994b3e8857cf1d66dbfb1e0c4c799c7c89b4e92da1') { throw "DirectML.dll : empreinte inattendue ($hash)" }
+          Write-Host "DirectML.dll prête ($((Get-Item src-tauri/DirectML.dll).Length) octets)"
 
       # Réglages propres à la bêta, ajoutés par-dessus tauri.conf.json : nom, identifiant (donc dossier de données et programme d'installation distincts),
       # numéro de version « 0.99.N » (N = numéro de fabrication), pas d'archive de mise à jour, et une adresse de mise à jour qui ne mène nulle part.

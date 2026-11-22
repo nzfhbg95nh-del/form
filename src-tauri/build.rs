@@ -4,7 +4,8 @@ fn main() {
     if let Ok(out) = std::env::var("OUT_DIR") {
         if let Some(profile_dir) = std::path::Path::new(&out).ancestors().nth(3) {
             let source = profile_dir.join("DirectML.dll");
-            if source.exists() {
+            // Seulement une vraie DLL (plus de 1 Mo) : jamais écraser la bonne par un fichier vide.
+            if std::fs::metadata(&source).map(|m| m.len() > 1_000_000).unwrap_or(false) {
                 let _ = std::fs::copy(source, "DirectML.dll");
             }
         }
