@@ -11,6 +11,7 @@ import { resetSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { DEFAULT_OPTIONS } from '@/biblio/lib/neighbours.ts'
 import { clearAutoTypes } from '@/biblio/lib/types.ts'
 import { placeAddedImages, placedMessage } from '@/biblio/lib/autoPlaceRun.ts'
+import { shouldEmbedAgain } from '@/biblio/lib/embedQueue.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
@@ -45,6 +46,8 @@ interface AiState {
   ocrPending: number
   colorsPending: number
   init: (run?: boolean) => Promise<void>
+  /** Calcule ce qui manque (empreintes, couleurs, texte des vidéos) : à appeler quand de nouvelles miniatures sont écrites en base. */
+  catchUp: () => void
   refresh: () => Promise<void>
   download: () => Promise<void>
   downloadText: () => Promise<void>
@@ -62,6 +65,10 @@ interface AiState {
 }
 
 let listening = false
+/** Les calculs en retard ont été lancés pour ce lancement de Form. */
+let startupDone = false
+/** Une analyse a été demandée pendant qu'une autre tournait : on la refait à la fin. */
+let embedAgain = false
 
 export const useAi = create<AiState>((set, get) => ({
   ready: false,
@@ -90,81 +97,24 @@ export const useAi = create<AiState>((set, get) => ({
   colorsPending: 0,
 
   async init(run = true) {
-    if (get().ready) return
-    await get().refresh()
-    const saved = Number(await getSetting('ai_threshold'))
-    set({ ready: true, threshold: saved >= 0.2 && saved <= 0.95 ? saved : DEFAULT_OPTIONS.threshold })
-    if (listening) return
-    listening = true
-
-    await listen<{ done: number; total: number }>('ai-download', (e) => set({ dlDone: e.payload.done, dlTotal: e.payload.total }))
-    await listen<{ ok: boolean; error: string | null }>('ai-download-done', async (e) => {
+    if (!get().ready) {
       await get().refresh()
-      if (e.payload.ok) {
-        void get().embed() // le modèle est là : on calcule tout de suite les empreintes
-        // Puis le modèle de texte (Typo, Recette), s'il manque encore.
-        const t = get().text
-        if (t && !t.ready && !t.downloading) void get().downloadText()
-      }
-      else set({ error: e.payload.error })
-    })
-    await listen<{ done: number; total: number }>('ai-text-download', (e) => set({ textDone: e.payload.done }))
-    await listen<{ ok: boolean; error: string | null }>('ai-text-download-done', async (e) => {
-      await get().refresh()
-      if (e.payload.ok) void get().classify() // le modèle de texte est là : Typo et Recette sont cherchés dans toutes les images
-      else set({ error: e.payload.error })
-    })
-    await listen<string>('ai-provider', (e) => set({ provider: e.payload }))
-
-    let writing = Promise.resolve()
-    await listen<{ results: EmbedResult[]; failed: string[]; done: number; total: number }>('ai-batch', (e) => {
-      set((s) => ({ embedDone: e.payload.done, embedTotal: e.payload.total, failed: s.failed + e.payload.failed.length }))
-      writing = writing.then(() => saveEmbeddings(e.payload.results)).catch(() => undefined)
-    })
-    await listen<{ error: string | null; provider: string | null; seconds: number }>('ai-done', async (e) => {
-      await writing
-      set({ error: e.payload.error, lastRun: e.payload.error ? null : { seconds: e.payload.seconds, provider: e.payload.provider } })
-      await get().refresh()
-      resetSearchIndex() // de nouvelles empreintes : la recherche par contenu les relira
-      // De nouvelles images ont leur empreinte : on les classe (même si quelques images n'ont pas pu être analysées).
-      if (!e.payload.error && get().embedTotal > 0) void get().classify()
-    })
-    // Couleurs dominantes : calculées sur les miniatures, sans modèle ni téléchargement.
-    let colorWriting = Promise.resolve()
-    await listen<{ results: ColorResult[] }>('colors-batch', (e) => {
-      colorWriting = colorWriting.then(() => saveColors(e.payload.results)).catch(() => undefined)
-    })
-    await listen('colors-done', async () => {
-      await colorWriting
-      await get().refreshColors()
-      await useGrid.getState().loadColors()
-    })
-    // Texte lu dans les vidéos (recettes…) : par la lecture de texte de Windows, sans rien télécharger.
-    let ocrWriting = Promise.resolve()
-    await listen<{ results: OcrResult[] }>('ocr-batch', (e) => {
-      ocrWriting = ocrWriting.then(() => saveOcr(e.payload.results)).catch(() => undefined)
-    })
-    await listen<{ error: string | null }>('ocr-done', async (e) => {
-      await ocrWriting
-      if (e.payload.error) set({ error: e.payload.error })
-      await get().refreshOcr()
-      await useGrid.getState().load()
-    })
-    // Quand des miniatures viennent d'être finies, on calcule les empreintes et les couleurs manquantes.
-    await listen('thumbs-done', () => {
-      void get().embed()
-      void get().computeColors()
-      void get().computeOcr()
-    })
-    // `run` : lancer tout de suite les calculs en retard (désactivé quand la mise à jour automatique est coupée).
-    if (!run) return
+      const saved = Number(await getSetting('ai_threshold'))
+      set({ ready: true, threshold: saved >= 0.2 && saved <= 0.95 ? saved : DEFAULT_OPTIONS.threshold })
+    }
+    if (!listening) {
+      listening = true
+      await listenAll()
+    }
+    // `run` : lancer les calculs en retard, une fois par lancement de Form. Un premier appel sans calcul (l'écran des réglages ouvert
+    // avant) n'empêche plus le suivant de les lancer : c'est ce qui laissait des images sans analyse.
+    if (!run || startupDone) return
+    startupDone = true
     // Les modèles qui manquent se téléchargent tout seuls, une seule fois (celui d'images d'abord, puis celui de texte).
     const { status, text } = get()
     if (status && !status.model_ready && !status.downloading) void get().download()
     else if (status?.model_ready && text && !text.ready && !text.downloading) void get().downloadText()
-    void get().embed()
-    void get().computeColors()
-    void get().computeOcr()
+    get().catchUp()
 
     // Les images ajoutées à la main qui n'ont pas encore été rangées (par exemple ajoutées pendant que l'IA n'était pas prête).
     void placeAddedImages().then(async (placed) => {
@@ -176,6 +126,12 @@ export const useAi = create<AiState>((set, get) => ({
     // Le classement est refait au démarrage quand la règle a changé, ou quand des images n'ont encore aucun type.
     const version = await getSetting('classify_version')
     if (version !== CLASSIFY_VERSION || (await countUnclassified()) > 0) void get().classify()
+  },
+
+  catchUp() {
+    void get().embed()
+    void get().computeColors()
+    void get().computeOcr()
   },
 
   async refreshColors() {
@@ -266,6 +222,11 @@ export const useAi = create<AiState>((set, get) => ({
   async embed() {
     const { status } = get()
     if (!status?.model_ready) return
+    // Une analyse tourne déjà : les nouvelles images seront prises juste après elle.
+    if (status.embedding) {
+      embedAgain = true
+      return
+    }
     set({ error: null, failed: 0, embedDone: 0, embedTotal: 0 })
     try {
       const started = await startEmbeddings()
@@ -275,3 +236,78 @@ export const useAi = create<AiState>((set, get) => ({
     }
   },
 }))
+
+/** Les événements envoyés par la partie Rust (téléchargements, empreintes, couleurs, texte des vidéos). Branchés une seule fois. */
+async function listenAll() {
+  const set = useAi.setState
+  const get = useAi.getState
+
+  await listen<{ done: number; total: number }>('ai-download', (e) => set({ dlDone: e.payload.done, dlTotal: e.payload.total }))
+  await listen<{ ok: boolean; error: string | null }>('ai-download-done', async (e) => {
+    await get().refresh()
+    if (e.payload.ok) {
+      void get().embed() // le modèle est là : on calcule tout de suite les empreintes
+      // Puis le modèle de texte (Typo, Recette), s'il manque encore.
+      const t = get().text
+      if (t && !t.ready && !t.downloading) void get().downloadText()
+    }
+    else set({ error: e.payload.error })
+  })
+  await listen<{ done: number; total: number }>('ai-text-download', (e) => set({ textDone: e.payload.done }))
+  await listen<{ ok: boolean; error: string | null }>('ai-text-download-done', async (e) => {
+    await get().refresh()
+    if (e.payload.ok) void get().classify() // le modèle de texte est là : Typo et Recette sont cherchés dans toutes les images
+    else set({ error: e.payload.error })
+  })
+  await listen<string>('ai-provider', (e) => set({ provider: e.payload }))
+
+  let writing = Promise.resolve()
+  await listen<{ results: EmbedResult[]; failed: string[]; done: number; total: number }>('ai-batch', (e) => {
+    set((s) => ({ embedDone: e.payload.done, embedTotal: e.payload.total, failed: s.failed + e.payload.failed.length }))
+    writing = writing
+      .then(() => saveEmbeddings(e.payload.results))
+      .catch((err) => set({ error: `Les empreintes d'IA n'ont pas pu être enregistrées : ${String(err)}` }))
+  })
+  await listen<{ error: string | null; provider: string | null; seconds: number }>('ai-done', async (e) => {
+    await writing
+    const again = embedAgain
+    embedAgain = false
+    set((s) => ({
+      error: e.payload.error ?? s.error,
+      lastRun: e.payload.error ? null : { seconds: e.payload.seconds, provider: e.payload.provider },
+    }))
+    await get().refresh()
+    resetSearchIndex() // de nouvelles empreintes : la recherche par contenu les relira
+    const { pending, failed, embedTotal } = get()
+    // Des images sont arrivées pendant l'analyse : on les fait tout de suite (les images illisibles ne relancent rien).
+    if (!e.payload.error && shouldEmbedAgain({ requested: again, pending, failed })) {
+      void get().embed()
+      return
+    }
+    // De nouvelles images ont leur empreinte : on les classe (même si quelques images n'ont pas pu être analysées).
+    if (!e.payload.error && embedTotal > 0) void get().classify()
+  })
+  // Couleurs dominantes : calculées sur les miniatures, sans modèle ni téléchargement.
+  let colorWriting = Promise.resolve()
+  await listen<{ results: ColorResult[] }>('colors-batch', (e) => {
+    colorWriting = colorWriting.then(() => saveColors(e.payload.results)).catch(() => undefined)
+  })
+  await listen('colors-done', async () => {
+    await colorWriting
+    await get().refreshColors()
+    await useGrid.getState().loadColors()
+  })
+  // Texte lu dans les vidéos (recettes…) : par la lecture de texte de Windows, sans rien télécharger.
+  let ocrWriting = Promise.resolve()
+  await listen<{ results: OcrResult[] }>('ocr-batch', (e) => {
+    ocrWriting = ocrWriting.then(() => saveOcr(e.payload.results)).catch(() => undefined)
+  })
+  await listen<{ error: string | null }>('ocr-done', async (e) => {
+    await ocrWriting
+    if (e.payload.error) set({ error: e.payload.error })
+    await get().refreshOcr()
+    await useGrid.getState().load()
+  })
+  // Les nouvelles miniatures : c'est la bibliothèque qui appelle catchUp(), une fois les miniatures écrites en base
+  // (avant, l'analyse partait trop tôt, ne trouvait rien à faire, et ne repassait jamais).
+}

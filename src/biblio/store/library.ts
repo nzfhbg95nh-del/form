@@ -32,6 +32,14 @@ const EMPTY_STATS: LibraryStats = { blocks: 0, files: 0, collections: 0, missing
 
 let listening = false
 
+/** Prévient l'IA que de nouvelles miniatures sont en base (import tardif : l'IA importe déjà cette bibliothèque). */
+async function aiCatchUp() {
+  const { useAi } = await import('@/biblio/store/ai.ts')
+  const ai = useAi.getState()
+  if (!ai.ready) await ai.init(false).catch(() => undefined)
+  useAi.getState().catchUp()
+}
+
 export const useLibrary = create<LibraryState>((set, get) => ({
   ready: false,
   root: DEFAULT_ROOT,
@@ -68,6 +76,8 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       await listen('thumbs-done', async () => {
         await writing
         set({ phase: 'idle', label: '', stats: await getStats() })
+        // Les miniatures sont écrites en base : l'IA peut les analyser (empreintes, couleurs, texte des vidéos).
+        await aiCatchUp()
         // Windows ne sait pas lire les vidéos sans ffmpeg : la fenêtre de l'appli s'en charge ensuite.
         void get().videoThumbs()
       })
@@ -119,6 +129,7 @@ export const useLibrary = create<LibraryState>((set, get) => ({
       set({ error: String(e) })
     }
     set({ phase: 'idle', label: '', stats: await getStats().catch(() => get().stats) })
+    await aiCatchUp()
     // La grille relit les miniatures toutes neuves.
     const { useGrid } = await import('@/biblio/store/grid.ts')
     if (useGrid.getState().loaded) await useGrid.getState().load()

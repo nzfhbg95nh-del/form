@@ -1333,3 +1333,10 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - 14 958 (IA) contre 16 900 (dossier) : normal, l'IA compare les images ; les 1 841 vidéos et les fichiers introuvables ne comptent pas dans ce chiffre.
 - Tests : 816. Pas encore essayé dans l'app. Pas envoyé.
 - Recherche par image : elle ne voit que les images déjà analysées par l'IA. Message ajouté sous le résultat : « N images pas encore analysées par l'IA : elles ne peuvent pas encore apparaître ici ». Pas envoyé.
+
+## 2026-11-23 — L'IA n'analysait plus les nouvelles images ; moodboards
+- Constat : aucune image analysée par l'IA depuis le 4 novembre (223 fichiers du téléchargement Instagram du 22/11 sans empreinte). Conséquence : absentes de la recherche par image et du classement.
+- Le moteur d'IA lui-même marche (essai sur ces miniatures, carte graphique OK). Cause : à la fin des miniatures, l'analyse partait avant que les miniatures soient écrites en base, ne trouvait rien et ne repassait jamais ; et un premier branchement de l'IA sans calcul (écran des réglages ouvert) empêchait le rattrapage suivant.
+- Corrigé : la bibliothèque lance l'analyse une fois les miniatures (et celles des vidéos) écrites ; au démarrage, les images en attente sont toujours rattrapées ; une analyse demandée pendant une autre est refaite juste après ; une erreur d'enregistrement des empreintes s'affiche au lieu d'être tue. Test : `embedQueue.test.ts`.
+- Moodboards : la barre latérale ne se replie plus toute seule en ouvrant un moodboard (demande de Victor).
+- Reste : bêta à fabriquer sur demande (« Envoie ») ; vérifier ensuite que les 223 images sont analysées et retrouvées par la recherche par image.

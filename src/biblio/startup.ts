@@ -26,7 +26,11 @@ export async function startLibraryBackground() {
   const downloadDue = shouldAutoUpdate(await downloadFrequency(), await getSetting(DOWNLOAD_LAST_DAY_KEY), now)
   // Une seule fois : les dossiers de « images ajoutées » (IA, Ceramique…) sont lus même si la mise à jour du jour est déjà faite.
   const foldersDue = (await getSetting(FOLDERS_SCAN_KEY)) !== '1'
-  if (!updateDue && !downloadDue && !foldersDue) return
+  // Rien de nouveau à lire : l'IA rattrape quand même les images restées sans analyse (rien ne se passe s'il n'y en a pas).
+  if (!updateDue && !downloadDue && !foldersDue) {
+    await useAi.getState().init(true)
+    return
+  }
 
   let downloaded = false
   if (downloadDue) {
