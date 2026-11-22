@@ -205,6 +205,11 @@ export function diffFiles(scanned: ScannedFile[], known: { rel: string; missing:
   }
 }
 
+/** Retire des nouveaux fichiers les images de carrousel que Victor a mises à la corbeille ou supprimées définitivement : elles ne reviennent pas toutes seules. */
+export function dropRemovedFiles(added: ScannedFile[], removed: ReadonlySet<string>): ScannedFile[] {
+  return removed.size === 0 ? added : added.filter((f) => !removed.has(f.rel))
+}
+
 /** Retire les blocs que Victor a supprimés définitivement (même si Form remet un jour leurs fichiers). */
 export function dropForgotten(blocks: BlockDraft[], forgotten: ReadonlySet<string>): BlockDraft[] {
   return forgotten.size === 0 ? blocks : blocks.filter((b) => !forgotten.has(b.id))

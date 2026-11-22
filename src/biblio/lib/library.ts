@@ -4,8 +4,8 @@
 import { invoke } from '@tauri-apps/api/core'
 import { linkAjoutsToBoards } from './collections.ts'
 import { getDb, inChunks, multiInsert } from './db.ts'
-import { loadForgotten } from './trash.ts'
-import { buildBlocks, diffFiles, type ScannedFile, dropForgotten } from './scan.ts'
+import { loadForgotten, loadRemovedRels } from './trash.ts'
+import { buildBlocks, diffFiles, type ScannedFile, dropForgotten, dropRemovedFiles } from './scan.ts'
 
 /** Aucun dossier tant que Victor n'a pas choisi sa « Bibliotheque » (Réglages > Bibliothèque). */
 export const DEFAULT_ROOT = ''
@@ -47,7 +47,9 @@ export async function syncLibrary(root: string, onProgress?: (label: string, don
   const scanned = await invoke<ScannedFile[]>('scan_folder', { root })
   const d = await getDb()
   const known = await d.select<{ rel: string; missing: number }[]>('SELECT path_rel AS rel, missing FROM lib_files')
-  const diff = diffFiles(scanned, known)
+  const raw = diffFiles(scanned, known)
+  // Une image de carrousel mise à la corbeille (ou supprimée définitivement) n'est pas un nouveau fichier.
+  const diff = { ...raw, added: dropRemovedFiles(raw.added, await loadRemovedRels()) }
 
   if (diff.added.length > 0) {
     const now = new Date().toISOString()

@@ -22,6 +22,7 @@ import { useMapRequest } from '@/biblio/store/map.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 import { useTrash } from '@/biblio/store/trash.ts'
+import { carouselTrashPlan } from '@/biblio/lib/trashPlan.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
 const SOURCE_LABEL = { instagram: 'Instagram', pinterest: 'Pinterest', manual: 'Ajoutée à la main' } as const
@@ -50,12 +51,15 @@ function LightboxContent() {
     if (!openId) return
     let cancelled = false
     void loadBlockFiles(openId).then((f) => {
-      if (!cancelled) setFiles(f)
+      if (cancelled) return
+      setFiles(f)
+      setPos((p) => Math.min(p, Math.max(0, f.length - 1)))
     })
     return () => {
       cancelled = true
     }
-  }, [openId])
+    // Relu aussi quand la bibliothèque change (ex. « Annuler » remet une image du carrousel).
+  }, [openId, blocks])
 
   useEffect(() => {
     if (!openId) return
@@ -178,6 +182,25 @@ function LightboxContent() {
           </button>
         )}
 
+        {files.length > 1 && file && (
+          <button
+            className="btn mt-2 w-full"
+            style={{ color: '#d44c47' }}
+            title="Seule l'image affichée part à la corbeille ; les autres images du carrousel restent."
+            onClick={() => {
+              const plan = carouselTrashPlan(files.map((f) => f.rel), [file.rel])
+              if (plan.whole || plan.rels.length === 0) return
+              void useTrash.getState().trashCarouselFiles(plan.rels).then(async () => {
+                const rest = await loadBlockFiles(block.id)
+                setFiles(rest)
+                setPos((p) => Math.min(p, Math.max(0, rest.length - 1)))
+              })
+            }}
+          >
+            Mettre cette image à la corbeille ({pos + 1} sur {files.length})
+          </button>
+        )}
+
         <button
           className="btn mt-2 w-full"
           style={{ color: '#d44c47' }}
@@ -186,7 +209,7 @@ function LightboxContent() {
             void useTrash.getState().trash([block.id]).then(() => open(next && next.id !== block.id ? next.id : null))
           }}
         >
-          Mettre à la corbeille
+          {files.length > 1 ? 'Mettre tout le carrousel à la corbeille' : 'Mettre à la corbeille'}
         </button>
 
         <BlockMeta blockId={block.id} />

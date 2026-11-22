@@ -133,6 +133,12 @@ pub fn run() {
         description: "biblio_recipes",
         sql: include_str!("../migrations/021_biblio_recipes.sql"),
         kind: MigrationKind::Up,
+    },
+    Migration {
+        version: 22,
+        description: "biblio_trash_files",
+        sql: include_str!("../migrations/022_biblio_trash_files.sql"),
+        kind: MigrationKind::Up,
     }];
 
     tauri::Builder::default()
