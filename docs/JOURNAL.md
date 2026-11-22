@@ -1308,3 +1308,7 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Les sous-tableaux de mes tableaux Pinterest (sections) avaient disparu avec les collections « man:pin » supprimées. Ils sont remis comme sous-tableaux des tableaux Pinterest (opération sur la base, depuis la sauvegarde du 11/11).
 - Supprimer un tableau Pinterest supprime aussi ses sous-tableaux (sinon ils restaient orphelins et invisibles).
 - Pas envoyé sur GitHub (demande de Victor : seulement sur demande).
+
+## 2026-11-22 — Reprendre la connexion Instagram / Pinterest de l'autre Form
+- Instagram renvoie Victor sur la page de départ quand il se connecte dans la fenêtre de Form. Nouveau bouton « Reprendre la connexion de l'autre Form » (Réglages > Bibliothèque > Téléchargement) : Form reprend les cookies de l'autre version (Form Travail ou la vraie Form), sans repasser par le site. Message clair si la connexion de l'autre version a expiré.
+- Rust : `login_import`, `parse_netscape` (+ 2 tests). Compilé et testé ; pas essayé dans l'appli. Pas envoyé sur GitHub.

@@ -21,6 +21,8 @@ export const SITE_NAMES: Record<Site, string> = { instagram: 'Instagram', pinter
 export const loginOpen = (site: Site) => invoke<void>('login_open', { siteKey: site })
 export const loginClose = (site: Site) => invoke<void>('login_close', { siteKey: site })
 export const loginCheck = (site: Site) => invoke<LoginStatus>('login_check', { siteKey: site })
+/** Reprend la connexion de l'autre version de Form (Form Travail ou la vraie Form) ; rend le nombre de cookies repris. */
+export const loginImport = (site: Site) => invoke<number>('login_import', { siteKey: site })
 
 /** Ce qu'on dit à Victor de l'état de la connexion. */
 export function loginLabel(status: LoginStatus | null, now = new Date()): string {

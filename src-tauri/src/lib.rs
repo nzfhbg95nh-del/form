@@ -185,6 +185,7 @@ pub fn run() {
             biblio::login::login_open,
             biblio::login::login_close,
             biblio::login::login_check,
+            biblio::login::login_import,
             biblio::thumbs::start_thumbs,
             biblio::thumbs::thumbs_dir,
             biblio::layout::library_set_root,

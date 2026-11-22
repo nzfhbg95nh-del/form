@@ -5,7 +5,7 @@ import { Download, Square } from 'lucide-react'
 import { buildJobs, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
-import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
+import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginImport, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
 
@@ -59,6 +59,26 @@ function LoginRow({ site, disabled, onFile }: { site: Site; disabled: boolean; o
         {status?.connected ? `Me reconnecter à ${name}` : `Me connecter à ${name}`}
       </button>
       <span className="text-sm" style={{ color: status?.connected ? '#2b8a3e' : 'var(--fg-muted)' }}>{loginLabel(status)}</span>
+      {!status?.connected && (
+        <button
+          className="btn"
+          title="Si tu es déjà connecté dans l'autre version de Form (Form Travail ou la vraie Form), Form reprend cette connexion sans repasser par le site."
+          onClick={() => {
+            setError(null)
+            void loginImport(site)
+              .then(() => loginCheck(site))
+              .then((st) => {
+                setStatus(st)
+                if (st.connected && st.cookiesFile) onFileRef.current(st.cookiesFile)
+                else setError('La connexion reprise n\'est pas acceptée.')
+              })
+              .catch((e) => setError(String(e)))
+          }}
+          disabled={disabled}
+        >
+          Reprendre la connexion de l'autre Form
+        </button>
+      )}
       {error && <span className="text-xs" style={{ color: '#d44c47' }}>{error}</span>}
     </div>
   )

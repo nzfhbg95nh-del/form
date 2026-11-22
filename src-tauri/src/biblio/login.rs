@@ -9,6 +9,8 @@ use tauri::{AppHandle, Manager, Url, WebviewUrl, WebviewWindowBuilder};
 
 struct Site {
     key: &'static str,
+    /// Le domaine des cookies du site (sans le point du début).
+    domain: &'static str,
     home: &'static str,
     login: &'static str,
     /// Le cookie dont la présence prouve qu'on est connecté.
@@ -19,6 +21,7 @@ struct Site {
 const SITES: [Site; 2] = [
     Site {
         key: "instagram",
+        domain: "instagram.com",
         home: "https://www.instagram.com/",
         login: "https://www.instagram.com/accounts/login/",
         session_cookie: "sessionid",
@@ -26,6 +29,7 @@ const SITES: [Site; 2] = [
     },
     Site {
         key: "pinterest",
+        domain: "pinterest.com",
         home: "https://www.pinterest.com/",
         login: "https://www.pinterest.com/login/",
         session_cookie: "_pinterest_sess",
@@ -74,6 +78,34 @@ pub fn netscape(cookies: &[Biscuit], now: i64) -> String {
         ));
     }
     out
+}
+
+/// Lit un fichier cookies.txt (format Netscape) : l'inverse de `netscape`. Les lignes illisibles sont ignorées.
+pub fn parse_netscape(text: &str) -> Vec<Biscuit> {
+    text.lines()
+        .filter_map(|line| {
+            let (http_only, line) = match line.strip_prefix("#HttpOnly_") {
+                Some(rest) => (true, rest),
+                None => (false, line),
+            };
+            if line.trim().is_empty() || line.starts_with('#') {
+                return None;
+            }
+            let f: Vec<&str> = line.split('\t').collect();
+            if f.len() < 7 {
+                return None;
+            }
+            Some(Biscuit {
+                domain: f[0].to_string(),
+                path: f[2].to_string(),
+                secure: f[3].eq_ignore_ascii_case("TRUE"),
+                http_only,
+                expires: f[4].trim().parse().unwrap_or(0),
+                name: f[5].to_string(),
+                value: f[6..].join("\t"),
+            })
+        })
+        .collect()
 }
 
 #[derive(Serialize)]
@@ -142,6 +174,52 @@ pub async fn login_close(app: AppHandle, site_key: String) -> Result<(), String>
     Ok(())
 }
 
+/// Le fichier cookies.txt que l'autre version de Form (Form Travail ou la vraie Form) a préparé pour ce site, s'il existe.
+fn sibling_cookies_file(app: &AppHandle, s: &Site) -> Result<PathBuf, String> {
+    let own = app.path().app_config_dir().map_err(|e| e.to_string())?;
+    let root = own.parent().ok_or("Dossier des réglages introuvable")?;
+    let own_name = own.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
+    ["fr.victor.form.travail", "fr.victor.form"]
+        .iter()
+        .filter(|n| **n != own_name)
+        .map(|n| root.join(n).join("cookies").join(format!("{}.txt", s.key)))
+        .find(|p| p.is_file())
+        .ok_or_else(|| "Aucune connexion à reprendre : l'autre version de Form n'a pas de connexion enregistrée pour ce site.".to_string())
+}
+
+/// Reprend la connexion (les cookies) préparée par l'autre version de Form, sans repasser par le site. Rend le nombre de cookies repris.
+#[tauri::command]
+pub async fn login_import(app: AppHandle, site_key: String) -> Result<usize, String> {
+    let s = site(&site_key)?;
+    let file = sibling_cookies_file(&app, s)?;
+    let text = fs::read_to_string(&file).map_err(|e| format!("Fichier de connexion illisible : {e}"))?;
+    let now = now();
+    let list: Vec<Biscuit> = parse_netscape(&text)
+        .into_iter()
+        .filter(|c| c.domain.trim_start_matches('.').ends_with(s.domain) && (c.expires == 0 || c.expires > now))
+        .collect();
+    if !list.iter().any(|c| c.name == s.session_cookie) {
+        return Err("La connexion de l'autre version a expiré : reconnecte-toi là-bas ou ici.".to_string());
+    }
+    let win = app.get_webview_window(&label(s)).or_else(|| app.get_webview_window("main")).ok_or("Aucune fenêtre disponible")?;
+    let mut done = 0;
+    for c in &list {
+        let mut b = tauri::webview::cookie::Cookie::build((c.name.clone(), c.value.clone()))
+            .domain(c.domain.clone())
+            .path(if c.path.is_empty() { "/".to_string() } else { c.path.clone() })
+            .secure(c.secure)
+            .http_only(c.http_only);
+        if c.expires > 0 {
+            if let Ok(t) = tauri::webview::cookie::time::OffsetDateTime::from_unix_timestamp(c.expires) {
+                b = b.expires(t);
+            }
+        }
+        win.set_cookie(b.build()).map_err(|e| e.to_string())?;
+        done += 1;
+    }
+    Ok(done)
+}
+
 /// Dit si Victor est connecté au site et, si oui, remet à jour le fichier cookies.txt.
 #[tauri::command]
 pub async fn login_check(app: AppHandle, site_key: String) -> Result<LoginStatus, String> {
@@ -168,6 +246,22 @@ mod tests {
 
     fn cookie(name: &str, http_only: bool, expires: i64) -> Biscuit {
         Biscuit { domain: ".instagram.com".into(), path: "/".into(), secure: true, http_only, expires, name: name.into(), value: "v".into() }
+    }
+
+    #[test]
+    fn reading_back_what_we_wrote_gives_the_same_cookies() {
+        let cookies = vec![cookie("sessionid", true, 2_000_000_000), cookie("csrftoken", false, 1_900_000_000)];
+        let back = parse_netscape(&netscape(&cookies, 1_000));
+        assert_eq!(back, cookies);
+    }
+
+    #[test]
+    fn comments_and_broken_lines_are_ignored() {
+        let text = "# Netscape HTTP Cookie File\n\nnot a cookie line\n.instagram.com\tTRUE\t/\tTRUE\t2000000000\tmid\tabc\n";
+        let back = parse_netscape(text);
+        assert_eq!(back.len(), 1);
+        assert_eq!(back[0].name, "mid");
+        assert!(!back[0].http_only);
     }
 
     #[test]
