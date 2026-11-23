@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
+import { MealPrepView } from '@/components/MealPrepView'
+import { IDEA_SLOTS } from '@/lib/mealPrep'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
@@ -106,7 +108,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const [picker, setPicker] = useState<{ day: number; meal: Meal; x: number; y: number } | null>(null)
   const [over, setOver] = useState<string | null>(null)
   // Onglet affiché : le planning ou la liste de courses de la semaine.
-  const [tab, setTab] = useState<'plan' | 'courses'>('plan')
+  const [tab, setTab] = useState<'plan' | 'courses' | 'prep'>('plan')
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
   // Lecture une fois ; les repas dont la recette a été supprimée sont retirés.
@@ -162,6 +164,12 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
     if (stats.meals > 0 && !(await askConfirm('Remplacer les repas de cette semaine par ceux de la semaine précédente ?'))) return
     setPlan((p) => copyWeek(p, prev, week, newId))
   }
+  // Une idée de meal prep : ses trois recettes réparties sur la semaine (deux repas chacune du lundi au mercredi, puis jeudi et vendredi).
+  const applyIdea = async (ids: string[], people: number) => {
+    if (stats.meals > 0 && !(await askConfirm('Remplacer les repas de cette semaine par ce meal prep ?'))) return
+    setPlan((p) => IDEA_SLOTS.reduce((acc, slot) => addEntry(acc, week, slot.day, slot.meal, ids[slot.recipe], people, newId()), clearWeek(p, week)))
+    setTab('prep')
+  }
   const clear = async () => {
     if (stats.meals === 0 || !(await askConfirm('Retirer tous les repas de cette semaine ? Les recettes ne sont pas supprimées.'))) return
     setPlan((p) => clearWeek(p, week))
@@ -214,7 +222,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--fg-muted)]">
         {/* Les deux onglets de la semaine, dans le même style que ceux des réglages. */}
         <div role="tablist" className="flex rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-          {([['plan', 'Planning'], ['courses', 'Liste de courses']] as const).map(([id, label]) => (
+          {([['plan', 'Planning'], ['courses', 'Liste de courses'], ['prep', 'Meal prep']] as const).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={'rounded-md px-3 py-1 text-sm ' + (tab === id ? 'bg-[var(--bg)] font-medium text-[var(--fg)] shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
           ))}
         </div>
@@ -227,6 +235,8 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
 
       {tab === 'courses' ? (
         <div className="min-h-0 flex-1 overflow-y-auto"><ShoppingList plan={plan} week={week} byId={byId} /></div>
+      ) : tab === 'prep' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto"><MealPrepView plan={plan} week={week} byId={byId} rows={rows} onUseIdea={(ids, people) => void applyIdea(ids, people)} /></div>
       ) : (
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Les recettes, à glisser dans les cases. */}
