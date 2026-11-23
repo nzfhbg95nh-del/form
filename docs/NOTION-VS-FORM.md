@@ -105,6 +105,21 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 | Commentaires | ❌ (utilisateur seul : P3) | P3 |
 | Modèles : bouton « modèle » qui recopie des blocs | ✅ | |
 
+**Ajouts tirés du document ChatGPT de Victor (23/11) — état dans Form à vérifier :**
+
+| Fonction Notion | Form | Prio |
+|---|---|---|
+| Image : lien cliquable sur l'image, texte alternatif, télécharger, voir l'original | ❓ | P3 |
+| Bloc code : choix du langage, bouton Copier, retour à la ligne automatique, légende | ❓ | P2 |
+| Colonnes : glisser la séparation pour changer les largeurs ; une colonne vidée disparaît toute seule | ❓ | P2 |
+| Tableau simple : ligne / colonne d'en-tête, ajuster à la largeur, « Transformer en base de données » | ❓ | P3 |
+| Bloc « Lien vers une page » (sans déplacer la page) | ❓ | P2 |
+| Icône de page : émoji, icône, image importée, **aléatoire** ; couverture : **repositionner** le cadrage | ❓ | P2 |
+| Menu ••• de page : verrouiller la page, copier le lien (Ctrl+L), exporter, mode présentation | ❓ | P2 |
+| Boutons : actions « insérer des blocs », « ajouter une page dans une base », « ouvrir une page / URL », « confirmation » | ⚠️ seulement insérer des blocs | P3 |
+| Base : éditeur de disposition des pages (propriétés épinglées, panneau latéral) ; propriétés Lieu, Bouton, ID | ❌ | P3 |
+| Collage d'une adresse : « coller en mention » en plus de lien / aperçu / intégration | ❌ | P3 |
+
 ## 7. Barre latérale et navigation
 
 | Fonction Notion | Form | Prio |
