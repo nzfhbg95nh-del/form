@@ -296,3 +296,6 @@ button.group:hover > svg:first-child { animation: form-wiggle 0.5s ease-in-out; 
   --bn-colors-highlights-pink-background: #533b4c !important;
   --bn-colors-highlights-red-background: #594141 !important;
 }
+
+/* Glisser maison d'un bloc (lib/pointerDrag.ts) : main fermée partout, pas de sélection de texte pendant le geste. */
+html.form-block-dragging, html.form-block-dragging * { cursor: grabbing !important; user-select: none !important; }

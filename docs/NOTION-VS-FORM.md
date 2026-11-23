@@ -14,13 +14,13 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 |---|---|---|
 | Prendre un bloc par ⋮⋮ et le lâcher entre deux blocs | ✅ | |
 | Lâcher à gauche / à droite d'un bloc pour faire des colonnes | ✅ | |
-| **Pendant qu'on tient un bloc, la molette fait monter / descendre la page** | ❌ Form utilise le glisser natif du navigateur : sous Windows, la molette est bloquée tant qu'on tient la souris. Il faut un glisser « maison » (comme Notion). | **P1** |
-| **La page défile toute seule quand on approche le haut ou le bas de l'écran en tenant un bloc** (vitesse selon la distance au bord) | ⚠️ seulement le défilement de base du navigateur, lent et irrégulier | **P1** |
+| **Pendant qu'on tient un bloc, la molette fait monter / descendre la page** | ✅ (23/11 : glisser maison, à confirmer dans la bêta) | |
+| **La page défile toute seule quand on approche le haut ou le bas de l'écran en tenant un bloc** (vitesse selon la distance au bord) | ✅ (23/11) | |
 | Fine ligne bleue qui montre exactement où le bloc va tomber, y compris dans un bloc imbriqué (décalé) | ⚠️ ligne présente, pas de dépôt « à l'intérieur » d'un bloc pour l'imbriquer | **P1** |
-| Image « fantôme » du bloc qui suit la souris | ⚠️ aperçu natif du navigateur, semi-transparent | P2 |
-| Sélectionner plusieurs blocs (cadre de sélection ou Maj+clic), puis les **glisser tous ensemble** | ❓ la sélection existe ; le glisser de groupe semble ne déplacer qu'un bloc | **P1** |
-| Alt + glisser = dupliquer au lieu de déplacer | ❌ | P2 |
-| Glisser un bloc vers une page de la barre latérale pour l'y envoyer | ❌ | P2 |
+| Image « fantôme » du bloc qui suit la souris | ✅ (23/11) | |
+| Sélectionner plusieurs blocs (cadre de sélection ou Maj+clic), puis les **glisser tous ensemble** | ✅ ajouté le 23/11 — ❓ à confirmer par Victor | **P1** |
+| Alt + glisser = dupliquer au lieu de déplacer | ✅ | |
+| Glisser un bloc vers une page de la barre latérale pour l'y envoyer | ✅ | |
 | Glisser une image directement (sans ⋮⋮) | ✅ | |
 
 ## 2. Clavier : Entrée, Tab, Retour arrière
@@ -149,7 +149,7 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 Partage et permissions, travail à plusieurs, Notion AI / agents, Notion Sites, Notion Calendar, application mobile, abonnements.
 
 ## Ordre conseillé
-1. **Glisser maison des blocs** : molette pendant le glisser, défilement auto au bord, dépôt à l'intérieur d'un bloc, glisser de plusieurs blocs, Alt+glisser.
+1. ~~Glisser maison des blocs~~ (fait le 23/11 : molette, défilement auto, aperçu, plusieurs blocs, Échap annule). Reste : dépôt « à l'intérieur » d'un bloc pour l'imbriquer, et le même défilement pendant le cadre de sélection.
 2. **Entrée / Retour arrière / Tab** au comportement exact de Notion (vérifier chaque ❓ au vrai clavier, puis corriger).
 3. **Ctrl+/** et **[[ / +** pour lier et créer des pages.
 4. Le reste des P2, par petits lots.

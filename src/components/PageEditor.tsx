@@ -14,6 +14,7 @@ import { SideMenuExtension } from '@blocknote/core/extensions'
 import { fr } from '@blocknote/core/locales'
 import { afterRemoval, flatten, imageGrid, imagesOfGridBlock, neighbour, rangeIds, withoutIds, type BlockLike } from '@/lib/blockSelection'
 import { useBlockSel } from '@/store/blockSel'
+import { installPointerDrag, isBlockDragSource } from '@/lib/pointerDrag'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
 import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
 import { appendBlockToContent, blockLink, strippedCopy } from '@/lib/blocks'
@@ -953,6 +954,15 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     const sel = useBlockSel.getState()
     const before = sel.pageId === selKey ? sel.anchor : null
     const t = e.target as HTMLElement
+    // Prendre la poignée ⋮⋮ d'un des blocs sélectionnés : on glissera tous les blocs sélectionnés ensemble (comme dans Notion).
+    if (editable && e.button === 0 && before && sel.focus && isBlockDragSource(t)?.closest('.bn-side-menu')) {
+      try {
+        const ed = editor as unknown as BlockNoteEditor<never, never, never>
+        const ids = rangeIds(flatten(ed.document as unknown as BlockLike[]), before, sel.focus)
+        const hovered = (editor.getExtension(SideMenuExtension) as unknown as { store?: { state?: { block?: { id: string } } } } | undefined)?.store?.state?.block?.id
+        if (ids.length > 1 && hovered && ids.includes(hovered)) ed.setSelection(ids[0] as never, ids[ids.length - 1] as never)
+      } catch { /* sélection impossible : un seul bloc sera glissé */ }
+    }
     // Maj+clic quand des blocs sont déjà sélectionnés : la sélection s'étend jusqu'au bloc cliqué (comme dans Notion).
     if (editable && e.button === 0 && e.shiftKey && before && !t.closest('button, input, textarea, [role="menu"], [role="dialog"], .fixed')) {
       const target = t.closest<HTMLElement>('.bn-block-outer')?.dataset.id
@@ -1045,6 +1055,8 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     if (action === 'delete') ed.removeBlocks([id] as never)
     else ed.insertBlocks([strippedCopy(block as never)] as never, id as never, 'after')
   }
+  // Glisser maison des blocs (molette et défilement au bord pendant le glisser) : voir lib/pointerDrag.ts.
+  useEffect(() => (editable && !plain ? installPointerDrag() : undefined), [editable, plain])
   // Le bloc qu'on est en train de glisser : une image, ou n'importe quel bloc tiré par sa poignée ⋮⋮.
   const draggedBlockId = (e: React.DragEvent) => {
     const imageId = imageOf(e.target)?.closest<HTMLElement>('.bn-block-outer')?.dataset.id

@@ -1341,3 +1341,5 @@ Moodboard (toile maison), assistant Gemini (recette / lignes de facture / tâche
 - Moodboards : la barre latérale ne se replie plus toute seule en ouvrant un moodboard (demande de Victor).
 - Reste : bêta à fabriquer sur demande (« Envoie ») ; vérifier ensuite que les 223 images sont analysées et retrouvées par la recherche par image.
 - Démarrage : Form s'ouvre sur l'Accueil seul ; la dernière page consultée n'est plus rouverte (demande de Victor).
+- Glisser des blocs « maison » (`src/lib/pointerDrag.ts`) : la poignée ⋮⋮ et les images ne passent plus par le glisser du navigateur. Pendant le glisser : la molette fait défiler la page, la page défile toute seule près du haut / bas (plus vite tout contre le bord, `dragScroll.ts` + tests), un aperçu du bloc suit la souris, Échap annule ; prendre la poignée d'un bloc sélectionné emporte toute la sélection. Le dépôt reste celui de BlockNote (entre deux blocs, colonnes, barre latérale, Alt = copie). Vérifié dans le navigateur intégré par un geste simulé ; à confirmer à la souris dans la bêta.
+- Liste des écarts avec Notion : `docs/NOTION-VS-FORM.md`.
