@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
+import { ShoppingList } from '@/components/ShoppingList'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
@@ -104,6 +105,8 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const [query, setQuery] = useState('')
   const [picker, setPicker] = useState<{ day: number; meal: Meal; x: number; y: number } | null>(null)
   const [over, setOver] = useState<string | null>(null)
+  // Onglet affiché : le planning ou la liste de courses de la semaine.
+  const [tab, setTab] = useState<'plan' | 'courses'>('plan')
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
   // Lecture une fois ; les repas dont la recette a été supprimée sont retirés.
@@ -209,6 +212,12 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
         <button className="btn !px-2" aria-label="Semaine suivante" onClick={() => setWeek((w) => shiftWeek(w, 1))}><ChevronRight size={16} /></button>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--fg-muted)]">
+        {/* Les deux onglets de la semaine, dans le même style que ceux des réglages. */}
+        <div role="tablist" className="flex rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
+          {([['plan', 'Planning'], ['courses', 'Liste de courses']] as const).map(([id, label]) => (
+            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={'rounded-md px-3 py-1 text-sm ' + (tab === id ? 'bg-[var(--bg)] font-medium text-[var(--fg)] shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
+          ))}
+        </div>
         <span className="mr-auto">
           {stats.meals === 0 ? 'Aucun repas prévu : glisse une recette dans une case, ou clique sur « + ».' : `${stats.meals} repas · ${stats.recipes} recette${stats.recipes > 1 ? 's' : ''} · ${stats.servings} portions`}
         </span>
@@ -216,6 +225,9 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
         <button className="btn !text-sm" onClick={() => void clear()} disabled={stats.meals === 0}><Trash2 size={14} /> Vider</button>
       </div>
 
+      {tab === 'courses' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto"><ShoppingList plan={plan} week={week} byId={byId} /></div>
+      ) : (
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Les recettes, à glisser dans les cases. */}
         <aside className="flex w-48 shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--border)]" aria-label="Recettes à planifier">
@@ -283,6 +295,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
           </div>
         </div>
       </div>
+      )}
 
       {picker && (
         <RecipePicker
