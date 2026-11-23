@@ -1,3 +1,4 @@
+import { RecipeNutritionPanel } from '@/components/RecipeNutritionPanel'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
 import { Database, Images, LayoutTemplate, ListChecks, Pin, Star, Trash2 } from 'lucide-react'
@@ -209,9 +210,11 @@ export function PageView({ pageId }: { pageId?: string }) {
   }
   const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current
+    // Le clic n'a pas commencé dans une zone vide de la page (un champ, un bouton, un panneau) : rien à faire ici.
+    if (!d) return
     drag.current = null
     try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* déjà relâché */ }
-    if (!d?.moved) {
+    if (!d.moved) {
       focusEndOfPage(e.clientY)
       return
     }
@@ -382,6 +385,7 @@ export function PageView({ pageId }: { pageId?: string }) {
         <div className="-mx-[var(--page-pad)]">
           <PageEditor key={page.id} editable={!ui.locked} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
+        {isRecipe && <RecipeNutritionPanel page={page} />}
         <Backlinks pageId={page.id} />
         <PageOutline content={page.content} />
       </div>

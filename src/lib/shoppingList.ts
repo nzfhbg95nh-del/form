@@ -13,7 +13,7 @@ interface BlockLike {
 }
 
 const LIST_TYPES = new Set(['checkListItem', 'bulletListItem', 'numberedListItem'])
-export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+export const fold = (s: string) => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/œ/g, 'oe').replace(/æ/g, 'ae').trim()
 
 const textOf = (content: unknown): string => {
   if (typeof content === 'string') return content
