@@ -1,3 +1,4 @@
+import type React from 'react'
 import { Icon } from '@/components/Icon'
 import { coverStyle } from '@/components/PagePickers'
 import { displayUrl } from '@/biblio/lib/libraryUrl.ts'
@@ -8,6 +9,13 @@ import { RECIPE } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
+
+/** Le style de la vignette d'une recette : sa couverture, sinon la première image de sa page (rien s'il n'y en a pas). */
+export function recipePhotoStyle(row: ObjectRow): React.CSSProperties | undefined {
+  if (row.cover) return coverStyle(row.cover)
+  const photo = displayUrl(firstImageUrl(row.content, `${row.id}:${row.updated_at}`))
+  return photo ? { backgroundImage: `url("${photo}")`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined
+}
 
 // La carte d'une recette vit dans son propre fichier : l'accueil l'affiche sans charger toute la page des recettes (et son éditeur).
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */

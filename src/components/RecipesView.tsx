@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
 import { SegmentedBar } from '@/components/SettingsUi'
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
+import { WeekPlanner } from '@/components/WeekPlanner'
 import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
@@ -254,6 +255,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
+  // Le planning des repas de la semaine (bouton « Semaine »).
+  const [planning, setPlanning] = useState(false)
   const newCategoryInput = useRef<HTMLInputElement>(null)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
@@ -330,6 +333,8 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     setCurrent(null)
   }
 
+  if (planning) return <WeekPlanner rows={rows} onBack={() => setPlanning(false)} />
+
   // ── Dans une catégorie (ou dans « Sans catégorie ») : la galerie ──
   if (current !== null && entry) {
     const list = sorted(listOf(entry))
@@ -381,6 +386,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     <div className="px-6 py-8">
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
+        <button className="btn" onClick={() => setPlanning(true)} title="Planifier les repas de la semaine"><CalendarDays size={16} /> Semaine</button>
         <button className="btn btn-primary" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
