@@ -16,7 +16,9 @@ import { afterRemoval, flatten, imageGrid, imagesOfGridBlock, neighbour, rangeId
 import { useBlockSel } from '@/store/blockSel'
 import { installPointerDrag, isBlockDragSource } from '@/lib/pointerDrag'
 import { SELECTION_FILL, blockBox } from '@/lib/selectionBox'
-import { colorProp, loadRecentColor, nextColor } from '@/lib/blockKinds'
+import { BACKGROUND_FILL, colorProp, KINDS, loadRecentColor, nextColor, saveRecentColor, TEXT_INK } from '@/lib/blockKinds'
+import { blockActions, colorActions, DELETE, DUPLICATE, MOVE, type BlockAction } from '@/lib/blockActions'
+import { BlockActionsPalette } from '@/components/BlockActionsPalette'
 import { appendBlockToContent, blockLink, strippedCopy } from '@/lib/blocks'
 import { copyText } from '@/lib/windowActions'
 import { BlockNoteView } from '@blocknote/mantine'
@@ -35,7 +37,7 @@ import {
   withMultiColumn,
 } from '@blocknote/xl-multi-column'
 import '@blocknote/mantine/style.css'
-import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, Trash2, ChevronsRight, MousePointerClick, Plus } from 'lucide-react'
+import { CircleDot, Code, Columns2, Columns3, Columns4, Database, FileText, Heading1, Heading2, Heading3, Heading4, Image as ImageIcon, Images, List, ChefHat, ListChecks, ListCollapse, ListOrdered, ListTree, Users, Minus, Paperclip, Quote as QuoteIcon, Table as TableIcon, Type, Video, Volume2, type LucideIcon, Globe, Link2, CalendarDays, Sigma, PictureInPicture2, Maximize2, MoreHorizontal, Copy, CornerUpRight, Trash2, ChevronsRight, MousePointerClick, Plus } from 'lucide-react'
 import { BlockMenu } from '@/components/BlockMenu'
 import { Icon } from '@/components/Icon'
 import { IconPicker } from '@/components/PagePickers'
@@ -599,7 +601,59 @@ function buildSlashItems(editor: Ed, pageId: string | null): SlashItem[] {
     { key: 'yesterday', title: 'Hier', aliases: ['date', 'hier', 'yesterday'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateText(new Date(), -1) + ' '] as never) },
     { key: 'now', title: 'Maintenant', aliases: ['date', 'heure', 'maintenant', 'now'], group: 'Dates', icon: ico(CalendarDays), onItemClick: () => editor.insertInlineContent([dateTimeText(new Date()) + ' '] as never) },
   ]
-  return items.map((it) => ({ ...it, subtext: it.subtext ?? SLASH_DESCRIPTIONS[it.key] }))
+  return [...items.map((it) => ({ ...it, subtext: it.subtext ?? SLASH_DESCRIPTIONS[it.key] })), ...slashBlockActions(editor, pageId)]
+}
+
+/** Groupes du menu « / » qui agissent sur le bloc (et ne sont montrés qu'après quelques lettres, comme dans Notion). */
+const SLASH_ACTION_GROUPS = new Set(['Couleur du bloc', 'Actions sur le bloc'])
+
+/** /rouge, /fond bleu, /dupliquer, /supprimer, /déplacer : agissent sur le bloc où l'on tape (comme dans Notion). */
+function slashBlockActions(editor: Ed, pageId: string | null): SlashItem[] {
+  const ed = editor as unknown as BlockNoteEditor<never, never, never>
+  const current = () => {
+    try { return ed.getTextCursorPosition().block as unknown as { id: string; props?: Record<string, unknown> } } catch { return null }
+  }
+  const swatch = (a: BlockAction) => {
+    const r = a.run
+    if (r.kind !== 'color') return null
+    return r.colorKind === 'text'
+      ? <span className="flex h-[18px] w-[18px] items-center justify-center rounded border text-xs font-semibold" style={{ color: TEXT_INK[r.color], borderColor: 'var(--border)' }}>A</span>
+      : <span className="h-[18px] w-[18px] rounded border" style={{ background: BACKGROUND_FILL[r.color], borderColor: 'var(--border)' }} />
+  }
+  const colors: SlashItem[] = colorActions().map((a) => ({
+    key: `act-${a.key}`, title: a.label, aliases: a.aliases, group: 'Couleur du bloc', icon: swatch(a),
+    onItemClick: () => {
+      const r = a.run
+      const b = current()
+      if (r.kind !== 'color' || !b?.props) return
+      const prop = colorProp(r.colorKind)
+      if (prop in b.props) ed.updateBlock(b.id as never, { props: { [prop]: r.color } } as never)
+      saveRecentColor({ kind: r.colorKind, color: r.color })
+    },
+  }))
+  const ico = (I: LucideIcon) => <I size={18} strokeWidth={1.75} />
+  const actions: SlashItem[] = [
+    { key: 'act-duplicate', title: DUPLICATE.label, aliases: DUPLICATE.aliases, group: 'Actions sur le bloc', icon: ico(Copy), onItemClick: () => {
+      const b = current()
+      if (b) ed.insertBlocks([strippedCopy(ed.getBlock(b.id as never) as never)] as never, b.id as never, 'after')
+    } },
+    { key: 'act-move', title: MOVE.label, aliases: MOVE.aliases, group: 'Actions sur le bloc', icon: ico(CornerUpRight), onItemClick: () => {
+      const b = current()
+      const source = b ? ed.getBlock(b.id as never) : null
+      if (!b || !source) return
+      useBlockMove.getState().ask(pageId, async (targetId) => {
+        const target = useApp.getState().objects.find((o) => o.id === targetId)
+        if (!target) return
+        await useApp.getState().update(targetId, { content: appendBlockToContent(target.content, source as never) })
+        ed.removeBlocks([b.id] as never)
+      })
+    } },
+    { key: 'act-delete', title: DELETE.label, aliases: DELETE.aliases, group: 'Actions sur le bloc', icon: ico(Trash2), onItemClick: () => {
+      const b = current()
+      if (b) ed.removeBlocks([b.id] as never)
+    } },
+  ]
+  return [...colors, ...actions]
 }
 
 /** Pages proposées après « @ » (recherche sans accents, 10 résultats). */
@@ -683,6 +737,65 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
     }
   }, [selAnchor, selFocus, editor])
 
+  // ───────── Ctrl+/ : le menu des actions de bloc (voir lib/blockActions.ts) ─────────
+  const [palette, setPalette] = useState<{ ids: string[]; x: number; y: number } | null>(null)
+  const openPalette = (ids: string[]) => {
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    const blocks = ids.map((id) => ed.getBlock(id as never) as unknown as { id: string; content?: unknown; props?: Record<string, unknown> } | undefined).filter((b): b is NonNullable<typeof b> => !!b)
+    if (blocks.length === 0) return
+    const el = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${blocks[blocks.length - 1].id}"]`)
+    const first = document.querySelector<HTMLElement>(`.bn-block-outer[data-id="${blocks[0].id}"]`)
+    const r = el?.getBoundingClientRect()
+    const r0 = first?.getBoundingClientRect()
+    setPalette({ ids: blocks.map((b) => b.id), x: (r0?.left ?? 200) + 24, y: (r?.bottom ?? 200) + 4 })
+  }
+  const paletteBlocks = () => {
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    return (palette?.ids ?? []).map((id) => ed.getBlock(id as never) as unknown as { id: string; type: string; content?: unknown; props?: Record<string, unknown> } | undefined).filter((b): b is NonNullable<typeof b> => !!b)
+  }
+  const runBlockAction = (a: BlockAction, ids: string[]) => {
+    const ed = editor as unknown as BlockNoteEditor<never, never, never>
+    const blocks = ids.map((id) => ed.getBlock(id as never) as unknown as { id: string; type: string; content?: unknown; props?: Record<string, unknown> } | undefined).filter((b): b is NonNullable<typeof b> => !!b)
+    if (blocks.length === 0) return
+    // Un bloc dont le parent est aussi choisi suit son parent (dupliquer, déplacer, supprimer) : on ne traite que les plus hauts.
+    const top = blocks.filter((b) => {
+      const parent = ed.getParentBlock(b.id as never) as { id: string } | undefined
+      return !parent || !ids.includes(parent.id)
+    })
+    const say = (message: string) => {
+      useApp.setState({ toast: message })
+      window.setTimeout(() => useApp.setState({ toast: null }), 2500)
+    }
+    const r = a.run
+    if (r.kind === 'turn') {
+      const kind = KINDS.find((k) => k.id === r.id)
+      if (kind) for (const b of blocks) if (Array.isArray(b.content)) ed.updateBlock(b.id as never, { type: kind.type, props: kind.props ?? {} } as never)
+    } else if (r.kind === 'color') {
+      const prop = colorProp(r.colorKind)
+      for (const b of blocks) if (b.props && prop in b.props) ed.updateBlock(b.id as never, { props: { [prop]: r.color } } as never)
+      saveRecentColor({ kind: r.colorKind, color: r.color })
+    } else if (r.kind === 'duplicate') {
+      ed.insertBlocks(top.map((b) => strippedCopy(ed.getBlock(b.id as never) as never)) as never, top[top.length - 1].id as never, 'after')
+    } else if (r.kind === 'delete') {
+      useBlockSel.getState().clear()
+      ed.removeBlocks(top.map((b) => b.id) as never)
+    } else if (r.kind === 'link') {
+      if (pageId) void copyText(blockLink(pageId, blocks[0].id)).then(() => say('Lien du bloc copié.'))
+    } else if (r.kind === 'move') {
+      const sources = top.map((b) => ed.getBlock(b.id as never)).filter(Boolean)
+      useBlockMove.getState().ask(pageId ?? null, async (targetId) => {
+        const target = useApp.getState().objects.find((o) => o.id === targetId)
+        if (!target) return
+        let content = target.content
+        for (const s of sources) content = appendBlockToContent(content, s as never)
+        await useApp.getState().update(targetId, { content })
+        useBlockSel.getState().clear()
+        ed.removeBlocks(sources.map((s) => (s as unknown as { id: string }).id) as never)
+        say(`${sources.length > 1 ? `${sources.length} blocs déplacés` : 'Bloc déplacé'} vers « ${target.title || 'Nouvelle page'} ».`)
+      })
+    }
+  }
+
   /** Range les images sélectionnées en grille (façon Pinterest), à la place de la première. */
   const arrangeGrid = async () => {
     const ed = editor as unknown as BlockNoteEditor<never, never, never>
@@ -737,6 +850,33 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         if ((w.getAttribute('data-show-children') === 'false') === anyClosed) w.querySelector<HTMLElement>('.bn-toggle-button')?.click()
       }
       return true
+    }
+    // Ctrl+/ (comme dans Notion) : menu des actions du bloc du curseur, ou des blocs sélectionnés (transformer, couleur, dupliquer, déplacer, supprimer).
+    if (ctrl && !e.altKey && (e.key === '/' || e.code === 'NumpadDivide' || e.code === 'Slash')) {
+      stop()
+      let ids: string[] = []
+      if (sel.pageId === selKey && sel.anchor && sel.focus) ids = rangeIds(flatten(ed.document as unknown as BlockLike[]), sel.anchor, sel.focus)
+      else {
+        try { ids = [(ed.getTextCursorPosition().block as { id: string }).id] } catch { /* pas de curseur */ }
+      }
+      if (ids.length > 0) openPalette(ids)
+      return true
+    }
+    // Ctrl+Maj+9 (comme dans Notion) : la ligne devient une sous-page qui porte son texte comme titre.
+    if (ctrl && e.shiftKey && !e.altKey && e.code === 'Digit9' && pageId) {
+      try {
+        const block = ed.getTextCursorPosition().block as unknown as { id: string; content?: unknown }
+        if (Array.isArray(block.content)) {
+          stop()
+          const title = (document.querySelector(`.bn-block-outer[data-id="${block.id}"] .bn-inline-content`)?.textContent ?? '').trim()
+          void useApp.getState().createEmbeddedChild(pageId, 'page').then(async (id) => {
+            if (!id || !ed.getBlock(block.id as never)) return
+            if (title) await useApp.getState().update(id, { title })
+            ed.replaceBlocks([block.id] as never, [{ type: 'subpage', props: { pageId: id } }] as never)
+          })
+          return true
+        }
+      } catch { /* pas de curseur dans l'éditeur */ }
     }
     // Ctrl+Maj+0 à 8 (comme dans Notion) : le bloc du curseur devient texte, titre 1 à 3, tâche, puce, numéroté, déroulant, code. (e.code : marche aussi au clavier AZERTY.)
     if (ctrl && e.shiftKey && !e.altKey && /^Digit[0-8]$/.test(e.code)) {
@@ -888,6 +1028,16 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       if (target) {
         try { ed.setTextCursorPosition(target as never, 'end') } catch { /* le bloc n'existe plus */ }
       }
+      return true
+    }
+    // Tab / Maj+Tab sur des blocs sélectionnés : ils sont tous décalés (ou ressortis) d'un cran, et restent sélectionnés.
+    if (e.key === 'Tab' && !ctrl && !e.altKey) {
+      stop()
+      try {
+        ed.setSelection(ids[0] as never, ids[ids.length - 1] as never)
+        if (e.shiftKey) { if (ed.canUnnestBlock()) ed.unnestBlock() }
+        else if (ed.canNestBlock()) ed.nestBlock()
+      } catch (err) { console.warn('[blocs] décalage impossible', err) }
       return true
     }
     if (!ctrl && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g' && selImages >= 2) {
@@ -1179,7 +1329,7 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
       <SuggestionMenuController
         triggerCharacter="/"
         suggestionMenuComponent={SlashMenu as never}
-        getItems={async (query) => filterSuggestionItems(buildSlashItems(editor as never, pageId ?? null) as never, query) as never}
+        getItems={async (query) => filterSuggestionItems(buildSlashItems(editor as never, pageId ?? null).filter((it) => query.trim().length >= 2 || !SLASH_ACTION_GROUPS.has(it.group)) as never, query) as never}
       />
       <SuggestionMenuController
         triggerCharacter="@"
@@ -1187,6 +1337,34 @@ export function PageEditor({ pageId, initial, onChange, editorRef, editable = tr
         getItems={async (query) => mentionItems(editor as never, pageId ?? null, query) as never}
       />
     </BlockNoteView>
+    {palette && (() => {
+      const blocks = paletteBlocks()
+      if (blocks.length === 0) return null
+      const actions = blockActions({
+        withText: blocks.some((b) => Array.isArray(b.content)),
+        textColor: blocks.some((b) => !!b.props && 'textColor' in b.props),
+        backgroundColor: blocks.some((b) => !!b.props && 'backgroundColor' in b.props),
+        single: blocks.length === 1,
+      })
+      return (
+        <BlockActionsPalette
+          actions={actions}
+          x={palette.x}
+          y={palette.y}
+          title={blocks.length > 1 ? `${blocks.length} blocs` : 'Bloc'}
+          onClose={() => setPalette(null)}
+          onPick={(a) => {
+            const ids = palette.ids
+            setPalette(null)
+            runBlockAction(a, ids)
+            // Le curseur revient dans le texte du (premier) bloc, sauf s'il vient d'être supprimé ou déplacé.
+            if (a.run.kind !== 'delete' && a.run.kind !== 'move') {
+              window.setTimeout(() => { try { editor.focus() } catch { /* éditeur fermé */ } }, 0)
+            }
+          }}
+        />
+      )
+    })()}
     {pasted && (
       <PasteLinkMenu
         url={pasted.url}

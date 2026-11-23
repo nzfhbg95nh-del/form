@@ -33,7 +33,7 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 | Entrée dans le titre de la page : descend dans le contenu | ✅ | |
 | Maj+Entrée : retour à la ligne dans le même bloc | ✅ (éditeur) | |
 | Tab / Maj+Tab : imbriquer sous le bloc du dessus / ressortir | ✅ | |
-| Tab sur plusieurs blocs sélectionnés : tous décalés d'un coup | ❓ | P1 |
+| Tab sur plusieurs blocs sélectionnés : tous décalés d'un coup | ✅ (23/11) | |
 | Retour arrière au début d'une puce / case / titre : redevient texte (sans fusionner) ; 2ᵉ appui : fusionne avec le bloc du dessus | ❓ | **P1** |
 | Retour arrière au début d'un bloc imbriqué : remonte d'un niveau d'abord | ❓ | P1 |
 | Flèches haut/bas : passent d'un bloc à l'autre en gardant la colonne du curseur | ❓ | P2 |
@@ -75,10 +75,10 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 | Raccourci Notion | Form | Prio |
 |---|---|---|
 | Ctrl+Maj+0 à 8 : texte, titres, case, puce, numérotée, déroulant, code | ✅ | |
-| Ctrl+Maj+9 : transformer la ligne en page | ❌ | P2 |
-| **Ctrl+/ : menu « Transformer en / Couleur / Déplacer… » avec recherche, sur le bloc ou la sélection** | ❌ | **P1** |
+| Ctrl+Maj+9 : transformer la ligne en page | ✅ (23/11) | |
+| **Ctrl+/ : menu « Transformer en / Couleur / Déplacer… » avec recherche, sur le bloc ou la sélection** | ✅ (23/11) | |
 | Ctrl+Entrée : cocher, déplier, ouvrir | ✅ | |
-| Ctrl+Alt+T : déplier / replier tous les déroulants | ❌ | P2 |
+| Ctrl+Alt+T : déplier / replier tous les déroulants | ✅ | |
 | Ctrl+Maj+H : dernière couleur utilisée | ✅ | |
 | Ctrl+K : lien sur le texte sélectionné (Form : Ctrl+K = recherche) | ⚠️ à arbitrer | P2 |
 | Ctrl+P : recherche · Ctrl+F : chercher dans la page | ✅ | |
@@ -87,15 +87,15 @@ Priorité : **P1** = gestes de tous les jours (à faire d'abord) · **P2** = uti
 | Ctrl+T / Ctrl+Maj+T : nouvel onglet / rouvrir le dernier fermé | ❓ | P2 |
 | Ctrl+N : nouvelle page · Ctrl+Maj+L : thème clair/sombre | ❓ | P3 |
 | Barre « / » : toutes les commandes (texte, page, puces, image, code, fichier, intégration, table des matières, bouton, fil d'Ariane, équation…) | ✅ | |
-| `/turn`, `/color`, `/rouge` tapés en fin de bloc | ❌ | P2 |
-| `/duplicate`, `/moveto`, `/delete` | ❌ | P3 |
+| `/rouge`, `/fond bleu` tapés dans un bloc | ✅ (23/11, à essayer au clavier) | |
+| `/dupliquer`, `/déplacer`, `/supprimer` (et en anglais) | ✅ (23/11, à essayer au clavier) | |
 
 ## 6. Blocs et mise en page
 
 | Fonction Notion | Form | Prio |
 |---|---|---|
 | Texte, titres 1-3, listes, cases, déroulants, citation, séparateur, encadré, code, équation, tableau simple, colonnes, table des matières, fil d'Ariane, bouton | ✅ | |
-| Titres déroulants (titre qui se replie) | ❌ | P2 |
+| Titres déroulants (titre qui se replie) | ✅ (Transformer en) | |
 | Tableau simple : fusionner des cellules, Ctrl+R / Ctrl+D pour remplir | ❌ | P3 |
 | Blocs synchronisés (même contenu sur plusieurs pages) | ❌ | P3 |
 | Image : recadrer, aligner, légende, plein écran, remplacer | ⚠️ partiel | P2 |
