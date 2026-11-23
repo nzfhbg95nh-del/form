@@ -3,6 +3,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
+import { NutritionView } from '@/components/NutritionView'
 import { IDEA_SLOTS } from '@/lib/mealPrep'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
@@ -108,7 +109,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const [picker, setPicker] = useState<{ day: number; meal: Meal; x: number; y: number } | null>(null)
   const [over, setOver] = useState<string | null>(null)
   // Onglet affiché : le planning ou la liste de courses de la semaine.
-  const [tab, setTab] = useState<'plan' | 'courses' | 'prep'>('plan')
+  const [tab, setTab] = useState<'plan' | 'courses' | 'prep' | 'nutrition'>('plan')
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
   // Lecture une fois ; les repas dont la recette a été supprimée sont retirés.
@@ -222,7 +223,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--fg-muted)]">
         {/* Les deux onglets de la semaine, dans le même style que ceux des réglages. */}
         <div role="tablist" className="flex rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-          {([['plan', 'Planning'], ['courses', 'Liste de courses'], ['prep', 'Meal prep']] as const).map(([id, label]) => (
+          {([['plan', 'Planning'], ['courses', 'Liste de courses'], ['prep', 'Meal prep'], ['nutrition', 'Nutrition']] as const).map(([id, label]) => (
             <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={'rounded-md px-3 py-1 text-sm ' + (tab === id ? 'bg-[var(--bg)] font-medium text-[var(--fg)] shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
           ))}
         </div>
@@ -235,6 +236,8 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
 
       {tab === 'courses' ? (
         <div className="min-h-0 flex-1 overflow-y-auto"><ShoppingList plan={plan} week={week} byId={byId} /></div>
+      ) : tab === 'nutrition' ? (
+        <div className="min-h-0 flex-1 overflow-y-auto"><NutritionView plan={plan} week={week} byId={byId} rows={rows} /></div>
       ) : tab === 'prep' ? (
         <div className="min-h-0 flex-1 overflow-y-auto"><MealPrepView plan={plan} week={week} byId={byId} rows={rows} onUseIdea={(ids, people) => void applyIdea(ids, people)} /></div>
       ) : (

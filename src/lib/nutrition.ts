@@ -50,6 +50,20 @@ export function loadFoods(data: CiqualData): Food[] {
  * Testées dans l'ordre ; la première qui correspond gagne. « cuit » / « boîte » choisissent la version cuite ou en conserve.
  */
 export const ALIASES: [RegExp, string][] = [
+  [/^cafe decafeine|^deca\b/, 'Café décaféiné, non instantané, non sucré, prêt à boire'],
+  [/^cafe/, 'Café, non instantané, non sucré, prêt à boire'],
+  [/^the vert/, 'Thé vert, infusé, non sucré'],
+  [/^the\b|^tisane|^infusion/, 'Thé infusé, non sucré'],
+  [/^croissant/, 'Croissant, sans précision'],
+  [/^pain au chocolat/, 'Pain au chocolat feuilleté, artisanal'],
+  [/^kiwi/, 'Kiwi, pulpe et graines, cru'],
+  [/^orange\b/, 'Orange, pulpe, crue'],
+  [/^clementine|^mandarine/, 'Clémentine ou Mandarine, pulpe, crue'],
+  [/^pomme\b(?! de terre)/, 'Pomme, pulpe et peau, crue'],
+  [/^biscuit/, 'Biscuit sec, sans précision'],
+  [/^muesli|^granola/, 'Muesli (aliment moyen)'],
+  [/^lait d avoine|^boisson (a l|d)? ?avoine/, "Boisson à base d'avoine, nature, préemballée"],
+  [/^lait de soja|^boisson (au|de) soja/, 'Boisson au soja, nature, enrichie en calcium, préemballée'],
   [/basilic/, 'Basilic, frais'],
   [/aneth/, 'Aneth, frais'],
   [/ciboulette|ciboule/, 'Ciboule ou Ciboulette, fraîche'],
@@ -284,6 +298,8 @@ const TABLE: EquivalenceTable = parseEquivalences(DEFAULT_EQUIVALENCES)
 
 /** Poids d'une pièce que la table d'équivalences laisse telle quelle (« garder »), et des unités comptées. */
 const PIECES: [RegExp, number][] = [
+  [/^cafe|^the\b|^tisane|^infusion/, 150], [/^yaourt|^skyr/, 125], [/^biscuit/, 10], [/^carre/, 5], [/^croissant/, 60], [/^pain au chocolat/, 70],
+  [/^kiwi/, 75], [/^orange/, 150], [/^clementine|^mandarine/, 70], [/^banane/, 120], [/^pomme\b(?! de terre)/, 150], [/^bol/, 250],
   [/^(oeuf|œuf)/, 50], [/^gousse|^ail$/, 5], [/^citron vert/, 60], [/^citron/, 100], [/^lime/, 60],
   [/^pincee/, 0.5], [/^feuille/, 0.3], [/^branche|^brin/, 2], [/^bouquet|^botte/, 40], [/^tranche/, 30], [/^poignee|^petite poignee/, 25],
   [/^cm/, 5], [/^pouce/, 15], [/^baton/, 2], [/^cube/, 10], [/^filet/, 5], [/^trait/, 3], [/^noix$/, 10], [/^sachet/, 10],
