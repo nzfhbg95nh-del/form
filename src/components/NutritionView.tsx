@@ -182,7 +182,7 @@ export function NutritionView({ plan, week, byId, rows }: { plan: MealPlan; week
       ) : (
         <>
           <p className="mb-3 text-sm text-[var(--fg-muted)]">
-            Moyenne par jour sur {report.days} jour{report.days > 1 ? 's' : ''} planifié{report.days > 1 ? 's' : ''} ({report.meals} repas, une portion par repas), comparée à la part du midi et du soir dans une journée (environ {Math.round(MAIN_MEALS_SHARE * 100)} % des repères).
+            Une journée type d’après tes {report.meals} repas prévus (une portion par repas, midi + soir), comparée à la part du midi et du soir dans une journée (environ {Math.round(MAIN_MEALS_SHARE * 100)} % des repères).
           </p>
           <div className="mb-6 grid gap-x-6 rounded-xl border border-[var(--border)] p-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))' }}>
             {report.status.map((s) => <Gauge key={s.ref.key} nutrient={s.ref} value={s.average} target={s.target} />)}
