@@ -25,6 +25,7 @@ export function ForageBanner({ rows }: { rows: ObjectRow[] }) {
 
   return (
     <section className="mb-6" aria-label="Cueillette">
+      {alerts.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Rien à cueillir pour tes recettes en ce moment, ni dans le mois qui vient.</p>}
       {alerts.map((a) => (
         <div key={a.plant.id} className="mb-2 rounded-xl border p-3" style={{ borderColor: a.status === 'now' ? '#44836180' : 'var(--border)', background: a.status === 'now' ? 'rgba(68,131,97,0.08)' : undefined }}>
           <div className="flex flex-wrap items-baseline gap-2">

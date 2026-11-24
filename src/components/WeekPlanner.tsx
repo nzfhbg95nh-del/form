@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
@@ -9,13 +9,12 @@ import { MyMealPreps } from '@/components/MyMealPreps'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
-import { newId, parseValues } from '@/lib/database'
+import { newId } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import {
   addEntry, clearWeek, copyWeek, DAY_NAMES, dropMissingRecipes, emptyPlan, entriesAt, MEAL_PLAN_SETTING, MEALS, moveEntry, parsePlan, removeEntry, serializePlan, setServings, shiftWeek,
   weekDays, weekKey, weekLabel, weekStats, type Meal, type MealPlan, type PlanEntry,
 } from '@/lib/mealPlan'
-import { RECIPE } from '@/lib/recipes'
 import { parseContent } from '@/lib/content'
 import { monthName, recipeSeason, seasonScore, type SeasonInfo } from '@/lib/seasons'
 import { shoppingLines } from '@/lib/shoppingList'
@@ -26,11 +25,10 @@ import { useApp } from '@/store/app'
 const RECIPE_MIME = 'application/x-form-recipe'
 const ENTRY_MIME = 'application/x-form-plan-entry'
 
-/** Le nombre de personnes prévu par la recette (4 si elle n'en dit rien). */
-const defaultServings = (row: ObjectRow | undefined) => {
-  const n = Number(parseValues(row?.properties ?? '{}')[RECIPE.servings])
-  return Number.isFinite(n) && n > 0 ? Math.round(n) : 4
-}
+/** Victor cuisine pour lui seul : un repas ajouté compte 1 personne (réglable repas par repas). */
+const DEFAULT_PEOPLE = 1
+
+export type PlannerTab = 'plan' | 'courses' | 'prep' | 'nutrition'
 
 function Thumb({ row, size = 28 }: { row: ObjectRow | undefined; size?: number }) {
   const style = row ? recipePhotoStyle(row) : undefined
@@ -102,7 +100,7 @@ function RecipePicker({ rows, x, y, onPick, onClose }: { rows: ObjectRow[]; x: n
  * Le planning des repas de la semaine : 7 jours × midi / soir. On y glisse les recettes de la colonne de gauche (ou « + » dans une case),
  * on règle le nombre de personnes de chaque repas, on déplace un repas d'une case à l'autre en le glissant.
  */
-export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () => void }) {
+export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: PlannerTab; onTab: (t: PlannerTab) => void }) {
   const repo = useApp((s) => s.repo)
   const select = useApp((s) => s.select)
   useLibrary((s) => s.root + s.ready) // les photos rangées dans la bibliothèque s'affichent une fois son dossier connu
@@ -113,7 +111,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const [picker, setPicker] = useState<{ day: number; meal: Meal; x: number; y: number } | null>(null)
   const [over, setOver] = useState<string | null>(null)
   // Onglet affiché : le planning ou la liste de courses de la semaine.
-  const [tab, setTab] = useState<'plan' | 'courses' | 'prep' | 'nutrition'>('plan')
+  const setTab = onTab
   const [prepPart, setPrepPart] = useState<'week' | 'mine'>('week')
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
@@ -161,7 +159,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
     return [...rows].filter((r) => normalize(displayTitle(r.title)).includes(nq)).sort((a, b) => (seasonFirst ? score(b) - score(a) : 0) || byName(a, b))
   }, [rows, query, seasonById, seasonFirst])
 
-  const add = (day: number, meal: Meal, recipeId: string) => setPlan((p) => addEntry(p, week, day, meal, recipeId, defaultServings(byId.get(recipeId)), newId()))
+  const add = (day: number, meal: Meal, recipeId: string) => setPlan((p) => addEntry(p, week, day, meal, recipeId, DEFAULT_PEOPLE, newId()))
 
   const onDrop = (e: React.DragEvent, day: number, meal: Meal, beforeId: string | null = null) => {
     e.preventDefault()
@@ -227,8 +225,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col px-6 py-6">
-      <button className="btn mb-4 flex w-fit items-center gap-1 !px-2 !py-1 !text-sm" onClick={onBack}><ArrowLeft size={14} /> Recettes</button>
+    <div className="flex min-h-0 flex-1 flex-col px-6 pb-6 pt-4">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <h1 className="mr-auto py-1 text-3xl font-bold leading-[1.3]">{weekLabel(week)}</h1>
         <button className="btn !px-2" aria-label="Semaine précédente" onClick={() => setWeek((w) => shiftWeek(w, -1))}><ChevronLeft size={16} /></button>
@@ -236,12 +233,6 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
         <button className="btn !px-2" aria-label="Semaine suivante" onClick={() => setWeek((w) => shiftWeek(w, 1))}><ChevronRight size={16} /></button>
       </div>
       <div className="mb-4 flex flex-wrap items-center gap-2 text-sm text-[var(--fg-muted)]">
-        {/* Les deux onglets de la semaine, dans le même style que ceux des réglages. */}
-        <div role="tablist" className="flex rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-          {([['plan', 'Planning'], ['courses', 'Liste de courses'], ['prep', 'Meal prep'], ['nutrition', 'Nutrition']] as const).map(([id, label]) => (
-            <button key={id} role="tab" aria-selected={tab === id} onClick={() => setTab(id)} className={'rounded-md px-3 py-1 text-sm ' + (tab === id ? 'bg-[var(--bg)] font-medium text-[var(--fg)] shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
-          ))}
-        </div>
         <span className="mr-auto">
           {stats.meals === 0 ? 'Aucun repas prévu : glisse une recette dans une case, ou clique sur « + ».' : `${stats.meals} repas · ${stats.recipes} recette${stats.recipes > 1 ? 's' : ''} · ${stats.servings} portions`}
         </span>

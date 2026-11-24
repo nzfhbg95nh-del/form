@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { SearchInput } from '@/components/SearchInput'
 import { SegmentedBar } from '@/components/SettingsUi'
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
-import { WeekPlanner } from '@/components/WeekPlanner'
-import { ForageBanner } from '@/components/ForageBanner'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
+import { WeekPlanner, type PlannerTab } from '@/components/WeekPlanner'
+import { KitchenHome } from '@/components/KitchenHome'
 import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
@@ -241,6 +241,23 @@ function CategoryChooser({ categories, cover, onCover, onPick, onCreate, onClose
  * La page « Recettes » : d'abord la liste des catégories (avec leur emoji), puis, dans une catégorie, la galerie de ses recettes
  * (photo + titre). Un clic sur une carte ouvre la recette. « Sans catégorie » se règle comme les autres lignes.
  */
+type Section = 'accueil' | 'recettes' | PlannerTab
+// L'onglet ouvert reste le même quand on revient d'une recette (le temps que l'app est ouverte).
+let lastSection: Section = 'accueil'
+const SECTIONS: [Section, string][] = [['accueil', 'Accueil'], ['recettes', 'Recettes'], ['plan', 'Planning'], ['courses', 'Courses'], ['prep', 'Meal prep'], ['nutrition', 'Nutrition']]
+
+/** Les onglets de la cuisine, toujours en haut de la page Recettes. */
+function KitchenTabs({ section, onChange }: { section: Section; onChange: (s: Section) => void }) {
+  return (
+    <div role="tablist" aria-label="Cuisine" className="mb-6 flex flex-wrap gap-1 border-b border-[var(--border)]">
+      {SECTIONS.map(([id, label]) => (
+        <button key={id} role="tab" aria-selected={section === id} onClick={() => onChange(id)}
+          className={'-mb-px border-b-2 px-3 py-1.5 text-sm ' + (section === id ? 'border-[var(--fg)] font-medium text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
+      ))}
+    </div>
+  )
+}
+
 export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const { objects, saveSchema, addRecipe, setCell, trash, repo } = useApp()
   const [current, setCurrent] = useState<string | null>(null)
@@ -256,8 +273,9 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
   const [managing, setManaging] = useState(false)
-  // Le planning des repas de la semaine (bouton « Semaine »).
-  const [planning, setPlanning] = useState(false)
+  const [section, setSectionState] = useState<Section>(lastSection)
+  const setSection = (s: Section) => { lastSection = s; setSectionState(s); setCurrent(null) }
+  const tabs = <KitchenTabs section={section} onChange={setSection} />
   const newCategoryInput = useRef<HTMLInputElement>(null)
 
   // Anciennes propriétés (durées, note, étiquettes) retirées, « Source » remise : mise à jour à l'ouverture.
@@ -334,13 +352,20 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     setCurrent(null)
   }
 
-  if (planning) return <WeekPlanner rows={rows} onBack={() => setPlanning(false)} />
+  if (section === 'accueil') return <div className="px-6 py-8">{tabs}<KitchenHome rows={rows} /></div>
+  if (section !== 'recettes') return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="px-6 pt-8">{tabs}</div>
+      <WeekPlanner rows={rows} tab={section} onTab={setSection} />
+    </div>
+  )
 
   // ── Dans une catégorie (ou dans « Sans catégorie ») : la galerie ──
   if (current !== null && entry) {
     const list = sorted(listOf(entry))
     return (
       <div className="px-6 py-8">
+        {tabs}
         <button className={button + ' mb-4 flex items-center gap-1'} onClick={() => setCurrent(null)}><ArrowLeft size={14} /> Recettes</button>
         <div className="mb-6 flex items-center gap-3">
           <IconPicker
@@ -385,14 +410,13 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   // ── Accueil des recettes : la liste des catégories ──
   return (
     <div className="px-6 py-8">
+      {tabs}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
-        <button className="btn" onClick={() => setPlanning(true)} title="Planifier les repas de la semaine"><CalendarDays size={16} /> Semaine</button>
         <button className="btn btn-primary" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
       </div>
 
       <QuickNotes db={db} />
-      <ForageBanner rows={rows} />
 
       {managing && (
         <div className="fixed inset-0 z-[45] flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={() => setManaging(false)}>
