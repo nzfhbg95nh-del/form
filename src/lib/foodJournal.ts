@@ -25,6 +25,8 @@ export interface JournalRecipe {
   title: string
   /** Nutriments d'une portion. */
   perServing: Totals
+  /** Lignes d'ingrédients (facultatif : pour la saison). */
+  lines?: string[]
 }
 
 export interface JournalLine {

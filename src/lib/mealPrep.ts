@@ -4,6 +4,7 @@
 
 import { aisleOf, buildShoppingList, fold, ingredientKey, parseLine, type ShoppingSource } from './shoppingList'
 import { DAY_NAMES, type Meal } from './mealPlan'
+import { monthName, recipeSeason, seasonScore } from './seasons'
 
 // ───────────────────────── Lire une recette ─────────────────────────
 
@@ -329,8 +330,17 @@ const mainProtein = (lines: string[]) => {
   return PROTEINS.find(([re]) => re.test(f))?.[1] ?? null
 }
 
-/** Des idées de trois recettes à cuisiner ensemble : qui se gardent bien, partagent des ingrédients, et varient les protéines. */
-export function suggestIdeas(candidates: CandidateRecipe[], count = 3): PrepIdea[] {
+/**
+ * Des idées de trois recettes à cuisiner ensemble pour le mois `month` (1 à 12) : de saison, qui se gardent bien, partagent des ingrédients
+ * et varient les protéines. Une recette qui demande deux produits frais hors saison ou plus n'est pas proposée.
+ */
+/** Deux variantes du même plat (« Dahl de lentilles » et « Dahl de lentilles aux œufs ») : même premier mot du titre et même protéine. */
+export function twins(a: { title: string; lines: string[] }, b: { title: string; lines: string[] }): boolean {
+  const head = (t: string) => fold(t).split(/[\s(,]+/).find((w) => w.length > 2) ?? ''
+  return head(a.title) !== '' && head(a.title) === head(b.title) && mainProtein(a.lines) === mainProtein(b.lines)
+}
+
+export function suggestIdeas(candidates: CandidateRecipe[], count = 3, month = new Date().getMonth() + 1): PrepIdea[] {
   // Le nom à afficher pour chaque ingrédient (« crème », pas la clé « creme ») : le premier tel qu'écrit, sans précisions, au singulier.
   const niceName = new Map<string, string>()
   for (const c of candidates) {
@@ -342,8 +352,9 @@ export function suggestIdeas(candidates: CandidateRecipe[], count = 3): PrepIdea
   const pool = candidates
     .filter((c) => c.lines.length >= 3 && (c.type === null || c.type === 'plats' || c.type === 'midi'))
     .filter((c) => !MEAT.test(fold(c.lines.join(' '))))
-    .map((c) => ({ c, s: prepScore(c), keys: new Set(c.lines.map((l) => parseLine(l)).filter((p) => p.key && !BASIC.has(p.key) && aisleOf(p.name) !== 'Épices et condiments').map((p) => p.key)), protein: mainProtein(c.lines) }))
-    .filter((x) => x.s >= 1)
+    .map((c) => ({ c, season: recipeSeason(c.lines, month), s: prepScore(c), keys: new Set(c.lines.map((l) => parseLine(l)).filter((p) => p.key && !BASIC.has(p.key) && aisleOf(p.name) !== 'Épices et condiments').map((p) => p.key)), protein: mainProtein(c.lines) }))
+    .filter((x) => x.s >= 1 && x.season.outOfSeason.length < 2)
+    .map((x) => ({ ...x, s: x.s + seasonScore(x.season) }))
     .sort((a, b) => b.s - a.s || b.keys.size - a.keys.size)
     .slice(0, 24)
   const triples: PrepIdea[] = []
@@ -351,6 +362,7 @@ export function suggestIdeas(candidates: CandidateRecipe[], count = 3): PrepIdea
     for (let j = i + 1; j < pool.length; j++) {
       for (let k = j + 1; k < pool.length; k++) {
         const g = [pool[i], pool[j], pool[k]]
+        if (twins(g[0].c, g[1].c) || twins(g[0].c, g[2].c) || twins(g[1].c, g[2].c)) continue
         const counts = new Map<string, number>()
         for (const x of g) x.keys.forEach((key) => counts.set(key, (counts.get(key) ?? 0) + 1))
         const shared = [...counts].filter(([, n]) => n >= 2).map(([key]) => niceName.get(key) ?? key)
@@ -359,6 +371,10 @@ export function suggestIdeas(candidates: CandidateRecipe[], count = 3): PrepIdea
         const reasons: string[] = []
         if (g.every((x) => keepInfo(x.c.title, x.c.lines, x.c.steps).freezer)) reasons.push('tout se congèle')
         if (proteins.size >= 2) reasons.push(`protéines variées : ${[...proteins].join(', ')}`)
+        const seasonal = [...new Set(g.flatMap((x) => x.season.inSeason))]
+        if (seasonal.length > 0) reasons.push(`de saison en ${monthName(month)} : ${seasonal.slice(0, 4).join(', ')}`)
+        const off = [...new Set(g.flatMap((x) => x.season.outOfSeason))]
+        if (off.length > 0) reasons.push(`hors saison : ${off.join(', ')} (surgelé ou en conserve conseillé)`)
         triples.push({ ids: g.map((x) => x.c.id), titles: g.map((x) => x.c.title), shared: shared.slice(0, 6), reasons, score })
       }
     }
@@ -381,3 +397,83 @@ export const IDEA_SLOTS: { recipe: number; day: number; meal: Meal }[] = [
   { recipe: 0, day: 3, meal: 'midi' }, { recipe: 1, day: 3, meal: 'soir' },
   { recipe: 2, day: 4, meal: 'midi' },
 ]
+
+// ───────────────────────── Mes meal preps (composés par Victor) ─────────────────────────
+
+export const MEAL_PREPS_SETTING = 'meal_preps'
+
+export interface SavedPrep {
+  id: string
+  name: string
+  recipeIds: string[]
+  /** Portions cuisinées pour chaque plat. */
+  portions: number
+  createdAt: string
+}
+
+export function parseSavedPreps(raw: string | null | undefined): SavedPrep[] {
+  try {
+    const d = raw ? JSON.parse(raw) : null
+    if (!Array.isArray(d)) return []
+    return d
+      .filter((p) => p && typeof p.id === 'string' && typeof p.name === 'string' && Array.isArray(p.recipeIds))
+      .map((p) => ({ id: p.id, name: p.name, recipeIds: p.recipeIds.filter((x: unknown) => typeof x === 'string'), portions: Math.min(30, Math.max(1, Math.round(Number(p.portions) || 4))), createdAt: typeof p.createdAt === 'string' ? p.createdAt : '' }))
+  } catch {
+    return []
+  }
+}
+
+export interface Companion {
+  id: string
+  title: string
+  score: number
+  reasons: string[]
+  /** Une réserve (« à faire le jour même », « hors saison »). */
+  warning: string | null
+}
+
+const keysOf = (lines: string[]) => new Set(lines.map((l) => parseLine(l)).filter((p) => p.key && !BASIC.has(p.key) && aisleOf(p.name) !== 'Épices et condiments').map((p) => p.key))
+
+/**
+ * Les plats qui iraient bien avec ceux déjà choisis pour un meal prep : ils se gardent bien, partagent des ingrédients avec la sélection
+ * (moins de courses, une seule mise en place), sont de saison, et apportent une protéine que la sélection n'a pas encore.
+ */
+export function suggestCompanions(selected: CandidateRecipe[], candidates: CandidateRecipe[], month = new Date().getMonth() + 1, count = 6): Companion[] {
+  const chosen = new Set(selected.map((s) => s.id))
+  const selKeys = new Set(selected.flatMap((s) => [...keysOf(s.lines)]))
+  const selProteins = new Set(selected.map((s) => mainProtein(s.lines)).filter(Boolean))
+  const nice = new Map<string, string>()
+  for (const c of [...selected, ...candidates]) for (const l of c.lines) { const p = parseLine(l); if (p.key && !nice.has(p.key)) nice.set(p.key, p.name.split(/[,(]/)[0].trim().toLowerCase()) }
+  const out: Companion[] = []
+  for (const c of candidates) {
+    if (chosen.has(c.id) || c.lines.length < 3) continue
+    if (selected.some((s) => twins(s, c))) continue
+    if (c.type !== null && c.type !== 'plats' && c.type !== 'midi') continue
+    if (MEAT.test(fold(c.lines.join(' ')))) continue
+    const keep = keepInfo(c.title, c.lines, c.steps)
+    const season = recipeSeason(c.lines, month)
+    if (season.outOfSeason.length >= 2) continue
+    const shared = [...keysOf(c.lines)].filter((k) => selKeys.has(k))
+    const protein = mainProtein(c.lines)
+    let score = prepScore(c) + seasonScore(season) + Math.min(5, shared.length) * 1.2
+    if (protein && !selProteins.has(protein)) score += 1.5
+    if (protein && selProteins.has(protein)) score -= 1
+    const reasons: string[] = []
+    if (shared.length > 0) reasons.push(`en commun : ${shared.slice(0, 4).map((k) => nice.get(k) ?? k).join(', ')}`)
+    if (keep.freezer) reasons.push('se congèle')
+    else if (keep.fridgeDays >= 4) reasons.push(`${keep.fridgeDays} jours au frigo`)
+    if (protein && !selProteins.has(protein)) reasons.push(`apporte : ${protein}`)
+    if (season.inSeason.length > 0) reasons.push(`de saison : ${season.inSeason.slice(0, 3).join(', ')}`)
+    const warning = keep.sameDay ? 'mieux fait le jour même (croustillant ou cru)' : season.outOfSeason.length > 0 ? `hors saison : ${season.outOfSeason.join(', ')}` : null
+    out.push({ id: c.id, title: c.title, score, reasons, warning })
+  }
+  return out.sort((a, b) => b.score - a.score).slice(0, count)
+}
+
+/** Les cases de la semaine où répartir les plats d'un meal prep (du lundi au vendredi, midi et soir), à tour de rôle. */
+export function prepSlots(recipeIds: string[]): { recipeId: string; day: number; meal: Meal }[] {
+  if (recipeIds.length === 0) return []
+  const slots: { day: number; meal: Meal }[] = []
+  for (let day = 0; day < 5; day++) for (const meal of ['midi', 'soir'] as Meal[]) slots.push({ day, meal })
+  return slots.map((s, i) => ({ ...s, recipeId: recipeIds[i % recipeIds.length] }))
+}

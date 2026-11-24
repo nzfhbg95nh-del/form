@@ -3,6 +3,7 @@ import { SearchInput } from '@/components/SearchInput'
 import { SegmentedBar } from '@/components/SettingsUi'
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, CalendarDays, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { WeekPlanner } from '@/components/WeekPlanner'
+import { ForageBanner } from '@/components/ForageBanner'
 import { Icon } from '@/components/Icon'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker'
 import { coverFromBlob } from '@/lib/images'
@@ -391,6 +392,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       </div>
 
       <QuickNotes db={db} />
+      <ForageBanner rows={rows} />
 
       {managing && (
         <div className="fixed inset-0 z-[45] flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={() => setManaging(false)}>

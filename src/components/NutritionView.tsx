@@ -77,14 +77,14 @@ export function NutritionView({ plan, week, byId, rows }: { plan: MealPlan; week
       const servings = read.servings ?? (Number(parseValues(row.properties)[RECIPE.servings]) || 4)
       const perServing: Totals = read.lines.length > 0 ? recipeNutrition(read.lines, servings, index, manual).perServing : {}
       // Une recette comptée dans sa version sans viande le dit dans son titre (« Butter chicken… (version sans viande) »).
-      return { id: row.id, title: displayTitle(row.title) + (read.variant ? ' (version sans viande)' : ''), perServing }
+      return { id: row.id, title: displayTitle(row.title) + (read.variant ? ' (version sans viande)' : ''), perServing, lines: read.lines }
     })
   }, [index, rows, manual])
   const factById = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts])
 
   const meals = useMemo((): PlannedMeal[] => (plan.weeks[week] ?? [])
     .filter((e) => byId.has(e.recipeId))
-    .map((e) => ({ day: e.day, meal: e.meal, recipeId: e.recipeId, title: displayTitle(byId.get(e.recipeId)!.title), perServing: factById.get(e.recipeId)?.perServing ?? {} })), [plan, week, byId, factById])
+    .map((e) => ({ day: e.day, meal: e.meal, recipeId: e.recipeId, title: displayTitle(byId.get(e.recipeId)!.title), perServing: factById.get(e.recipeId)?.perServing ?? {}, lines: factById.get(e.recipeId)?.lines })), [plan, week, byId, factById])
   const report = useMemo(() => weekReport(meals), [meals])
   const advice = useMemo(() => weekAdvice(report, meals, facts.filter((f) => Object.keys(f.perServing).length > 0), new Date().getMonth() + 1), [report, meals, facts])
 

@@ -3,6 +3,7 @@
 
 import { REFERENCES, type NutrientKey, type Reference, type Totals } from './nutrition'
 import { DAY_NAMES, type Meal } from './mealPlan'
+import { inSeasonNames, monthName, recipeSeason } from './seasons'
 
 /** Le midi et le soir du planning représentent à peu près cette part des apports d'une journée (le reste : petit-déjeuner, collations). */
 export const MAIN_MEALS_SHARE = 0.7
@@ -14,6 +15,8 @@ export interface PlannedMeal {
   title: string
   /** Nutriments d'une portion (une personne). */
   perServing: Totals
+  /** Lignes d'ingrédients (pour la saison). */
+  lines?: string[]
 }
 
 export interface NutrientStatus {
@@ -61,17 +64,36 @@ export interface RecipeFacts {
   id: string
   title: string
   perServing: Totals
+  /** Lignes d'ingrédients : une recette qui demande plusieurs produits frais hors saison n'est pas proposée. */
+  lines?: string[]
 }
 
 const fmt = (v: number, unit: string) => `${String(v >= 10 ? Math.round(v) : Math.round(v * 10) / 10).replace('.', ',')} ${unit}`
 
 /** Les recettes qui apportent le plus d'un nutriment par portion (au moins `min`). */
-export function topRecipes(all: RecipeFacts[], key: NutrientKey, unit: string, count = 3, min = 0, exclude: Set<string> = new Set()): Advice['recipes'] {
+export function topRecipes(all: RecipeFacts[], key: NutrientKey, unit: string, count = 3, min = 0, exclude: Set<string> = new Set(), month?: number): Advice['recipes'] {
   return all
     .filter((r) => (r.perServing[key] ?? 0) > min && !exclude.has(r.id))
+    .filter((r) => !month || !r.lines || recipeSeason(r.lines, month).outOfSeason.length < 2)
     .sort((a, b) => (b.perServing[key] ?? 0) - (a.perServing[key] ?? 0))
     .slice(0, count)
     .map((r) => ({ id: r.id, title: r.title, amount: fmt(r.perServing[key]!, unit) }))
+}
+
+/** Les aliments riches en vitamine C à conseiller, selon la saison (en hiver : choux, agrumes, kiwi ; en été : poivron, tomate, fruits rouges). */
+export function vitaminCFoods(month: number): string[] {
+  const winter = month >= 10 || month <= 3
+  return winter
+    ? ['chou cru en salade', 'chou kale', 'brocoli', 'kiwi', 'clémentine ou orange', 'jus de citron', 'persil ou coriandre fraîche']
+    : ['poivron cru', 'tomate crue', 'fraises ou framboises', 'brocoli', 'jus de citron', 'persil ou coriandre fraîche']
+}
+
+/** Remplaçants de saison pour un produit d'été en hiver (et inversement). */
+const SEASON_SWAPS: Record<string, string> = {
+  tomate: 'tomates en conserve ou concassées', courgette: 'courge ou poireau', aubergine: 'courge rôtie ou champignons', poivron: 'carotte, chou ou poivron surgelé',
+  concombre: 'radis noir ou chou cru', 'haricots verts': 'haricots verts surgelés ou brocoli', salade: 'mâche ou endive', 'petits pois frais': 'petits pois surgelés',
+  courge: 'courgette', poireau: 'courgette ou oignon nouveau', 'chou-fleur': 'brocoli ou courgette', chou: 'courgette ou salade', 'mâche': 'laitue ou roquette', endive: 'laitue',
+  fraises: 'fruits de saison', 'basilic frais': 'persil ou pesto en pot',
 }
 
 const label = (m: PlannedMeal) => `${DAY_NAMES[m.day].toLowerCase()} ${m.meal}`
@@ -105,7 +127,7 @@ export function weekAdvice(report: WeekReport, meals: PlannedMeal[], all: Recipe
       title: `Fer : ${fmt(fe.average, 'mg')} par jour sur midi et soir`,
       text: `Sans viande, le fer des végétaux s’absorbe moins bien : mieux vaut viser environ ${fmt(feGoal, 'mg')} sur ces deux repas. Les légumineuses, le tofu et les graines en apportent beaucoup.`,
       foods: ['lentilles', 'pois chiches', 'haricots rouges', 'tofu', 'graines de courge', 'sésame / tahini', 'épinards', 'flocons d’avoine'],
-      recipes: topRecipes(all, 'fe', 'mg', 3, 2, planned),
+      recipes: topRecipes(all, 'fe', 'mg', 3, 2, planned, month),
     })
   }
   const poorAbsorption = meals.filter((m) => (m.perServing.fe ?? 0) >= 2.5 && (m.perServing.vitc ?? 0) < 20)
@@ -114,7 +136,7 @@ export function weekAdvice(report: WeekReport, meals: PlannedMeal[], all: Recipe
       id: 'fer-vitc', level: 'attention',
       title: 'Mieux absorber le fer : ajoute de la vitamine C',
       text: `Ces repas sont riches en fer mais pauvres en vitamine C : ${poorAbsorption.slice(0, 4).map((m) => `${m.title} (${label(m)})`).join(', ')}. Un peu de vitamine C dans le même repas aide beaucoup à absorber le fer végétal. Et garde le thé ou le café à au moins une heure du repas.`,
-      foods: ['poivron cru', 'persil ou coriandre fraîche', 'jus de citron', 'brocoli', 'chou', 'tomate crue', 'un agrume ou un kiwi en dessert'],
+      foods: vitaminCFoods(month),
     })
   }
 
@@ -126,7 +148,7 @@ export function weekAdvice(report: WeekReport, meals: PlannedMeal[], all: Recipe
       title: `Protéines : ${fmt(prot.average, 'g')} par jour sur midi et soir`,
       text: `Repère pour ces deux repas : environ ${fmt(prot.target, 'g')}. Associer une légumineuse et une céréale dans la journée (riz et dahl, houmous et pain, chili et maïs) donne des protéines complètes.`,
       foods: ['légumineuses', 'tofu / tempeh', 'œufs', 'yaourt grec / skyr', 'fromage', 'graines et oléagineux'],
-      recipes: topRecipes(all, 'prot', 'g', 3, 15, planned),
+      recipes: topRecipes(all, 'prot', 'g', 3, 15, planned, month),
     })
   }
 
@@ -149,7 +171,7 @@ export function weekAdvice(report: WeekReport, meals: PlannedMeal[], all: Recipe
       title: `Calcium : ${fmt(ca.average, 'mg')} par jour sur midi et soir`,
       text: 'Un yaourt ou un morceau de fromage au petit-déjeuner, ou une eau riche en calcium, complètent facilement.',
       foods: ['yaourt', 'fromage', 'tofu', 'amandes', 'chou kale', 'eaux minérales riches en calcium'],
-      recipes: topRecipes(all, 'ca', 'mg', 3, 200, planned),
+      recipes: topRecipes(all, 'ca', 'mg', 3, 200, planned, month),
     })
   }
 
@@ -183,6 +205,18 @@ export function weekAdvice(report: WeekReport, meals: PlannedMeal[], all: Recipe
   for (const m of meals) counts.set(m.recipeId, { title: m.title, n: (counts.get(m.recipeId)?.n ?? 0) + 1 })
   const repeated = [...counts.values()].filter((c) => c.n >= 4)
   if (repeated.length > 0) out.push({ id: 'variete', level: 'info', title: 'Varier un peu', text: `${repeated.map((r) => `${r.title} revient ${r.n} fois`).join(', ')} : varier les plats aide à couvrir tous les nutriments.` })
+
+  // Saison : ce qui est hors saison dans le planning (avec un remplaçant), et ce qui est de saison ce mois-ci.
+  const off = new Map<string, Set<string>>()
+  for (const m of meals) for (const name of recipeSeason(m.lines ?? [], month).outOfSeason) off.set(name, new Set([...(off.get(name) ?? []), m.title]))
+  if (off.size > 0) {
+    out.push({
+      id: 'hors-saison', level: 'info',
+      title: `Hors saison en ${monthName(month)}`,
+      text: [...off].map(([name, titles]) => `${name} (${[...titles].slice(0, 2).join(', ')})${SEASON_SWAPS[name] ? ` → ${SEASON_SWAPS[name]}` : ''}`).join(' · ') + '. Les surgelés et conserves sont une bonne solution hors saison.',
+    })
+  }
+  out.push({ id: 'saison', level: 'info', title: `De saison en ${monthName(month)}`, text: 'Les fruits et légumes du moment sont meilleurs, moins chers et plus riches en vitamines.', foods: inSeasonNames(month) })
 
   // Rappels qui valent toujours sans viande.
   const b12 = get('b12')

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSession, keepInfo, ovenTemp, readSteps, stepsMinutes, suggestIdeas, type PrepRecipe } from './mealPrep'
+import { buildSession, keepInfo, ovenTemp, parseSavedPreps, prepSlots, readSteps, stepsMinutes, suggestCompanions, suggestIdeas, twins, type PrepRecipe } from './mealPrep'
 
 const t = (text: string) => [{ type: 'text', text, styles: {} }]
 
@@ -121,5 +121,72 @@ describe('pièges de vocabulaire', () => {
   })
   it('la pâte d’ail et gingembre n’est pas des pâtes', () => {
     expect(keepInfo('Chana masala', ['1 c. à soupe de pâte d’ail et gingembre'], []).tips.join(' ')).not.toMatch(/Pâtes/)
+  })
+})
+
+describe('idées de saison', () => {
+  const c = (id: string, title: string, lines: string[]) => ({ id, title, lines, steps: ['Mijoter 20 min.'], type: 'plats' })
+  const pool = [
+    c('r', 'Ratatouille', ['2 aubergines', '2 courgettes', '3 tomates', '1 poivron', '1 oignon']),
+    c('k', 'Curry de courge', ['1 butternut', '1 boîte de pois chiches', '1 oignon']),
+    c('d', 'Dahl aux épinards', ['200 g de lentilles corail', '200 g d’épinards frais', '1 oignon']),
+    c('p', 'Soupe de poireaux', ['3 poireaux', '2 pommes de terre', '1 oignon']),
+  ]
+  it('en novembre, la ratatouille (légumes d’été) n’est pas proposée ; les plats d’hiver oui', () => {
+    const ideas = suggestIdeas(pool, 3, 11)
+    expect(ideas.flatMap((i) => i.ids)).not.toContain('r')
+    expect(ideas[0].reasons.join(' ')).toMatch(/de saison en novembre/)
+  })
+  it('en juillet, la ratatouille revient', () => {
+    expect(suggestIdeas(pool, 3, 7).flatMap((i) => i.ids)).toContain('r')
+  })
+})
+
+describe('composer son meal prep', () => {
+  const c = (id: string, title: string, lines: string[], steps: string[] = ['Mijoter 20 min.'], type: string | null = 'plats') => ({ id, title, lines, steps, type })
+  const chana = c('chana', 'Chana masala', ['2 boîtes de pois chiches', '2 oignons', '3 cm de gingembre', '400 g de tomates concassées'])
+  const pool = [
+    chana,
+    c('dahl', 'Dahl de lentilles', ['200 g de lentilles corail', '1 oignon', '2 cm de gingembre', '400 g de tomates concassées']),
+    c('palak', 'Palak paneer', ['250 g de paneer', '400 g d’épinards frais', '1 oignon', '2 cm de gingembre']),
+    c('katsu', 'Tofu katsu', ['400 g de tofu', '100 g de panko', '1 œuf'], ['Paner et frire.']),
+    c('rata', 'Ratatouille', ['2 aubergines', '2 courgettes', '3 tomates', '1 oignon']),
+    c('poulet', 'Poulet curry', ['600 g de poulet', '1 oignon', '2 cm de gingembre']),
+  ]
+  it('propose des plats qui partagent des ingrédients et apportent une autre protéine', () => {
+    const s = suggestCompanions([chana], pool, 11)
+    expect(s[0].id).toBe('dahl')
+    expect(s[0].reasons.join(' · ')).toMatch(/en commun : .*oignon/)
+    expect(s[0].reasons.join(' · ')).toMatch(/apporte : lentilles/)
+  })
+  it('sans viande, sans plat hors saison (ratatouille en novembre), sans les plats déjà choisis', () => {
+    const ids = suggestCompanions([chana], pool, 11).map((x) => x.id)
+    expect(ids).not.toContain('poulet')
+    expect(ids).not.toContain('rata')
+    expect(ids).not.toContain('chana')
+  })
+  it('un plat croustillant reste possible mais avec une réserve', () => {
+    expect(suggestCompanions([chana], pool, 11).find((x) => x.id === 'katsu')?.warning).toMatch(/jour même/)
+  })
+  it('répartit les plats sur la semaine, à tour de rôle', () => {
+    const s = prepSlots(['a', 'b'])
+    expect(s).toHaveLength(10)
+    expect(s.slice(0, 3)).toEqual([{ day: 0, meal: 'midi', recipeId: 'a' }, { day: 0, meal: 'soir', recipeId: 'b' }, { day: 1, meal: 'midi', recipeId: 'a' }])
+  })
+  it('relit les meal preps enregistrés', () => {
+    expect(parseSavedPreps(JSON.stringify([{ id: '1', name: 'Semaine indienne', recipeIds: ['a', 2], portions: 99 }, { nimp: 1 }]))).toEqual([{ id: '1', name: 'Semaine indienne', recipeIds: ['a'], portions: 30, createdAt: '' }])
+  })
+})
+
+describe('variantes du même plat', () => {
+  const dahl = { id: 'd1', title: 'Dahl de lentilles corail', lines: ['200 g de lentilles corail', '1 oignon', '400 ml de lait de coco'], steps: ['Cuire.'], type: 'plats' }
+  const dahlOeufs = { id: 'd2', title: 'Dahl de lentilles corail aux œufs', lines: ['200 g de lentilles corail', '4 œufs', '1 oignon'], steps: ['Cuire.'], type: 'plats' }
+  const chana = { id: 'c', title: 'Chana masala', lines: ['400 g de pois chiches', '1 oignon', '2 gousses d’ail'], steps: ['Cuire.'], type: 'plats' }
+  it('deux dahls aux lentilles sont des variantes, pas un dahl et un chana', () => {
+    expect(twins(dahl, dahlOeufs)).toBe(true)
+    expect(twins(dahl, chana)).toBe(false)
+  })
+  it('les plats conseillés n’ajoutent pas une variante d’un plat déjà choisi', () => {
+    expect(suggestCompanions([dahl], [dahl, dahlOeufs, chana], 11).map((c) => c.id)).not.toContain('d2')
   })
 })

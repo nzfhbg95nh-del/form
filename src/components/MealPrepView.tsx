@@ -83,7 +83,7 @@ export function MealPrepView({ plan, week, byId, rows, onUseIdea }: {
       const t = parseValues(row.properties)[RECIPE.type]
       return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
     })
-    return suggestIdeas(candidates)
+    return suggestIdeas(candidates, 3, new Date().getMonth() + 1)
   }, [rows])
 
   const toggle = (key: string) => setDone((d) => { const n = new Set(d); if (n.has(key)) n.delete(key); else n.add(key); return n })

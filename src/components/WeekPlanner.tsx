@@ -4,7 +4,8 @@ import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
 import { NutritionView } from '@/components/NutritionView'
-import { IDEA_SLOTS } from '@/lib/mealPrep'
+import { prepSlots } from '@/lib/mealPrep'
+import { MyMealPreps } from '@/components/MyMealPreps'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
@@ -15,6 +16,9 @@ import {
   weekDays, weekKey, weekLabel, weekStats, type Meal, type MealPlan, type PlanEntry,
 } from '@/lib/mealPlan'
 import { RECIPE } from '@/lib/recipes'
+import { parseContent } from '@/lib/content'
+import { monthName, recipeSeason, seasonScore, type SeasonInfo } from '@/lib/seasons'
+import { shoppingLines } from '@/lib/shoppingList'
 import { normalize } from '@/lib/search'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
@@ -110,6 +114,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const [over, setOver] = useState<string | null>(null)
   // Onglet affiché : le planning ou la liste de courses de la semaine.
   const [tab, setTab] = useState<'plan' | 'courses' | 'prep' | 'nutrition'>('plan')
+  const [prepPart, setPrepPart] = useState<'week' | 'mine'>('week')
   const byId = useMemo(() => new Map(rows.map((r) => [r.id, r])), [rows])
 
   // Lecture une fois ; les repas dont la recette a été supprimée sont retirés.
@@ -141,10 +146,20 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   const today = new Date()
   const isToday = (d: Date) => d.toDateString() === today.toDateString()
   const stats = weekStats(plan, week)
+  // La saison de la semaine affichée (le mois de son jeudi) et celle de chaque recette.
+  const weekMonth = days[3].getMonth() + 1
+  const seasonById = useMemo(() => {
+    const m = new Map<string, SeasonInfo>()
+    for (const r of rows) m.set(r.id, recipeSeason(shoppingLines(parseContent(r.content) ?? []).lines, weekMonth))
+    return m
+  }, [rows, weekMonth])
+  const [seasonFirst, setSeasonFirst] = useState(true)
   const sideList = useMemo(() => {
     const nq = normalize(query)
-    return [...rows].filter((r) => normalize(displayTitle(r.title)).includes(nq)).sort((a, b) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr'))
-  }, [rows, query])
+    const byName = (a: ObjectRow, b: ObjectRow) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr')
+    const score = (r: ObjectRow) => { const s = seasonById.get(r.id); return s ? seasonScore(s) : 0 }
+    return [...rows].filter((r) => normalize(displayTitle(r.title)).includes(nq)).sort((a, b) => (seasonFirst ? score(b) - score(a) : 0) || byName(a, b))
+  }, [rows, query, seasonById, seasonFirst])
 
   const add = (day: number, meal: Meal, recipeId: string) => setPlan((p) => addEntry(p, week, day, meal, recipeId, defaultServings(byId.get(recipeId)), newId()))
 
@@ -168,7 +183,7 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
   // Une idée de meal prep : ses trois recettes réparties sur la semaine (deux repas chacune du lundi au mercredi, puis jeudi et vendredi).
   const applyIdea = async (ids: string[], people: number) => {
     if (stats.meals > 0 && !(await askConfirm('Remplacer les repas de cette semaine par ce meal prep ?'))) return
-    setPlan((p) => IDEA_SLOTS.reduce((acc, slot) => addEntry(acc, week, slot.day, slot.meal, ids[slot.recipe], people, newId()), clearWeek(p, week)))
+    setPlan((p) => prepSlots(ids).reduce((acc, slot) => addEntry(acc, week, slot.day, slot.meal, slot.recipeId, people, newId()), clearWeek(p, week)))
     setTab('prep')
   }
   const clear = async () => {
@@ -239,7 +254,17 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
       ) : tab === 'nutrition' ? (
         <div className="min-h-0 flex-1 overflow-y-auto"><NutritionView plan={plan} week={week} byId={byId} rows={rows} /></div>
       ) : tab === 'prep' ? (
-        <div className="min-h-0 flex-1 overflow-y-auto"><MealPrepView plan={plan} week={week} byId={byId} rows={rows} onUseIdea={(ids, people) => void applyIdea(ids, people)} /></div>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          {/* Deux parties : la séance de cuisine de cette semaine, et les meal preps composés et enregistrés par Victor. */}
+          <div role="tablist" className="mb-4 flex w-fit rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
+            {([['week', 'Cette semaine'], ['mine', 'Mes meal preps']] as const).map(([id, l]) => (
+              <button key={id} role="tab" aria-selected={prepPart === id} onClick={() => setPrepPart(id)} className={'rounded-md px-3 py-1 text-sm ' + (prepPart === id ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{l}</button>
+            ))}
+          </div>
+          {prepPart === 'week'
+            ? <MealPrepView plan={plan} week={week} byId={byId} rows={rows} onUseIdea={(ids, people) => void applyIdea(ids, people)} />
+            : <MyMealPreps rows={rows} byId={byId} onUse={(ids, people) => { setPrepPart('week'); void applyIdea(ids, people) }} />}
+        </div>
       ) : (
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Les recettes, à glisser dans les cases. */}
@@ -247,6 +272,10 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
           <label className="m-2 flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
             <Search size={14} className="shrink-0 text-[var(--fg-muted)]" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher…" aria-label="Chercher une recette à planifier" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--fg-muted)]" />
+          </label>
+          <label className="mx-2 mb-1 flex items-center gap-1.5 text-xs text-[var(--fg-muted)]">
+            <input type="checkbox" checked={seasonFirst} onChange={(e) => setSeasonFirst(e.target.checked)} />
+            De saison d’abord ({monthName(weekMonth)})
           </label>
           <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-2">
             {sideList.map((r) => (
@@ -260,6 +289,13 @@ export function WeekPlanner({ rows, onBack }: { rows: ObjectRow[]; onBack: () =>
               >
                 <Thumb row={r} size={26} />
                 <span className="min-w-0 flex-1 truncate">{displayTitle(r.title)}</span>
+                {(() => {
+                  // Un point vert : de saison ; orange : des produits frais hors saison (le détail au survol).
+                  const s = seasonById.get(r.id)
+                  if (!s || (s.inSeason.length === 0 && s.outOfSeason.length === 0)) return null
+                  const off = s.outOfSeason.length > 0
+                  return <span aria-label={off ? `Hors saison : ${s.outOfSeason.join(', ')}` : `De saison : ${s.inSeason.join(', ')}`} title={off ? `Hors saison en ${monthName(weekMonth)} : ${s.outOfSeason.join(', ')}` : `De saison : ${s.inSeason.join(', ')}`} className="h-2 w-2 shrink-0 rounded-full" style={{ background: off ? '#d9730d' : '#448361' }} />
+                })()}
               </div>
             ))}
             {sideList.length === 0 && <p className="px-2 py-2 text-sm text-[var(--fg-muted)]">Aucune recette</p>}

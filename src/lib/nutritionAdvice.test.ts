@@ -71,3 +71,26 @@ describe('conseils', () => {
     expect(topRecipes(all, 'fe', 'mg', 3, 2, new Set(['dahl']))!.map((r) => r.id)).toEqual(['tofu'])
   })
 })
+
+describe('conseils de saison', () => {
+  const all = [
+    { id: 'rata', title: 'Ratatouille', perServing: { fe: 6 }, lines: ['2 aubergines', '2 courgettes', '3 tomates'] },
+    { id: 'dahl', title: 'Dahl courge', perServing: { fe: 5 }, lines: ['1 butternut', '200 g de lentilles corail'] },
+  ]
+  const poor = { kcal: 500, prot: 15, fe: 1, vitc: 30 }
+  it('en novembre : vitamine C de saison, recettes de saison, carte « de saison »', () => {
+    const meals = [{ day: 0, meal: 'midi' as const, recipeId: 'x', title: 'Salade de tomates', perServing: { ...poor, fe: 4, vitc: 5 }, lines: ['4 tomates', '1 concombre'] }]
+    const advice = weekAdvice(weekReport(meals), meals, all, 11)
+    expect(advice.find((a) => a.id === 'fer-vitc')?.foods).toContain('kiwi')
+    expect(advice.find((a) => a.id === 'fer-vitc')?.foods).not.toContain('tomate crue')
+    expect(advice.find((a) => a.id === 'hors-saison')?.text).toMatch(/tomate \(Salade de tomates\) → tomates en conserve/)
+    expect(advice.find((a) => a.id === 'saison')?.foods).toContain('courge')
+  })
+  it('les recettes proposées évitent celles d’une autre saison', () => {
+    const meals = [{ day: 0, meal: 'midi' as const, recipeId: 'x', title: 'X', perServing: poor }]
+    const fer = weekAdvice(weekReport(meals), meals, all, 11).find((a) => a.id === 'fer')!
+    expect(fer.recipes!.map((r) => r.id)).toEqual(['dahl'])
+    const ferJuillet = weekAdvice(weekReport(meals), meals, all, 7).find((a) => a.id === 'fer')!
+    expect(ferJuillet.recipes!.map((r) => r.id)).toContain('rata')
+  })
+})
