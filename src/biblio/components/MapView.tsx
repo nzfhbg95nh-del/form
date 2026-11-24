@@ -7,6 +7,8 @@ import { fileUrl, thumbPath } from '@/biblio/lib/media.ts'
 import { boundsOf, clampZoom, fitView, zoomAt, type View } from '@/biblio/lib/viewMath.ts'
 import { pickStep, STEP_LABELS, type StepKind } from '@/biblio/lib/voyage.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
+import { useLibraryNav } from '@/biblio/store/nav.ts'
+import { useApp } from '@/store/app'
 import { useMapRequest } from '@/biblio/store/map.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 import { BlockMenu } from './BlockMenu.tsx'
@@ -16,6 +18,10 @@ const STEP_ICONS: Record<StepKind, typeof Equal> = { same: Equal, different: Sha
 
 /** Les images qui apparaissent autour de celle qu'on regarde. */
 const AROUND = 12
+/** Autour de l'image choisie, on ne cadre que les voisines à moins de cette distance (en unités de carte, une vignette = 40). */
+const NEAR_RADIUS = 600
+/** Zoom minimal quand on va sur une image (une vignette fait alors au moins 40 pixels). */
+const MIN_FOCUS_ZOOM = 1
 /** Largeur du panneau de droite (pour cadrer la carte dans la place qui reste). */
 const PANEL_W = 300
 /** Taille (en pixels) à partir de laquelle on charge l'image en grand plutôt que la petite version. */
@@ -241,7 +247,14 @@ export function MapView() {
     setFocus(id)
     setAround(list.map((j) => P.ids[j]))
     if (record) setTrail((t) => (t[t.length - 1] === id ? t : [...t, id].slice(-200)))
-    if (fly) flyTo(viewFor([i, ...list], 120, 3, true))
+    if (fly) {
+      // Les images les plus ressemblantes peuvent être éparpillées loin sur la carte : on ne cadre que celles qui sont près,
+      // et jamais plus loin qu'un zoom où l'image choisie reste bien visible (sinon la carte « dézoomait » d'un coup).
+      const dist = (j: number) => Math.hypot(P.x[j] - P.x[i], P.y[j] - P.y[i])
+      const near = list.filter((j) => dist(j) <= NEAR_RADIUS)
+      const v = viewFor([i, ...near], 120, 3, true)
+      flyTo(v && v.zoom >= MIN_FOCUS_ZOOM ? v : viewFor([i], 120, MIN_FOCUS_ZOOM, true))
+    }
   }
 
   /** Un saut du voyage : « similaire », « un peu différent », « mêmes couleurs » ou « surprends-moi ». */
@@ -619,6 +632,19 @@ export function MapView() {
     if (t) setMenu({ x: e.clientX, y: e.clientY, ids: [ptsRef.current!.ids[t.i]] })
   }
 
+  /** « Retour à l'image » : on remet l'écran d'où l'on venait (ex. l'onglet Tout), puis la vue détail par-dessus ; la fermer y laisse. */
+  const backToImage = () => {
+    const { backTo: id, origin } = useMapRequest.getState()
+    useMapRequest.getState().clearBack()
+    if (origin && !(origin.view === 'library' && origin.libPage === 'map')) {
+      const app = useApp.getState()
+      if (origin.view === 'page' && origin.selectedId) app.select(origin.selectedId)
+      else if (origin.view === 'library') { useLibraryNav.getState().go(origin.libPage); app.show('library') }
+      else app.show(origin.view as Parameters<typeof app.show>[0])
+    }
+    if (id) useGrid.getState().open(id)
+  }
+
   const fitAll = () => {
     const P = ptsRef.current
     if (!P) return
@@ -644,7 +670,7 @@ export function MapView() {
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-3 border-b px-6 py-2.5" style={{ borderColor: 'var(--border)' }}>
         {backTo && (
-          <button className="btn" onClick={() => { useMapRequest.getState().clearBack(); useGrid.getState().open(backTo) }} title="Revenir à l'image que tu regardais">
+          <button className="btn" onClick={backToImage} title="Revenir à l'image que tu regardais">
             <ChevronLeft size={15} /> Retour à l'image
           </button>
         )}

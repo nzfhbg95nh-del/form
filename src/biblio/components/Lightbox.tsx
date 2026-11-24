@@ -19,6 +19,8 @@ import { addBlocksToBoard, addedMessage, boardsContaining, createBoard, useFormB
 import { FEATURES } from '@/biblio/flags.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useMapRequest } from '@/biblio/store/map.ts'
+import { RecoverOne } from './RecoverMissing.tsx'
+import { useLibraryNav } from '@/biblio/store/nav.ts'
 import { useToast } from '@/biblio/store/toast.ts'
 import { useApp } from '@/store/app'
 import { useTrash } from '@/biblio/store/trash.ts'
@@ -122,7 +124,10 @@ function LightboxContent() {
           }}
         >
           {!file ? null : file.missing ? (
-            <Notice text="Ce fichier est introuvable sur le disque." />
+            <div className="flex flex-col items-center">
+              <Notice text="Ce fichier est introuvable sur le disque." />
+              {block.source === 'instagram' && <RecoverOne blockId={block.id} onDone={() => void loadBlockFiles(block.id).then(setFiles)} />}
+            </div>
           ) : file.kind === 'video' && full ? (
             <video key={full} src={fileUrl(full)} controls autoPlay muted loop className="max-h-full max-w-full rounded-md" />
           ) : full && broken !== full ? (
@@ -177,7 +182,11 @@ function LightboxContent() {
         {FEATURES.moodboards && <BlockMoodboards block={block} />}
 
         {FEATURES.carte && (
-          <button className="btn mt-6 w-full" onClick={() => useMapRequest.getState().open(block.id, block.id)}>
+          <button className="btn mt-6 w-full" onClick={() => {
+            // On retient l'écran d'où l'on vient (ex. l'onglet Tout) pour y revenir après la carte.
+            const app = useApp.getState()
+            useMapRequest.getState().open(block.id, block.id, { view: app.view, selectedId: app.selectedId, libPage: useLibraryNav.getState().page })
+          }}>
             <MapIcon size={15} /> Voir sur la carte
           </button>
         )}

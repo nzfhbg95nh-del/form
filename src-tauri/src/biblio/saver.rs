@@ -412,9 +412,51 @@ pub fn link_cleanup(app: AppHandle, dir: String) -> Result<(), String> {
     std::fs::remove_dir_all(&target).map_err(|e| e.to_string())
 }
 
+// ───────────────────────── Fichiers introuvables : retéléchargés ─────────────────────────
+
+/// Où remettre un fichier retrouvé : `rel` (chemin de la bibliothèque) sous `root`, sans jamais sortir du dossier.
+pub fn recover_target(root: &Path, rel: &str) -> Option<PathBuf> {
+    let clean = rel.replace('\\', "/");
+    if clean.is_empty() || clean.starts_with('/') || clean.contains(':') || clean.split('/').any(|p| p == ".." || p.is_empty()) {
+        return None;
+    }
+    Some(clean.split('/').fold(root.to_path_buf(), |acc, part| acc.join(part)))
+}
+
+/// Remet un fichier retéléchargé (dans un dossier d'import temporaire) à sa place dans la bibliothèque.
+/// Refusé si la source n'est pas un fichier d'import, si le chemin sort de la bibliothèque, ou si un fichier existe déjà à cet endroit.
+#[tauri::command]
+pub fn recover_place(app: AppHandle, src: String, root: String, rel: String) -> Result<(), String> {
+    let imports = import_root(&app)?.canonicalize().map_err(|e| e.to_string())?;
+    let source = PathBuf::from(&src).canonicalize().map_err(|_| "Fichier téléchargé introuvable.".to_string())?;
+    if !source.starts_with(&imports) || !source.is_file() {
+        return Err("Fichier refusé : il ne vient pas d'un téléchargement.".into());
+    }
+    let target = recover_target(Path::new(&root), &rel).ok_or("Chemin refusé.")?;
+    if target.exists() {
+        return Err("Un fichier existe déjà à cet endroit.".into());
+    }
+    if let Some(parent) = target.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| format!("Impossible de créer le dossier : {e}"))?;
+    }
+    std::fs::copy(&source, &target).map_err(|e| format!("Copie impossible : {e}"))?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn a_recovered_file_never_leaves_the_library() {
+        let root = Path::new("D:/Bibliotheque");
+        assert_eq!(recover_target(root, "instagram/x/a.jpg"), Some(root.join("instagram").join("x").join("a.jpg")));
+        assert_eq!(recover_target(root, "../a.jpg"), None);
+        assert_eq!(recover_target(root, "x/../../a.jpg"), None);
+        assert_eq!(recover_target(root, "C:/Windows/a.jpg"), None);
+        assert_eq!(recover_target(root, "/a.jpg"), None);
+        assert_eq!(recover_target(root, ""), None);
+    }
 
     #[test]
     fn the_config_matches_social_saver() {

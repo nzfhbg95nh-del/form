@@ -53,7 +53,7 @@ jobs:
       - run: npm run build
 
       - name: Tests Rust de la bibliothèque
-        run: cargo test --manifest-path src-tauri/Cargo.toml --lib -- biblio::relocate biblio::layout biblio::ajouts biblio::trash
+        run: cargo test --manifest-path src-tauri/Cargo.toml --lib -- biblio::relocate biblio::layout biblio::ajouts biblio::trash biblio::saver
 
       # DirectML.dll (moteur d'IA sur la carte graphique) : téléchargée directement chez Microsoft (paquet officiel Microsoft.AI.DirectML 1.15.4,
       # le même fichier que celui qu'utilise `ort`, empreinte vérifiée). On ne dépend plus de ce que la compilation laisse traîner.

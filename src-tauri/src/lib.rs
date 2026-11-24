@@ -186,6 +186,7 @@ pub fn run() {
             biblio::saver::saver_stop,
             biblio::saver::link_fetch,
             biblio::saver::link_cleanup,
+            biblio::saver::recover_place,
             biblio::saver::saver_defaults,
             biblio::saver::saver_file_age_days,
             biblio::login::login_open,

@@ -1,4 +1,5 @@
 import { SplitSlider } from '@/components/SplitSlider'
+import { RecoverMissing } from './RecoverMissing.tsx'
 import { useEffect, useState } from 'react'
 import { open } from '@tauri-apps/plugin-dialog'
 import { invoke } from '@tauri-apps/api/core'
@@ -297,6 +298,7 @@ export function LibrarySettings() {
                   <Stat label="Collections automatiques" value={stats.collections} />
                   <Stat label="Fichiers introuvables" value={stats.missing} />
                 </div>
+                <RecoverMissing />
               </SettingsSection>
             )}
             <MoveLibrary disabled={busy} />
