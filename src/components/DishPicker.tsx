@@ -25,10 +25,12 @@ function Photo({ row, h }: { row: ObjectRow | undefined; h: number }) {
  * les plats déjà prévus (pour manger les restes), puis « Choisir moi-même » : toutes les recettes en liste lisible,
  * avec recherche et filtres. `picked` : plats déjà ajoutés (la fenêtre reste ouverte si `keepOpen`).
  */
-export function DishPicker({ rows, title, subtitle, suggestions, again = [], picked = [], keepOpen = false, onPick, onClose }: {
+export function DishPicker({ rows, title, subtitle, header, suggestions, again = [], picked = [], keepOpen = false, onPick, onClose }: {
   rows: ObjectRow[]
   title: string
   subtitle?: string
+  /** Réglage en haut de la fenêtre (ex. « Je cuisine pour N repas »). */
+  header?: React.ReactNode
   suggestions: PickerSuggestion[]
   /** Plats déjà prévus, à remettre (restes). */
   again?: string[]
@@ -75,6 +77,7 @@ export function DishPicker({ rows, title, subtitle, suggestions, again = [], pic
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold">{title}</h2>
             {subtitle && <p className="text-sm text-[var(--fg-muted)]">{subtitle}</p>}
+            {header && <div className="mt-2">{header}</div>}
           </div>
           <button className="rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" aria-label="Fermer" onClick={onClose}><X size={18} /></button>
         </div>

@@ -17,6 +17,8 @@ export interface PlanEntry {
   day: number
   meal: Meal
   servings: number
+  /** Restes : ce repas reprend le plat cuisiné pour le repas `leftoverOf` (rien de plus à cuisiner). */
+  leftoverOf?: string
 }
 
 export interface MealPlan {
@@ -80,7 +82,7 @@ export function parsePlan(raw: string | null | undefined): MealPlan {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || !Array.isArray(list)) continue
       const clean = list
         .filter((e): e is PlanEntry => !!e && typeof e === 'object' && typeof e.id === 'string' && typeof e.recipeId === 'string' && Number.isInteger(e.day) && e.day >= 0 && e.day <= 6 && isMeal(e.meal))
-        .map((e) => ({ id: e.id, recipeId: e.recipeId, day: e.day, meal: e.meal, servings: clampServings(e.servings) }))
+        .map((e) => ({ id: e.id, recipeId: e.recipeId, day: e.day, meal: e.meal, servings: clampServings(e.servings), ...(typeof e.leftoverOf === 'string' ? { leftoverOf: e.leftoverOf } : {}) }))
       if (clean.length > 0) weeks[key] = clean
     }
     return { version: 1, weeks }
@@ -108,8 +110,14 @@ export function addEntry(plan: MealPlan, week: string, day: number, meal: Meal, 
   return withWeek(plan, week, [...(plan.weeks[week] ?? []), { id, recipeId, day, meal, servings: clampServings(servings) }])
 }
 
+/** Retire un repas. Si c'était le repas cuisiné, son premier repas de restes devient celui où l'on cuisine. */
 export function removeEntry(plan: MealPlan, week: string, id: string): MealPlan {
-  return withWeek(plan, week, (plan.weeks[week] ?? []).filter((e) => e.id !== id))
+  const rest = (plan.weeks[week] ?? []).filter((e) => e.id !== id)
+  const order = (e: PlanEntry) => e.day * 2 + (e.meal === 'soir' ? 1 : 0)
+  const heirs = rest.filter((e) => e.leftoverOf === id).sort((a, b) => order(a) - order(b))
+  if (heirs.length === 0) return withWeek(plan, week, rest)
+  const heir = heirs[0].id
+  return withWeek(plan, week, rest.map((e) => (e.id === heir ? (({ leftoverOf: _l, ...x }) => x)(e) : e.leftoverOf === id ? { ...e, leftoverOf: heir } : e)))
 }
 
 export function setServings(plan: MealPlan, week: string, id: string, servings: number): MealPlan {
@@ -135,6 +143,50 @@ export function moveEntry(plan: MealPlan, week: string, id: string, day: number,
     rest.splice(last + 1 > 0 ? last + 1 : rest.length, 0, moved)
   }
   return withWeek(plan, week, rest)
+}
+
+/** Le repas qui suit (midi → soir → lendemain midi), en passant à la semaine suivante après dimanche soir. */
+export function nextSlot(week: string, day: number, meal: Meal): { week: string; day: number; meal: Meal } {
+  if (meal === 'midi') return { week, day, meal: 'soir' }
+  return day < 6 ? { week, day: day + 1, meal: 'midi' } : { week: shiftWeek(week, 1), day: 0, meal: 'midi' }
+}
+
+/**
+ * Cuisiner une fois pour plusieurs repas : le plat est mis dans la case choisie, puis en restes dans les `count - 1`
+ * repas libres suivants (une case déjà remplie est sautée ; on ne cherche pas plus loin que 7 jours).
+ */
+export function addWithLeftovers(plan: MealPlan, week: string, day: number, meal: Meal, recipeId: string, servings: number, count: number, newId: () => string): MealPlan {
+  const first = newId()
+  let next = addEntry(plan, week, day, meal, recipeId, servings, first)
+  let slot = { week, day, meal }
+  let placed = 1
+  for (let tries = 0; placed < count && tries < 14; tries++) {
+    slot = nextSlot(slot.week, slot.day, slot.meal)
+    if (entriesAt(next, slot.week, slot.day, slot.meal).length > 0) continue
+    next = withWeek(next, slot.week, [...(next.weeks[slot.week] ?? []), { id: newId(), recipeId, day: slot.day, meal: slot.meal, servings: clampServings(servings), leftoverOf: first }])
+    placed++
+  }
+  return next
+}
+
+/** Recopie un repas dans une autre case (Ctrl + glisser), éventuellement d'une autre semaine. */
+export function copyEntry(plan: MealPlan, fromWeek: string, id: string, toWeek: string, day: number, meal: Meal, newId: string, asLeftover = false): MealPlan {
+  const e = (plan.weeks[fromWeek] ?? []).find((x) => x.id === id)
+  if (!e) return plan
+  const copy: PlanEntry = { id: newId, recipeId: e.recipeId, day, meal, servings: e.servings, ...(asLeftover ? { leftoverOf: e.leftoverOf ?? e.id } : {}) }
+  return withWeek(plan, toWeek, [...(plan.weeks[toWeek] ?? []), copy])
+}
+
+/** « Dupliquer » : le même plat en restes au prochain repas libre. */
+export function duplicateToNext(plan: MealPlan, week: string, id: string, newId: string): MealPlan {
+  const e = (plan.weeks[week] ?? []).find((x) => x.id === id)
+  if (!e) return plan
+  let slot = { week, day: e.day, meal: e.meal }
+  for (let tries = 0; tries < 14; tries++) {
+    slot = nextSlot(slot.week, slot.day, slot.meal)
+    if (entriesAt(plan, slot.week, slot.day, slot.meal).length === 0) return copyEntry(plan, week, id, slot.week, slot.day, slot.meal, newId, true)
+  }
+  return plan
 }
 
 /** Remplace la semaine `to` par une copie de la semaine `from` (nouveaux identifiants). */

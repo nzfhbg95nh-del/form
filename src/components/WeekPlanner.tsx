@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Copy, Minus, Plus, Search, Trash2, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Copy, Minus, Plus, Repeat, Search, Trash2, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
@@ -16,7 +16,7 @@ import { newId, parseValues } from '@/lib/database'
 import { dishTitle } from '@/lib/vegTitle'
 import { displayTitle } from '@/lib/lastEdit'
 import {
-  addEntry, clearWeek, copyWeek, DAY_NAMES, dropMissingRecipes, emptyPlan, entriesAt, MEAL_PLAN_SETTING, MEALS, moveEntry, parsePlan, removeEntry, serializePlan, setServings, shiftWeek,
+  addEntry, addWithLeftovers, clearWeek, copyEntry, copyWeek, duplicateToNext, DAY_NAMES, dropMissingRecipes, emptyPlan, entriesAt, MEAL_PLAN_SETTING, MEALS, moveEntry, parsePlan, removeEntry, serializePlan, setServings, shiftWeek,
   weekDays, weekKey, weekLabel, weekStats, type Meal, type MealPlan, type PlanEntry,
 } from '@/lib/mealPlan'
 import { parseContent } from '@/lib/content'
@@ -104,6 +104,8 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
     return { id: row.id, title: dishTitle(row), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
   }), [rows])
   const [seasonFirst, setSeasonFirst] = useState(true)
+  // « Je cuisine pour N repas » dans la fenêtre de choix (les restes vont dans les repas libres suivants).
+  const [repeat, setRepeat] = useState(1)
   const sideList = useMemo(() => {
     const nq = normalize(query)
     const byName = (a: ObjectRow, b: ObjectRow) => dishTitle(a).localeCompare(dishTitle(b), 'fr')
@@ -119,7 +121,9 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
     setOver(null)
     const entryId = e.dataTransfer.getData(ENTRY_MIME)
     const recipeId = e.dataTransfer.getData(RECIPE_MIME)
-    if (entryId) setPlan((p) => moveEntry(p, week, entryId, day, meal, beforeId))
+    // Ctrl (ou Alt) en lâchant : le repas est recopié au lieu d'être déplacé.
+    if (entryId && (e.ctrlKey || e.altKey)) setPlan((p) => copyEntry(p, week, entryId, week, day, meal, newId()))
+    else if (entryId) setPlan((p) => moveEntry(p, week, entryId, day, meal, beforeId))
     else if (recipeId) add(day, meal, recipeId)
   }
   const accepts = (e: React.DragEvent) => e.dataTransfer.types.includes(RECIPE_MIME) || e.dataTransfer.types.includes(ENTRY_MIME)
@@ -147,8 +151,8 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
       <div
         key={e.id}
         draggable
-        onDragStart={(ev) => { ev.dataTransfer.setData(ENTRY_MIME, e.id); ev.dataTransfer.effectAllowed = 'move' }}
-        onDragOver={(ev) => { if (accepts(ev)) ev.preventDefault() }}
+        onDragStart={(ev) => { ev.dataTransfer.setData(ENTRY_MIME, e.id); ev.dataTransfer.effectAllowed = 'copyMove' }}
+        onDragOver={(ev) => { if (accepts(ev)) { ev.preventDefault(); ev.dataTransfer.dropEffect = ev.ctrlKey || ev.altKey ? 'copy' : 'move' } }}
         onDrop={(ev) => onDrop(ev, e.day, e.meal, e.id)}
         className="group relative cursor-grab overflow-hidden rounded-md border border-[var(--border)] bg-[var(--bg)] text-xs shadow-[var(--shadow-soft)] active:cursor-grabbing"
         data-plan-entry={e.id}
@@ -166,12 +170,16 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
         >
           {(row ? dishTitle(row) : "")}
         </span>
+        {e.leftoverOf && <div className="flex items-center gap-0.5 px-1.5 text-[10px] font-medium" style={{ color: '#448361' }} title="Restes : rien à cuisiner, le plat a été préparé pour un repas d'avant"><Repeat size={10} /> restes</div>}
         <div className="flex items-center gap-1 px-1.5 pb-1 pt-0.5 text-[var(--fg-muted)]" title="Nombre de personnes">
           <button type="button" aria-label="Une personne de moins" className="rounded px-0.5 hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => setPlan((p) => setServings(p, week, e.id, e.servings - 1))}><Minus size={11} /></button>
           <span className="tabular-nums" aria-label={`${e.servings} personnes`}>{e.servings} pers.</span>
           <button type="button" aria-label="Une personne de plus" className="rounded px-0.5 hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => setPlan((p) => setServings(p, week, e.id, e.servings + 1))}><Plus size={11} /></button>
         </div>
-        <button type="button" aria-label="Retirer ce repas" className="absolute right-0.5 top-0.5 rounded bg-[var(--bg)] text-[var(--fg-muted)] opacity-0 hover:text-[var(--fg)] group-hover:opacity-100" onClick={() => setPlan((p) => removeEntry(p, week, e.id))}><X size={13} /></button>
+        <div className="absolute right-0.5 top-0.5 flex gap-0.5 opacity-0 group-hover:opacity-100">
+          <button type="button" aria-label="Dupliquer au repas suivant (restes)" title="Remanger au prochain repas libre (restes)" className="rounded bg-[var(--bg)] p-px text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => setPlan((p) => duplicateToNext(p, week, e.id, newId()))}><Copy size={12} /></button>
+          <button type="button" aria-label="Retirer ce repas" className="rounded bg-[var(--bg)] text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => setPlan((p) => removeEntry(p, week, e.id))}><X size={13} /></button>
+        </div>
       </div>
     )
   }
@@ -300,8 +308,17 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
             subtitle={days[picker.day].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
             suggestions={mealSuggestions(candidates, days[picker.day], weekIds, sameDay)}
             again={weekIds}
+            header={
+              <div className="flex flex-wrap items-center gap-2 text-sm">
+                <span className="text-[var(--fg-muted)]">Je cuisine pour</span>
+                <div role="radiogroup" aria-label="Nombre de repas" className="flex rounded-lg p-0.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
+                  {[1, 2, 3, 4].map((n) => <button key={n} role="radio" aria-checked={repeat === n} onClick={() => setRepeat(n)} className={'rounded-md px-2.5 py-0.5 ' + (repeat === n ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{n} repas</button>)}
+                </div>
+                {repeat > 1 && <span className="text-xs text-[var(--fg-muted)]">les {repeat - 1} repas libres suivants reçoivent les restes</span>}
+              </div>
+            }
             onClose={() => setPicker(null)}
-            onPick={(id) => add(picker.day, picker.meal, id)}
+            onPick={(id) => setPlan((p) => addWithLeftovers(p, week, picker.day, picker.meal, id, DEFAULT_PEOPLE, repeat, newId))}
           />
         )
       })()}
