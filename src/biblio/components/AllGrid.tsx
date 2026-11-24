@@ -14,6 +14,7 @@ import { BlockMenu } from './BlockMenu.tsx'
 import { SelectionBar } from './SelectionBar.tsx'
 import { CollectionHero } from './CollectionHero.tsx'
 import { FilterBar } from './FilterBar.tsx'
+import { TriageBanner } from './TriageView.tsx'
 import { ImageSearchDialog } from './ImageSearchDialog.tsx'
 import { isSearchableImage } from '@/biblio/lib/imageSearchPure.ts'
 
@@ -280,6 +281,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
       </div>
 
       <FilterBar onImageSearch={() => setImageDialog(true)} onCloseCollection={onBack} />
+      <TriageBanner />
       {imageSearch && (
         <div className="flex items-center gap-3 border-b px-4 py-2" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }}>
           <img src={imageSearch.preview} alt="" className="h-10 w-10 shrink-0 rounded-lg object-cover" draggable={false} />

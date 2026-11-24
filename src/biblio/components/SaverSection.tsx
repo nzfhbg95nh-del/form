@@ -8,6 +8,7 @@ import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdat
 import { adoptCookies, ALERT_KEY, DOWNLOAD_FREQUENCY_KEY, DOWNLOAD_LAST_DAY_KEY, downloadFrequency, loginCheck, loginClose, loginImport, loginLabel, loginOpen, SITE_NAMES, type LoginStatus, type Site } from '@/biblio/lib/siteLogin.ts'
 import { useAi } from '@/biblio/store/ai.ts'
 import { useLibrary } from '@/biblio/store/library.ts'
+import { useTriage } from '@/biblio/store/triage.ts'
 
 const nf = new Intl.NumberFormat('fr-FR')
 const input = 'min-w-0 flex-1 rounded-md border px-2 py-1.5 text-sm outline-none focus:border-[var(--accent)]'
@@ -231,6 +232,7 @@ export function SaverSection() {
             {running && <button className="btn" onClick={() => void invoke('saver_stop')}><Square size={14} /> Arrêter</button>}
             {(running || message) && <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{running ? `${nf.format(counts.new)} nouveaux · ${nf.format(counts.skipped)} déjà présents` : message}</span>}
           </div>
+          {!running && <TriageButton />}
           {error && <p className="mt-3 text-sm" style={{ color: '#d44c47' }}>{error}</p>}
           {lines.length > 0 && (
             <div ref={logRef} className="mt-3 max-h-56 overflow-auto rounded-md border p-2 font-mono text-xs" style={{ borderColor: 'var(--border)', background: 'var(--bg-side)' }} aria-label="Journal du téléchargement">
@@ -241,6 +243,23 @@ export function SaverSection() {
           )}
         </>
       )}
+    </div>
+  )
+}
+
+/** Après un téléchargement : ouvrir le tri rapide des nouveautés. */
+function TriageButton() {
+  const count = useTriage((st) => st.count)
+  const lastResult = useLibrary((st) => st.lastResult)
+  const phase = useLibrary((st) => st.phase)
+  useEffect(() => {
+    void useTriage.getState().refresh()
+  }, [lastResult, phase])
+  if (count === 0) return null
+  return (
+    <div className="mt-3 flex items-center gap-3 text-sm">
+      <span>{nf.format(count)} nouvelle{count > 1 ? 's' : ''} image{count > 1 ? 's' : ''} à trier.</span>
+      <button className="btn" onClick={() => useTriage.getState().show()}>Trier les nouveautés</button>
     </div>
   )
 }

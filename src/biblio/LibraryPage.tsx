@@ -4,6 +4,7 @@ import { CollectionsView } from '@/biblio/components/CollectionsView.tsx'
 import { Lightbox } from '@/biblio/components/Lightbox.tsx'
 import { MapView } from '@/biblio/components/MapView.tsx'
 import { MoodboardsView } from '@/biblio/components/MoodboardsView.tsx'
+import { TriageView } from '@/biblio/components/TriageView.tsx'
 import { openTarget } from '@/biblio/lib/collections.ts'
 import { useCollections } from '@/biblio/store/collections.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
@@ -83,6 +84,7 @@ export function LibraryOverlays() {
   return (
     <>
       <Lightbox />
+      <TriageView />
       {text && (
         <div className="form-toast fixed bottom-6 left-1/2 z-[70] flex -translate-x-1/2 items-center gap-4 rounded-xl px-4 py-2.5 text-sm shadow-lg" style={{ background: 'var(--fg)', color: 'var(--bg)' }} role="status">
           <span>{text}</span>
