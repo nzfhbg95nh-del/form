@@ -13,6 +13,10 @@ export interface Plant {
   from: [number, number]
   to: [number, number]
   tip: string
+  /** Où la trouver autour de Tournai (ville, bois, campagne, bords de l'Escaut). */
+  where?: string
+  /** Plante cultivée (jardin), pas une cueillette sauvage. */
+  garden?: boolean
 }
 
 export const PLANTS: Plant[] = [
@@ -39,8 +43,21 @@ export const PLANTS: Plant[] = [
   { id: 'noisette', name: 'Noisettes', match: /noisettes? sauvages?/, from: [9, 1], to: [10, 15], tip: 'Quand elles tombent toutes seules et se détachent de leur collerette.' },
   { id: 'chataigne', name: 'Châtaignes', match: /chataigne/, from: [10, 1], to: [11, 15], tip: 'Ramassées au sol, bogue ouverte ; les vers se repèrent à un petit trou.' },
   { id: 'cynorhodon', name: 'Cynorhodons (églantier)', match: /cynorhodon|eglantier|eglantine/, from: [10, 1], to: [11, 30], tip: 'Fruits rouges et un peu mous ; retirer les poils intérieurs (irritants).' },
+  { id: 'nefle', name: 'Nèfles', match: /nefle/, from: [11, 1], to: [12, 31], tip: 'À cueillir après les premières gelées, puis à laisser blettir (chair brune et molle) avant de manger.' },
   { id: 'prunelle', name: 'Prunelles', match: /prunelle/, from: [10, 15], to: [12, 31], tip: 'Après les premières gelées, elles sont moins âpres.' },
 ]
+
+// Autour de Tournai : où chercher chaque plante (indicatif).
+const WHERE: Record<string, string> = {
+  'ail-ours': 'sous-bois humides, bords de ruisseaux', ortie: 'friches, bords de chemins, lisières', pissenlit: 'prairies et pelouses non traitées',
+  violette: 'lisières, talus, vieux jardins', 'tilleul-feuille': 'tilleuls des avenues et des parcs, en ville', 'tilleul-fleur': 'tilleuls des avenues et des parcs, en ville',
+  'tilleul-fruit': 'tilleuls des avenues et des parcs, en ville', lilas: 'jardins et haies de ville', aubepine: 'haies de campagne', sapin: 'bois de résineux, parcs',
+  acacia: 'talus, friches, bords de voies ferrées (robiniers)', 'sureau-fleur': 'haies, friches, lisières, bords de l’Escaut', 'sureau-baie': 'haies, friches, lisières, bords de l’Escaut',
+  coquelicot: 'bords de champs', figuier: 'jardins', menthe: 'bords de fossés et de cours d’eau', 'reine-des-pres': 'fossés et prairies humides, bords de l’Escaut',
+  verveine: 'jardin', 'fraise-bois': 'lisières et talus ombragés', mure: 'ronciers des haies, friches, lisières', noisette: 'haies et lisières',
+  chataigne: 'bois et parcs (châtaigniers)', cynorhodon: 'haies et talus (églantiers)', prunelle: 'haies de campagne (prunelliers)', nefle: 'vieux vergers, haies',
+}
+for (const p of PLANTS) { p.where = WHERE[p.id]; if (p.id === 'figuier' || p.id === 'verveine') p.garden = true }
 
 /** Le jour de l'année (1 à 366) d'une date [mois, jour], dans l'année de `ref`. */
 const dayOf = (year: number, [m, d]: [number, number]) => Math.round((Date.UTC(year, m - 1, d) - Date.UTC(year, 0, 1)) / 86400000) + 1
@@ -89,4 +106,30 @@ export function forageCalendar(recipes: { id: string; title: string; text: strin
   return PLANTS.map((p) => ({ plant: p, window: windowLabel(p), recipes: recipes.filter((r) => p.match.test(fold(`${r.title} ${r.text}`).replace(/['’]/g, ' '))).map((r) => ({ id: r.id, title: r.title })) }))
     .filter((x) => x.recipes.length > 0)
     .sort((a, b) => a.plant.from[0] - b.plant.from[0] || a.plant.from[1] - b.plant.from[1])
+}
+
+export interface NearbyForage {
+  plant: Plant
+  status: ForageStatus
+  days: number
+  window: string
+  /** Les recettes de Victor qui l'utilisent (peut être vide : c'est quand même à cueillir près de chez lui). */
+  recipes: { id: string; title: string }[]
+}
+
+/**
+ * Tout ce qui se cueille (ou va se cueillir) autour de Tournai à cette date, recettes ou pas : en cours d'abord,
+ * celles de ses recettes avant les autres, puis les plus proches. Les plantes de jardin n'y sont que si une recette les utilise.
+ */
+export function forageNearby(recipes: { id: string; title: string; text: string }[], date: Date, soonDays = 30): NearbyForage[] {
+  const out: NearbyForage[] = []
+  for (const p of PLANTS) {
+    const st = forageStatus(p, date, soonDays)
+    if (!st) continue
+    const using = recipes.filter((r) => p.match.test(fold(`${r.title} ${r.text}`).replace(/['’]/g, ' '))).map((r) => ({ id: r.id, title: r.title }))
+    if (p.garden && using.length === 0) continue
+    out.push({ plant: p, ...st, window: windowLabel(p), recipes: using })
+  }
+  const rank = (x: NearbyForage) => (x.status === 'now' ? 0 : 2) + (x.recipes.length > 0 ? 0 : 1)
+  return out.sort((a, b) => rank(a) - rank(b) || a.days - b.days)
 }

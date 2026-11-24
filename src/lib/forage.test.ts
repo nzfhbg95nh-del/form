@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { forageAlerts, forageCalendar, forageStatus, PLANTS, windowLabel } from './forage'
+import { forageAlerts, forageCalendar, forageNearby, forageStatus, PLANTS, windowLabel } from './forage'
 
 const plant = (id: string) => PLANTS.find((p) => p.id === id)!
 const recipes = [
@@ -36,5 +36,19 @@ describe('cueillette', () => {
   it('le calendrier de l’année, dans l’ordre', () => {
     expect(forageCalendar(recipes).map((c) => c.plant.id)).toEqual(['lilas', 'sureau-fleur', 'tilleul-fruit'])
     expect(windowLabel(plant('sureau-fleur'))).toBe('du 15 mai au 30 juin')
+  })
+})
+
+describe('cueillette autour de Tournai', () => {
+  it('en novembre : cynorhodons, prunelles et nèfles, avec où les trouver, même sans recette', () => {
+    const now = forageNearby([], new Date(2026, 10, 24))
+    expect(now.map((n) => n.plant.id)).toEqual(expect.arrayContaining(['cynorhodon', 'prunelle', 'nefle']))
+    expect(now.every((n) => n.status === 'now')).toBe(true)
+    expect(now.find((n) => n.plant.id === 'prunelle')?.plant.where).toMatch(/haies/)
+  })
+  it('les plantes de tes recettes passent devant ; celles du jardin seulement si une recette les utilise', () => {
+    const mai = forageNearby(recipes, new Date(2026, 4, 20))
+    expect(mai.slice(0, 2).map((n) => n.plant.id)).toEqual(['lilas', 'sureau-fleur'])
+    expect(mai.find((n) => n.plant.id === 'figuier')).toBeUndefined()
   })
 })

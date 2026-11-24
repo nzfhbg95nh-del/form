@@ -352,7 +352,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
     setCurrent(null)
   }
 
-  if (section === 'accueil') return <div className="px-6 py-8">{tabs}<KitchenHome rows={rows} /></div>
+  if (section === 'accueil') return <div className="px-6 py-8">{tabs}<KitchenHome rows={rows} onGo={setSection} /></div>
   if (section !== 'recettes') return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="px-6 pt-8">{tabs}</div>

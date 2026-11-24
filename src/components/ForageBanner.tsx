@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Leaf } from 'lucide-react'
-import { forageAlerts, forageCalendar } from '@/lib/forage'
+import { forageCalendar, forageNearby } from '@/lib/forage'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
@@ -15,9 +15,8 @@ export function ForageBanner({ rows }: { rows: ObjectRow[] }) {
   const select = useApp((s) => s.select)
   const [open, setOpen] = useState(false)
   const recipes = useMemo(() => rows.map((r) => ({ id: r.id, title: displayTitle(r.title), text: r.content ?? '' })), [rows])
-  const alerts = useMemo(() => forageAlerts(recipes, new Date()), [recipes])
+  const alerts = useMemo(() => forageNearby(recipes, new Date()), [recipes])
   const calendar = useMemo(() => forageCalendar(recipes), [recipes])
-  if (calendar.length === 0) return null
 
   const recipeLinks = (list: { id: string; title: string }[]) => list.map((r, i) => (
     <span key={r.id}>{i > 0 && ', '}<button className="hover:underline" onClick={() => select(r.id)}>{r.title}</button></span>
@@ -25,7 +24,7 @@ export function ForageBanner({ rows }: { rows: ObjectRow[] }) {
 
   return (
     <section className="mb-6" aria-label="Cueillette">
-      {alerts.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Rien à cueillir pour tes recettes en ce moment, ni dans le mois qui vient.</p>}
+      {alerts.length === 0 && <p className="mb-2 text-sm text-[var(--fg-muted)]">Rien à cueillir en ce moment, ni dans le mois qui vient.</p>}
       {alerts.map((a) => (
         <div key={a.plant.id} className="mb-2 rounded-xl border p-3" style={{ borderColor: a.status === 'now' ? '#44836180' : 'var(--border)', background: a.status === 'now' ? 'rgba(68,131,97,0.08)' : undefined }}>
           <div className="flex flex-wrap items-baseline gap-2">
@@ -37,13 +36,14 @@ export function ForageBanner({ rows }: { rows: ObjectRow[] }) {
               {a.status === 'now' ? (a.days === 0 ? 'dernier jour' : `encore ${plural(a.days, 'jour')}`) : `dans ${plural(a.days, 'jour')}`} · {a.window}
             </span>
           </div>
-          <div className="mt-1 text-sm text-[var(--fg-muted)]">Pour : {recipeLinks(a.recipes)}</div>
+          {a.plant.where && <div className="mt-1 text-sm text-[var(--fg-muted)]">Où : {a.plant.where}</div>}
+          <div className="mt-0.5 text-sm text-[var(--fg-muted)]">{a.recipes.length > 0 ? <>Pour : {recipeLinks(a.recipes)}</> : 'Aucune de tes recettes ne l’utilise encore.'}</div>
           <div className="mt-1 text-xs text-[var(--fg-muted)]">{a.plant.tip}</div>
         </div>
       ))}
-      <button className="flex items-center gap-1 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => setOpen((o) => !o)}>
+      {calendar.length > 0 && <button className="flex items-center gap-1 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => setOpen((o) => !o)}>
         {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />} <Leaf size={13} /> Calendrier de cueillette de tes recettes ({calendar.length})
-      </button>
+      </button>}
       {open && (
         <div className="mt-2 rounded-xl border border-[var(--border)] p-3">
           <ul className="space-y-1.5 text-sm">

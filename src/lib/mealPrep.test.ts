@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildSession, keepInfo, ovenTemp, parseSavedPreps, prepSlots, readSteps, stepsMinutes, suggestCompanions, suggestIdeas, twins, type PrepRecipe } from './mealPrep'
+import { buildSession, keepInfo, ovenTemp, parseSavedPreps, prepMeals, prepSlots, readSteps, stepsMinutes, suggestCompanions, suggestIdeas, twins, type PrepRecipe } from './mealPrep'
 
 const t = (text: string) => [{ type: 'text', text, styles: {} }]
 
@@ -188,5 +188,26 @@ describe('variantes du même plat', () => {
   })
   it('les plats conseillés n’ajoutent pas une variante d’un plat déjà choisi', () => {
     expect(suggestCompanions([dahl], [dahl, dahlOeufs, chana], 11).map((c) => c.id)).not.toContain('d2')
+  })
+})
+
+describe('meal prep de 3 jours', () => {
+  const r = (id: string, lines: string[]) => ({ id, title: id, lines, steps: ['Mijoter 20 min.'], type: 'plats' })
+  const all = [
+    r('curry', ['400 g de pois chiches', '1 oignon', '400 ml de lait de coco', '2 gousses d’ail']),
+    r('dahl', ['200 g de lentilles corail', '1 oignon', '400 ml de lait de coco']),
+    r('chili', ['400 g de haricots rouges', '1 oignon', '1 boîte de tomates concassées']),
+  ]
+  it('des idées de deux plats, sans recette en commun entre deux idées', () => {
+    const ideas = suggestIdeas(all, 3, 11, 2)
+    expect(ideas.length).toBeGreaterThan(0)
+    expect(ideas.every((i) => i.ids.length === 2)).toBe(true)
+    if (ideas.length > 1) expect(ideas[1].ids.filter((id) => ideas[0].ids.includes(id))).toEqual([])
+  })
+  it('6 repas sur 3 jours à partir d’un samedi, qui débordent sur la semaine suivante', () => {
+    const m = prepMeals(['a', 'b'], new Date(2026, 10, 28), 3)
+    expect(m).toHaveLength(6)
+    expect(m.map((x) => x.recipeId)).toEqual(['a', 'b', 'a', 'b', 'a', 'b'])
+    expect(m[5].date.getDate()).toBe(30)
   })
 })

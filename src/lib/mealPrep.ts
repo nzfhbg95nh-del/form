@@ -315,7 +315,7 @@ export interface PrepIdea {
   score: number
 }
 
-const MEAT = /\b(poulet|boeuf|bœuf|porc|agneau|veau|lardon|jambon|bacon|chorizo|saucisse|dinde|canard|merguez|steak hache|viande|poisson|saumon|thon|cabillaud|crevette|sardine|anchois)\b/
+export const MEAT = /\b(poulet|boeuf|bœuf|porc|agneau|veau|lardon|jambon|bacon|chorizo|saucisse|dinde|canard|merguez|steak hache|viande|poisson|saumon|thon|cabillaud|crevette|sardine|anchois)\b/
 const BASIC = new Set(['sel', 'poivre', 'huile', 'huile d olive', 'huile neutre', 'eau', 'sucre', 'beurre', 'farine'])
 const PROTEINS: [RegExp, string][] = [[/pois chiche/, 'pois chiches'], [/lentille/, 'lentilles'], [/haricot/, 'haricots'], [/tofu/, 'tofu'], [/paneer/, 'paneer'], [/oeuf|œuf/, 'œufs'], [/tempeh/, 'tempeh'], [/feta|fromage/, 'fromage']]
 
@@ -325,7 +325,7 @@ export function prepScore(c: CandidateRecipe): number {
   return (k.freezer ? 2 : 0) + (k.fridgeDays >= 4 ? 1 : 0) - (k.sameDay ? 3 : 0)
 }
 
-const mainProtein = (lines: string[]) => {
+export const mainProtein = (lines: string[]) => {
   const f = fold(lines.join(' '))
   return PROTEINS.find(([re]) => re.test(f))?.[1] ?? null
 }
@@ -340,7 +340,7 @@ export function twins(a: { title: string; lines: string[] }, b: { title: string;
   return head(a.title) !== '' && head(a.title) === head(b.title) && mainProtein(a.lines) === mainProtein(b.lines)
 }
 
-export function suggestIdeas(candidates: CandidateRecipe[], count = 3, month = new Date().getMonth() + 1): PrepIdea[] {
+export function suggestIdeas(candidates: CandidateRecipe[], count = 3, month = new Date().getMonth() + 1, size: 2 | 3 = 3): PrepIdea[] {
   // Le nom à afficher pour chaque ingrédient (« crème », pas la clé « creme ») : le premier tel qu'écrit, sans précisions, au singulier.
   const niceName = new Map<string, string>()
   for (const c of candidates) {
@@ -358,32 +358,34 @@ export function suggestIdeas(candidates: CandidateRecipe[], count = 3, month = n
     .sort((a, b) => b.s - a.s || b.keys.size - a.keys.size)
     .slice(0, 24)
   const triples: PrepIdea[] = []
-  for (let i = 0; i < pool.length; i++) {
-    for (let j = i + 1; j < pool.length; j++) {
-      for (let k = j + 1; k < pool.length; k++) {
-        const g = [pool[i], pool[j], pool[k]]
-        if (twins(g[0].c, g[1].c) || twins(g[0].c, g[2].c) || twins(g[1].c, g[2].c)) continue
-        const counts = new Map<string, number>()
-        for (const x of g) x.keys.forEach((key) => counts.set(key, (counts.get(key) ?? 0) + 1))
-        const shared = [...counts].filter(([, n]) => n >= 2).map(([key]) => niceName.get(key) ?? key)
-        const proteins = new Set(g.map((x) => x.protein).filter(Boolean))
-        const score = g.reduce((s, x) => s + x.s, 0) + shared.length * 1.5 + proteins.size * 1.5
-        const reasons: string[] = []
-        if (g.every((x) => keepInfo(x.c.title, x.c.lines, x.c.steps).freezer)) reasons.push('tout se congèle')
-        if (proteins.size >= 2) reasons.push(`protéines variées : ${[...proteins].join(', ')}`)
-        const seasonal = [...new Set(g.flatMap((x) => x.season.inSeason))]
-        if (seasonal.length > 0) reasons.push(`de saison en ${monthName(month)} : ${seasonal.slice(0, 4).join(', ')}`)
-        const off = [...new Set(g.flatMap((x) => x.season.outOfSeason))]
-        if (off.length > 0) reasons.push(`hors saison : ${off.join(', ')} (surgelé ou en conserve conseillé)`)
-        triples.push({ ids: g.map((x) => x.c.id), titles: g.map((x) => x.c.title), shared: shared.slice(0, 6), reasons, score })
-      }
-    }
+  // Toutes les combinaisons de `size` recettes (2 pour un meal prep de 3 jours, 3 pour la semaine).
+  const groups: (typeof pool)[] = []
+  const pick = (from: number, g: typeof pool) => {
+    if (g.length === size) { groups.push(g); return }
+    for (let i = from; i < pool.length; i++) pick(i + 1, [...g, pool[i]])
+  }
+  pick(0, [])
+  for (const g of groups) {
+    if (g.some((x, i) => g.some((y, j) => j > i && twins(x.c, y.c)))) continue
+    const counts = new Map<string, number>()
+    for (const x of g) x.keys.forEach((key) => counts.set(key, (counts.get(key) ?? 0) + 1))
+    const shared = [...counts].filter(([, n]) => n >= 2).map(([key]) => niceName.get(key) ?? key)
+    const proteins = new Set(g.map((x) => x.protein).filter(Boolean))
+    const score = g.reduce((s, x) => s + x.s, 0) + shared.length * 1.5 + proteins.size * 1.5
+    const reasons: string[] = []
+    if (g.every((x) => keepInfo(x.c.title, x.c.lines, x.c.steps).freezer)) reasons.push('tout se congèle')
+    if (proteins.size >= 2) reasons.push(`protéines variées : ${[...proteins].join(', ')}`)
+    const seasonal = [...new Set(g.flatMap((x) => x.season.inSeason))]
+    if (seasonal.length > 0) reasons.push(`de saison en ${monthName(month)} : ${seasonal.slice(0, 4).join(', ')}`)
+    const off = [...new Set(g.flatMap((x) => x.season.outOfSeason))]
+    if (off.length > 0) reasons.push(`hors saison : ${off.join(', ')} (surgelé ou en conserve conseillé)`)
+    triples.push({ ids: g.map((x) => x.c.id), titles: g.map((x) => x.c.title), shared: shared.slice(0, 6), reasons, score })
   }
   triples.sort((a, b) => b.score - a.score)
-  // Des idées différentes : chaque nouvelle idée partage au plus une recette avec les précédentes.
+  // Des idées différentes : un trio partage au plus une recette avec les idées précédentes, une paire aucune.
   const out: PrepIdea[] = []
   for (const t of triples) {
-    if (out.every((o) => o.ids.filter((id) => t.ids.includes(id)).length <= 1)) out.push(t)
+    if (out.every((o) => o.ids.filter((id) => t.ids.includes(id)).length <= size - 2)) out.push(t)
     if (out.length >= count) break
   }
   return out
@@ -476,4 +478,18 @@ export function prepSlots(recipeIds: string[]): { recipeId: string; day: number;
   const slots: { day: number; meal: Meal }[] = []
   for (let day = 0; day < 5; day++) for (const meal of ['midi', 'soir'] as Meal[]) slots.push({ day, meal })
   return slots.map((s, i) => ({ ...s, recipeId: recipeIds[i % recipeIds.length] }))
+}
+
+/**
+ * Les repas d'un meal prep à partir d'un jour donné, sur `days` jours (midi et soir), les plats à tour de rôle.
+ * Les dates peuvent déborder sur la semaine suivante (un meal prep de 3 jours lancé un samedi).
+ */
+export function prepMeals(recipeIds: string[], start: Date, days: number): { date: Date; meal: Meal; recipeId: string }[] {
+  if (recipeIds.length === 0) return []
+  const out: { date: Date; meal: Meal; recipeId: string }[] = []
+  for (let d = 0; d < days; d++) {
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + d)
+    for (const meal of ['midi', 'soir'] as Meal[]) out.push({ date, meal, recipeId: recipeIds[out.length % recipeIds.length] })
+  }
+  return out
 }
