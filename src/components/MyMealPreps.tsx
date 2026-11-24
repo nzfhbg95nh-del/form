@@ -1,16 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, ChefHat, ClipboardCopy, Clock, Flame, Plus, Search, Sparkles, Trash2, X } from 'lucide-react'
+import { ArrowLeft, Check, ChefHat, ClipboardCopy, Clock, Flame, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { newId, parseValues } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import { buildSession, fmtMinutes, MEAL_PREPS_SETTING, parseSavedPreps, readSteps, suggestCompanions, suggestIdeas, type CandidateRecipe, type PrepRecipe, type SavedPrep } from '@/lib/mealPrep'
 import { RECIPE } from '@/lib/recipes'
 import { AISLES, buildShoppingList, shoppingLines } from '@/lib/shoppingList'
-import { normalize } from '@/lib/search'
 import type { ObjectRow } from '@/lib/types'
 import { copyText } from '@/lib/windowActions'
 import { askConfirm } from '@/lib/confirm'
 import { useApp } from '@/store/app'
+import { DishPicker } from '@/components/DishPicker'
 
 const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) && n > 0 ? n : null }
 
@@ -26,7 +26,7 @@ export function MyMealPreps({ rows, byId, onUse }: { rows: ObjectRow[]; byId: Ma
   const [picked, setPicked] = useState<string[]>([])
   const [portions, setPortions] = useState(4)
   const [name, setName] = useState('')
-  const [query, setQuery] = useState('')
+  const [picking, setPicking] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const month = new Date().getMonth() + 1
 
@@ -52,11 +52,11 @@ export function MyMealPreps({ rows, byId, onUse }: { rows: ObjectRow[]; byId: Ma
   const selected = picked.map((id) => candById.get(id)).filter((c): c is CandidateRecipe => !!c)
   const companions = useMemo(() => (selected.length > 0 ? suggestCompanions(selected, candidates, month) : []), [selected, candidates, month]) // eslint-disable-line react-hooks/exhaustive-deps
   const ideas = useMemo(() => (selected.length === 0 ? suggestIdeas(candidates, 3, month) : []), [selected.length, candidates, month])
-  const results = useMemo(() => {
-    const q = normalize(query.trim())
-    if (q.length < 2) return []
-    return candidates.filter((c) => !picked.includes(c.id) && normalize(c.title).includes(q)).slice(0, 8)
-  }, [query, candidates, picked])
+  // Sans plat choisi : les plats des idées de meal prep, chacun avec ses raisons, comme point de départ.
+  const starters = useMemo(() => {
+    const seen = new Set<string>()
+    return suggestIdeas(candidates, 6, month).flatMap((i) => i.ids).filter((id) => !seen.has(id) && seen.add(id)).slice(0, 6).map((id) => ({ id, reasons: ['se garde bien', 'de saison ou sans produit frais hors saison'] }))
+  }, [candidates, month])
 
   const add = (id: string) => setPicked((p) => (p.includes(id) ? p : [...p, id]))
   const save = () => {
@@ -88,18 +88,19 @@ export function MyMealPreps({ rows, byId, onUse }: { rows: ObjectRow[]; byId: Ma
           ))}
           {selected.length === 0 && <span className="text-sm text-[var(--fg-muted)]">Choisis un premier plat : Form te proposera ceux qui iraient bien avec.</span>}
         </div>
-        <div className="relative mb-3">
-          <label className="flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-            <Search size={14} className="shrink-0 text-[var(--fg-muted)]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Ajouter un plat…" aria-label="Chercher un plat à ajouter" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
-          </label>
-          {results.length > 0 && (
-            <div className="absolute left-0 right-0 top-full z-20 mt-1 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1 shadow-lg">
-              {results.map((r) => <button key={r.id} className="block w-full truncate rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]" onClick={() => { add(r.id); setQuery('') }}>{r.title}</button>)}
-            </div>
-          )}
-        </div>
-
+        <button className="btn mb-3 flex items-center gap-1.5 !text-sm" onClick={() => setPicking(true)}><Plus size={14} /> Ajouter un plat</button>
+        {picking && (
+          <DishPicker
+            rows={rows}
+            title="Ajouter des plats au meal prep"
+            subtitle={selected.length > 0 ? 'Proposés pour aller avec ta sélection : se gardent bien, ingrédients en commun, autre protéine, de saison.' : 'Des plats qui se gardent bien et sont de saison, pour commencer.'}
+            suggestions={selected.length > 0 ? companions : starters}
+            picked={picked}
+            keepOpen
+            onPick={add}
+            onClose={() => setPicking(false)}
+          />
+        )}
         {companions.length > 0 && (
           <div className="mb-3">
             <div className="mb-1.5 flex items-center gap-1.5 text-sm font-medium"><Sparkles size={14} /> Iraient bien avec ta sélection</div>

@@ -4,12 +4,15 @@ import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
 import { NutritionView } from '@/components/NutritionView'
-import { prepSlots } from '@/lib/mealPrep'
+import { prepSlots, readSteps, type CandidateRecipe } from '@/lib/mealPrep'
+import { mealSuggestions } from '@/lib/kitchenIdeas'
+import { DishPicker } from '@/components/DishPicker'
+import { RECIPE } from '@/lib/recipes'
 import { MyMealPreps } from '@/components/MyMealPreps'
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
-import { newId } from '@/lib/database'
+import { newId, parseValues } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import {
   addEntry, clearWeek, copyWeek, DAY_NAMES, dropMissingRecipes, emptyPlan, entriesAt, MEAL_PLAN_SETTING, MEALS, moveEntry, parsePlan, removeEntry, serializePlan, setServings, shiftWeek,
@@ -36,63 +39,6 @@ function Thumb({ row, size = 28 }: { row: ObjectRow | undefined; size?: number }
     <span className="flex shrink-0 items-center justify-center overflow-hidden rounded-md bg-[var(--bg-side)]" style={{ width: size, height: size, ...style }}>
       {!style && <Icon value={row?.icon && row.icon !== '🍳' ? row.icon : '🍽️'} size={Math.round(size * 0.6)} />}
     </span>
-  )
-}
-
-/** Choisir une recette (bouton « + » d'une case) : recherche et liste. */
-function RecipePicker({ rows, x, y, onPick, onClose }: { rows: ObjectRow[]; x: number; y: number; onPick: (row: ObjectRow) => void; onClose: () => void }) {
-  const [q, setQ] = useState('')
-  const [active, setActive] = useState(0)
-  const list = useMemo(() => {
-    const nq = normalize(q)
-    return rows.filter((r) => normalize(displayTitle(r.title)).includes(nq)).slice(0, 60)
-  }, [rows, q])
-  useEffect(() => setActive(0), [q])
-  useEffect(() => {
-    const down = (e: PointerEvent) => { if (!(e.target as HTMLElement).closest('[data-recipe-picker]')) onClose() }
-    window.addEventListener('pointerdown', down, true)
-    return () => window.removeEventListener('pointerdown', down, true)
-  }, [onClose])
-  const left = Math.max(8, Math.min(x, window.innerWidth - 300))
-  const top = Math.max(8, Math.min(y, window.innerHeight - 380))
-  return (
-    <div data-recipe-picker className="fixed z-50 flex w-72 flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-lg" style={{ left, top, maxHeight: 360 }}>
-      <label className="m-2 flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-        <Search size={14} className="shrink-0 text-[var(--fg-muted)]" />
-        <input
-          autoFocus
-          value={q}
-          placeholder="Chercher une recette…"
-          aria-label="Chercher une recette"
-          className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--fg-muted)]"
-          onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') onClose()
-            else if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(list.length - 1, i + 1)) }
-            else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)) }
-            else if (e.key === 'Enter' && list[active]) onPick(list[active])
-          }}
-        />
-      </label>
-      <div className="min-h-0 flex-1 overflow-y-auto pb-1" role="listbox" aria-label="Recettes">
-        {list.length === 0 && <div className="px-3 py-3 text-sm text-[var(--fg-muted)]">Aucune recette</div>}
-        {list.map((r, i) => (
-          <button
-            key={r.id}
-            type="button"
-            role="option"
-            aria-selected={i === active}
-            className="mx-1 flex w-[calc(100%-8px)] items-center gap-2 rounded-md px-2 py-1 text-left text-sm"
-            style={{ background: i === active ? 'var(--bg-hover)' : undefined }}
-            onMouseEnter={() => setActive(i)}
-            onClick={() => onPick(r)}
-          >
-            <Thumb row={r} size={24} />
-            <span className="min-w-0 flex-1 truncate">{displayTitle(r.title)}</span>
-          </button>
-        ))}
-      </div>
-    </div>
   )
 }
 
@@ -151,6 +97,11 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
     for (const r of rows) m.set(r.id, recipeSeason(shoppingLines(parseContent(r.content) ?? []).lines, weekMonth))
     return m
   }, [rows, weekMonth])
+  const candidates = useMemo((): CandidateRecipe[] => rows.map((row) => {
+    const blocks = parseContent(row.content) ?? []
+    const t = parseValues(row.properties)[RECIPE.type]
+    return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
+  }), [rows])
   const [seasonFirst, setSeasonFirst] = useState(true)
   const sideList = useMemo(() => {
     const nq = normalize(query)
@@ -337,15 +288,22 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
       </div>
       )}
 
-      {picker && (
-        <RecipePicker
-          rows={sideList.length === rows.length ? sideList : [...rows].sort((a, b) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr'))}
-          x={picker.x}
-          y={picker.y}
-          onClose={() => setPicker(null)}
-          onPick={(r) => { add(picker.day, picker.meal, r.id); setPicker(null) }}
-        />
-      )}
+      {picker && (() => {
+        // Les plats proposés pour ce repas : de saison, une autre protéine que le reste de la journée, des ingrédients déjà achetés.
+        const weekIds = [...new Set((plan.weeks[week] ?? []).map((e) => e.recipeId))]
+        const sameDay = (plan.weeks[week] ?? []).filter((e) => e.day === picker.day).map((e) => e.recipeId)
+        return (
+          <DishPicker
+            rows={rows}
+            title={`Ajouter un plat : ${DAY_NAMES[picker.day].toLowerCase()} ${picker.meal}`}
+            subtitle={days[picker.day].toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}
+            suggestions={mealSuggestions(candidates, days[picker.day], weekIds, sameDay)}
+            again={weekIds}
+            onClose={() => setPicker(null)}
+            onPick={(id) => add(picker.day, picker.meal, id)}
+          />
+        )
+      })()}
     </div>
   )
 }
