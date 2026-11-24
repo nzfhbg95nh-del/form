@@ -1,6 +1,6 @@
-// Ce qui sert à trier et filtrer les recettes : cuisine du monde, envies, temps, saison, ingrédients.
-// La cuisine et les envies sont devinées d'après le titre et les ingrédients ; Victor peut les corriger
-// dans les propriétés « Cuisine » et « Envies » de la recette (une valeur choisie à la main l'emporte toujours).
+// Ce qui sert à trier et filtrer les recettes : cuisine du monde, temps, saison, ingrédients.
+// La cuisine est devinée d'après le titre et les ingrédients ; Victor peut la corriger
+// dans la propriété « Cuisine » de la recette (une valeur choisie à la main l'emporte toujours).
 // Logique pure, testée automatiquement.
 
 import { fold } from './shoppingList'
@@ -18,12 +18,6 @@ export const CUISINES: Facet[] = [
   { id: 'francaise', label: 'Française', color: '#e3e2e0', emoji: '🥖' },
 ]
 
-export const MOODS: Facet[] = [
-  { id: 'reconfortant', label: 'Réconfortant', color: '#fadec9', emoji: '🫕' },
-  { id: 'leger', label: 'Léger', color: '#dbeddb', emoji: '🥗' },
-  { id: 'epice', label: 'Épicé', color: '#ffe2dd', emoji: '🌶️' },
-]
-
 // Dans l'ordre : la première cuisine qui a le plus d'indices l'emporte.
 const CUISINE_HINTS: [string, RegExp][] = [
   ['indienne', /masala|curry(?! japonais)|dahl|\bdal\b|paneer|tikka|naan|chana|aloo|biryani|korma|chutney|tandoori|samosa|pakora|raita|curcuma|cardamome|ghee|bombay|chole|matar/],
@@ -34,12 +28,6 @@ const CUISINE_HINTS: [string, RegExp][] = [
   ['mexicaine', /tacos?|tortilla|guacamole|burrito|fajitas?|quesadilla|chili sin carne|chili con|nachos|enchilada|jalapeno|mexicain/],
   ['mediterraneenne', /tzatziki|moussaka|spanakopita|feta|grec|ratatouille|gaspacho|tapas|paella|espagnol|olives? noires|aubergines? a la/],
   ['francaise', /gratin|quiche|blanquette|veloute|bourguignon|croque|crepe|galette bretonne|tartiflette|hachis|soupe a l oignon|pot au feu|vinaigrette|francais/],
-]
-
-const MOOD_HINTS: [string, RegExp][] = [
-  ['reconfortant', /gratin|curry|soupe|veloute|ragout|mijote|puree|creme|fromage|lasagne|risotto|dahl|chili|tartiflette|hachis|parmigiana|pates cremeuses|mac|raclette|fondue|potee|crumble/],
-  ['leger', /salade|vapeur|bowl|crudites|taboule|gaspacho|poke|carpaccio|tartare de legumes|rouleaux de printemps|concombre/],
-  ['epice', /piment|harissa|chili|curry|sriracha|gochujang|cayenne|jalapeno|tandoori|epice|masala|wasabi|chipotle/],
 ]
 
 const textOf = (title: string, lines: string[]) => fold(`${title} ${lines.join(' ')}`).replace(/['’-]/g, ' ')
@@ -58,20 +46,10 @@ export function guessCuisine(title: string, lines: string[]): string | null {
   return best
 }
 
-/** Les envies devinées. */
-export function guessMoods(title: string, lines: string[]): string[] {
-  const all = textOf(title, lines)
-  return MOOD_HINTS.filter(([, re]) => re.test(all)).map(([id]) => id)
-}
-
 /** La valeur choisie à la main l'emporte ; sinon, celle devinée. */
 export function cuisineOf(title: string, lines: string[], chosen: unknown): string | null {
   return typeof chosen === 'string' && chosen ? chosen : guessCuisine(title, lines)
 }
-export function moodsOf(title: string, lines: string[], chosen: unknown): string[] {
-  return Array.isArray(chosen) && chosen.length > 0 ? chosen.filter((x): x is string => typeof x === 'string') : guessMoods(title, lines)
-}
-
 export type TimeBucket = 'rapide' | 'moyen' | 'long'
 export const TIME_BUCKETS: { id: TimeBucket; label: string }[] = [
   { id: 'rapide', label: '30 min ou moins' },
@@ -107,7 +85,6 @@ export interface RecipeFacts {
   outOfSeason: string[]
   veg: boolean
   cuisine: string | null
-  moods: string[]
   lines: string[]
 }
 
@@ -115,12 +92,11 @@ export interface RecipeFilters {
   season: boolean
   time: TimeBucket | null
   cuisines: string[]
-  moods: string[]
   /** « J'ai… » : ingrédients à utiliser. */
   have: string
 }
-export const NO_FILTERS: RecipeFilters = { season: false, time: null, cuisines: [], moods: [], have: '' }
-export const hasFilters = (f: RecipeFilters) => f.season || f.time !== null || f.cuisines.length > 0 || f.moods.length > 0 || ingredientWords(f.have).length > 0
+export const NO_FILTERS: RecipeFilters = { season: false, time: null, cuisines: [], have: '' }
+export const hasFilters = (f: RecipeFilters) => f.season || f.time !== null || f.cuisines.length > 0 || ingredientWords(f.have).length > 0
 
 /** De saison : au moins un fruit ou légume du mois, et aucun d'une autre saison. */
 export const isInSeason = (f: RecipeFacts) => f.inSeason.length > 0 && f.outOfSeason.length === 0
@@ -130,7 +106,6 @@ export function filterScore(f: RecipeFacts, flt: RecipeFilters): number {
   if (flt.season && !isInSeason(f)) return 0
   if (flt.time && timeBucket(f.minutes) !== flt.time) return 0
   if (flt.cuisines.length > 0 && (!f.cuisine || !flt.cuisines.includes(f.cuisine))) return 0
-  if (flt.moods.length > 0 && !flt.moods.some((m) => f.moods.includes(m))) return 0
   const words = ingredientWords(flt.have)
   if (words.length === 0) return 1
   return ingredientHits(f.lines, words)

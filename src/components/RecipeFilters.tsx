@@ -1,17 +1,17 @@
 import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Clock, Globe, Heart, Sprout, X } from 'lucide-react'
+import { Check, ChevronDown, Clock, Globe, Sprout, X } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { parseValues } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import { MEAT, readSteps, stepsMinutes } from '@/lib/mealPrep'
-import { CUISINES, cuisineOf, hasFilters, isInSeason, moodsOf, MOODS, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
+import { CUISINES, cuisineOf, hasFilters, isInSeason, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
 import { RECIPE } from '@/lib/recipes'
 import { recipeSeason } from '@/lib/seasons'
 import { fold, shoppingLines } from '@/lib/shoppingList'
 import type { CardBadge } from '@/components/RecipeCard'
 import type { ObjectRow } from '@/lib/types'
 
-/** Ce qu'on sait de chaque recette (temps, saison, végé, cuisine, envies), pour les vignettes et les filtres. */
+/** Ce qu'on sait de chaque recette (temps, saison, végé, cuisine), pour les vignettes et les filtres. */
 export function useRecipeFacts(rows: ObjectRow[]): Map<string, RecipeFacts> {
   return useMemo(() => {
     const month = new Date().getMonth() + 1
@@ -31,7 +31,6 @@ export function useRecipeFacts(rows: ObjectRow[]): Map<string, RecipeFacts> {
         outOfSeason: season.outOfSeason,
         veg: read.variant !== null || !MEAT.test(fold(read.lines.join(' '))),
         cuisine: cuisineOf(title, read.lines, v[RECIPE.cuisine]),
-        moods: moodsOf(title, read.lines, v[RECIPE.moods]),
         lines: read.lines,
       }]
     }))
@@ -75,7 +74,7 @@ function Menu({ label, icon, items, selected, onToggle, count }: { label: string
   )
 }
 
-/** La barre de filtres des recettes : de saison, temps, cuisine du monde, envie, « J'ai… ». */
+/** La barre de filtres des recettes : de saison, temps, cuisine du monde, « J'ai… ». */
 export function RecipeFilterBar({ filters, onChange, facts }: { filters: RecipeFilters; onChange: (f: RecipeFilters) => void; facts: RecipeFacts[] }) {
   const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
   return (
@@ -85,7 +84,6 @@ export function RecipeFilterBar({ filters, onChange, facts }: { filters: RecipeF
         onToggle={(id) => onChange({ ...filters, time: filters.time === id ? null : (id as RecipeFilters['time']) })}
         count={(id) => facts.filter((f) => f.minutes !== null && (id === 'rapide' ? f.minutes <= 30 : id === 'moyen' ? f.minutes > 30 && f.minutes <= 60 : f.minutes > 60)).length} />
       <Menu label="Cuisine du monde" icon={<Globe size={13} />} items={CUISINES} selected={filters.cuisines} onToggle={(id) => onChange({ ...filters, cuisines: toggle(filters.cuisines, id) })} count={(id) => facts.filter((f) => f.cuisine === id).length} />
-      <Menu label="Envie" icon={<Heart size={13} />} items={MOODS} selected={filters.moods} onToggle={(id) => onChange({ ...filters, moods: toggle(filters.moods, id) })} count={(id) => facts.filter((f) => f.moods.includes(id)).length} />
       <label className="flex min-w-[16rem] flex-1 items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-0.5 text-sm focus-within:border-[#2383e2]">
         <span className="shrink-0 text-[var(--fg-muted)]">J’ai…</span>
         <input value={filters.have} onChange={(e) => onChange({ ...filters, have: e.target.value })} placeholder="des courgettes, des pois chiches" aria-label="Ingrédients que j’ai" className="min-w-0 flex-1 bg-transparent outline-none" />

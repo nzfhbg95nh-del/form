@@ -1,5 +1,5 @@
 import { newId, OPTION_COLORS, parseValues, type Column, type Schema, type SelectOption } from './database'
-import { CUISINES, MOODS } from './recipeFacets'
+import { CUISINES } from './recipeFacets'
 
 /** Identifiants des colonnes de la base « Recettes ». */
 export const RECIPE = {
@@ -65,7 +65,6 @@ export function recipesSchema(): Schema {
       prepColumn(),
       difficultyColumn(),
       cuisineColumn(),
-      moodsColumn(),
       { id: RECIPE.source, name: 'Source', type: 'url' },
     ],
     views: [{ id: newId(), name: 'Galerie', type: 'gallery', filters: [], sorts: [] }],
@@ -83,13 +82,12 @@ const difficultyColumn = (): Column => ({
   options: [opt('d1', 'Facile', '#dbeddb'), opt('d2', 'Moyen', '#fdecc8'), opt('d3', 'Difficile', '#ffe2dd')],
 })
 
-/** Cuisine du monde et envies : devinées tant qu'elles sont vides, une valeur choisie à la main l'emporte. */
+/** Cuisine du monde : devinée tant qu'elle est vide, une valeur choisie à la main l'emporte. */
 const cuisineColumn = (): Column => ({ id: RECIPE.cuisine, name: 'Cuisine', type: 'select', options: CUISINES.map((c) => opt(c.id, c.label, c.color, c.emoji)) })
-const moodsColumn = (): Column => ({ id: RECIPE.moods, name: 'Envies', type: 'multiselect', options: MOODS.map((c) => opt(c.id, c.label, c.color, c.emoji)) })
 
-/** Propriétés abandonnées (cuisson, étiquettes) : retirées. La note, le temps de préparation et la difficulté servent au tri. */
-const REMOVED_COLUMNS = new Set<string>([RECIPE.cook, RECIPE.tags])
-const COLUMN_ORDER: string[] = [RECIPE.type, RECIPE.servings, RECIPE.rating, RECIPE.prep, RECIPE.difficulty, RECIPE.cuisine, RECIPE.moods, RECIPE.source]
+/** Propriétés abandonnées (cuisson, étiquettes, envies) : retirées. La note, le temps de préparation et la difficulté servent au tri. */
+const REMOVED_COLUMNS = new Set<string>([RECIPE.cook, RECIPE.tags, RECIPE.moods])
+const COLUMN_ORDER: string[] = [RECIPE.type, RECIPE.servings, RECIPE.rating, RECIPE.prep, RECIPE.difficulty, RECIPE.cuisine, RECIPE.source]
 
 /**
  * Met une base « Recettes » créée avant au goût du jour : retire les propriétés abandonnées, ajoute celles qui manquent
@@ -103,7 +101,6 @@ export function normalizeRecipesSchema(schema: Schema): Schema {
   if (!has(RECIPE.difficulty)) missing.push(difficultyColumn())
   if (!has(RECIPE.source)) missing.push({ id: RECIPE.source, name: 'Source', type: 'url' })
   if (!has(RECIPE.cuisine)) missing.push(cuisineColumn())
-  if (!has(RECIPE.moods)) missing.push(moodsColumn())
   const hasRemoved = schema.columns.some((c) => REMOVED_COLUMNS.has(c.id))
   if (!hasRemoved && missing.length === 0) return schema
   const rank = (id: string) => { const i = COLUMN_ORDER.indexOf(id); return i < 0 ? COLUMN_ORDER.length : i }

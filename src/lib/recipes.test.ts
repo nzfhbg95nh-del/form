@@ -16,7 +16,7 @@ describe('base de recettes', () => {
     expect(recipeCategories(parsed).map((c) => [c.emoji, c.label])).toEqual([
       ['🥃', 'Boissons & Cocktails'], ['🥘', 'Plats'], ['🫕', 'Petit plat du midi'], ['🥖', 'Compléments'], ['🍩', 'Desserts'], ['🥣', 'Entrée'], ['🍪', 'Biscuits, etc…'], ['🧭', 'Découverte'],
     ])
-    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'moods', 'source'])
+    expect(parsed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'source'])
     expect(new Set(parsed.columns.map((c) => c.id)).size).toBe(parsed.columns.length)
   })
 
@@ -91,14 +91,14 @@ describe('anciennes propriétés des recettes', () => {
   it('retire cuisson et étiquettes, et garde catégorie, portions et source', () => {
     const legacy = { ...recipesSchema(), columns: [...recipesSchema().columns, ...extra] }
     const clean = normalizeRecipesSchema(legacy)
-    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'moods', 'source'])
+    expect(clean.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'source'])
     expect(normalizeRecipesSchema(clean)).toBe(clean)
   })
 
   it('remet « Source » dans une base où la version précédente l’avait retirée', () => {
     const withoutSource = { ...recipesSchema(), columns: recipesSchema().columns.filter((c) => c.id !== RECIPE.source) }
     const fixed = normalizeRecipesSchema(withoutSource)
-    expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'moods', 'source'])
+    expect(fixed.columns.map((c) => c.id)).toEqual(['type', 'servings', 'rating', 'prep', 'difficulty', 'cuisine', 'source'])
     expect(fixed.columns.at(-1)).toMatchObject({ name: 'Source', type: 'url' })
   })
 })
@@ -170,5 +170,11 @@ describe('catégorie « Découverte »', () => {
       { id: 'd', title: null },
     ]
     expect(discoveryRowIds(rows)).toEqual(['a', 'b'])
+  })
+})
+describe('propriété « Envies » abandonnée', () => {
+  it('est retirée des bases qui l’avaient', () => {
+    const old = { ...recipesSchema(), columns: [...recipesSchema().columns, { id: RECIPE.moods, name: 'Envies', type: 'multiselect' as const }] }
+    expect(normalizeRecipesSchema(old).columns.map((c) => c.id)).not.toContain('moods')
   })
 })
