@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { ChevronDown, ChevronRight, Leaf } from 'lucide-react'
 import { forageCalendar, forageNearby } from '@/lib/forage'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 
@@ -14,7 +14,7 @@ const plural = (n: number, w: string) => `${n} ${w}${n > 1 ? 's' : ''}`
 export function ForageBanner({ rows }: { rows: ObjectRow[] }) {
   const select = useApp((s) => s.select)
   const [open, setOpen] = useState(false)
-  const recipes = useMemo(() => rows.map((r) => ({ id: r.id, title: displayTitle(r.title), text: r.content ?? '' })), [rows])
+  const recipes = useMemo(() => rows.map((r) => ({ id: r.id, title: dishTitle(r), text: r.content ?? '' })), [rows])
   const alerts = useMemo(() => forageNearby(recipes, new Date()), [recipes])
   const calendar = useMemo(() => forageCalendar(recipes), [recipes])
 

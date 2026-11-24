@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Check, ChefHat, Clock, Flame, Snowflake, Sparkles, Refrigerator, Sun, Archive } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { parseValues } from '@/lib/database'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import { buildSession, fmtMinutes, readSteps, suggestIdeas, type CandidateRecipe, type PrepRecipe, type StorageLine } from '@/lib/mealPrep'
 import { DAY_NAMES, type MealPlan } from '@/lib/mealPlan'
 import { RECIPE } from '@/lib/recipes'
@@ -63,7 +63,7 @@ export function MealPrepView({ plan, week, byId, rows, onUseIdea }: {
       if (!r) {
         const read = shoppingLines(blocks)
         const steps = readSteps(blocks)
-        r = { id: row.id, title: displayTitle(row.title), lines: read.lines, factor: 0, steps: steps.steps, variantSteps: read.variant ? steps.variantSteps : [], prep: num(v[RECIPE.prep]), cook: num(v[RECIPE.cook]), meals: [] }
+        r = { id: row.id, title: dishTitle(row), lines: read.lines, factor: 0, steps: steps.steps, variantSteps: read.variant ? steps.variantSteps : [], prep: num(v[RECIPE.prep]), cook: num(v[RECIPE.cook]), meals: [] }
         ;(r as PrepRecipe & { base?: number }).base = read.servings ?? num(v[RECIPE.servings]) ?? 0
         byRecipe.set(row.id, r)
       }
@@ -81,7 +81,7 @@ export function MealPrepView({ plan, week, byId, rows, onUseIdea }: {
     const candidates: CandidateRecipe[] = rows.map((row) => {
       const blocks = parseContent(row.content) ?? []
       const t = parseValues(row.properties)[RECIPE.type]
-      return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
+      return { id: row.id, title: dishTitle(row), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
     })
     return suggestIdeas(candidates, 3, new Date().getMonth() + 1)
   }, [rows])

@@ -6,6 +6,7 @@ import { useLibrary } from '@/biblio/store/library.ts'
 import { firstImageUrl } from '@/lib/content'
 import { parseValues } from '@/lib/database'
 import { RECIPE } from '@/lib/recipes'
+import { dishTitle } from '@/lib/vegTitle'
 import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
@@ -59,7 +60,7 @@ export function RecipeCard({ row, tall = false, badges = [], minutes = null }: {
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
       <div className="flex h-10 flex-col justify-center px-3">
-        <div className="truncate text-sm font-medium">{displayTitle(row.title)}</div>
+        <div className="truncate text-sm font-medium" title={dishTitle(row) !== displayTitle(row.title) ? `Version végé de « ${displayTitle(row.title)} »` : undefined}>{dishTitle(row)}</div>
         {info && <div className="truncate text-xs leading-4 text-[var(--fg-muted)]">{info}</div>}
       </div>
     </button>

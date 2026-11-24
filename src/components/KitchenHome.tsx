@@ -7,7 +7,7 @@ import { useLibrary } from '@/biblio/store/library.ts'
 import { parseContent } from '@/lib/content'
 import { newId, parseValues } from '@/lib/database'
 import { todayIdeas } from '@/lib/kitchenIdeas'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import { addEntry, entriesAt, MEAL_PLAN_SETTING, parsePlan, serializePlan, weekKey, type Meal, type MealPlan } from '@/lib/mealPlan'
 import { prepMeals, readSteps, suggestIdeas, type CandidateRecipe } from '@/lib/mealPrep'
 import { RECIPE } from '@/lib/recipes'
@@ -42,7 +42,7 @@ export function KitchenHome({ rows, onGo }: { rows: ObjectRow[]; onGo: (tab: 'pl
   const candidates = useMemo((): CandidateRecipe[] => rows.map((row) => {
     const blocks = parseContent(row.content) ?? []
     const t = parseValues(row.properties)[RECIPE.type]
-    return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
+    return { id: row.id, title: dishTitle(row), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
   }), [rows])
 
   // Les recettes déjà prévues cette semaine ne sont pas reproposées.
@@ -106,7 +106,7 @@ export function KitchenHome({ rows, onGo }: { rows: ObjectRow[]; onGo: (tab: 'pl
       <section className="mb-8" aria-label="Idées pour aujourd'hui">
         <h2 className="mb-1 flex items-center gap-2 text-base font-semibold"><Lightbulb size={16} /> Idées pour aujourd’hui</h2>
         <p className="mb-3 text-sm text-[var(--fg-muted)]">
-          {todayMeals.map(({ meal, entries }) => `${meal === 'midi' ? 'Midi' : 'Soir'} : ${entries.length ? entries.map((e) => shortTitle(displayTitle(byId.get(e.recipeId)?.title ?? ''))).join(', ') : 'rien de prévu'}`).join(' · ')}
+          {todayMeals.map(({ meal, entries }) => `${meal === 'midi' ? 'Midi' : 'Soir'} : ${entries.length ? entries.map((e) => shortTitle((byId.get(e.recipeId) ? dishTitle(byId.get(e.recipeId)!) : ""))).join(', ') : 'rien de prévu'}`).join(' · ')}
           {' · '}<button className="underline hover:text-[var(--fg)]" onClick={() => onGo('plan')}>ouvrir le planning</button>
         </p>
         <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' }}>

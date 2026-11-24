@@ -17,6 +17,7 @@ import {
   setEntryEmoji, sortRecipes, defaultSortDescending, type RecipeSort, type RecipeCategory, type RecipeEntry,
 } from '@/lib/recipes'
 import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 import { RecipeCard } from '@/components/RecipeCard'
@@ -331,11 +332,11 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   // « Sans catégorie » n'apparaît que s'il y a des recettes dedans ; les vraies catégories toujours.
   const entries = useMemo(() => recipeEntries(schema).filter((e) => !e.isNone || none.length > 0), [schema, none.length])
   const entry = entries.find((e) => e.id === current)
-  const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title), sortDesc)
+  const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => dishTitle(r), sortDesc)
   const changeSort = (by: RecipeSort, desc: boolean) => { setSortBy(by); setSortDesc(desc) }
   const facts = useRecipeFacts(rows)
   const gallery = useMemo(() => {
-    const list = sorted(filterRecipes(rows, selected, query, categories, (r) => displayTitle(r.title)))
+    const list = sorted(filterRecipes(rows, selected, query, categories, (r) => `${dishTitle(r)} · ${displayTitle(r.title)}`))
     const scored = list.map((r) => ({ r, score: facts.has(r.id) ? filterScore(facts.get(r.id)!, filters) : 1 })).filter((x) => x.score > 0)
     // « J'ai… » : les recettes qui utilisent le plus d'ingrédients cherchés d'abord.
     if (ingredientWords(filters.have).length > 0) scored.sort((a, b) => b.score - a.score)

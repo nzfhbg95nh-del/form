@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Check, ChefHat, ClipboardCopy, Clock, Flame, Plus, Sparkles, Trash2, X } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { newId, parseValues } from '@/lib/database'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import { buildSession, fmtMinutes, MEAL_PREPS_SETTING, parseSavedPreps, readSteps, suggestCompanions, suggestIdeas, type CandidateRecipe, type PrepRecipe, type SavedPrep } from '@/lib/mealPrep'
 import { RECIPE } from '@/lib/recipes'
 import { AISLES, buildShoppingList, shoppingLines } from '@/lib/shoppingList'
@@ -46,7 +46,7 @@ export function MyMealPreps({ rows, byId, onUse }: { rows: ObjectRow[]; byId: Ma
   const candidates = useMemo((): CandidateRecipe[] => rows.map((row) => {
     const blocks = parseContent(row.content) ?? []
     const t = parseValues(row.properties)[RECIPE.type]
-    return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
+    return { id: row.id, title: dishTitle(row), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
   }), [rows])
   const candById = useMemo(() => new Map(candidates.map((c) => [c.id, c])), [candidates])
   const selected = picked.map((id) => candById.get(id)).filter((c): c is CandidateRecipe => !!c)
@@ -153,7 +153,7 @@ export function MyMealPreps({ rows, byId, onUse }: { rows: ObjectRow[]; byId: Ma
           {saved.map((p) => (
             <button key={p.id} className="rounded-xl border border-[var(--border)] p-3 text-left hover:bg-[var(--bg-hover)]" onClick={() => setOpenId(p.id)}>
               <div className="mb-1 font-medium">{p.name}</div>
-              <div className="text-xs text-[var(--fg-muted)]">{p.recipeIds.map((id) => byId.get(id)).filter(Boolean).map((r) => displayTitle(r!.title).replace(/\s*\(.*\)\s*$/, '')).join(' · ')}</div>
+              <div className="text-xs text-[var(--fg-muted)]">{p.recipeIds.map((id) => byId.get(id)).filter(Boolean).map((r) => dishTitle(r!).replace(/\s*\(.*\)\s*$/, '')).join(' · ')}</div>
               <div className="mt-1 text-xs text-[var(--fg-muted)]">{p.portions} portions par plat</div>
             </button>
           ))}
@@ -182,7 +182,7 @@ function PrepSheet({ prep, byId, onBack, onUse, onSelect, onRename, onPortions, 
     const steps = readSteps(blocks)
     const v = parseValues(row.properties)
     const base = read.servings ?? num(v[RECIPE.servings]) ?? 4
-    return { id: row.id, title: displayTitle(row.title), lines: read.lines, factor: prep.portions / base, steps: steps.steps, variantSteps: read.variant ? steps.variantSteps : [], prep: num(v[RECIPE.prep]), cook: num(v[RECIPE.cook]), meals: [] }
+    return { id: row.id, title: dishTitle(row), lines: read.lines, factor: prep.portions / base, steps: steps.steps, variantSteps: read.variant ? steps.variantSteps : [], prep: num(v[RECIPE.prep]), cook: num(v[RECIPE.cook]), meals: [] }
   }), [prep, byId])
   const session = useMemo(() => buildSession(recipes), [recipes])
   const shopping = useMemo(() => buildShoppingList(recipes.map((r) => ({ recipe: r.title, lines: r.lines, factor: r.factor }))), [recipes])

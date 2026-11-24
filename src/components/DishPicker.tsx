@@ -5,6 +5,7 @@ import { factBadges, RecipeFilterBar, useRecipeFacts } from '@/components/Recipe
 import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import { CUISINES, filterScore, ingredientWords, NO_FILTERS, type RecipeFilters } from '@/lib/recipeFacets'
 import { normalize } from '@/lib/search'
 import type { ObjectRow } from '@/lib/types'
@@ -48,10 +49,10 @@ export function DishPicker({ rows, title, subtitle, suggestions, again = [], pic
   const list = useMemo(() => {
     const nq = normalize(q.trim())
     const scored = rows
-      .filter((r) => nq === '' || normalize(displayTitle(r.title)).includes(nq))
+      .filter((r) => nq === '' || normalize(`${dishTitle(r)} ${displayTitle(r.title)}`).includes(nq))
       .map((r) => ({ r, score: facts.has(r.id) ? filterScore(facts.get(r.id)!, filters) : 1 }))
       .filter((x) => x.score > 0)
-      .sort((a, b) => displayTitle(a.r.title).localeCompare(displayTitle(b.r.title), 'fr'))
+      .sort((a, b) => dishTitle(a.r).localeCompare(dishTitle(b.r), 'fr'))
     if (ingredientWords(filters.have).length > 0) scored.sort((a, b) => b.score - a.score)
     return scored.map((x) => x.r)
   }, [rows, q, filters, facts])
@@ -88,7 +89,7 @@ export function DishPicker({ rows, title, subtitle, suggestions, again = [], pic
                   <button key={s.id} onClick={() => pick(s.id)} disabled={isPicked(s.id)} className="flex flex-col overflow-hidden rounded-xl border border-[var(--border)] text-left transition-colors hover:border-[#2383e2] hover:bg-[var(--bg-hover)] disabled:opacity-60">
                     <Photo row={row} h={120} />
                     <div className="flex flex-1 flex-col gap-1 p-3">
-                      <div className="font-medium leading-snug">{row ? displayTitle(row.title) : ''}</div>
+                      <div className="font-medium leading-snug">{row ? dishTitle(row) : ''}</div>
                       <div className="flex flex-wrap items-center gap-1 text-xs text-[var(--fg-muted)]">
                         {fmt(facts.get(s.id)?.minutes ?? null) && <span className="mr-1 inline-flex items-center gap-0.5"><Clock size={11} /> {fmt(facts.get(s.id)?.minutes ?? null)}</span>}
                         {badges(s.id)}
@@ -107,7 +108,7 @@ export function DishPicker({ rows, title, subtitle, suggestions, again = [], pic
                 <div className="flex flex-wrap gap-2">
                   {again.map((id) => byId.get(id) && (
                     <button key={id} onClick={() => pick(id)} className="flex items-center gap-2 rounded-lg border border-[var(--border)] py-1 pl-1 pr-3 text-sm hover:bg-[var(--bg-hover)]">
-                      <span className="h-8 w-8 overflow-hidden rounded"><Photo row={byId.get(id)} h={32} /></span>{displayTitle(byId.get(id)!.title)}
+                      <span className="h-8 w-8 overflow-hidden rounded"><Photo row={byId.get(id)} h={32} /></span>{dishTitle(byId.get(id)!)}
                     </button>
                   ))}
                 </div>
@@ -143,7 +144,7 @@ export function DishPicker({ rows, title, subtitle, suggestions, again = [], pic
                     className="flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left" style={{ background: i === active ? 'var(--bg-hover)' : undefined }}>
                     <span className="h-12 w-16 shrink-0 overflow-hidden rounded-md"><Photo row={r} h={48} /></span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">{displayTitle(r.title)}</span>
+                      <span className="block truncate font-medium">{dishTitle(r)}</span>
                       <span className="flex flex-wrap items-center gap-1 text-xs text-[var(--fg-muted)]">
                         {fmt(f?.minutes ?? null) && <span className="mr-1 inline-flex items-center gap-0.5"><Clock size={11} /> {fmt(f?.minutes ?? null)}</span>}
                         {badges(r.id)}

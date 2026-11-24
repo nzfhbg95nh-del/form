@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Check, ClipboardCopy, Plus, X } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { newId, parseValues } from '@/lib/database'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import type { MealPlan } from '@/lib/mealPlan'
 import { RECIPE } from '@/lib/recipes'
 import { AISLES, buildShoppingList, parseShopping, SHOPPING_SETTING, shoppingLines, shoppingText, type ShoppingSource, type WeekShopping } from '@/lib/shoppingList'
@@ -55,7 +55,7 @@ export function ShoppingList({ plan, week, byId }: { plan: MealPlan; week: strin
     for (const e of plan.weeks[week] ?? []) {
       const row = byId.get(e.recipeId)
       if (!row) continue
-      const name = displayTitle(row.title)
+      const name = dishTitle(row)
       const read = shoppingLines(parseContent(row.content) ?? [])
       if (read.lines.length === 0) { empty.add(name); continue }
       if (read.variant) variantNames.add(name)
@@ -78,7 +78,7 @@ export function ShoppingList({ plan, week, byId }: { plan: MealPlan; week: strin
     setCopied(true)
     window.setTimeout(() => setCopied(false), 2000)
   }
-  const recipeIdByName = useMemo(() => new Map([...byId.values()].map((r) => [displayTitle(r.title), r.id])), [byId])
+  const recipeIdByName = useMemo(() => new Map([...byId.values()].map((r) => [dishTitle(r), r.id])), [byId])
 
   if ((plan.weeks[week] ?? []).length === 0) {
     return <p className="rounded-xl border border-dashed border-[var(--border)] p-6 text-sm text-[var(--fg-muted)]">Aucun repas prévu cette semaine : ajoute des recettes dans le planning, la liste de courses se fera toute seule.</p>

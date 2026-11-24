@@ -4,7 +4,7 @@ import { getFoodIndex, NUTRITION_MATCHES_SETTING, parseMatches } from '@/compone
 import { parseContent } from '@/lib/content'
 import { parseValues } from '@/lib/database'
 import { dayKey, dayStrip, FOOD_JOURNAL_SETTING, journalDay, parseJournal, type JournalRecipe } from '@/lib/foodJournal'
-import { displayTitle } from '@/lib/lastEdit'
+import { dishTitle } from '@/lib/vegTitle'
 import { DAY_NAMES, weekKey, type MealPlan } from '@/lib/mealPlan'
 import { recipeNutrition, REFERENCES, type FoodIndex, type Reference, type Totals } from '@/lib/nutrition'
 import { weekAdvice, weekReport, MAIN_MEALS_SHARE, type Advice, type PlannedMeal } from '@/lib/nutritionAdvice'
@@ -77,14 +77,14 @@ export function NutritionView({ plan, week, byId, rows }: { plan: MealPlan; week
       const servings = read.servings ?? (Number(parseValues(row.properties)[RECIPE.servings]) || 4)
       const perServing: Totals = read.lines.length > 0 ? recipeNutrition(read.lines, servings, index, manual).perServing : {}
       // Une recette comptée dans sa version sans viande le dit dans son titre (« Butter chicken… (version sans viande) »).
-      return { id: row.id, title: displayTitle(row.title) + (read.variant ? ' (version sans viande)' : ''), perServing, lines: read.lines }
+      return { id: row.id, title: dishTitle(row), perServing, lines: read.lines }
     })
   }, [index, rows, manual])
   const factById = useMemo(() => new Map(facts.map((f) => [f.id, f])), [facts])
 
   const meals = useMemo((): PlannedMeal[] => (plan.weeks[week] ?? [])
     .filter((e) => byId.has(e.recipeId))
-    .map((e) => ({ day: e.day, meal: e.meal, recipeId: e.recipeId, title: displayTitle(byId.get(e.recipeId)!.title), perServing: factById.get(e.recipeId)?.perServing ?? {}, lines: factById.get(e.recipeId)?.lines })), [plan, week, byId, factById])
+    .map((e) => ({ day: e.day, meal: e.meal, recipeId: e.recipeId, title: dishTitle(byId.get(e.recipeId)!), perServing: factById.get(e.recipeId)?.perServing ?? {}, lines: factById.get(e.recipeId)?.lines })), [plan, week, byId, factById])
   const report = useMemo(() => weekReport(meals), [meals])
   const advice = useMemo(() => weekAdvice(report, meals, facts.filter((f) => Object.keys(f.perServing).length > 0), new Date().getMonth() + 1), [report, meals, facts])
 
@@ -94,7 +94,7 @@ export function NutritionView({ plan, week, byId, rows }: { plan: MealPlan; week
   const plannedThatDay = useMemo(() => {
     const wk = weekKey(day)
     const idx = (day.getDay() + 6) % 7
-    return (plan.weeks[wk] ?? []).filter((e) => e.day === idx && byId.has(e.recipeId)).map((e) => displayTitle(byId.get(e.recipeId)!.title).replace(/\s*\(.*\)\s*$/, ''))
+    return (plan.weeks[wk] ?? []).filter((e) => e.day === idx && byId.has(e.recipeId)).map((e) => dishTitle(byId.get(e.recipeId)!).replace(/\s*\(.*\)\s*$/, ''))
   }, [plan, day, byId])
   const addPlanned = () => {
     const lines = plannedThatDay.map((t) => `1 portion de ${t}`)

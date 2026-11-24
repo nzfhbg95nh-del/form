@@ -13,6 +13,7 @@ import { Icon } from '@/components/Icon'
 import { useLibrary } from '@/biblio/store/library.ts'
 import { askConfirm } from '@/lib/confirm'
 import { newId, parseValues } from '@/lib/database'
+import { dishTitle } from '@/lib/vegTitle'
 import { displayTitle } from '@/lib/lastEdit'
 import {
   addEntry, clearWeek, copyWeek, DAY_NAMES, dropMissingRecipes, emptyPlan, entriesAt, MEAL_PLAN_SETTING, MEALS, moveEntry, parsePlan, removeEntry, serializePlan, setServings, shiftWeek,
@@ -100,14 +101,14 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
   const candidates = useMemo((): CandidateRecipe[] => rows.map((row) => {
     const blocks = parseContent(row.content) ?? []
     const t = parseValues(row.properties)[RECIPE.type]
-    return { id: row.id, title: displayTitle(row.title), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
+    return { id: row.id, title: dishTitle(row), lines: shoppingLines(blocks).lines, steps: readSteps(blocks).steps, type: typeof t === 'string' ? t : null }
   }), [rows])
   const [seasonFirst, setSeasonFirst] = useState(true)
   const sideList = useMemo(() => {
     const nq = normalize(query)
-    const byName = (a: ObjectRow, b: ObjectRow) => displayTitle(a.title).localeCompare(displayTitle(b.title), 'fr')
+    const byName = (a: ObjectRow, b: ObjectRow) => dishTitle(a).localeCompare(dishTitle(b), 'fr')
     const score = (r: ObjectRow) => { const s = seasonById.get(r.id); return s ? seasonScore(s) : 0 }
-    return [...rows].filter((r) => normalize(displayTitle(r.title)).includes(nq)).sort((a, b) => (seasonFirst ? score(b) - score(a) : 0) || byName(a, b))
+    return [...rows].filter((r) => normalize(`${dishTitle(r)} ${displayTitle(r.title)}`).includes(nq)).sort((a, b) => (seasonFirst ? score(b) - score(a) : 0) || byName(a, b))
   }, [rows, query, seasonById, seasonFirst])
 
   const add = (day: number, meal: Meal, recipeId: string) => setPlan((p) => addEntry(p, week, day, meal, recipeId, DEFAULT_PEOPLE, newId()))
@@ -159,11 +160,11 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
           role="button"
           tabIndex={0}
           className="line-clamp-2 w-full cursor-pointer px-1.5 pt-1 text-left font-medium leading-tight hover:underline"
-          title={displayTitle(row?.title ?? null)}
+          title={(row ? dishTitle(row) : "")}
           onClick={() => row && select(row.id)}
           onKeyDown={(ev) => { if ((ev.key === 'Enter' || ev.key === ' ') && row) { ev.preventDefault(); select(row.id) } }}
         >
-          {displayTitle(row?.title ?? null)}
+          {(row ? dishTitle(row) : "")}
         </span>
         <div className="flex items-center gap-1 px-1.5 pb-1 pt-0.5 text-[var(--fg-muted)]" title="Nombre de personnes">
           <button type="button" aria-label="Une personne de moins" className="rounded px-0.5 hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => setPlan((p) => setServings(p, week, e.id, e.servings - 1))}><Minus size={11} /></button>
@@ -230,7 +231,7 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
                 data-plan-recipe={r.id}
               >
                 <Thumb row={r} size={26} />
-                <span className="min-w-0 flex-1 truncate">{displayTitle(r.title)}</span>
+                <span className="min-w-0 flex-1 truncate">{dishTitle(r)}</span>
                 {(() => {
                   // Un point vert : de saison ; orange : des produits frais hors saison (le détail au survol).
                   const s = seasonById.get(r.id)
