@@ -20,6 +20,8 @@ import { displayTitle } from '@/lib/lastEdit'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 import { RecipeCard } from '@/components/RecipeCard'
+import { factBadges, RecipeFilterBar, useRecipeFacts } from '@/components/RecipeFilters'
+import { filterScore, ingredientWords, NO_FILTERS, type RecipeFilters } from '@/lib/recipeFacets'
 import { askConfirm } from '@/lib/confirm'
 
 const button = 'rounded-lg px-2.5 py-1 text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]'
@@ -272,6 +274,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const [sortDesc, setSortDesc] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [query, setQuery] = useState('')
+  const [filters, setFilters] = useState<RecipeFilters>(NO_FILTERS)
   const [managing, setManaging] = useState(false)
   const [section, setSectionState] = useState<Section>(lastSection)
   const setSection = (s: Section) => { lastSection = s; setSectionState(s); setCurrent(null) }
@@ -330,10 +333,15 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
   const entry = entries.find((e) => e.id === current)
   const sorted = (list: ObjectRow[]) => sortRecipes(list, sortBy, (r) => displayTitle(r.title), sortDesc)
   const changeSort = (by: RecipeSort, desc: boolean) => { setSortBy(by); setSortDesc(desc) }
-  const gallery = useMemo(
-    () => sorted(filterRecipes(rows, selected, query, categories, (r) => displayTitle(r.title))),
-    [rows, selected, query, categories, sortBy, sortDesc], // eslint-disable-line react-hooks/exhaustive-deps
-  )
+  const facts = useRecipeFacts(rows)
+  const gallery = useMemo(() => {
+    const list = sorted(filterRecipes(rows, selected, query, categories, (r) => displayTitle(r.title)))
+    const scored = list.map((r) => ({ r, score: facts.has(r.id) ? filterScore(facts.get(r.id)!, filters) : 1 })).filter((x) => x.score > 0)
+    // « J'ai… » : les recettes qui utilisent le plus d'ingrédients cherchés d'abord.
+    if (ingredientWords(filters.have).length > 0) scored.sort((a, b) => b.score - a.score)
+    return scored.map((x) => x.r)
+  }, [rows, selected, query, categories, sortBy, sortDesc, facts, filters]) // eslint-disable-line react-hooks/exhaustive-deps
+  const card = (row: ObjectRow, tall = false) => <RecipeCard key={row.id} row={row} tall={tall} badges={factBadges(facts.get(row.id))} minutes={facts.get(row.id)?.minutes ?? null} />
 
   const save = (next: Schema) => void saveSchema(db.id, next)
 
@@ -394,7 +402,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         </div>
         <div className="mb-3"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
         <div className="grid items-start gap-x-4 gap-y-3" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))' }}>
-          {list.map((row) => <RecipeCard key={row.id} row={row} />)}
+          {list.map((row) => card(row))}
           <button
             onClick={() => create(entry.isNone ? undefined : entry.id)}
             className="flex h-[168px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-[var(--border)] text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]"
@@ -535,8 +543,9 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
           <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
           <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
+        <RecipeFilterBar filters={filters} onChange={setFilters} facts={[...facts.values()]} />
         <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
-          {gallery.map((row) => <RecipeCard key={row.id} row={row} tall />)}
+          {gallery.map((row) => card(row, true))}
         </div>
         {gallery.length === 0 && <p className="mt-4 text-sm text-[var(--fg-muted)]">{rows.length === 0 ? 'Pas encore de recette.' : 'Aucune recette ne correspond.'}</p>}
       </section>

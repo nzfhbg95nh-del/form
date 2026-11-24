@@ -19,7 +19,15 @@ export function recipePhotoStyle(row: ObjectRow): React.CSSProperties | undefine
 
 // La carte d'une recette vit dans son propre fichier : l'accueil l'affiche sans charger toute la page des recettes (et son éditeur).
 /** Carte d'une recette : sa photo (couverture, sinon première image de la page, sinon l'icône) et son titre. */
-export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boolean }) {
+export interface CardBadge { label: string; tone: 'green' | 'orange' | 'neutral' }
+const TONES: Record<CardBadge['tone'], React.CSSProperties> = {
+  green: { background: 'rgba(237,248,240,0.92)', color: '#2f6b4b' },
+  orange: { background: 'rgba(253,240,228,0.92)', color: '#a5520b' },
+  neutral: { background: 'rgba(255,255,255,0.88)', color: '#37352f' },
+}
+
+/** `badges` et `minutes` : vignettes posées sur la photo (de saison, végé, temps), sans changer la hauteur des cartes. */
+export function RecipeCard({ row, tall = false, badges = [], minutes = null }: { row: ObjectRow; tall?: boolean; badges?: CardBadge[]; minutes?: number | null }) {
   const select = useApp((s) => s.select)
   const v = parseValues(row.properties)
   const stars = /^r([1-5])$/.exec(String(v[RECIPE.rating] ?? ''))
@@ -42,6 +50,12 @@ export function RecipeCard({ row, tall = false }: { row: ObjectRow; tall?: boole
         style={style}
       >
         {!row.cover && !photo && row.icon && row.icon !== '🍳' && <Icon value={row.icon} size={40} />}
+        {badges.length > 0 && (
+          <div className="absolute bottom-1.5 left-1.5 flex flex-wrap gap-1">
+            {badges.map((b) => <span key={b.label} className="rounded px-1.5 py-px text-[11px] font-medium shadow-sm" style={TONES[b.tone]}>{b.label}</span>)}
+          </div>
+        )}
+        {minutes !== null && minutes > 0 && <span className="absolute right-1.5 top-1.5 rounded px-1.5 py-px text-[11px] font-medium shadow-sm" style={TONES.neutral}>{minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h${minutes % 60 ? String(minutes % 60).padStart(2, '0') : ''}`}</span>}
       </div>
       {/* Hauteur fixe : toutes les fiches ont la même dimension, qu'elles aient une note ou une difficulté ou non. */}
       <div className="flex h-10 flex-col justify-center px-3">
