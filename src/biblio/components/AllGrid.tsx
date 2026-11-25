@@ -260,7 +260,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">
-          <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" right={`${size} px`} ariaLabel="Taille des vignettes" />
+          <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" valueLabel={`${size} px`} ariaLabel="Taille des vignettes" />
           <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
           <div className="relative">
             <button className="btn btn-primary h-9" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">

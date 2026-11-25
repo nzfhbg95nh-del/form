@@ -18,6 +18,11 @@
   --fg-muted: #8a8a85;
   --border: #e5e5e3;
   --accent: #2383e2;
+  /* Curseur (SplitSlider) : piste gris clair, pastille blanche en relief, poignée gris foncé. */
+  --slider-track: #efefed;
+  --slider-fill: #ffffff;
+  --slider-handle: #55534e;
+  --slider-shadow: 0 1px 2px rgba(0, 0, 0, 0.08), 0 2px 6px -2px rgba(0, 0, 0, 0.12);
 }
 .dark {
   color-scheme: dark; /* barres de défilement, champs de date… passent en sombre aussi */
@@ -28,6 +33,10 @@
   --fg-muted: #8f8f8a;
   --border: #333333;
   --accent: #5ca8f0;
+  --slider-track: #252525;
+  --slider-fill: #3a3a3a;
+  --slider-handle: #c9c9c5;
+  --slider-shadow: 0 1px 2px rgba(0, 0, 0, 0.5), 0 2px 6px -2px rgba(0, 0, 0, 0.6);
 }
 html, body, #root { height: 100%; }
 body {

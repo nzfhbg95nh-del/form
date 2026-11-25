@@ -49,6 +49,9 @@ export function ToolOptionsPanel({ tool, options, onChange }: { tool: string; op
           <SplitSlider
             key={s.key}
             small
+            stacked
+            className="mb-3 last:mb-0"
+            format={(n) => settingText(n, s.unit)}
             min={s.min}
             max={s.max}
             step={s.step}

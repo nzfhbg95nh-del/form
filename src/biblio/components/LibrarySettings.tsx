@@ -94,7 +94,7 @@ function AiSection() {
           <RefreshCw size={16} className={classifying ? 'spin' : ''} /> Refaire le classement
         </button>
         <button className="btn" onClick={() => void clearAuto().then((n) => setCleared(n))} disabled={classifying}>Annuler le classement automatique</button>
-        <SplitSlider small className="w-64" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(v) => void setThreshold(v / 100)} label="Confiance min." valueLabel={`${Math.round(threshold * 100)} %`} ariaLabel="Confiance minimale" />
+        <SplitSlider small stacked format={(v) => `${v} %`} className="w-64" min={20} max={95} step={5} value={Math.round(threshold * 100)} onChange={(v) => void setThreshold(v / 100)} label="Confiance min." valueLabel={`${Math.round(threshold * 100)} %`} ariaLabel="Confiance minimale" />
       </div>
       {classifying && <div className="mt-3 max-w-md"><div className="text-xs" style={muted}>Comparaison avec tes images rangées… {classDone} / {classTotal}</div><ProgressBar done={classDone} total={classTotal} /></div>}
       <p className="mt-2 text-xs" style={muted}>
