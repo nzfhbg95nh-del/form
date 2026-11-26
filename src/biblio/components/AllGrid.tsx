@@ -3,7 +3,7 @@ import { addFiles, addPaths, ALLOWED_EXT } from '@/biblio/lib/ajouts.ts'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/States'
-import { Camera, ChevronLeft, HelpCircle, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
+import { Camera, ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
 import { formatDuration, layoutMasonry, visibleIndices, type Placed } from '@/biblio/lib/grid.ts'
 import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
@@ -266,11 +266,10 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         )}
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" valueLabel={`${size} px`} ariaLabel="Taille des vignettes" />
-          <button className="btn" onClick={() => setOrganize(!organize)} aria-pressed={organize} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
-          <button className="btn" onClick={blockDrag.openHelp} title="Les gestes de la bibliothèque" aria-label="Aide : les gestes de la bibliothèque"><HelpCircle size={15} /></button>
+          <button className="btn" onClick={() => setOrganize(!organize)} aria-pressed={organize} title="Organiser : sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer" aria-label="Organiser"><ListChecks size={15} /></button>
           <div className="relative">
-            <button className="btn btn-primary" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">
-              <Plus size={15} /> Ajouter
+            <button className="btn btn-primary" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)" aria-label="Ajouter des images">
+              <Plus size={15} />
             </button>
             {addMenu && (
               <>
