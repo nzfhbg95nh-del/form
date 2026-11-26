@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ArrowLeft, Check, Clock, List, Repeat, Search, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, Check, Clock, List, Repeat, Sparkles, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { factBadges, RecipeFilterBar, useRecipeFacts } from '@/components/RecipeFilters'
 import { Icon } from '@/components/Icon'
@@ -121,21 +121,25 @@ export function DishPicker({ rows, title, subtitle, header, suggestions, again =
           </div>
         ) : (
           <>
-            <div className="border-b border-[var(--border)] px-5 pt-3">
-              <div className="mb-3 flex items-center gap-2">
-                {suggestions.length > 0 && <button className="btn flex items-center gap-1 !px-2 !py-1 !text-sm" onClick={() => setMode('suggest')}><ArrowLeft size={14} /> Suggestions</button>}
-                <label className="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-                  <Search size={15} className="shrink-0 text-[var(--fg-muted)]" />
-                  <input ref={searchRef} value={q} onChange={(e) => setQ(e.target.value)} placeholder="Chercher une recette…" aria-label="Chercher une recette" className="min-w-0 flex-1 bg-transparent outline-none"
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(list.length - 1, i + 1)) }
-                      else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)) }
-                      else if (e.key === 'Enter' && list[active]) pick(list[active].id)
-                    }} />
-                </label>
-                <span className="text-sm text-[var(--fg-muted)]">{list.length}</span>
-              </div>
-              <RecipeFilterBar filters={filters} onChange={setFilters} facts={[...facts.values()]} />
+            <div className="border-b border-[var(--border)] px-5 py-3">
+              <RecipeFilterBar
+                filters={filters}
+                onChange={setFilters}
+                facts={[...facts.values()]}
+                summary={`${list.length} recette${list.length > 1 ? 's' : ''}`}
+                before={suggestions.length > 0 && <button className="btn" onClick={() => setMode('suggest')}><ArrowLeft size={14} /> Suggestions</button>}
+                search={{
+                  value: q,
+                  onChange: setQ,
+                  placeholder: 'Chercher une recette…',
+                  inputRef: searchRef,
+                  onKeyDown: (e) => {
+                    if (e.key === 'ArrowDown') { e.preventDefault(); setActive((i) => Math.min(list.length - 1, i + 1)) }
+                    else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((i) => Math.max(0, i - 1)) }
+                    else if (e.key === 'Enter' && list[active]) pick(list[active].id)
+                  },
+                }}
+              />
             </div>
             <div role="listbox" aria-label="Recettes" className="min-h-0 flex-1 overflow-y-auto p-2">
               {list.length === 0 && <p className="px-3 py-4 text-sm text-[var(--fg-muted)]">Aucune recette ne correspond.</p>}

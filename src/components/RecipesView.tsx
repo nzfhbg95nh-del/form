@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { SearchInput } from '@/components/SearchInput'
+import { CheckRow, FilterChips, FilterPill, SearchField, SearchFilterBar } from '@/components/SearchFilters'
 import { SegmentedBar } from '@/components/SettingsUi'
-import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, ChevronDown, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
+import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
 import { WeekPlanner, type PlannerTab } from '@/components/WeekPlanner'
 import { KitchenHome } from '@/components/KitchenHome'
 import { Icon } from '@/components/Icon'
@@ -21,7 +21,7 @@ import { dishTitle } from '@/lib/vegTitle'
 import type { ObjectRow } from '@/lib/types'
 import { useApp } from '@/store/app'
 import { RecipeCard } from '@/components/RecipeCard'
-import { factBadges, RecipeFilterBar, useRecipeFacts } from '@/components/RecipeFilters'
+import { factBadges, recipeFilterChips, RecipeFilterPills, useRecipeFacts } from '@/components/RecipeFilters'
 import { filterScore, ingredientWords, NO_FILTERS, type RecipeFilters } from '@/lib/recipeFacets'
 import { askConfirm } from '@/lib/confirm'
 
@@ -90,41 +90,19 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
 
 /** Bouton « Catégorie » : une liste à cocher (avec le nombre de recettes) pour ne garder que certaines catégories. */
 function CategoryFilter({ entries, countOf, selected, onChange, onManage }: { entries: RecipeEntry[]; countOf: (e: RecipeEntry) => number; selected: string[]; onChange: (ids: string[]) => void; onManage: () => void }) {
-  const [open, setOpen] = useState(false)
   const toggle = (id: string) => onChange(selected.includes(id) ? selected.filter((x) => x !== id) : [...selected, id])
   return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        aria-label="Filtrer par catégorie"
-        aria-pressed={selected.length > 0}
-        className="btn !px-3 !py-1.5"
-      >
-        Catégorie{selected.length > 0 ? ` (${selected.length})` : ''} <ChevronDown size={14} />
+    <FilterPill label="Catégorie" active={selected.length > 0} count={selected.length} width={288}>
+      {entries.map((e) => (
+        <CheckRow key={e.id} checked={selected.includes(e.id)} onChange={() => toggle(e.id)} count={countOf(e)}>
+          <span className="inline-flex items-center gap-2"><Icon value={e.emoji} size={16} />{e.label}</span>
+        </CheckRow>
+      ))}
+      <div className="my-1 border-t border-[var(--border)]" />
+      <button className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" onClick={onManage}>
+        <PenLine size={14} /> Gérer les catégories…
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div role="menu" className="absolute left-0 top-full z-50 mt-1 max-h-[60vh] w-72 overflow-y-auto rounded-md border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
-            {entries.map((e) => (
-              <label key={e.id} className="flex cursor-pointer items-center gap-2 rounded px-2 py-1.5 text-sm hover:bg-[var(--bg-hover)]">
-                <input type="checkbox" checked={selected.includes(e.id)} onChange={() => toggle(e.id)} />
-                <Icon value={e.emoji} size={16} />
-                <span className="min-w-0 flex-1 truncate">{e.label}</span>
-                <span className="text-xs text-[var(--fg-muted)]">{countOf(e)}</span>
-              </label>
-            ))}
-            {selected.length > 0 && (
-              <button className="mt-1 w-full rounded px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" onClick={() => onChange([])}>Tout afficher</button>
-            )}
-            <div className="my-1 border-t border-[var(--border)]" />
-            <button className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" onClick={() => { setOpen(false); onManage() }}>
-              <PenLine size={14} /> Gérer les catégories…
-            </button>
-          </div>
-        </>
-      )}
-    </div>
+    </FilterPill>
   )
 }
 
@@ -540,11 +518,26 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
         <div className="mb-4 flex flex-wrap items-center gap-2">
           <h2 className="mr-2 text-lg font-semibold">Toutes les recettes</h2>
           <span className="mr-2 text-sm text-[var(--fg-muted)]">{gallery.length}{gallery.length !== rows.length ? ` / ${rows.length}` : ''}</span>
-          <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
-          <SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} />
-          <SearchInput className="ml-auto w-56" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
         </div>
-        <RecipeFilterBar filters={filters} onChange={setFilters} facts={[...facts.values()]} />
+        <SearchFilterBar
+          className="mb-4"
+          chips={
+            <FilterChips
+              summary={`${gallery.length} sur ${rows.length} recettes`}
+              chips={[
+                ...(query.trim() ? [{ id: 'q', label: `« ${query.trim()} »`, remove: () => setQuery('') }] : []),
+                ...selected.map((id) => ({ id: `cat-${id}`, label: entries.find((e) => e.id === id)?.label ?? id, remove: () => setSelected(selected.filter((x) => x !== id)) })),
+                ...recipeFilterChips(filters, setFilters),
+              ]}
+              onClear={() => { setQuery(''); setSelected([]); setFilters(NO_FILTERS) }}
+            />
+          }
+        >
+          <SearchField className="w-72 max-w-full" placeholder="Chercher une recette…" label="Chercher une recette" value={query} onChange={setQuery} />
+          <CategoryFilter entries={entries} countOf={countOf} selected={selected} onChange={setSelected} onManage={() => setManaging(true)} />
+          <RecipeFilterPills filters={filters} onChange={setFilters} facts={[...facts.values()]} />
+          <div className="ml-auto"><SortControl sortBy={sortBy} sortDesc={sortDesc} onChange={changeSort} /></div>
+        </SearchFilterBar>
         <div className="grid items-start gap-x-5 gap-y-4" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))' }}>
           {gallery.map((row) => card(row, true))}
         </div>

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronLeft, ChevronRight, Copy, Minus, Plus, Repeat, Search, Trash2, X } from 'lucide-react'
+import { SearchField, ToggleFilter } from '@/components/SearchFilters'
+import { ChevronLeft, ChevronRight, Copy, Minus, Plus, Repeat, Sprout, Trash2, X } from 'lucide-react'
 import { recipePhotoStyle } from '@/components/RecipeCard'
 import { ShoppingList } from '@/components/ShoppingList'
 import { MealPrepView } from '@/components/MealPrepView'
@@ -220,14 +221,10 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
       <div className="flex min-h-0 flex-1 gap-4">
         {/* Les recettes, à glisser dans les cases. */}
         <aside className="flex w-48 shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--border)]" aria-label="Recettes à planifier">
-          <label className="m-2 flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>
-            <Search size={14} className="shrink-0 text-[var(--fg-muted)]" />
-            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Chercher…" aria-label="Chercher une recette à planifier" className="min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--fg-muted)]" />
-          </label>
-          <label className="mx-2 mb-1 flex items-center gap-1.5 text-xs text-[var(--fg-muted)]">
-            <input type="checkbox" checked={seasonFirst} onChange={(e) => setSeasonFirst(e.target.checked)} />
-            De saison d’abord ({monthName(weekMonth)})
-          </label>
+          <div className="m-2 flex flex-col gap-2">
+            <SearchField className="w-full" placeholder="Chercher…" label="Chercher une recette à planifier" value={query} onChange={setQuery} />
+            <ToggleFilter label="De saison d’abord" icon={<Sprout size={13} />} pressed={seasonFirst} onClick={() => setSeasonFirst(!seasonFirst)} />
+          </div>
           <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-2">
             {sideList.map((r) => (
               <div

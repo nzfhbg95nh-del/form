@@ -17,14 +17,15 @@ export function SearchFilterBar({ children, chips, className = '', bordered = fa
 }
 
 /** La grande recherche en pilule, avec sa loupe ; `trailing` : un petit bouton posé au bout (ex. chercher avec une image). */
-export function SearchField({ value, onChange, placeholder, label, trailing, className = 'w-96 max-w-full', autoFocus, onKeyDown }: {
+export function SearchField({ value, onChange, placeholder, label, trailing, className = 'w-96 max-w-full', autoFocus, onKeyDown, inputRef }: {
   value: string; onChange: (v: string) => void; placeholder: string; label?: string; trailing?: ReactNode; className?: string
-  autoFocus?: boolean; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void
+  autoFocus?: boolean; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; inputRef?: React.Ref<HTMLInputElement>
 }) {
   return (
     <label className={'relative flex items-center ' + className}>
       <Search size={14} className="pointer-events-none absolute left-3 text-[var(--fg-muted)]" />
       <input
+        ref={inputRef}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={onKeyDown}

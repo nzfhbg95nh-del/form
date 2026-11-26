@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react'
-import { Check, ChevronDown, Clock, Globe, Sprout, X } from 'lucide-react'
+import { useMemo } from 'react'
+import { Carrot, Clock, Globe, Sprout } from 'lucide-react'
+import { CheckRow, FilterChips, FilterPill, SearchField, SearchFilterBar, ToggleFilter, type FilterChip } from '@/components/SearchFilters'
 import { parseContent } from '@/lib/content'
 import { parseValues } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import { MEAT, readSteps, stepsMinutes } from '@/lib/mealPrep'
-import { CUISINES, cuisineOf, hasFilters, isInSeason, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
+import { CUISINES, cuisineOf, ingredientWords, isInSeason, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
 import { RECIPE } from '@/lib/recipes'
 import { recipeSeason } from '@/lib/seasons'
 import { fold, shoppingLines } from '@/lib/shoppingList'
@@ -47,48 +48,64 @@ export function factBadges(f: RecipeFacts | undefined): CardBadge[] {
   return out
 }
 
-const pill = (on: boolean) => 'flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-sm ' + (on ? 'border-[#2383e2] bg-[#2383e2]/10 text-[var(--fg)]' : 'border-[var(--border)] text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]')
+const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
+const inBucket = (id: string, m: number) => (id === 'rapide' ? m <= 30 : id === 'moyen' ? m > 30 && m <= 60 : m > 60)
 
-function Menu({ label, icon, items, selected, onToggle, count }: { label: string; icon: React.ReactNode; items: { id: string; label: string; emoji?: string }[]; selected: string[]; onToggle: (id: string) => void; count: (id: string) => number }) {
-  const [open, setOpen] = useState(false)
-  const chosen = items.filter((i) => selected.includes(i.id)).map((i) => i.label)
+/** Les filtres des recettes, en pilules (à poser dans une barre « Recherche + filtres ») : de saison, temps, cuisine du monde, « J'ai… ». */
+export function RecipeFilterPills({ filters, onChange, facts }: { filters: RecipeFilters; onChange: (f: RecipeFilters) => void; facts: RecipeFacts[] }) {
+  const words = ingredientWords(filters.have)
   return (
-    <div className="relative">
-      <button className={pill(chosen.length > 0)} onClick={() => setOpen((o) => !o)} aria-expanded={open}>
-        {icon} {chosen.length > 0 ? chosen.join(', ') : label} <ChevronDown size={12} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-30" onMouseDown={() => setOpen(false)} />
-          <div role="menu" className="absolute left-0 top-full z-40 mt-1 w-56 rounded-lg border border-[var(--border)] bg-[var(--bg)] p-1 shadow-xl">
-            {items.map((i) => (
-              <button key={i.id} role="menuitemcheckbox" aria-checked={selected.includes(i.id)} onClick={() => onToggle(i.id)} className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-[var(--bg-hover)]">
-                <span className={'flex h-4 w-4 items-center justify-center rounded border ' + (selected.includes(i.id) ? 'border-[#2383e2] bg-[#2383e2] text-white' : 'border-[var(--fg-muted)]')}>{selected.includes(i.id) && <Check size={11} strokeWidth={3} />}</span>
-                {i.emoji && <span>{i.emoji}</span>}<span className="flex-1">{i.label}</span><span className="text-xs text-[var(--fg-muted)]">{count(i.id)}</span>
-              </button>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
+    <>
+      <ToggleFilter label="De saison" icon={<Sprout size={14} />} pressed={filters.season} count={facts.filter(isInSeason).length} onClick={() => onChange({ ...filters, season: !filters.season })} />
+      <FilterPill label={filters.time ? (TIME_BUCKETS.find((b) => b.id === filters.time)?.label ?? 'Temps') : 'Temps'} icon={<Clock size={14} />} active={filters.time !== null} width={240}>
+        {TIME_BUCKETS.map((b) => (
+          <CheckRow key={b.id} checked={filters.time === b.id} onChange={() => onChange({ ...filters, time: filters.time === b.id ? null : (b.id as RecipeFilters['time']) })}
+            count={facts.filter((f) => f.minutes !== null && inBucket(b.id, f.minutes)).length}>{b.label}</CheckRow>
+        ))}
+      </FilterPill>
+      <FilterPill label="Cuisine du monde" icon={<Globe size={14} />} active={filters.cuisines.length > 0} count={filters.cuisines.length} width={260}>
+        {CUISINES.map((c) => (
+          <CheckRow key={c.id} checked={filters.cuisines.includes(c.id)} onChange={() => onChange({ ...filters, cuisines: toggle(filters.cuisines, c.id) })} count={facts.filter((f) => f.cuisine === c.id).length}>
+            {c.emoji ? `${c.emoji} ` : ''}{c.label}
+          </CheckRow>
+        ))}
+      </FilterPill>
+      <FilterPill label="J’ai…" icon={<Carrot size={14} />} active={words.length > 0} count={words.length} width={300}>
+        <div className="p-1">
+          <input autoFocus value={filters.have} onChange={(e) => onChange({ ...filters, have: e.target.value })} placeholder="des courgettes, des pois chiches" aria-label="Ingrédients que j’ai"
+            className="box-border h-[34px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 text-sm outline-none focus:border-[var(--accent)]" />
+          <p className="mt-2 text-xs text-[var(--fg-muted)]">Les recettes qui utilisent le plus de ces ingrédients passent en premier.</p>
+        </div>
+      </FilterPill>
+    </>
   )
 }
 
-/** La barre de filtres des recettes : de saison, temps, cuisine du monde, « J'ai… ». */
-export function RecipeFilterBar({ filters, onChange, facts }: { filters: RecipeFilters; onChange: (f: RecipeFilters) => void; facts: RecipeFacts[] }) {
-  const toggle = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id])
+/** Les filtres de recettes choisis, pour la ligne sous la barre (un clic en retire un). */
+export function recipeFilterChips(filters: RecipeFilters, onChange: (f: RecipeFilters) => void): FilterChip[] {
+  const chips: FilterChip[] = []
+  if (filters.season) chips.push({ id: 'season', label: 'De saison', remove: () => onChange({ ...filters, season: false }) })
+  if (filters.time) chips.push({ id: 'time', label: TIME_BUCKETS.find((b) => b.id === filters.time)?.label ?? 'Temps', remove: () => onChange({ ...filters, time: null }) })
+  for (const id of filters.cuisines) chips.push({ id: `c-${id}`, label: CUISINES.find((c) => c.id === id)?.label ?? id, remove: () => onChange({ ...filters, cuisines: filters.cuisines.filter((x) => x !== id) }) })
+  if (filters.have.trim()) chips.push({ id: 'have', label: `J’ai : ${filters.have.trim()}`, remove: () => onChange({ ...filters, have: '' }) })
+  return chips
+}
+
+/** Une barre complète (recherche + filtres de recettes + filtres choisis), pour la fenêtre de choix des plats. */
+export function RecipeFilterBar({ filters, onChange, facts, search, summary, before }: {
+  filters: RecipeFilters; onChange: (f: RecipeFilters) => void; facts: RecipeFacts[]
+  search?: { value: string; onChange: (v: string) => void; placeholder: string; inputRef?: React.Ref<HTMLInputElement>; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void }
+  summary?: React.ReactNode
+  /** Un bouton posé avant la recherche (ex. retour aux suggestions). */
+  before?: React.ReactNode
+}) {
+  const chips = recipeFilterChips(filters, onChange)
+  if (search?.value.trim()) chips.unshift({ id: 'q', label: `« ${search.value.trim()} »`, remove: () => search.onChange('') })
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-2">
-      <button className={pill(filters.season)} aria-pressed={filters.season} onClick={() => onChange({ ...filters, season: !filters.season })}><Sprout size={13} /> De saison <span className="text-xs opacity-70">{facts.filter(isInSeason).length}</span></button>
-      <Menu label="Temps" icon={<Clock size={13} />} items={TIME_BUCKETS} selected={filters.time ? [filters.time] : []}
-        onToggle={(id) => onChange({ ...filters, time: filters.time === id ? null : (id as RecipeFilters['time']) })}
-        count={(id) => facts.filter((f) => f.minutes !== null && (id === 'rapide' ? f.minutes <= 30 : id === 'moyen' ? f.minutes > 30 && f.minutes <= 60 : f.minutes > 60)).length} />
-      <Menu label="Cuisine du monde" icon={<Globe size={13} />} items={CUISINES} selected={filters.cuisines} onToggle={(id) => onChange({ ...filters, cuisines: toggle(filters.cuisines, id) })} count={(id) => facts.filter((f) => f.cuisine === id).length} />
-      <label className="flex min-w-[16rem] flex-1 items-center gap-1.5 rounded-full border border-[var(--border)] px-2.5 py-0.5 text-sm focus-within:border-[#2383e2]">
-        <span className="shrink-0 text-[var(--fg-muted)]">J’ai…</span>
-        <input value={filters.have} onChange={(e) => onChange({ ...filters, have: e.target.value })} placeholder="des courgettes, des pois chiches" aria-label="Ingrédients que j’ai" className="min-w-0 flex-1 bg-transparent outline-none" />
-      </label>
-      {hasFilters(filters) && <button className="flex items-center gap-1 text-sm text-[var(--fg-muted)] hover:text-[var(--fg)]" onClick={() => onChange(NO_FILTERS)}><X size={13} /> Effacer</button>}
-    </div>
+    <SearchFilterBar chips={<FilterChips chips={chips} summary={summary} onClear={() => { onChange(NO_FILTERS); search?.onChange('') }} />}>
+      {before}
+      {search && <SearchField value={search.value} onChange={search.onChange} placeholder={search.placeholder} inputRef={search.inputRef} onKeyDown={search.onKeyDown} className="w-72 max-w-full flex-1" />}
+      <RecipeFilterPills filters={filters} onChange={onChange} facts={facts} />
+    </SearchFilterBar>
   )
 }
