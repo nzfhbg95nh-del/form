@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
+import { SearchField } from '@/components/SearchFilters'
 import { ArrowDownUp, Filter as FilterIcon, Plus, Settings2, Trash2, X } from 'lucide-react'
 import {
-  allColumns, applyView, canGroupBy, makeView, newId, needsValue, OPS_BY_TYPE, OPTION_COLORS, parseSchema, PROP_TYPES, VIEW_TYPES,
+  allColumns, applyView, canGroupBy, makeView, newId, needsValue, OPS_BY_TYPE, OPTION_COLORS, parseSchema, searchRows, PROP_TYPES, VIEW_TYPES,
   type Column, type Filter, type PropType, type Schema, type ViewConfig, type ViewType,
 } from '@/lib/database'
 import { CalendarView, GalleryView, KanbanView, ListView, TableView } from '@/components/DatabaseViews'
@@ -345,7 +346,8 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
   useEffect(() => setTitle(db.title), [db.id, db.title])
 
   const rows = objects.filter((o) => o.type === 'row' && o.parent_id === db.id && !o.deleted_at)
-  const shown = applyView(rows, schema, view)
+  const [query, setQuery] = useState('')
+  const shown = searchRows(applyView(rows, schema, view), schema, query)
   const change = (s: Schema) => void saveSchema(db.id, s)
   const pick = (id: string) => {
     setActiveId(id)
@@ -410,26 +412,30 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
       </div>
 
       {panelOpen && <div className="fixed inset-0 z-10" onMouseDown={() => setPanelOpen(null)} />}
-      <div className="mb-3 mt-2 flex items-center gap-1">
+      <div className="mb-3 mt-3 flex flex-wrap items-center gap-2">
+        <SearchField className="w-64 max-w-full" placeholder="Rechercher…" label={`Rechercher dans ${db.title || 'la base'}`} value={query} onChange={setQuery} />
         <div className="relative">
-          <button className={btn} onClick={() => toggle('filter')}>
-            <FilterIcon size={14} /> Filtrer{view.filters.length > 0 && ` (${view.filters.length})`}
+          <button className="btn" aria-pressed={view.filters.length > 0} onClick={() => toggle('filter')}>
+            <FilterIcon size={14} /> Filtrer
+            {view.filters.length > 0 && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular-nums">{view.filters.length}</span>}
           </button>
           {panelOpen === 'filter' && <FilterPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
-          <button className={btn} onClick={() => toggle('sort')}>
-            <ArrowDownUp size={14} /> Trier{view.sorts.length > 0 && ` (${view.sorts.length})`}
+          <button className="btn" aria-pressed={view.sorts.length > 0} onClick={() => toggle('sort')}>
+            <ArrowDownUp size={14} /> Trier
+            {view.sorts.length > 0 && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular-nums">{view.sorts.length}</span>}
           </button>
           {panelOpen === 'sort' && <SortPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
-          <button className={btn} onClick={() => toggle('settings')}><Settings2 size={14} /> Réglages de la vue</button>
+          <button className="btn" aria-pressed={panelOpen === 'settings'} onClick={() => toggle('settings')}><Settings2 size={14} /> Réglages de la vue</button>
           {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="flex-1" />
         <AddColumn db={db} schema={schema} objects={objects} onChange={change} />
       </div>
+      {query.trim() && <p className="-mt-1 mb-2 text-sm text-[var(--fg-muted)]">{shown.length} ligne{shown.length > 1 ? 's' : ''} pour « {query.trim()} » · <button className="underline hover:text-[var(--fg)]" onClick={() => setQuery('')}>Effacer</button></p>}
 
       {view.type === 'table' && <TableView {...viewProps} />}
       {view.type === 'list' && <ListView {...viewProps} />}

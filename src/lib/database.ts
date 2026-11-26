@@ -1,4 +1,5 @@
 import type { ObjectRow } from './types'
+import { normalize } from './search'
 
 export type PropType = 'text' | 'number' | 'date' | 'select' | 'multiselect' | 'checkbox' | 'url' | 'relation' | 'file'
 
@@ -316,4 +317,21 @@ export function monthGrid(year: number, month: number): { date: string; inMonth:
     weeks.push(week)
   }
   return weeks
+}
+
+/** Recherche rapide dans une base : le titre et le texte de toutes les cellules (les choix d'une sélection par leur nom), sans accents ni majuscules. */
+export function searchRows(rows: ObjectRow[], schema: Schema, query: string): ObjectRow[] {
+  const words = normalize(query).split(/\s+/).filter(Boolean)
+  if (words.length === 0) return rows
+  const cols = schema.columns.filter((c) => c.type !== 'checkbox' && c.type !== 'relation' && c.type !== 'file')
+  return rows.filter((row) => {
+    const values = parseValues(row.properties)
+    const parts = [row.title]
+    for (const col of cols) {
+      const v = values[col.id]
+      for (const x of Array.isArray(v) ? v : v === undefined || v === null ? [] : [v]) parts.push(col.options?.find((o) => o.id === x)?.label ?? String(x))
+    }
+    const text = normalize(parts.join(' '))
+    return words.every((w) => text.includes(w))
+  })
 }

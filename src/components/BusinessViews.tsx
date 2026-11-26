@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { SearchInput } from '@/components/SearchInput'
+import { SearchField, SearchFilterBar, ToggleFilter } from '@/components/SearchFilters'
 import { EmptyState } from '@/components/States'
-import { Briefcase, Plus, Users } from 'lucide-react'
+import { Archive, Briefcase, Plus, Users } from 'lucide-react'
 import {
   centsToInput, clientAddressLines, clientDisplayName, formatEuros, newClient, newService, parseEuros, UNITS, validateClient,
 } from '@/lib/business'
@@ -52,17 +52,15 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
 }) {
   return (
     <>
-      <h1 className="mb-4 text-3xl font-bold">{title}</h1>
-      <div className="mb-3 flex items-center gap-3">
-        <SearchInput className="w-full max-w-xs" placeholder="Rechercher…" value={query} onChange={setQuery} />
-        {setShowArchived && (
-          <label className="flex items-center gap-1.5 text-sm text-[var(--fg-muted)]">
-            <input type="checkbox" checked={!!showArchived} onChange={(e) => setShowArchived(e.target.checked)} /> Afficher les archivés
-          </label>
-        )}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="text-3xl font-bold">{title}</h1>
         <div className="flex-1" />
         <button className={primary + ' flex items-center gap-1'} onClick={onNew}><Plus size={14} /> {newLabel}</button>
       </div>
+      <SearchFilterBar className="mb-3">
+        <SearchField className="w-72 max-w-full" placeholder="Rechercher…" label={`Rechercher dans ${title.toLowerCase()}`} value={query} onChange={setQuery} />
+        {setShowArchived && <ToggleFilter label="Archivés" icon={<Archive size={14} />} pressed={!!showArchived} onClick={() => setShowArchived(!showArchived)} />}
+      </SearchFilterBar>
     </>
   )
 }

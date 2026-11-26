@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DocFilterBar } from '@/components/DocFilterBar'
+import { docMatches, NO_DOC_FILTERS, type DocFilters } from '@/lib/docFilters'
 import { EmptyState } from '@/components/States'
 import { ArrowLeft, ChevronDown, ChevronUp, FileSignature, Plus, Trash2 } from 'lucide-react'
 import { centsToInput, clientDisplayName, formatEuros, parseEuros, parseSignedEuros, UNITS } from '@/lib/business'
@@ -39,10 +41,12 @@ function Row({ label, children, className }: { label: string; children: React.Re
 
 export function QuotesView() {
   const { quotes, quoteLines, clients, openQuoteId, openQuote, createQuote, duplicateQuote, deleteDraftQuote, setQuoteStatus } = useApp()
-  const [filter, setFilter] = useState<'all' | QuoteStatus>('all')
+  const [filters, setFilters] = useState<DocFilters>(NO_DOC_FILTERS)
   if (openQuoteId) return <QuoteEditor key={openQuoteId} id={openQuoteId} onBack={() => openQuote(null)} />
 
-  const shown = quotes.filter((q) => filter === 'all' || q.status === filter)
+  const clientNames = new Map(clients.map((c) => [c.id, clientDisplayName(c)]))
+  const facts = quotes.map((q) => ({ quote: q, facts: { number: q.number, title: q.title, issueDate: q.issue_date, clientId: q.client_id, clientName: clientNames.get(q.client_id ?? '') ?? '', status: q.status } }))
+  const shown = facts.filter((x) => docMatches(x.facts, filters)).map((x) => x.quote)
   const actionsOf = (q: Quote): RowAction[] => {
     const draft = isDraft(q)
     const statuses = draft ? [] : (['accepted', 'refused', 'sent'] as const).filter((s) => s !== q.status)
@@ -61,15 +65,12 @@ export function QuotesView() {
   }
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
-      <h1 className="mb-4 text-3xl font-bold">Devis</h1>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <select className={field + ' w-48! shrink-0'} value={filter} onChange={(e) => setFilter(e.target.value as typeof filter)}>
-          <option value="all">Tous les statuts</option>
-          {(Object.keys(STATUS_LABELS) as QuoteStatus[]).map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
-        </select>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="text-3xl font-bold">Devis</h1>
         <div className="flex-1" />
         <button className={primary + ' flex items-center gap-1'} onClick={() => void createQuote()}><Plus size={14} /> Nouveau devis</button>
       </div>
+      <DocFilterBar filters={filters} onChange={setFilters} docs={facts.map((x) => x.facts)} shown={shown.length} noun="devis" statusLabels={STATUS_LABELS} clientNames={clientNames} />
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-xs text-[var(--fg-muted)]">
@@ -102,7 +103,7 @@ export function QuotesView() {
       </table>
       {shown.length === 0 && (quotes.length === 0
         ? <EmptyState icon={<FileSignature size={24} />} title="Aucun devis pour le moment" hint="Un devis envoyé reçoit son numéro définitif. Tu peux le dupliquer ou le transformer en facture ensuite." action={{ label: 'Nouveau devis', onClick: () => void createQuote() }} />
-        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucun devis avec ce statut.</p>)}
+        : <p className="py-4 text-sm text-[var(--fg-muted)]">Aucun devis ne correspond à ces filtres.</p>)}
     </div>
   )
 }

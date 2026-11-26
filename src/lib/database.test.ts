@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyView, groupRows, monthGrid, parseSchema, type Schema, type ViewConfig } from './database'
+import { applyView, groupRows, searchRows, monthGrid, parseSchema, type Schema, type ViewConfig } from './database'
 import type { ObjectRow } from './types'
 
 const schema: Schema = {
@@ -91,5 +91,15 @@ describe('groupements et calendrier', () => {
     expect(weeks[0][3]).toEqual({ date: '2026-10-01', inMonth: true })
     expect(weeks.every((w) => w.length === 7)).toBe(true)
     expect(weeks.flat().filter((d) => d.inMonth)).toHaveLength(31)
+  })
+})
+
+describe('recherche rapide dans une base', () => {
+  it('cherche dans le titre et les cellules, choix par leur nom, sans accents', () => {
+    expect(ids(searchRows(rows, schema, 'elephant'))).toEqual(['1'])
+    expect(ids(searchRows(rows, schema, 'fini'))).toEqual(['2'])
+    expect(ids(searchRows(rows, schema, 'logo'))).toEqual(['1'])
+    expect(ids(searchRows(rows, schema, ''))).toEqual(['1', '2', '3'])
+    expect(searchRows(rows, schema, 'girafe')).toEqual([])
   })
 })

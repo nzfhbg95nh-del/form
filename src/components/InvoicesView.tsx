@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { DocFilterBar } from '@/components/DocFilterBar'
+import { docMatches, NO_DOC_FILTERS, type DocFilters } from '@/lib/docFilters'
 import { EmptyState } from '@/components/States'
 import { ArrowLeft, Plus, Receipt } from 'lucide-react'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { vatMention } from '@/lib/company'
 import {
   blockersToIssue, creditedSoFarCents, DISPLAY_COLORS, DISPLAY_LABELS, displayStatus, invoiceTotalCents, invoiceWarnings,
-  isInvoiceDraft, KIND_LABELS, newInvoiceLine, parseInvoiceSnapshot, type DisplayStatus,
+  isInvoiceDraft, KIND_LABELS, newInvoiceLine, parseInvoiceSnapshot,
 } from '@/lib/invoices'
 import type { InvoicePdfData } from '@/lib/pdf/invoicePdf'
 import { savePdf } from '@/lib/pdf/savePdf'
@@ -17,7 +19,7 @@ import { cn } from '@/lib/utils'
 import { RowMenu, RowMenuHead, runRowAction, type RowAction } from '@/components/RowMenu'
 import { useApp } from '@/store/app'
 import { LineRow } from '@/components/QuotesView'
-import type { AuditEntry, Invoice, InvoiceKind, InvoiceLine } from '@/lib/types'
+import type { AuditEntry, Invoice, InvoiceLine } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
 
 const field = 'lib-input w-full rounded-xl border px-3 py-2 text-sm outline-none disabled:opacity-70'
@@ -80,13 +82,14 @@ function NewDepositButton() {
 
 export function InvoicesView() {
   const { invoices, invoiceLines, clients, openInvoiceId, openInvoice, createStandardInvoice, deleteDraftInvoice, createCredit } = useApp()
-  const [status, setStatus] = useState<'all' | DisplayStatus>('all')
-  const [kind, setKind] = useState<'all' | InvoiceKind>('all')
+  const [filters, setFilters] = useState<DocFilters>(NO_DOC_FILTERS)
   if (openInvoiceId) return <InvoiceEditor key={openInvoiceId} id={openInvoiceId} onBack={() => openInvoice(null)} />
 
   const today = todayISO()
   const st = (i: Invoice) => displayStatus(i, today, isFullyCredited(i, invoices, invoiceLines))
-  const shown = invoices.filter((i) => (status === 'all' || st(i) === status) && (kind === 'all' || i.kind === kind))
+  const clientNames = new Map(clients.map((c) => [c.id, clientDisplayName(c)]))
+  const facts = invoices.map((i) => ({ invoice: i, facts: { number: i.number, title: i.title, issueDate: i.issue_date, clientId: i.client_id, clientName: clientNames.get(i.client_id ?? '') ?? '', status: st(i), kind: i.kind } }))
+  const shown = facts.filter((x) => docMatches(x.facts, filters)).map((x) => x.invoice)
   const actionsOf = (i: Invoice): RowAction[] => {
     const draft = isInvoiceDraft(i)
     return [
@@ -102,20 +105,13 @@ export function InvoicesView() {
   }
   return (
     <div className="mx-auto max-w-5xl px-12 py-10">
-      <h1 className="mb-4 text-3xl font-bold">Factures</h1>
-      <div className="mb-3 flex flex-wrap items-center gap-3">
-        <select className={field + ' w-44! shrink-0'} value={kind} onChange={(e) => setKind(e.target.value as typeof kind)}>
-          <option value="all">Tous les types</option>
-          {(Object.keys(KIND_LABELS) as InvoiceKind[]).map((k) => <option key={k} value={k}>{KIND_LABELS[k]}</option>)}
-        </select>
-        <select className={field + ' w-44! shrink-0'} value={status} onChange={(e) => setStatus(e.target.value as typeof status)}>
-          <option value="all">Tous les statuts</option>
-          {(Object.keys(DISPLAY_LABELS) as DisplayStatus[]).map((s) => <option key={s} value={s}>{DISPLAY_LABELS[s]}</option>)}
-        </select>
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <h1 className="text-3xl font-bold">Factures</h1>
         <div className="flex-1" />
         <NewDepositButton />
         <button className={primary + ' flex items-center gap-1'} onClick={() => void createStandardInvoice()}><Plus size={14} /> Nouvelle facture</button>
       </div>
+      <DocFilterBar filters={filters} onChange={setFilters} docs={facts.map((x) => x.facts)} shown={shown.length} noun="factures" statusLabels={DISPLAY_LABELS} kindLabels={KIND_LABELS} clientNames={clientNames} />
       <p className="mb-3 text-xs text-[var(--fg-muted)]">Les factures d'acompte et de solde se créent depuis un devis accepté (section Devis).</p>
       <table className="w-full border-collapse text-sm">
         <thead>
