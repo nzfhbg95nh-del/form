@@ -3,7 +3,7 @@ import { addFiles, addPaths, ALLOWED_EXT } from '@/biblio/lib/ajouts.ts'
 import { open as openDialog } from '@tauri-apps/plugin-dialog'
 import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { EmptyState, LoadingState } from '@/components/States'
-import { Camera, ChevronLeft, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
+import { Camera, ChevronLeft, HelpCircle, Images, LayoutGrid, ListChecks, Maximize, Play, Plus, Search } from 'lucide-react'
 import { formatDuration, layoutMasonry, visibleIndices, type Placed } from '@/biblio/lib/grid.ts'
 import { fileUrl, originalPath, thumbPath } from '@/biblio/lib/media.ts'
 import type { GridBlock } from '@/biblio/lib/blocks.ts'
@@ -15,6 +15,7 @@ import { SelectionBar } from './SelectionBar.tsx'
 import { CollectionHero } from './CollectionHero.tsx'
 import { FilterBar } from './FilterBar.tsx'
 import { TriageBanner } from './TriageView.tsx'
+import { useBlockDrag } from './BlockDrag.tsx'
 import { ImageSearchDialog } from './ImageSearchDialog.tsx'
 import { isSearchableImage } from '@/biblio/lib/imageSearchPure.ts'
 
@@ -33,14 +34,16 @@ interface TileProps {
   onClick: (e: React.MouseEvent, id: string) => void
   onHover: (id: string | null) => void
   onMenu: (x: number, y: number, id: string) => void
+  onPointerDown?: (e: React.PointerEvent, id: string) => void
 }
 
-export const Tile = memo(function Tile({ block, place, thumbsDir, videoSrc, selected, onClick, onHover, onMenu }: TileProps) {
+export const Tile = memo(function Tile({ block, place, thumbsDir, videoSrc, selected, onClick, onHover, onMenu, onPointerDown }: TileProps) {
   return (
     <div
       className="absolute cursor-pointer overflow-hidden rounded-xl shadow-[var(--shadow-soft)] after:pointer-events-none after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-200 after:content-[''] hover:after:bg-black/10"
       style={{ left: place.x, top: place.y, width: place.w, height: place.h, background: 'var(--bg-hover)', outline: selected ? '3px solid var(--accent)' : 'none', outlineOffset: -3 }}
       onClick={(e) => onClick(e, block.id)}
+      onPointerDown={onPointerDown && ((e) => onPointerDown(e, block.id))}
       onContextMenu={(e) => {
         e.preventDefault()
         onMenu(e.clientX, e.clientY, block.id)
@@ -165,13 +168,15 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
   const heroRef = useRef<HTMLDivElement>(null)
   const [heroH, setHeroH] = useState(0)
   const [hoverId, setHoverId] = useState<string | null>(null)
-  const [menu, setMenu] = useState<{ x: number; y: number; ids: string[] } | null>(null)
+  const [menu, setMenu] = useState<{ x: number; y: number; ids: string[]; pick?: boolean } | null>(null)
   const selected = useGrid((s) => s.selected)
   const selectBlock = useGrid((s) => s.selectBlock)
   const clearSelection = useGrid((s) => s.clearSelection)
   const organize = useGrid((s) => s.organize)
   const setOrganize = useGrid((s) => s.setOrganize)
   const openId = useGrid((s) => s.openId)
+  // Glisser une image pour la ranger (barre de dépôt en bas, carte d'aide la première fois).
+  const blockDrag = useBlockDrag({ blocks: shown, thumbsDir, onPick: (x, y, ids) => setMenu({ x, y: y - 480, ids, pick: true }) })
 
   // Échap vide la sélection (sauf quand la vue détail est ouverte : Échap la ferme).
   useEffect(() => {
@@ -262,6 +267,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" valueLabel={`${size} px`} ariaLabel="Taille des vignettes" />
           <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
+          <button className="btn h-9 !px-2.5" onClick={blockDrag.openHelp} title="Les gestes de la bibliothèque" aria-label="Aide : les gestes de la bibliothèque"><HelpCircle size={15} /></button>
           <div className="relative">
             <button className="btn btn-primary h-9" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">
               <Plus size={15} /> Ajouter
@@ -338,7 +344,9 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
                   thumbsDir={thumbsDir}
                   videoSrc={hoverId === block.id ? hoveredVideo : null}
                   selected={selected.has(block.id)}
+                  onPointerDown={blockDrag.onTilePointerDown}
                   onClick={(e, id) => {
+                    if (blockDrag.consumeClick()) return
                     // Ctrl+clic ou Maj+clic : on sélectionne ; quand une sélection existe, un clic simple l'enrichit ; sinon on ouvre.
                     if (e.shiftKey) selectBlock(id, 'range')
                     else if (e.ctrlKey || e.metaKey || organize || selected.size > 0) selectBlock(id, 'toggle')
@@ -352,7 +360,8 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
           </div>
         )}
       </div>
-      {menu && <BlockMenu x={menu.x} y={menu.y} blockIds={menu.ids} onClose={() => setMenu(null)} onDone={clearSelection} />}
+      {menu && <BlockMenu x={menu.x} y={menu.y} blockIds={menu.ids} startIn={menu.pick ? 'collection' : undefined} onClose={() => setMenu(null)} onDone={clearSelection} />}
+      {active && blockDrag.overlay}
       <SelectionBar />
       {dragging && (
         <div className="fixed inset-0 z-40 flex items-center justify-center gap-6 bg-black/45 p-10">

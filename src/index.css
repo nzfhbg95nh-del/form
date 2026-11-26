@@ -176,6 +176,9 @@ main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backward
 /* Panneau d'un filtre : il glisse de 4 px vers le bas en apparaissant. */
 .form-pop { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; }
 @keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+/* Barre de dépôt (glisser une image) et carte d'aide : elles montent en douceur du bas. */
+.form-dock, .form-help { animation: form-rise 0.28s var(--ease-spring) backwards; }
+@keyframes form-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

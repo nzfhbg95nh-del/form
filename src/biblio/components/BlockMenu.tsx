@@ -18,11 +18,13 @@ const entry = 'flex w-full items-center justify-between rounded-md px-2 py-2 tex
  * le mettre à la corbeille. `moveFrom` : on déplace depuis cette collection (les blocs y sont retirés une fois rangés ailleurs).
  * `onDone` : appelé après une action réussie (par exemple pour vider la sélection).
  */
-export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
+export function BlockMenu({ x, y, blockIds, moveFrom, startIn, onClose, onDone }: {
   x: number
   y: number
   blockIds: string[]
   moveFrom?: string
+  /** Ouvrir directement le choix de la collection (ex. après un dépôt sur « Autre collection… »). */
+  startIn?: 'collection'
   onClose: () => void
   onDone?: () => void
 }) {
@@ -33,7 +35,7 @@ export function BlockMenu({ x, y, blockIds, moveFrom, onClose, onDone }: {
   const boards = useFormBoards()
   const trash = useTrash((s) => s.trash)
   // Un déplacement ouvre tout de suite le choix de la collection.
-  const [view, setView] = useState<'main' | 'collection' | 'moodboard'>(moveFrom ? 'collection' : 'main')
+  const [view, setView] = useState<'main' | 'collection' | 'moodboard'>(moveFrom || startIn ? 'collection' : 'main')
   const [naming, setNaming] = useState(false)
 
   const picked = useMemo(() => {
