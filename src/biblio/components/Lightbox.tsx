@@ -3,6 +3,7 @@ import { openUrl, revealItemInDir } from '@tauri-apps/plugin-opener'
 import { ChevronLeft, ChevronRight, ExternalLink, FolderOpen, ImageOff, Map as MapIcon, X } from 'lucide-react'
 import { loadBlockFiles, type BlockFileInfo, type GridBlock } from '@/biblio/lib/blocks.ts'
 import { loadFileColors, type Swatch } from '@/biblio/lib/colors.ts'
+import { ColorStrip } from '@/components/ColorStrip'
 import { getSearchIndex } from '@/biblio/lib/searchIndex.ts'
 import { nearestBlocks } from '@/biblio/lib/semanticSearch.ts'
 import { loadNote, saveNote } from '@/biblio/lib/notes.ts'
@@ -446,18 +447,7 @@ function ColorPalette({ rel }: { rel: string }) {
   return (
     <div className="mt-7">
       <div className="lib-count mb-2">Couleurs</div>
-      <div className="flex overflow-hidden rounded-xl">
-        {swatches.map((s) => (
-          <button
-            key={s.hex}
-            className="h-9"
-            style={{ background: `#${s.hex}`, flexGrow: Math.max(s.pct, 8), flexBasis: 0 }}
-            title={`#${s.hex.toUpperCase()} (${s.pct} %) : cliquer pour copier`}
-            aria-label={`Copier #${s.hex.toUpperCase()}`}
-            onClick={() => copy(s.hex)}
-          />
-        ))}
-      </div>
+      <ColorStrip colors={swatches} onPick={(code) => copy(code.slice(1))} />
       <div className="mt-1 h-4 text-xs" style={{ color: 'var(--fg-muted)' }}>{copied ? `${copied} copié` : 'Cliquer sur une couleur pour copier son code'}</div>
     </div>
   )

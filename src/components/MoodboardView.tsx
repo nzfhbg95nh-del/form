@@ -12,6 +12,7 @@ import {
   type AlignMode, type Board, type Guide, type Handle, type BoardItem, type NormalizeMode, type Pattern, type Rect, type ShapeKind, type View,
 } from '@/lib/moodboard'
 import { extractPalette, mergePalettes, readableOn } from '@/lib/palette'
+import { ColorStrip } from '@/components/ColorStrip'
 import { pixelColor } from '@/lib/imageColor'
 import { ChevronUp, ImageDown, Lock, Ruler } from 'lucide-react'
 import { closeFloatingBoard, floatingBoardId, openFloatingBoard } from '@/lib/floating'
@@ -1722,6 +1723,7 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {paletteOpen && !compact && (
         <FloatPanel id="palette" title={`Palette ${selected.some((i) => i.kind === 'image') ? 'de la sélection' : 'de la toile'}`} icon={<PaletteIcon size={14} />} anchor={{ x: 'right', y: 'top', dx: 76, dy: 56 }} className="w-52" onClose={() => setPaletteOpen(false)}>
                     {palette.length === 0 && <div className="text-sm text-[var(--fg-muted)]">Ajoute des images pour en extraire les couleurs.</div>}
+          {palette.length > 0 && <ColorStrip className="mb-2" colors={palette.map((hex) => ({ hex }))} min={14} onPick={(c) => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} />}
           <div className="grid grid-cols-2 gap-2">
             {palette.map((c) => (
               <button key={c} title="Copier la couleur" onClick={() => void navigator.clipboard.writeText(c).then(() => say(`Couleur copiée : ${c}`))} className="overflow-hidden rounded-lg border border-[var(--border)] text-left">
