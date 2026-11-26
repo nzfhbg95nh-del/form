@@ -66,7 +66,7 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
           trailing={
             <>
               <Popover compact label="Chercher par couleur" align="right" active={Boolean(filters.color)} width={340}
-                icon={<span className="h-3.5 w-3.5 rounded-full" style={{ background: filters.color ? `#${filters.color}` : 'conic-gradient(#ff5a5a, #ffc94a, #5ad16a, #4ab8ff, #9a6bff, #ff5ab4, #ff5a5a)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.12)' }} />}>
+                icon={<span className="h-3 w-3 rounded-full" style={{ background: filters.color ? `#${filters.color}` : 'conic-gradient(#ff5a5a, #ffc94a, #5ad16a, #4ab8ff, #9a6bff, #ff5ab4, #ff5a5a)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.12)' }} />}>
                 <div className="p-1">
                   <ColorBar value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
                   {filters.color && (
