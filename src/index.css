@@ -209,9 +209,35 @@ table.w-full.border-collapse > thead > tr > :last-child, table.w-full.border-col
 
 /* Barres de la bibliothèque : décompte en petites capitales à chasse fixe, champs de recherche teintés, curseurs à poignée blanche (comme la barre Coffee / Milk). */
 .lib-count { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--fg-muted); }
-.lib-input { border-color: transparent !important; background: color-mix(in srgb, var(--fg) 6%, transparent) !important; }
+/* Champs et menus déroulants : le même dessin que la recherche et le curseur. Une piste gris clair aux coins arrondis, sans bordure ;
+   en écrivant, le champ devient blanc en relief avec un liseré bleu. Concerne les champs « encadrés » (classe border ou lib-input) et tous
+   les menus déroulants (sauf dans l'éditeur de pages). Les champs fondus dans le texte (titres, cellules sans bordure) ne changent pas. */
+:where(.lib-input, input.border:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea.border, select:not(.bn-container select)) {
+  background-color: var(--slider-track) !important;
+  border-color: transparent !important;
+  border-radius: 10px !important;
+  color: var(--fg);
+  transition: background-color 0.15s, box-shadow 0.15s;
+}
+:where(.lib-input, input.border:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea.border, select:not(.bn-container select)):hover:not(:focus) { background-color: color-mix(in srgb, var(--fg) 5%, var(--slider-track)) !important; }
+:where(.lib-input, input.border:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]), textarea.border, select:not(.bn-container select)):focus {
+  background-color: var(--slider-fill) !important;
+  border-color: transparent !important;
+  outline: none;
+  box-shadow: var(--slider-shadow), 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+:where(select:not(.bn-container select)) {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 28px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238a8a85' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 12px;
+  cursor: pointer;
+}
+select:not(.bn-container select) option { background: var(--bg); color: var(--fg); }
 .lib-input.border-yellow-500, .lib-input.border-red-500 { border-color: currentColor !important; }
-.lib-input:focus { background: var(--bg) !important; border-color: var(--accent) !important; }
 .lib-hint { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 11px !important; letter-spacing: 0.02em; background: color-mix(in srgb, var(--accent) 8%, var(--bg)) !important; border-color: color-mix(in srgb, var(--accent) 22%, transparent) !important; backdrop-filter: blur(8px); }
 input[type="range"] {
   -webkit-appearance: none; appearance: none; height: 8px; border-radius: 999px; outline: none; cursor: ew-resize;
