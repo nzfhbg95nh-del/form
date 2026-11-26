@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
+import { askConfirm } from '@/lib/confirm'
 import { invoke } from '@tauri-apps/api/core'
 import { listen } from '@tauri-apps/api/event'
-import { Download, Square } from 'lucide-react'
+import { Download, RotateCcw, Square } from 'lucide-react'
 import { buildJobs, EMPTY_SAVER, loadSaverSettings, saveSaverSettings, type SaverSettings } from '@/biblio/lib/saver.ts'
 import { getSetting, setSetting } from '@/biblio/lib/library.ts'
 import { DOWNLOAD_FREQUENCIES, type AutoFrequency } from '@/biblio/lib/autoUpdate.ts'
@@ -172,7 +173,8 @@ export function SaverSection() {
 
   const change = (patch: Partial<SaverSettings>) => setS((prev) => ({ ...prev, ...patch }))
 
-  const start = async () => {
+  const start = async (full = false) => {
+    if (full && !(await askConfirm('Tout retélécharger ?\n\nForm reparcourt tous tes enregistrés Instagram et toutes tes épingles Pinterest. Les fichiers encore présents sont sautés ; ceux qui manquent (« Fichier introuvable ») sont téléchargés de nouveau, à leur place.\n\nÇa peut prendre plusieurs heures : Form fait des pauses pour ne pas te faire bloquer. Tu peux arrêter et reprendre plus tard.', { label: 'Tout retélécharger' }))) return
     setError(null)
     setMessage(null)
     const { jobs, problem } = buildJobs(s)
@@ -182,7 +184,7 @@ export function SaverSection() {
     setCounts({ new: 0, skipped: 0 })
     try {
       await saveSaverSettings(s)
-      const started = await invoke<boolean>('saver_start', { outDir: root, jobs })
+      const started = await invoke<boolean>('saver_start', { outDir: root, jobs, full })
       setRunning(started)
       if (!started) setError('Un téléchargement est déjà en cours.')
     } catch (e) {
@@ -229,6 +231,7 @@ export function SaverSection() {
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
             <button className="btn btn-primary" onClick={() => void start()} disabled={running}><Download size={16} /> {running ? 'Téléchargement…' : 'Télécharger les nouveautés'}</button>
+            {!running && <button className="btn" onClick={() => void start(true)} title="Reparcourt tout et retélécharge les fichiers qui manquent"><RotateCcw size={15} /> Tout retélécharger</button>}
             {running && <button className="btn" onClick={() => void invoke('saver_stop')}><Square size={14} /> Arrêter</button>}
             {(running || message) && <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{running ? `${nf.format(counts.new)} nouveaux · ${nf.format(counts.skipped)} déjà présents` : message}</span>}
           </div>

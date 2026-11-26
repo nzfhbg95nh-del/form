@@ -20,7 +20,19 @@ static CHILD: Mutex<Option<Child>> = Mutex::new(None);
 pub const STOP_AFTER_KNOWN: u32 = 30;
 
 /// Le fichier de réglages de gallery-dl : identique à celui de Form.
-pub fn build_config(out_dir: &Path) -> Value {
+/// `full` (« Tout retélécharger ») : on parcourt toute la liste, sans la liste des fichiers déjà téléchargés ; un fichier encore présent
+/// sur le disque est sauté, un fichier disparu (ou jamais reçu) est téléchargé de nouveau, à sa place habituelle.
+pub fn build_config(out_dir: &Path, full: bool) -> Value {
+    let mut c = build_base_config(out_dir);
+    if full {
+        let e = c["extractor"].as_object_mut().expect("extractor");
+        e.remove("archive");
+        e.insert("skip".into(), json!(true));
+    }
+    c
+}
+
+fn build_base_config(out_dir: &Path) -> Value {
     json!({
         "extractor": {
             "base-directory": out_dir.to_string_lossy(),
@@ -132,13 +144,13 @@ fn read_lines<R: std::io::Read>(reader: R, mut each: impl FnMut(String)) {
     }
 }
 
-fn run(app: &AppHandle, out_dir: PathBuf, jobs: Vec<SaverJob>) -> Result<(usize, usize), String> {
+fn run(app: &AppHandle, out_dir: PathBuf, jobs: Vec<SaverJob>, full: bool) -> Result<(usize, usize), String> {
     let exe = find_gallery_dl(app).ok_or("Je ne trouve pas gallery-dl, le programme qui télécharge. Il est fourni avec l'installateur de Form : réinstalle Form.")?;
     std::fs::create_dir_all(&out_dir).map_err(|e| format!("Impossible de créer le dossier de sauvegarde : {e}"))?;
     let config_dir = app.path().app_config_dir().map_err(|e| e.to_string())?;
     std::fs::create_dir_all(&config_dir).map_err(|e| e.to_string())?;
     let config_path = config_dir.join("gallery-dl.conf");
-    std::fs::write(&config_path, serde_json::to_string_pretty(&build_config(&out_dir)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
+    std::fs::write(&config_path, serde_json::to_string_pretty(&build_config(&out_dir, full)).map_err(|e| e.to_string())?).map_err(|e| e.to_string())?;
 
     let (mut new, mut skipped) = (0usize, 0usize);
     for job in jobs {
@@ -198,7 +210,7 @@ fn run(app: &AppHandle, out_dir: PathBuf, jobs: Vec<SaverJob>) -> Result<(usize,
 
 /// Lance les téléchargements (un site après l'autre), en arrière-plan. Événements : « saver-line », « saver-count », « saver-done ».
 #[tauri::command]
-pub fn saver_start(app: AppHandle, out_dir: String, jobs: Vec<SaverJob>) -> Result<bool, String> {
+pub fn saver_start(app: AppHandle, out_dir: String, jobs: Vec<SaverJob>, full: Option<bool>) -> Result<bool, String> {
     if jobs.is_empty() {
         return Err("Rien à télécharger : coche au moins une source.".into());
     }
@@ -207,7 +219,7 @@ pub fn saver_start(app: AppHandle, out_dir: String, jobs: Vec<SaverJob>) -> Resu
     }
     STOP.store(false, Ordering::SeqCst);
     std::thread::spawn(move || {
-        let result = run(&app, PathBuf::from(out_dir), jobs);
+        let result = run(&app, PathBuf::from(out_dir), jobs, full.unwrap_or(false));
         RUNNING.store(false, Ordering::SeqCst);
         let stopped = STOP.swap(false, Ordering::SeqCst);
         let event = match result {
@@ -460,7 +472,7 @@ mod tests {
 
     #[test]
     fn the_config_matches_social_saver() {
-        let c = build_config(Path::new("C:/Social Saver/Save images"));
+        let c = build_config(Path::new("C:/Social Saver/Save images"), false);
         let e = &c["extractor"];
         assert_eq!(e["sleep-request"], json!([2.0, 5.0]));
         assert_eq!(e["sleep"], json!([0.5, 1.5]));
@@ -470,6 +482,17 @@ mod tests {
         assert_eq!(e["instagram"]["directory"], json!(["instagram", "{username}"]));
         assert_eq!(e["instagram"]["filename"], "{date:%Y%m%d}_{shortcode}_{num:>02}.{extension}");
         assert_eq!(e["pinterest"]["directory"][2], "{board[name]|'sans-board'}");
+        assert_eq!(e["pinterest"]["filename"], "{id}.{extension}");
+    }
+
+    #[test]
+    fn a_full_download_skips_files_on_disk_but_ignores_the_archive() {
+        let c = build_config(Path::new("C:/Bibliotheque"), true);
+        let e = &c["extractor"];
+        assert!(e.get("archive").is_none());
+        assert_eq!(e["skip"], json!(true));
+        // Mêmes dossiers et mêmes noms : un fichier retéléchargé revient exactement à sa place.
+        assert_eq!(e["instagram"]["filename"], "{date:%Y%m%d}_{shortcode}_{num:>02}.{extension}");
         assert_eq!(e["pinterest"]["filename"], "{id}.{extension}");
     }
 
