@@ -681,8 +681,8 @@ export function MapView() {
           </span>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <button className="btn" onClick={fitAll} disabled={status !== 'ready'}><Expand size={15} /> Tout voir</button>
-          <button className="btn" onClick={() => void compute()} disabled={status === 'computing' || status === 'loading'} title="Replacer toutes les images (utile après de nombreux ajouts)"><RefreshCw size={15} /> Recalculer</button>
+          <button className="btn" onClick={fitAll} disabled={status !== 'ready'} aria-label="Tout voir" title="Tout voir"><Expand size={15} /></button>
+          <button className="btn" onClick={() => void compute()} disabled={status === 'computing' || status === 'loading'} title="Replacer toutes les images (utile après de nombreux ajouts)" aria-label="Recalculer"><RefreshCw size={15} /></button>
         </div>
       </div>
 

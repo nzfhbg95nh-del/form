@@ -197,8 +197,8 @@ export function WeekPlanner({ rows, tab, onTab }: { rows: ObjectRow[]; tab: Plan
         <span className="mr-auto">
           {stats.meals === 0 ? 'Aucun repas prévu : glisse une recette dans une case, ou clique sur « + ».' : `${stats.meals} repas · ${stats.recipes} recette${stats.recipes > 1 ? 's' : ''} · ${stats.servings} portions`}
         </span>
-        <button className="btn !text-sm" onClick={() => void copyPrevious()} disabled={(plan.weeks[shiftWeek(week, -1)] ?? []).length === 0} title="Reprendre les repas de la semaine précédente"><Copy size={14} /> Copier la semaine précédente</button>
-        <button className="btn !text-sm" onClick={() => void clear()} disabled={stats.meals === 0}><Trash2 size={14} /> Vider</button>
+        <button className="btn !text-sm" onClick={() => void copyPrevious()} disabled={(plan.weeks[shiftWeek(week, -1)] ?? []).length === 0} title="Reprendre les repas de la semaine précédente" aria-label="Copier la semaine précédente"><Copy size={14} /></button>
+        <button className="btn !text-sm" onClick={() => void clear()} disabled={stats.meals === 0} aria-label="Vider" title="Vider"><Trash2 size={14} /></button>
       </div>
 
       {tab === 'courses' ? (

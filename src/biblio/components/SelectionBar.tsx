@@ -32,15 +32,15 @@ export function SelectionBar() {
         aria-label="Sélection"
       >
         <span className="mr-1 text-sm font-medium">{n} sélectionnée{n > 1 ? 's' : ''}</span>
-        <button className="btn" onClick={(e) => popAt(e, false)}><Plus size={15} /> Ajouter à…</button>
-        {fromMine && <button className="btn" onClick={(e) => popAt(e, true)}><ArrowRightLeft size={15} /> Déplacer vers…</button>}
+        <button className="btn" onClick={(e) => popAt(e, false)} aria-label="Ajouter à…" title="Ajouter à…"><Plus size={15} /></button>
+        {fromMine && <button className="btn" onClick={(e) => popAt(e, true)} aria-label="Déplacer vers…" title="Déplacer vers…"><ArrowRightLeft size={15} /></button>}
         {fromMine && (
           <button className="btn" onClick={() => void Promise.all(ids.map((id) => removeBlock(fromMine.id, id))).then(clear)}>
             <FolderMinus size={15} /> Retirer du tableau
           </button>
         )}
-        <button className="btn" onClick={() => void trash(ids)} title="Elles disparaissent de la bibliothèque ; tu peux les restaurer depuis Réglages → Bibliothèque → Corbeille"><Trash2 size={15} /> Corbeille</button>
-        <button className="btn" onClick={clear} aria-label="Tout désélectionner"><X size={15} /> Annuler</button>
+        <button className="btn" onClick={() => void trash(ids)} title="Elles disparaissent de la bibliothèque ; tu peux les restaurer depuis Réglages → Bibliothèque → Corbeille" aria-label="Corbeille"><Trash2 size={15} /></button>
+        <button className="btn" onClick={clear} aria-label="Tout désélectionner" title="Annuler"><X size={15} /></button>
       </div>
       {menu && <BlockMenu x={menu.x} y={Math.max(8, menu.y)} blockIds={ids} moveFrom={menu.move ? fromMine?.id : undefined} onClose={() => setMenu(null)} onDone={clear} />}
     </>

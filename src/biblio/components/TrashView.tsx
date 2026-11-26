@@ -110,8 +110,8 @@ export function TrashView({ onBack }: { onBack?: () => void }) {
             ) : (
               <button className="btn ml-auto" onClick={() => setSelected(new Set(keys))}>Tout sélectionner</button>
             )}
-            <button className="btn" disabled={chosen.size === 0 || busy} onClick={() => void doRestore(chosen)}><RotateCcw size={15} /> Restaurer</button>
-            <button className="btn" disabled={chosen.size === 0 || busy} onClick={() => setConfirm(chosen)}><Trash2 size={15} /> Supprimer définitivement</button>
+            <button className="btn" disabled={chosen.size === 0 || busy} onClick={() => void doRestore(chosen)} aria-label="Restaurer" title="Restaurer"><RotateCcw size={15} /></button>
+            <button className="btn" disabled={chosen.size === 0 || busy} onClick={() => setConfirm(chosen)} aria-label="Supprimer définitivement" title="Supprimer définitivement"><Trash2 size={15} /></button>
           </div>
 
           <div className="mt-4 grid gap-2" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))' }}>
@@ -161,8 +161,8 @@ export function TrashView({ onBack }: { onBack?: () => void }) {
         <div className="fixed inset-0 z-[70] flex flex-col bg-black/85 p-6" onMouseDown={() => setPreview(null)} role="dialog" aria-label="Aperçu">
           <div className="flex items-center gap-2 text-sm text-white" onMouseDown={(e) => e.stopPropagation()}>
             <span className="mr-auto">{origin(preview)}{label(preview) ? ` · ${label(preview)}` : ''}</span>
-            <button className="btn" disabled={busy} onClick={() => void doRestore(new Set([preview.key]))}><RotateCcw size={15} /> Restaurer</button>
-            <button className="btn" disabled={busy} onClick={() => setConfirm(new Set([preview.key]))}><Trash2 size={15} /> Supprimer définitivement</button>
+            <button className="btn" disabled={busy} onClick={() => void doRestore(new Set([preview.key]))} aria-label="Restaurer" title="Restaurer"><RotateCcw size={15} /></button>
+            <button className="btn" disabled={busy} onClick={() => setConfirm(new Set([preview.key]))} aria-label="Supprimer définitivement" title="Supprimer définitivement"><Trash2 size={15} /></button>
             <button className="btn" onClick={() => setPreview(null)} aria-label="Fermer"><X size={15} /></button>
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center pt-4">

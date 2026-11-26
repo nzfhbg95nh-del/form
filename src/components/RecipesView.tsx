@@ -38,10 +38,10 @@ function SortControl({ sortBy, sortDesc, onChange }: { sortBy: RecipeSort; sortD
         title="Trier les recettes"
         aria-label="Trier les recettes"
         aria-pressed={!plainSort}
-        className="btn !px-3 !py-1.5"
+        className="btn"
       >
         <ArrowUpDown size={14} />
-        {plainSort ? 'Trier' : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
+        {plainSort ? null : `${RECIPE_SORTS.find((o) => o.id === sortBy)?.label} ${sortDesc ? '↓' : '↑'}`}
       </button>
       {!plainSort && (
         <button className="rounded p-1 text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]" title="Retirer le tri" aria-label="Retirer le tri" onClick={() => onChange('name', false)}>
@@ -400,7 +400,7 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       {tabs}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <h1 className="flex-1 py-1 text-3xl font-bold leading-[1.3]">Recettes</h1>
-        <button className="btn btn-primary" onClick={() => setChoosing(true)}>+ Nouvelle recette</button>
+        <button className="btn btn-primary" onClick={() => setChoosing(true)} title="Nouvelle recette" aria-label="Nouvelle recette"><Plus size={15} /></button>
       </div>
 
       <QuickNotes db={db} />

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { DocFilterBar } from '@/components/DocFilterBar'
 import { docMatches, NO_DOC_FILTERS, type DocFilters } from '@/lib/docFilters'
 import { EmptyState } from '@/components/States'
-import { ArrowLeft, Plus, Receipt } from 'lucide-react'
+import { ArrowLeft, Percent, Plus, Receipt } from 'lucide-react'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { vatMention } from '@/lib/company'
 import {
@@ -56,7 +56,7 @@ function NewDepositButton() {
   }
   return (
     <div className="relative">
-      <button className={secondary} onClick={() => setOpen(!open)}>Facture d'acompte…</button>
+      <button className={secondary} onClick={() => setOpen(!open)} title="Facture d'acompte (depuis un devis accepté)" aria-label="Facture d'acompte"><Percent size={14} /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
@@ -109,7 +109,7 @@ export function InvoicesView() {
         <h1 className="text-3xl font-bold">Factures</h1>
         <div className="flex-1" />
         <NewDepositButton />
-        <button className={primary + ' flex items-center gap-1'} onClick={() => void createStandardInvoice()}><Plus size={14} /> Nouvelle facture</button>
+        <button className={primary + ' flex items-center gap-1'} onClick={() => void createStandardInvoice()} aria-label="Nouvelle facture" title="Nouvelle facture"><Plus size={14} /></button>
       </div>
       <DocFilterBar filters={filters} onChange={setFilters} docs={facts.map((x) => x.facts)} shown={shown.length} noun="factures" statusLabels={DISPLAY_LABELS} kindLabels={KIND_LABELS} clientNames={clientNames} />
       <p className="mb-3 text-xs text-[var(--fg-muted)]">Les factures d'acompte et de solde se créent depuis un devis accepté (section Devis).</p>

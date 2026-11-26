@@ -1441,8 +1441,8 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
       {/* Barre d'outils */}
       {compact ? (
         <div data-ui className="absolute left-2 top-2 flex items-center gap-1.5">
-          <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()}><ImagePlus size={14} className="mr-1 inline" />Images</button>
-          <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} className="mr-1 inline" />Ajuster</button>
+          <button className={bar} title="Ajouter des images" onClick={() => fileInput.current?.click()} aria-label="Images"><ImagePlus size={14} /></button>
+          <button className={bar} title="Tout afficher (F)" onClick={() => fitTo(items)} aria-label="Ajuster"><Expand size={14} /></button>
         </div>
       ) : (
       <div data-ui className="pointer-events-none absolute left-3 right-3 top-3 flex flex-wrap items-center gap-2">
@@ -1451,18 +1451,19 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
           className={bar + ' pointer-events-auto !border-[var(--accent)] !bg-[var(--accent)] !text-white hover:!opacity-90'}
           title="Ajouter une image, un texte, une forme, un lien… (clic droit ou Maj+A sur la toile)"
           onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'full', add: true }) }}
-        ><Plus size={14} className="mr-1 inline" />Ajouter</button>
+          aria-label="Ajouter"
+        ><Plus size={14} /></button>
 
         {/* Mise en page : ranger et aligner ce qui est choisi */}
         <div className={group}>
-          <button className={item} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }}><LayoutGrid size={14} />Organiser</button>
-          <button className={item} aria-pressed={alignOpen} title="Panneau Aligner : aligner et répartir la sélection" onClick={() => setAlignOpen(!alignOpen)}><AlignStartVertical size={14} />Aligner</button>
-          <button className={item} aria-pressed={infoOpen} title="Mesures : position, taille, rotation et opacité de l'élément choisi" onClick={() => setInfoOpen(!infoOpen)}><Ruler size={14} />Mesures</button>
+          <button className={item} title="Organiser la sélection" onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); const c = containerRef.current!.getBoundingClientRect(); setMenu({ x: r.left - c.left, y: r.bottom - c.top + 4, world: viewCenter(), mode: 'organize' }) }} aria-label="Organiser"><LayoutGrid size={14} /></button>
+          <button className={item} aria-pressed={alignOpen} title="Panneau Aligner : aligner et répartir la sélection" onClick={() => setAlignOpen(!alignOpen)} aria-label="Aligner"><AlignStartVertical size={14} /></button>
+          <button className={item} aria-pressed={infoOpen} title="Mesures : position, taille, rotation et opacité de l'élément choisi" onClick={() => setInfoOpen(!infoOpen)} aria-label="Mesures"><Ruler size={14} /></button>
         </div>
 
         {/* Couleurs : la palette et le fond */}
         <div className={group}>
-          <button className={item} aria-pressed={paletteOpen} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)}><PaletteIcon size={14} />Palette</button>
+          <button className={item} aria-pressed={paletteOpen} title="Palette de couleurs" onClick={() => setPaletteOpen(!paletteOpen)} aria-label="Palette"><PaletteIcon size={14} /></button>
           <span className="mx-1 h-4 w-px bg-[var(--border)]" aria-hidden />
           {BACKGROUNDS.map((b) => (
             <button key={b} title={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-label={b === '#ffffff' ? 'Fond blanc' : 'Fond noir'} aria-pressed={isDark === (b !== '#ffffff')} onClick={() => setBg(b)} className="mx-0.5 h-5 w-5 rounded-full" style={{ ...swatch(b), border: isDark === (b !== '#ffffff') ? '2px solid var(--accent)' : '1px solid var(--border)' }} />
@@ -1471,16 +1472,16 @@ export function MoodboardView({ board, compact = false }: { board: ObjectRow; co
 
         {/* Vue : cadrer et choisir le fond de la toile */}
         <div className={group}>
-          <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)}><Expand size={14} />Ajuster</button>
+          <button className={item} title="Tout afficher (F)" onClick={() => fitTo(items)} aria-label="Ajuster"><Expand size={14} /></button>
           <button className={item} title="Fond de la toile : petits points, quadrillage ou uni" onClick={() => setPattern(PATTERNS[(PATTERNS.findIndex((p) => p.id === effectivePattern) + 1) % PATTERNS.length].id)}>{PATTERNS.find((p) => p.id === effectivePattern)?.label}</button>
         </div>
 
         {/* Fenêtre : à droite. Épingler = reste devant les autres fenêtres ; Fenêtre flottante = le moodboard s'ouvre dans une petite fenêtre à part et la page se ferme derrière. */}
         <div className={group + ' ml-auto'}>
-          <button className={item} title={onTop ? 'Ne plus rester devant les autres fenêtres' : 'Rester devant les autres fenêtres (la fenêtre de Form reste au premier plan)'} aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}Épingler</button>
-          <button className={item} title="Exporter ce moodboard dans un fichier (.formboard), pour le rouvrir dans Form sur un autre ordinateur" onClick={() => void exportBoard(board.id, serializeBoard(latest.current))}><FileDown size={14} />Exporter</button>
-          <button className={item} title="Exporter toutes les images de ce moodboard dans un dossier (001.jpg, 002.png…)" onClick={() => void exportBoardImages(board.id, serializeBoard(latest.current))}><ImageDown size={14} />Images</button>
-          <button className={item} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre à part, toujours devant (comme PureRef) ; la page se ferme derrière" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })}><PictureInPicture2 size={14} />Fenêtre flottante</button>
+          <button className={item} title={onTop ? 'Ne plus rester devant les autres fenêtres' : 'Rester devant les autres fenêtres (la fenêtre de Form reste au premier plan)'} aria-pressed={onTop} onClick={() => void toggleOnTop()}>{onTop ? <PinOff size={14} /> : <Pin size={14} />}</button>
+          <button className={item} title="Exporter ce moodboard dans un fichier (.formboard), pour le rouvrir dans Form sur un autre ordinateur" onClick={() => void exportBoard(board.id, serializeBoard(latest.current))} aria-label="Exporter"><FileDown size={14} /></button>
+          <button className={item} title="Exporter toutes les images de ce moodboard dans un dossier (001.jpg, 002.png…)" onClick={() => void exportBoardImages(board.id, serializeBoard(latest.current))} aria-label="Images"><ImageDown size={14} /></button>
+          <button className={item} title="Fenêtre flottante : ouvre ce moodboard dans une petite fenêtre à part, toujours devant (comme PureRef) ; la page se ferme derrière" onClick={() => void openFloatingBoard(board.id, board.title).then((ok) => { if (!ok) say('La fenêtre flottante n’existe que dans l’application Windows.'); else useApp.getState().goBack() })} aria-label="Fenêtre flottante"><PictureInPicture2 size={14} /></button>
         </div>
       </div>
       )}

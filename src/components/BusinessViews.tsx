@@ -45,7 +45,7 @@ function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew,
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold">{title}</h1>
         <div className="flex-1" />
-        <button className={primary + ' flex items-center gap-1'} onClick={onNew}><Plus size={14} /> {newLabel}</button>
+        <button className={primary + ' flex items-center gap-1'} onClick={onNew} title={newLabel} aria-label={newLabel}><Plus size={14} /></button>
       </div>
       <SearchFilterBar className="mb-3">
         <SearchField className="w-72 max-w-full" placeholder="Rechercher…" label={`Rechercher dans ${title.toLowerCase()}`} value={query} onChange={setQuery} />

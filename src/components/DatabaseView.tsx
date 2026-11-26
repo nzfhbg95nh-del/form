@@ -275,7 +275,7 @@ function AddColumn({ db, schema, objects, onChange }: { db: ObjectRow; schema: S
   }
   return (
     <div className="relative">
-      <button className={btn} onClick={() => setOpen(!open)}><Plus size={14} /> Propriété</button>
+      <button className={btn} onClick={() => setOpen(!open)} aria-label="Propriété" title="Propriété"><Plus size={14} /></button>
       {open && (
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
@@ -415,21 +415,21 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
       <div className="mb-3 mt-3 flex flex-wrap items-center gap-2">
         <SearchField className="w-64 max-w-full" placeholder="Rechercher…" label={`Rechercher dans ${db.title || 'la base'}`} value={query} onChange={setQuery} />
         <div className="relative">
-          <button className="btn" aria-pressed={view.filters.length > 0} onClick={() => toggle('filter')}>
-            <FilterIcon size={14} /> Filtrer
+          <button className="btn" aria-pressed={view.filters.length > 0} onClick={() => toggle('filter')} title="Filtrer" aria-label="Filtrer">
+            <FilterIcon size={14} />
             {view.filters.length > 0 && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular-nums">{view.filters.length}</span>}
           </button>
           {panelOpen === 'filter' && <FilterPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
-          <button className="btn" aria-pressed={view.sorts.length > 0} onClick={() => toggle('sort')}>
-            <ArrowDownUp size={14} /> Trier
+          <button className="btn" aria-pressed={view.sorts.length > 0} onClick={() => toggle('sort')} title="Trier" aria-label="Trier">
+            <ArrowDownUp size={14} />
             {view.sorts.length > 0 && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular-nums">{view.sorts.length}</span>}
           </button>
           {panelOpen === 'sort' && <SortPanel schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="relative">
-          <button className="btn" aria-pressed={panelOpen === 'settings'} onClick={() => toggle('settings')}><Settings2 size={14} /> Réglages de la vue</button>
+          <button className="btn" aria-pressed={panelOpen === 'settings'} onClick={() => toggle('settings')} aria-label="Réglages de la vue" title="Réglages de la vue"><Settings2 size={14} /></button>
           {panelOpen === 'settings' && <ViewSettings schema={schema} view={view} onChange={change} onClose={() => setPanelOpen(null)} />}
         </div>
         <div className="flex-1" />

@@ -68,7 +68,7 @@ export function QuotesView() {
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <h1 className="text-3xl font-bold">Devis</h1>
         <div className="flex-1" />
-        <button className={primary + ' flex items-center gap-1'} onClick={() => void createQuote()}><Plus size={14} /> Nouveau devis</button>
+        <button className={primary + ' flex items-center gap-1'} onClick={() => void createQuote()} aria-label="Nouveau devis" title="Nouveau devis"><Plus size={14} /></button>
       </div>
       <DocFilterBar filters={filters} onChange={setFilters} docs={facts.map((x) => x.facts)} shown={shown.length} noun="devis" statusLabels={STATUS_LABELS} clientNames={clientNames} />
       <table className="w-full border-collapse text-sm">

@@ -65,7 +65,7 @@ export function InspirationWidget() {
       <div className="flex min-w-0 flex-col items-start gap-2">
         <div className="lib-count">Tirée au hasard</div>
         <div className="max-w-xs truncate text-sm font-medium">{blockLabel(block)}</div>
-        <button className="btn" onClick={() => void draw(block.id)}><Shuffle size={14} /> Une autre</button>
+        <button className="btn" onClick={() => void draw(block.id)} aria-label="Une autre" title="Une autre"><Shuffle size={14} /></button>
       </div>
     </div>
   )
@@ -203,7 +203,7 @@ export function RecipeOfDayWidget() {
       <div className="w-52 shrink-0"><RecipeCard row={row} tall /></div>
       <div className="flex flex-col items-start gap-2">
         <div className="lib-count">{rows.length} recettes</div>
-        <button className="btn" onClick={() => setPick((p) => (rows.length > 1 ? (p + 1 + Math.floor(Math.random() * (rows.length - 1))) % rows.length : 0))}><Shuffle size={14} /> Une autre</button>
+        <button className="btn" title="Une autre" aria-label="Une autre" onClick={() => setPick((p) => (rows.length > 1 ? (p + 1 + Math.floor(Math.random() * (rows.length - 1))) % rows.length : 0))}><Shuffle size={14} /></button>
       </div>
     </div>
   )
