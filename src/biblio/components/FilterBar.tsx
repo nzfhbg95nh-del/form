@@ -96,6 +96,7 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
 
         <Popover label="Type d'image" active={filters.types.length > 0} count={filters.types.length} width={300}>
           <div className="max-h-80 overflow-auto">
+            {typeIndex.types.length === 0 && <p className="px-2 py-1.5 text-sm text-[var(--fg-muted)]">Pas encore de types : ils apparaissent quand la bibliothèque est lue (Réglages › Bibliothèque).</p>}
             {typeIndex.types.map((t) => (
               <CheckRow key={t.id} checked={filters.types.includes(t.id)} onChange={(on) => setFilters({ types: toggle(filters.types, t.id, on) })} count={t.count}>{t.name}</CheckRow>
             ))}
