@@ -1,17 +1,6 @@
-import { Search } from 'lucide-react'
+import { SearchField } from './SearchFilters'
 
-/** Le champ de recherche de Form : une loupe et un champ, le même partout (listes, recettes, collections). `className` règle sa largeur et sa place. */
+/** Recherche en pilule (la même que la barre « Recherche + filtres »). */
 export function SearchInput({ value, onChange, placeholder, label, className = '' }: { value: string; onChange: (v: string) => void; placeholder: string; label?: string; className?: string }) {
-  return (
-    <label className={'relative flex items-center ' + className}>
-      <Search size={14} className="pointer-events-none absolute left-3 text-[var(--fg-muted)]" />
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        aria-label={label ?? placeholder}
-        className="lib-input w-full box-border h-[34px] rounded-full border py-0 pl-9 pr-3 text-sm outline-none placeholder:text-[var(--fg-muted)]"
-      />
-    </label>
-  )
+  return <SearchField value={value} onChange={onChange} placeholder={placeholder} label={label} className={className} />
 }

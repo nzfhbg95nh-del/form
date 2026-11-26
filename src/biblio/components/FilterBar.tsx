@@ -1,7 +1,8 @@
-import { Camera, Search, X } from 'lucide-react'
+import { Camera } from 'lucide-react'
+import { FilterChips, SearchField, SearchFilterBar, type FilterChip } from '@/components/SearchFilters'
 import { PALETTE } from '@/biblio/lib/colors.ts'
 import { ColorBar } from './ColorBar.tsx'
-import { activeCount, DATE_PRESETS, datePreset, type Filters } from '@/biblio/lib/filters.ts'
+import { DATE_PRESETS, datePreset, type Filters } from '@/biblio/lib/filters.ts'
 import type { BlockKind, Source } from '@/biblio/lib/scan.ts'
 import { formatDate } from '@/biblio/lib/media.ts'
 import { useGrid } from '@/biblio/store/grid.ts'
@@ -23,11 +24,10 @@ const toggle = <T,>(list: T[], value: T, on: boolean) => (on ? [...list, value] 
 export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?: () => void; onCloseCollection?: () => void }) {
   const { blocks, shown, filters, setFilters, clearFilters, typeIndex, semantic, searching } = useGrid()
   const bySight = semantic ? shown.reduce((n, b) => n + (semantic.has(b.id) ? 1 : 0), 0) : 0
-  const count = activeCount(filters)
   const applyDate = (from: string, to: string) => setFilters({ dateFrom: from, dateTo: to })
   const typeNames = new Map(typeIndex.types.map((t) => [t.id, t.name]))
 
-  const chips: { id: string; label: string; remove: () => void }[] = []
+  const chips: FilterChip[] = []
   const add = (id: string, label: string, patch: Partial<Filters>) => chips.push({ id, label, remove: () => setFilters(patch) })
   // La croix de la collection ouverte fait un pas en arrière (page Collections, ou le tableau parent), comme le bouton « Collections ».
   if (filters.collection) {
@@ -47,22 +47,26 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
   if (filters.shuffle !== 0) add('r', 'Aléatoire', { shuffle: 0 })
 
   return (
-    <div className="border-b px-4 py-2.5" style={{ borderColor: 'var(--border)' }}>
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-96 max-w-full">
-          <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2" style={{ color: 'var(--fg-muted)' }} />
-          <input
-            value={filters.query}
-            onChange={(e) => setFilters({ query: e.target.value })}
-            placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
-            className="lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 pr-12 text-sm outline-none"
-            style={{ borderColor: 'var(--border)', background: 'var(--bg)', color: 'var(--fg)' }}
-            aria-label="Rechercher"
-          />
-          {onImageSearch && (
+    <SearchFilterBar
+      bordered
+      chips={
+        <FilterChips
+          chips={chips}
+          onClear={clearFilters}
+          summary={<>{nf.format(shown.length)} sur {nf.format(blocks.length)} blocs
+            {searching ? ' · recherche dans les images…' : semantic && filters.query.trim() && bySight > 0 ? ` · dont ${nf.format(bySight)} trouvés par ressemblance` : ''}</>}
+        />
+      }
+    >
+        <SearchField
+          value={filters.query}
+          onChange={(query) => setFilters({ query })}
+          placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
+          label="Rechercher"
+          trailing={onImageSearch && (
             <button
               type="button"
-              className="absolute right-2.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
+              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
               style={{ color: 'var(--fg-muted)' }}
               onClick={onImageSearch}
               title="Chercher avec une image : dépose ou choisis une image, la bibliothèque montre celles qui lui ressemblent"
@@ -71,9 +75,9 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
               <Camera size={16} />
             </button>
           )}
-        </div>
+        />
 
-        <Popover label="Type d'image" active={filters.types.length > 0} width={300}>
+        <Popover label="Type d'image" active={filters.types.length > 0} count={filters.types.length} width={300}>
           <div className="max-h-80 overflow-auto">
             {typeIndex.types.map((t) => (
               <CheckRow key={t.id} checked={filters.types.includes(t.id)} onChange={(on) => setFilters({ types: toggle(filters.types, t.id, on) })} count={t.count}>{t.name}</CheckRow>
@@ -94,13 +98,13 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
           </div>
         </Popover>
 
-        <Popover label="Source" active={filters.sources.length > 0} width={200}>
+        <Popover label="Source" active={filters.sources.length > 0} count={filters.sources.length} width={200}>
           {SOURCES.map((s) => (
             <CheckRow key={s.id} checked={filters.sources.includes(s.id)} onChange={(on) => setFilters({ sources: toggle(filters.sources, s.id, on) })}>{s.label}</CheckRow>
           ))}
         </Popover>
 
-        <Popover label="Format" active={filters.kinds.length > 0} width={200}>
+        <Popover label="Format" active={filters.kinds.length > 0} count={filters.kinds.length} width={200}>
           {KINDS.map((k) => (
             <CheckRow key={k.id} checked={filters.kinds.includes(k.id)} onChange={(on) => setFilters({ kinds: toggle(filters.kinds, k.id, on) })}>{k.label}</CheckRow>
           ))}
@@ -131,26 +135,6 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
 
 
 
-      </div>
-
-      {count > 0 && (
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="mr-1 text-sm" style={{ color: 'var(--fg-muted)' }}>{nf.format(shown.length)} sur {nf.format(blocks.length)} blocs
-            {searching ? ' · recherche dans les images…' : semantic && filters.query.trim() && bySight > 0 ? ` · dont ${nf.format(bySight)} trouvés par ressemblance` : ''}</span>
-          {chips.map((c) => (
-            <button
-              key={c.id}
-              onClick={c.remove}
-              className="flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs"
-              style={{ background: 'var(--bg-hover)' }}
-              title="Retirer ce filtre"
-            >
-              {c.label} <X size={11} />
-            </button>
-          ))}
-          <button className="ml-1 text-xs underline" style={{ color: 'var(--fg-muted)' }} onClick={clearFilters}>Tout effacer</button>
-        </div>
-      )}
-    </div>
+    </SearchFilterBar>
   )
 }
