@@ -45,7 +45,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
   const title = edit ? 'Modifier le moodboard' : 'Créer un moodboard'
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center form-overlay p-4"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}
@@ -54,7 +54,7 @@ export function NewMoodboardDialog({ onCreate, onClose, edit, onPickFromBoard }:
         if (e.key === 'Escape') onClose()
       }}
     >
-      <div role="dialog" aria-modal="true" aria-label={title} className="w-full max-w-md rounded-3xl border p-6 shadow-[var(--shadow-lift)]" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
+      <div role="dialog" aria-modal="true" aria-label={title} className="form-dialog w-full max-w-md !p-5" style={{ background: 'var(--bg)', borderColor: 'var(--border)' }}>
         <div className="relative">
           <h2 className="text-center text-xl font-semibold">{title}</h2>
           <button className="absolute right-0 top-1/2 -translate-y-1/2 rounded-full p-1.5 hover:bg-[var(--bg-hover)]" onClick={onClose} aria-label="Fermer"><X size={18} /></button>

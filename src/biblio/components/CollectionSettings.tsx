@@ -75,9 +75,9 @@ export function CollectionSettings({ card, onClose, startPicking = false, startD
   // La fenêtre est posée tout en haut de la page (portail) : sinon elle hérite du cadre « pointer-events-none » de la carte
   // et les clics la traversent pour tomber sur les cartes en dessous (ouvrir un autre tableau, « Supprimer » qui ne répond pas).
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={onClose} onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[80] flex items-center justify-center form-overlay p-6" onMouseDown={onClose} onClick={(e) => e.stopPropagation()}>
       <div
-        className="flex max-h-full w-full max-w-xl flex-col overflow-hidden rounded-3xl shadow-2xl"
+        className="flex max-h-full w-full max-w-xl flex-col form-dialog flush"
         style={{ background: 'var(--bg)' }}
         role="dialog"
         aria-label="Modifier le tableau"

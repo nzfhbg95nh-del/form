@@ -152,11 +152,11 @@ function CategoryChooser({ categories, cover, onCover, onPick, onCreate, onClose
   const file = useRef<HTMLInputElement>(null)
   const item = 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-sm hover:bg-[var(--bg-hover)]'
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/30 pt-[15vh]" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center form-overlay pt-[15vh]" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-label="Dans quelle catégorie ?"
-        className="max-h-[80vh] w-96 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
+        className="max-h-[80vh] w-96 overflow-y-auto form-dialog"
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}
       >
@@ -406,11 +406,11 @@ export function RecipesView({ db, schema }: { db: ObjectRow; schema: Schema }) {
       <QuickNotes db={db} />
 
       {managing && (
-        <div className="fixed inset-0 z-[45] flex items-start justify-center bg-black/30 pt-[10vh]" onMouseDown={() => setManaging(false)}>
+        <div className="fixed inset-0 z-[45] flex items-start justify-center form-overlay pt-[10vh]" onMouseDown={() => setManaging(false)}>
           <div
             role="dialog"
             aria-label="Gérer les catégories"
-            className="max-h-[75vh] w-96 overflow-y-auto rounded-lg border border-[var(--border)] bg-[var(--bg)] p-3 shadow-2xl"
+            className="max-h-[75vh] w-96 overflow-y-auto form-dialog"
             onMouseDown={(e) => e.stopPropagation()}
             onKeyDown={(e) => e.key === 'Escape' && setManaging(false)}
           >

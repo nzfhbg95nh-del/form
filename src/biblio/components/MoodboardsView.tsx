@@ -43,11 +43,11 @@ function CoverChooser({ card, onClose }: { card: BoardCard; onClose: () => void 
     onClose()
   }
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-6" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center form-overlay p-6" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-label="Choisir l'image de couverture"
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-2xl p-4 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col form-dialog"
         style={{ background: 'var(--bg)', color: 'var(--fg)' }}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}

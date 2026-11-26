@@ -183,8 +183,8 @@ export function DuplicatesView({ onBack }: { onBack: () => void }) {
       )}
 
       {confirm && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={() => !busy && setConfirm(false)}>
-          <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Mettre les doublons à la Corbeille Windows" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center form-overlay p-6" onMouseDown={() => !busy && setConfirm(false)}>
+          <div className="form-dialog w-full max-w-md !p-5" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Mettre les doublons à la Corbeille Windows" onMouseDown={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold">Mettre {deleteCount} image{deleteCount > 1 ? 's' : ''} à la Corbeille Windows ?</h2>
             <p className="mt-2 text-sm">
               Les fichiers partent dans la <b>Corbeille Windows</b> ({formatBytes(freed)}) et Form les oublie : ils ne reviendront pas, même si les fichiers reviennent dans le dossier.

@@ -35,11 +35,11 @@ export function LibraryImagePicker({ onPick, onClose }: { onPick: (dataUrl: stri
   }
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/50 p-6" onMouseDown={onClose}>
+    <div className="fixed inset-0 z-[90] flex items-center justify-center form-overlay p-6" onMouseDown={onClose}>
       <div
         role="dialog"
         aria-label="Choisir une image de ma bibliothèque"
-        className="flex max-h-[85vh] w-full max-w-3xl flex-col rounded-2xl p-4 shadow-2xl"
+        className="flex max-h-[85vh] w-full max-w-3xl flex-col form-dialog"
         style={{ background: 'var(--bg)', color: 'var(--fg)' }}
         onMouseDown={(e) => e.stopPropagation()}
         onKeyDown={(e) => e.key === 'Escape' && onClose()}

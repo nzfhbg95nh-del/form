@@ -176,8 +176,8 @@ export function TrashView({ onBack }: { onBack?: () => void }) {
       )}
 
       {confirm && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/50 p-6" onMouseDown={() => !busy && setConfirm(null)}>
-          <div className="w-full max-w-md rounded-2xl p-6 shadow-2xl" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Supprimer définitivement" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[80] flex items-center justify-center form-overlay p-6" onMouseDown={() => !busy && setConfirm(null)}>
+          <div className="form-dialog w-full max-w-md !p-5" style={{ background: 'var(--bg)' }} role="dialog" aria-label="Supprimer définitivement" onMouseDown={(e) => e.stopPropagation()}>
             <h2 className="text-lg font-semibold">Supprimer définitivement ?</h2>
             <p className="mt-2 text-sm">
               {confirm.size} élément{confirm.size > 1 ? 's' : ''} : les fichiers vont dans la <b>Corbeille Windows</b> et Form les oublie

@@ -71,8 +71,8 @@ export function DishPicker({ rows, title, subtitle, header, suggestions, again =
   const badges = (id: string) => factBadges(facts.get(id)).map((b) => <span key={b.label} className="rounded px-1.5 py-px text-[11px] font-medium" style={BADGE[b.tone]}>{b.label}</span>)
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-[6vh]" onMouseDown={onClose}>
-      <div role="dialog" aria-label={title} className="flex max-h-[86vh] w-full max-w-4xl flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center form-overlay p-4 pt-[6vh]" onMouseDown={onClose}>
+      <div role="dialog" aria-label={title} className="flex max-h-[86vh] w-full max-w-4xl flex-col form-dialog flush" onMouseDown={(e) => e.stopPropagation()}>
         <div className="flex items-start gap-3 border-b border-[var(--border)] px-5 py-3">
           <div className="min-w-0 flex-1">
             <h2 className="text-lg font-semibold">{title}</h2>

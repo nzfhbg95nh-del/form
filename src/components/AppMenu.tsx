@@ -131,8 +131,8 @@ export function AppMenu() {
         </>
       )}
       {about && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onMouseDown={() => setAbout(false)}>
-          <div className="w-96 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-6 text-center shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center form-overlay" onMouseDown={() => setAbout(false)}>
+          <div className="form-dialog w-96 !p-6 text-center" onMouseDown={(e) => e.stopPropagation()}>
             <div className="mb-1 text-3xl font-bold">Form</div>
             <div className="mb-3 text-sm text-[var(--fg-muted)]">Version {typeof __APP_VERSION__ === 'string' ? __APP_VERSION__ : '?'}</div>
             <p className="mb-4 text-sm">Le Notion du créatif freelance : pages, bases de données, moodboards, devis et factures. Tout reste sur ton PC.</p>

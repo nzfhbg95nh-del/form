@@ -22,8 +22,8 @@ export function BlockMovePicker() {
     void onPick(id)
   }
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 pt-[12vh]" onMouseDown={close}>
-      <div role="dialog" aria-modal="true" aria-label="Déplacer le bloc" className="w-[460px] max-w-[90vw] overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-2xl" onMouseDown={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center form-overlay pt-[12vh]" onMouseDown={close}>
+      <div role="dialog" aria-modal="true" aria-label="Déplacer le bloc" className="w-[460px] max-w-[90vw] form-dialog flush" onMouseDown={(e) => e.stopPropagation()}>
         <div className="border-b border-[var(--border)] px-4 py-2 text-sm font-semibold">Déplacer ce bloc vers…</div>
         <input
           autoFocus

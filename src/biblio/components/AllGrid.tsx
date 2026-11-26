@@ -363,7 +363,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
       {active && blockDrag.overlay}
       <SelectionBar />
       {dragging && (
-        <div className="fixed inset-0 z-40 flex items-center justify-center gap-6 bg-black/45 p-10">
+        <div className="fixed inset-0 z-40 flex items-center justify-center gap-6 form-overlay p-10">
           <DropZone
             icon={<Camera size={30} />}
             title="Chercher les images semblables"

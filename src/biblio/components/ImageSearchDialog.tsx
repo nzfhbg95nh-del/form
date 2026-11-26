@@ -68,7 +68,7 @@ export function ImageSearchDialog({ onPick, onClose }: { onPick: (image: File) =
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center form-overlay p-4"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
       <div
