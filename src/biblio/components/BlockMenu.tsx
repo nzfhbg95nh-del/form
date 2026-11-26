@@ -74,7 +74,7 @@ export function BlockMenu({ x, y, blockIds, moveFrom, startIn, onClose, onDone }
   return (
     <div className="fixed inset-0 z-[60]" onMouseDown={onClose} onContextMenu={(e) => { e.preventDefault(); onClose() }}>
       <div
-        className="absolute w-80 overflow-hidden rounded-2xl border shadow-xl"
+        className="form-menu flush absolute w-80 overflow-hidden"
         style={{ left, top, background: 'var(--bg)', borderColor: 'var(--border)' }}
         onMouseDown={(e) => e.stopPropagation()}
       >

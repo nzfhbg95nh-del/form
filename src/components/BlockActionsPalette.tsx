@@ -58,7 +58,7 @@ export function BlockActionsPalette({ actions, x, y, title, onPick, onClose }: {
   return (
     <div
       data-block-actions
-      className="fixed z-50 flex flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg)] shadow-lg"
+      className="form-menu flush fixed z-50 flex flex-col overflow-hidden"
       style={{ left, top, width, maxHeight: height }}
     >
       <label className="m-2 flex items-center gap-2 rounded-md px-2 py-1.5" style={{ background: 'color-mix(in srgb, var(--fg) 6%, transparent)' }}>

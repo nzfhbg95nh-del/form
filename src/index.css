@@ -196,6 +196,29 @@ main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backward
 .form-dialog .btn-primary:hover:not(:disabled), .btn-dark:hover:not(:disabled) { background: var(--fg); filter: none; opacity: 0.9; }
 .btn-danger { background: #d44c47; color: #fff; }
 .btn-danger:hover:not(:disabled) { background: #d44c47; opacity: 0.9; }
+/* Menus (clic droit, « ⋯ », menu « / » de l'éditeur) : même carte que les fenêtres, en plus petit. Carte blanche aux coins arrondis,
+   ombre douce, ouverture en glissant ; lignes aux coins arrondis, survol gris clair comme la piste du curseur, icônes en gris. */
+[role="menu"], .form-menu {
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 5px;
+  box-shadow: var(--shadow-lift);
+  animation: form-pop 0.16s var(--ease-out-soft) backwards;
+}
+.form-menu.flush { padding: 0; }
+:where([role="menu"], .form-menu) :where([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], button:not(.btn)) { border-radius: 8px; }
+:where([role="menu"], .form-menu) :where([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"], button:not(.btn)):hover:not(:disabled) { background-color: var(--slider-track); }
+:where([role="menu"], .form-menu) :where([role="menuitem"], [role="menuitemradio"], [role="menuitemcheckbox"]) > svg:first-child { color: var(--fg-muted); }
+:where([role="menu"], .form-menu) hr, :where([role="menu"], .form-menu) .border-t { border-color: var(--border); }
+.bn-container .bn-suggestion-menu, .bn-container .bn-menu-dropdown, .bn-container .mantine-Menu-dropdown {
+  border: 1px solid var(--border) !important;
+  border-radius: 12px !important;
+  box-shadow: var(--shadow-lift) !important;
+  padding: 5px !important;
+}
+.bn-container .bn-suggestion-menu-item, .bn-container .mantine-Menu-item { border-radius: 8px !important; }
+.bn-container .bn-suggestion-menu-item[aria-selected="true"], .bn-container .bn-suggestion-menu-item:hover, .bn-container .mantine-Menu-item:hover, .bn-container .mantine-Menu-item[data-hovered] { background-color: var(--slider-track) !important; }
 /* Barre de dépôt (glisser une image) et carte d'aide : elles montent en douceur du bas. */
 .form-dock, .form-help { animation: form-rise 0.28s var(--ease-spring) backwards; }
 @keyframes form-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
