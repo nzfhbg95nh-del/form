@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { TabRail } from '@/components/TabRail'
 import { SearchField } from '@/components/SearchFilters'
 import { ArrowDownUp, Filter as FilterIcon, Plus, Settings2, Trash2, X } from 'lucide-react'
 import {
@@ -398,18 +399,7 @@ function DatabaseTable({ db, embedded = false }: { db: ObjectRow; embedded?: boo
         </>
       )}
 
-      <div className="flex items-center gap-1 border-b border-[var(--border)]">
-        {schema.views.map((v) => (
-          <button
-            key={v.id}
-            onClick={() => pick(v.id)}
-            className={'border-b-2 px-2 py-1 text-sm ' + (v.id === view.id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
-          >
-            {v.name}
-          </button>
-        ))}
-        <AddView schema={schema} onChange={change} onCreated={pick} />
-      </div>
+      <TabRail label="Vues" small items={schema.views.map((v) => ({ id: v.id, label: v.name }))} value={view.id} onChange={pick} after={<AddView schema={schema} onChange={change} onCreated={pick} />} />
 
       {panelOpen && <div className="fixed inset-0 z-10" onMouseDown={() => setPanelOpen(null)} />}
       <div className="mb-3 mt-3 flex flex-wrap items-center gap-2">

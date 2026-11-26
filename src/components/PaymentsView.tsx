@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { TabRail } from '@/components/TabRail'
 import { clientDisplayName, formatEuros } from '@/lib/business'
 import { todayISO } from '@/lib/backup'
 import {
@@ -20,16 +21,8 @@ export function PaymentsView() {
   const [tab, setTab] = useState<'due' | 'book'>('due')
   return (
     <div>
-      <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] px-12 pt-6">
-        {([['due', 'À encaisser'], ['book', 'Livre des recettes']] as const).map(([id, label]) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={cn('whitespace-nowrap border-b-2 px-3 py-1.5 text-sm', tab === id ? 'border-[var(--fg)] font-medium' : 'border-transparent text-[var(--fg-muted)] hover:bg-[var(--bg-hover)]')}
-          >
-            {label}
-          </button>
-        ))}
+      <div className="px-12 pt-6">
+        <TabRail label="Paiements" items={[{ id: 'due' as const, label: 'À encaisser' }, { id: 'book' as const, label: 'Livre des recettes' }]} value={tab} onChange={setTab} />
       </div>
       {tab === 'due' ? <ToCollect /> : <RecipeBook />}
     </div>

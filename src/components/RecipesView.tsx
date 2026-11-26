@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { TabRail } from '@/components/TabRail'
 import { CheckRow, FilterChips, FilterPill, SearchField, SearchFilterBar } from '@/components/SearchFilters'
 import { SegmentedBar } from '@/components/SettingsUi'
 import { ArrowDown, ArrowLeft, ArrowUp, ArrowUpDown, Check, MoreHorizontal, PenLine, Plus, Smile, Trash2, X } from 'lucide-react'
@@ -230,12 +231,7 @@ const SECTIONS: [Section, string][] = [['recettes', 'Recettes'], ['accueil', 'Sa
 /** Les onglets de la cuisine, toujours en haut de la page Recettes. */
 function KitchenTabs({ section, onChange }: { section: Section; onChange: (s: Section) => void }) {
   return (
-    <div role="tablist" aria-label="Cuisine" className="mb-6 flex flex-wrap gap-1 border-b border-[var(--border)]">
-      {SECTIONS.map(([id, label]) => (
-        <button key={id} role="tab" aria-selected={section === id} onClick={() => onChange(id)}
-          className={'-mb-px border-b-2 px-3 py-1.5 text-sm ' + (section === id ? 'border-[var(--fg)] font-medium text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')}>{label}</button>
-      ))}
-    </div>
+    <TabRail className="mb-6" label="Cuisine" items={SECTIONS.map(([id, label]) => ({ id, label }))} value={section} onChange={onChange} />
   )
 }
 

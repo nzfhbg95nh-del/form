@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { TabRail } from '@/components/TabRail'
 import { LibraryImagePicker } from '@/biblio/components/LibraryImagePicker.tsx'
 import { Image as ImageIcon, Smile } from 'lucide-react'
 import { Icon } from '@/components/Icon'
@@ -101,11 +102,6 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
     setToneOpen(false)
     try { localStorage.setItem('form-emoji-tone', String(t)) } catch { /* sans importance */ }
   }
-  const tabBtn = (id: PickerTab, label: string) => (
-    <button key={id} className={'border-b-2 px-2 py-1.5 text-sm ' + (tab === id ? 'border-[var(--fg)] text-[var(--fg)]' : 'border-transparent text-[var(--fg-muted)] hover:text-[var(--fg)]')} onClick={() => setTab(id)}>
-      {label}
-    </button>
-  )
 
   return (
     <div className="relative inline-block">
@@ -119,9 +115,8 @@ export function IconPicker({ value, onChange, trigger, startOpen = false, onClos
       {open && <div className="fixed inset-0 z-10" onMouseDown={() => setOpen(false)} />}
       {open && (
         <div className={pop + ' p-0'} style={{ width: 380 }} role="dialog" aria-label="Choisir une icône">
-          <div className="flex items-center border-b border-[var(--border)] px-2">
-            {tabBtn('emoji', 'Émoji')}
-            {tabBtn('upload', 'Charger')}
+          <div className="flex items-center gap-2 border-b border-[var(--border)] p-2">
+            <TabRail small label="Type d’icône" items={[{ id: 'emoji' as PickerTab, label: 'Émoji' }, { id: 'upload' as PickerTab, label: 'Charger' }]} value={tab} onChange={setTab} />
             <div className="flex-1" />
             {value && <button className="rounded px-2 py-1 text-xs text-red-500 hover:bg-[var(--bg-hover)]" onClick={() => choose(null)}>Supprimer</button>}
           </div>

@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { TabRail } from './TabRail'
 
 /** Titre d'une page de réglages. */
 export function SettingsHeader({ title, subtitle }: { title: string; subtitle?: ReactNode }) {
@@ -26,26 +27,7 @@ export function SettingsSection({ title, description, icon, children }: { title:
 
 /** Une barre de choix (un seul choix à la fois), dans le même style que les onglets : le choisi est « posé » en blanc. `block` : elle prend toute la largeur. */
 export function SegmentedBar<T extends string>({ items, value, onChange, label, block = false }: { items: { id: T; label: ReactNode; title?: string }[]; value: T; onChange: (id: T) => void; label: string; block?: boolean }) {
-  return (
-    <div role="radiogroup" aria-label={label} className={(block ? 'flex w-full' : 'inline-flex flex-wrap') + ' gap-1 rounded-xl bg-[var(--bg-side)] p-1'}>
-      {items.map((it) => {
-        const active = it.id === value
-        return (
-          <button
-            key={it.id}
-            role="radio"
-            aria-checked={active}
-            title={it.title}
-            aria-label={it.title}
-            onClick={() => onChange(it.id)}
-            className={'flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ' + (block ? 'flex-1 ' : '') + (active ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}
-          >
-            {it.label}
-          </button>
-        )
-      })}
-    </div>
-  )
+  return <TabRail kind="radio" items={items} value={value} onChange={onChange} label={label} block={block} />
 }
 
 export interface SubNavItem<T extends string> {
@@ -57,23 +39,5 @@ export interface SubNavItem<T extends string> {
 
 /** Onglets d'une page de réglages : une seule partie est visible à la fois, au lieu d'une page interminable. */
 export function SubNav<T extends string>({ items, value, onChange }: { items: SubNavItem<T>[]; value: T; onChange: (id: T) => void }) {
-  return (
-    <div role="tablist" className="mb-6 flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-[var(--bg-side)] p-1">
-      {items.map((it) => {
-        const active = it.id === value
-        return (
-          <button
-            key={it.id}
-            role="tab"
-            aria-selected={active}
-            onClick={() => onChange(it.id)}
-            className={'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ' + (active ? 'bg-[var(--bg)] font-medium shadow-sm' : 'text-[var(--fg-muted)] hover:text-[var(--fg)]')}
-          >
-            {it.label}
-            {it.badge && <span className="rounded-full bg-[var(--bg-hover)] px-1.5 text-[11px] leading-5 tabular-nums">{it.badge}</span>}
-          </button>
-        )
-      })}
-    </div>
-  )
+  return <TabRail items={items} value={value} onChange={onChange} label="Parties de la page" className="mb-6" />
 }
