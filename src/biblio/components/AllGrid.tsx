@@ -266,10 +266,10 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
         )}
         <div className="ml-auto flex items-center gap-3">
           <SplitSlider className="w-64" min={SIZE_MIN} max={SIZE_MAX} step={10} value={size} onChange={setSize} label="Taille" valueLabel={`${size} px`} ariaLabel="Taille des vignettes" />
-          <button className="btn h-9" onClick={() => setOrganize(!organize)} aria-pressed={organize} style={organize ? { background: 'var(--bg-hover)' } : undefined} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
-          <button className="btn h-9 !px-2.5" onClick={blockDrag.openHelp} title="Les gestes de la bibliothèque" aria-label="Aide : les gestes de la bibliothèque"><HelpCircle size={15} /></button>
+          <button className="btn" onClick={() => setOrganize(!organize)} aria-pressed={organize} title="Sélectionner plusieurs images pour les déplacer, les retirer ou les supprimer"><ListChecks size={15} /> Organiser</button>
+          <button className="btn" onClick={blockDrag.openHelp} title="Les gestes de la bibliothèque" aria-label="Aide : les gestes de la bibliothèque"><HelpCircle size={15} /></button>
           <div className="relative">
-            <button className="btn btn-primary h-9" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">
+            <button className="btn btn-primary" onClick={() => setAddMenu((v) => !v)} aria-haspopup="menu" aria-expanded={addMenu} title="Ajouter des images à la bibliothèque (ou glisse-les ici, ou Ctrl+V)">
               <Plus size={15} /> Ajouter
             </button>
             {addMenu && (
@@ -282,7 +282,7 @@ export function AllGrid({ active, onBack }: { active: boolean; onBack: () => voi
               </>
             )}
           </div>
-          <button className="btn h-9" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
+          <button className="btn" onClick={toggleFullscreen} title="Plein écran" aria-label="Plein écran"><Maximize size={15} /></button>
         </div>
       </div>
 

@@ -22,8 +22,8 @@ export function SearchField({ value, onChange, placeholder, label, trailing, cla
   autoFocus?: boolean; onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void; inputRef?: React.Ref<HTMLInputElement>
 }) {
   return (
-    <label className={'relative flex items-center ' + className}>
-      <Search size={14} className="pointer-events-none absolute left-3 text-[var(--fg-muted)]" />
+    <label className={'form-search relative flex items-center ' + className}>
+      <Search size={14} className="pointer-events-none absolute left-3 z-[1] text-[var(--fg-muted)]" />
       <input
         ref={inputRef}
         value={value}
@@ -32,13 +32,13 @@ export function SearchField({ value, onChange, placeholder, label, trailing, cla
         placeholder={placeholder}
         aria-label={label ?? placeholder}
         autoFocus={autoFocus}
-        className={'lib-input box-border h-[34px] w-full rounded-full border py-0 pl-9 text-sm outline-none placeholder:text-[var(--fg-muted)] ' + (trailing ? 'pr-12' : value ? 'pr-8' : 'pr-3')}
-        style={{ borderColor: 'var(--border)', color: 'var(--fg)' }}
+        className={'box-border h-8 w-full rounded-[10px] border-0 py-0 pl-9 text-sm outline-none placeholder:text-[var(--fg-muted)] ' + (trailing ? 'pr-16' : value ? 'pr-8' : 'pr-3')}
+        style={{ color: 'var(--fg)' }}
       />
       {trailing ? (
-        <span className="absolute right-2.5 flex items-center">{trailing}</span>
+        <span className="absolute right-1.5 flex items-center gap-0.5">{trailing}</span>
       ) : value ? (
-        <button type="button" className="absolute right-2 flex h-6 w-6 items-center justify-center rounded-full text-[var(--fg-muted)] hover:bg-[var(--bg-hover)] hover:text-[var(--fg)]" onClick={() => onChange('')} aria-label="Effacer la recherche" title="Effacer">
+        <button type="button" className="absolute right-1.5 flex h-6 w-6 items-center justify-center rounded-md text-[var(--fg-muted)] hover:bg-[var(--slider-fill)] hover:text-[var(--fg)]" onClick={() => onChange('')} aria-label="Effacer la recherche" title="Effacer">
           <X size={13} />
         </button>
       ) : null}
@@ -47,8 +47,10 @@ export function SearchField({ value, onChange, placeholder, label, trailing, cla
 }
 
 /** Un filtre en pilule qui ouvre un petit panneau ; teinté quand il est actif (`count` : combien de choix). Se ferme d'un clic à côté ou avec Échap. */
-export function FilterPill({ label, icon, active, count, children, width = 260, align = 'left' }: {
+export function FilterPill({ label, icon, active, count, children, width = 260, align = 'left', compact = false }: {
   label: string; icon?: ReactNode; active?: boolean; count?: number; children: ReactNode; width?: number; align?: 'left' | 'right'
+  /** Juste l'icône, petite (ex. dans la recherche) ; `label` sert d'infobulle. */
+  compact?: boolean
 }) {
   const [open, setOpen] = useState(false)
   const [pos, setPos] = useState<{ left: number; top: number; maxHeight: number } | null>(null)
@@ -88,12 +90,18 @@ export function FilterPill({ label, icon, active, count, children, width = 260, 
 
   return (
     <div ref={ref} className="relative">
+      {compact ? (
+        <button ref={button} type="button" className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] hover:bg-[var(--slider-fill)]" style={active ? { background: 'var(--slider-fill)', boxShadow: 'var(--slider-shadow)' } : undefined} onClick={() => setOpen((o) => !o)} aria-pressed={active ? true : undefined} aria-expanded={open} aria-haspopup="dialog" aria-label={label} title={label}>
+          {icon}
+        </button>
+      ) : (
       <button ref={button} className="btn" onClick={() => setOpen((o) => !o)} aria-pressed={active ? true : undefined} aria-expanded={open} aria-haspopup="dialog">
         {icon}
         {label}
         {active && count !== undefined && count > 0 && <span className="rounded-full bg-[var(--accent)] px-1.5 text-[10.5px] font-semibold leading-4 text-white tabular-nums">{count}</span>}
-        <ChevronDown size={14} className="transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
+        <ChevronDown size={14} className="chev transition-transform duration-200" style={{ transform: open ? 'rotate(180deg)' : undefined }} />
       </button>
+      )}
       {open && pos && (
         <div
           data-popup

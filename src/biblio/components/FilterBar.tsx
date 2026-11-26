@@ -63,18 +63,35 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
           onChange={(query) => setFilters({ query })}
           placeholder="Rechercher : un auteur, ou ce que tu vois (t-shirt, chaise rouge…)"
           label="Rechercher"
-          trailing={onImageSearch && (
-            <button
-              type="button"
-              className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[var(--bg-hover)]"
-              style={{ color: 'var(--fg-muted)' }}
-              onClick={onImageSearch}
-              title="Chercher avec une image : dépose ou choisis une image, la bibliothèque montre celles qui lui ressemblent"
-              aria-label="Rechercher avec une image"
-            >
-              <Camera size={16} />
-            </button>
-          )}
+          trailing={
+            <>
+              <Popover compact label="Chercher par couleur" align="right" active={Boolean(filters.color)} width={340}
+                icon={<span className="h-3.5 w-3.5 rounded-full" style={{ background: filters.color ? `#${filters.color}` : 'conic-gradient(#ff5a5a, #ffc94a, #5ad16a, #4ab8ff, #9a6bff, #ff5ab4, #ff5a5a)', boxShadow: 'inset 0 0 0 1px rgba(0,0,0,.12)' }} />}>
+                <div className="p-1">
+                  <ColorBar value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
+                  {filters.color && (
+                    <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
+                      <span className="h-4 w-4 rounded-full border" style={{ background: `#${filters.color}`, borderColor: 'var(--border)' }} />
+                      #{filters.color.toUpperCase()}
+                      <button className="ml-auto underline" onClick={() => setFilters({ color: '' })}>Aucune</button>
+                    </div>
+                  )}
+                </div>
+              </Popover>
+              {onImageSearch && (
+                <button
+                  type="button"
+                  className="flex h-[26px] w-[26px] items-center justify-center rounded-[8px] transition-colors hover:bg-[var(--slider-fill)]"
+                  style={{ color: 'var(--fg-muted)' }}
+                  onClick={onImageSearch}
+                  title="Chercher avec une image : dépose ou choisis une image, la bibliothèque montre celles qui lui ressemblent"
+                  aria-label="Rechercher avec une image"
+                >
+                  <Camera size={15} />
+                </button>
+              )}
+            </>
+          }
         />
 
         <Popover label="Type d'image" active={filters.types.length > 0} count={filters.types.length} width={300}>
@@ -85,28 +102,13 @@ export function FilterBar({ onImageSearch, onCloseCollection }: { onImageSearch?
           </div>
         </Popover>
 
-        <Popover label="Couleur" active={Boolean(filters.color)} width={340}>
-          <div className="p-1">
-            <ColorBar value={filters.color} onChange={(hex) => setFilters({ color: hex })} />
-            {filters.color && (
-              <div className="mt-3 flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-                <span className="h-4 w-4 rounded-full border" style={{ background: `#${filters.color}`, borderColor: 'var(--border)' }} />
-                #{filters.color.toUpperCase()}
-                <button className="ml-auto underline" onClick={() => setFilters({ color: '' })}>Aucune</button>
-              </div>
-            )}
-          </div>
-        </Popover>
-
-        <Popover label="Source" active={filters.sources.length > 0} count={filters.sources.length} width={200}>
-          {SOURCES.map((s) => (
-            <CheckRow key={s.id} checked={filters.sources.includes(s.id)} onChange={(on) => setFilters({ sources: toggle(filters.sources, s.id, on) })}>{s.label}</CheckRow>
-          ))}
-        </Popover>
-
-        <Popover label="Format" active={filters.kinds.length > 0} count={filters.kinds.length} width={200}>
+        <Popover label="Format" active={filters.kinds.length + filters.sources.length > 0} count={filters.kinds.length + filters.sources.length} width={220}>
           {KINDS.map((k) => (
             <CheckRow key={k.id} checked={filters.kinds.includes(k.id)} onChange={(on) => setFilters({ kinds: toggle(filters.kinds, k.id, on) })}>{k.label}</CheckRow>
+          ))}
+          <div className="mx-2 mb-1 mt-2 border-t pt-2 text-xs" style={{ borderColor: 'var(--border)', color: 'var(--fg-muted)' }}>Source</div>
+          {SOURCES.map((s) => (
+            <CheckRow key={s.id} checked={filters.sources.includes(s.id)} onChange={(on) => setFilters({ sources: toggle(filters.sources, s.id, on) })}>{s.label}</CheckRow>
           ))}
         </Popover>
 

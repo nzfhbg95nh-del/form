@@ -115,28 +115,30 @@ html.floating #root {
 }
 
 /* Bibliothèque (venue de Form) : boutons et rotation. */
+/* Boutons : le même dessin que le curseur. Une piste gris clair aux coins arrondis, l'icône et le texte posés dessus (sans pastille).
+   Un bouton actif (aria-pressed) devient une pastille blanche en relief, texte bleu, comme la pastille du curseur. Le bouton principal est bleu. */
 .btn {
   display: inline-flex;
   align-items: center;
   white-space: nowrap;
   gap: 6px;
-  /* Hauteur fixe : la même que la barre de recherche et les champs (34 px), quel que soit le contenu. */
   box-sizing: border-box;
-  min-height: 34px;
-  padding: 0 14px;
-  border: 1px solid transparent;
-  /* En pilule, comme les boutons des références : un bloc teinté sans contour, doux au repos, un peu plus sombre au survol, couleur de l'accent quand il est actif. */
-  border-radius: 9999px;
-  background: color-mix(in srgb, var(--fg) 6%, transparent);
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--slider-track);
   color: var(--fg);
   font-size: 12.5px;
   cursor: pointer;
 }
-.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 10%, transparent); }
-.btn[aria-pressed="true"] { background: color-mix(in srgb, var(--accent) 16%, transparent); color: var(--accent); }
+.btn:has(> svg:only-child) { padding: 0 9px; }
+.btn:hover:not(:disabled) { background: color-mix(in srgb, var(--fg) 6%, var(--slider-track)); }
+.btn[aria-pressed="true"] { background: var(--slider-fill); color: var(--accent); box-shadow: var(--slider-shadow); }
+.btn[aria-pressed="true"]:hover:not(:disabled) { background: var(--slider-fill); }
 .btn:disabled { opacity: 0.5; cursor: default; }
-.btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.06); }
 .spin { animation: biblio-spin 1s linear infinite; }
 @keyframes biblio-spin { to { transform: rotate(360deg); } }
 
@@ -173,6 +175,10 @@ button[data-lift]:not(:disabled):active { transform: translateY(0); }
 /* « backwards » : l'animation ne garde rien une fois finie (sinon un menu « fixed » à l'intérieur se mettrait à suivre ce bloc au lieu de la fenêtre). */
 main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backwards; }
 @keyframes form-fade { from { opacity: 0; } to { opacity: 1; } }
+/* Recherche (SearchField) : une piste comme le curseur, la loupe posée dessus (sans pastille). En écrivant, la piste devient blanche avec un liseré bleu. */
+.form-search input { background: var(--slider-track); transition: background-color 0.15s, box-shadow 0.15s; }
+.form-search input:hover { background: color-mix(in srgb, var(--fg) 5%, var(--slider-track)); }
+.form-search input:focus { background: var(--slider-fill); box-shadow: var(--slider-shadow), 0 0 0 1.5px color-mix(in srgb, var(--accent) 55%, transparent); }
 /* Panneau d'un filtre : il glisse de 4 px vers le bas en apparaissant. */
 .form-pop { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; }
 @keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
