@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Dialog } from '@/components/Dialog'
 import { SearchField, SearchFilterBar, ToggleFilter } from '@/components/SearchFilters'
 import { EmptyState } from '@/components/States'
 import { Archive, Briefcase, Plus, Users } from 'lucide-react'
@@ -27,18 +28,7 @@ function Row({ label, hint, children, className }: { label: string; hint?: strin
 }
 
 function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-[6vh]" onMouseDown={onClose}>
-      <div
-        className="w-[640px] max-w-[92vw] rounded-lg border border-[var(--border)] bg-[var(--bg)] p-6 shadow-2xl"
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      >
-        <h2 className="mb-4 text-xl font-bold">{title}</h2>
-        {children}
-      </div>
-    </div>
-  )
+  return <Dialog title={title} onClose={onClose} width={640} top>{children}</Dialog>
 }
 
 function Toolbar({ title, query, setQuery, showArchived, setShowArchived, onNew, newLabel }: {

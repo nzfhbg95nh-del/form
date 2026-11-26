@@ -191,7 +191,7 @@ export function CollectionsView({ onOpen }: { onOpen: (c: CollectionCard) => voi
               onSubmit={(name) => void create(name).then(() => setNaming(false))}
             />
           ) : (
-            <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouvelle collection</button>
+            <button className="btn btn-primary" onClick={() => setNaming(true)} title="Nouvelle collection" aria-label="Nouvelle collection"><Plus size={15} /></button>
           )}
         </div>
       </div>

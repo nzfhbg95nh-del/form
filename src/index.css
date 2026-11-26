@@ -182,6 +182,20 @@ main > *, .view-enter { animation: form-fade 0.22s var(--ease-out-soft) backward
 /* Panneau d'un filtre : il glisse de 4 px vers le bas en apparaissant. */
 .form-pop { animation: form-pop 0.16s var(--ease-out-soft) backwards; transform-origin: top left; }
 @keyframes form-pop { from { opacity: 0; transform: translateY(-4px) scale(0.98); } to { opacity: 1; transform: none; } }
+/* Fenêtres (composant Dialog, ou ces classes à la main) : le style des cartes d'aide. Fond assombri léger et un peu flou ; carte blanche
+   aux coins arrondis ; le contenu sur un panneau gris clair ; les boutons en bas à droite, l'action principale en sombre. */
+.form-overlay { background: rgba(20, 20, 18, 0.28); backdrop-filter: blur(2px); animation: form-fade 0.18s var(--ease-out-soft) backwards; }
+.dark .form-overlay { background: rgba(0, 0, 0, 0.5); }
+.form-dialog { background: var(--bg); border: 1px solid var(--border); border-radius: 16px; box-shadow: var(--shadow-lift); padding: 12px; animation: form-rise 0.26s var(--ease-spring) backwards; }
+.form-dialog.flush { padding: 0; overflow: hidden; }
+.form-dialog-head { display: flex; align-items: center; gap: 8px; padding: 4px 6px 12px 8px; }
+.form-dialog-head h2 { flex: 1; min-width: 0; font-size: 15px; font-weight: 600; letter-spacing: 0; }
+.form-dialog-body { background: var(--bg-side); border-radius: 12px; padding: 20px; }
+.form-dialog-foot { display: flex; align-items: center; justify-content: flex-end; gap: 8px; padding: 12px 2px 0; }
+.form-dialog .btn-primary, .btn-dark { background: var(--fg); color: var(--bg); box-shadow: none; }
+.form-dialog .btn-primary:hover:not(:disabled), .btn-dark:hover:not(:disabled) { background: var(--fg); filter: none; opacity: 0.9; }
+.btn-danger { background: #d44c47; color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #d44c47; opacity: 0.9; }
 /* Barre de dépôt (glisser une image) et carte d'aide : elles montent en douceur du bas. */
 .form-dock, .form-help { animation: form-rise 0.28s var(--ease-spring) backwards; }
 @keyframes form-rise { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }

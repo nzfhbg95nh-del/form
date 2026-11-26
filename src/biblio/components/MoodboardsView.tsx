@@ -206,8 +206,8 @@ export function MoodboardsView() {
         </div>
         <div className="ml-auto flex items-center gap-2">
           <input ref={importInput} type="file" accept=".formboard,application/json" className="hidden" onChange={(e) => { void importFile(e.target.files?.[0]); e.target.value = '' }} />
-          <button className="btn" title="Ouvrir un moodboard exporté depuis Form (fichier .formboard)" onClick={() => importInput.current?.click()}><FileUp size={15} /> Importer</button>
-          <button className="btn btn-primary" onClick={() => setNaming(true)}><Plus size={15} /> Nouveau moodboard</button>
+          <button className="btn" title="Importer un moodboard exporté depuis Form (fichier .formboard)" aria-label="Importer un moodboard" onClick={() => importInput.current?.click()}><FileUp size={15} /></button>
+          <button className="btn btn-primary" onClick={() => setNaming(true)} title="Nouveau moodboard" aria-label="Nouveau moodboard"><Plus size={15} /></button>
           {naming && <NewMoodboardDialog onCreate={(name, cover) => void create(name, cover)} onClose={() => setNaming(false)} />}
         </div>
       </div>

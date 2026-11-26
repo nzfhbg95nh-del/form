@@ -224,8 +224,8 @@ function CategoryChooser({ categories, cover, onCover, onPick, onCreate, onClose
  */
 type Section = 'accueil' | 'recettes' | PlannerTab
 // L'onglet ouvert reste le même quand on revient d'une recette (le temps que l'app est ouverte).
-let lastSection: Section = 'accueil'
-const SECTIONS: [Section, string][] = [['accueil', 'Accueil'], ['recettes', 'Recettes'], ['plan', 'Planning'], ['courses', 'Courses'], ['prep', 'Meal prep'], ['nutrition', 'Nutrition']]
+let lastSection: Section = 'recettes'
+const SECTIONS: [Section, string][] = [['recettes', 'Recettes'], ['accueil', 'Saison et cueillette'], ['plan', 'Planning'], ['courses', 'Courses'], ['prep', 'Meal prep'], ['nutrition', 'Nutrition']]
 
 /** Les onglets de la cuisine, toujours en haut de la page Recettes. */
 function KitchenTabs({ section, onChange }: { section: Section; onChange: (s: Section) => void }) {

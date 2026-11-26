@@ -86,7 +86,7 @@ export function KitchenHome({ rows, onGo }: { rows: ObjectRow[]; onGo: (tab: 'pl
 
   return (
     <div className="max-w-5xl">
-      <h1 className="py-1 text-3xl font-bold leading-[1.3]">Cuisine</h1>
+      <h1 className="py-1 text-3xl font-bold leading-[1.3]">Saison et cueillette</h1>
       <p className="mb-6 flex items-center gap-1.5 text-sm text-[var(--fg-muted)]"><CalendarDays size={14} /> Aujourd’hui : {date}</p>
 
       <section className="mb-8" aria-label="De saison">

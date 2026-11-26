@@ -1,11 +1,11 @@
 import { useMemo } from 'react'
-import { Carrot, Clock, Globe, Sprout } from 'lucide-react'
+import { Clock, Globe, Sprout } from 'lucide-react'
 import { CheckRow, FilterChips, FilterPill, SearchField, SearchFilterBar, ToggleFilter, type FilterChip } from '@/components/SearchFilters'
 import { parseContent } from '@/lib/content'
 import { parseValues } from '@/lib/database'
 import { displayTitle } from '@/lib/lastEdit'
 import { MEAT, readSteps, stepsMinutes } from '@/lib/mealPrep'
-import { CUISINES, cuisineOf, ingredientWords, isInSeason, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
+import { CUISINES, cuisineOf, isInSeason, NO_FILTERS, TIME_BUCKETS, type RecipeFacts, type RecipeFilters } from '@/lib/recipeFacets'
 import { RECIPE } from '@/lib/recipes'
 import { recipeSeason } from '@/lib/seasons'
 import { fold, shoppingLines } from '@/lib/shoppingList'
@@ -53,7 +53,6 @@ const inBucket = (id: string, m: number) => (id === 'rapide' ? m <= 30 : id === 
 
 /** Les filtres des recettes, en pilules (à poser dans une barre « Recherche + filtres ») : de saison, temps, cuisine du monde, « J'ai… ». */
 export function RecipeFilterPills({ filters, onChange, facts }: { filters: RecipeFilters; onChange: (f: RecipeFilters) => void; facts: RecipeFacts[] }) {
-  const words = ingredientWords(filters.have)
   return (
     <>
       <ToggleFilter label="De saison" icon={<Sprout size={14} />} pressed={filters.season} count={facts.filter(isInSeason).length} onClick={() => onChange({ ...filters, season: !filters.season })} />
@@ -69,13 +68,6 @@ export function RecipeFilterPills({ filters, onChange, facts }: { filters: Recip
             {c.emoji ? `${c.emoji} ` : ''}{c.label}
           </CheckRow>
         ))}
-      </FilterPill>
-      <FilterPill label="J’ai…" icon={<Carrot size={14} />} active={words.length > 0} count={words.length} width={300}>
-        <div className="p-1">
-          <input autoFocus value={filters.have} onChange={(e) => onChange({ ...filters, have: e.target.value })} placeholder="des courgettes, des pois chiches" aria-label="Ingrédients que j’ai"
-            className="box-border h-[34px] w-full rounded-md border border-[var(--border)] bg-[var(--bg)] px-2 text-sm outline-none focus:border-[var(--accent)]" />
-          <p className="mt-2 text-xs text-[var(--fg-muted)]">Les recettes qui utilisent le plus de ces ingrédients passent en premier.</p>
-        </div>
       </FilterPill>
     </>
   )

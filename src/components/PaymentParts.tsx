@@ -1,11 +1,11 @@
 import { useState } from 'react'
+import { Dialog } from '@/components/Dialog'
 import { Trash2 } from 'lucide-react'
 import { centsToInput, clientDisplayName, formatEuros, parseEuros } from '@/lib/business'
 import { todayISO } from '@/lib/backup'
 import { fillTemplate, mailtoLink, METHOD_LABELS, newPayment, reminderVars, type Receivable } from '@/lib/payments'
 import { formatDateFr } from '@/lib/quotes'
 import { isTauri } from '@/lib/repo'
-import { cn } from '@/lib/utils'
 import { useApp } from '@/store/app'
 import type { Invoice, Payment, PaymentMethod } from '@/lib/types'
 import { askConfirm } from '@/lib/confirm'
@@ -15,18 +15,7 @@ const primary = 'btn btn-primary whitespace-nowrap disabled:opacity-40'
 const secondary = 'btn whitespace-nowrap disabled:opacity-40'
 
 function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: React.ReactNode; wide?: boolean }) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/40 py-[8vh]" onMouseDown={onClose}>
-      <div
-        className={cn('rounded-lg border border-[var(--border)] bg-[var(--bg)] p-6 shadow-2xl', wide ? 'w-[680px]' : 'w-[460px]', 'max-w-[92vw]')}
-        onMouseDown={(e) => e.stopPropagation()}
-        onKeyDown={(e) => e.key === 'Escape' && onClose()}
-      >
-        <h2 className="mb-4 text-xl font-bold">{title}</h2>
-        {children}
-      </div>
-    </div>
-  )
+  return <Dialog title={title} onClose={onClose} width={wide ? 680 : 460} top>{children}</Dialog>
 }
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {

@@ -73,7 +73,7 @@ export function CollectionHero() {
           (naming ? (
             <NameInput className="w-96 max-w-full" placeholder="Nom du sous-tableau" confirmLabel="Créer" onCancel={() => setNaming(false)} onSubmit={(name) => void create(name, open.id).then(() => setNaming(false))} />
           ) : (
-            <button className="btn" onClick={() => setNaming(true)}><FolderPlus size={15} /> Nouveau sous-tableau</button>
+            <button className="btn" onClick={() => setNaming(true)} title="Nouveau sous-tableau" aria-label="Nouveau sous-tableau"><FolderPlus size={15} /></button>
           ))}
         {!naming && (
           <button
