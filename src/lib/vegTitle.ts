@@ -7,7 +7,7 @@ import { parseContent } from './content'
 import { displayTitle } from './lastEdit'
 import { fold } from './shoppingList'
 
-interface BlockLike { type?: string; content?: unknown; children?: BlockLike[] }
+interface BlockLike { type?: string; content?: unknown; children?: BlockLike[]; props?: { level?: number } }
 const textOf = (content: unknown): string => (Array.isArray(content) ? content.map((c) => (c && typeof c === 'object' ? (c as { text?: string }).text ?? '' : '')).join('') : '')
 
 /** Le titre de la section « Version sans… » et la phrase qui la suit. */
@@ -24,6 +24,38 @@ export function variantInfo(blocks: unknown): { heading: string; intro: string }
     if (t) { intro = t; break }
   }
   return { heading: textOf(flat[i].content).trim(), intro }
+}
+
+export interface VariantPart { title: string | null; lines: string[] }
+
+/**
+ * Toute la section « Version sans… » : son titre, la phrase de remplacement, puis ses parties (sous-titres et leurs lignes :
+ * ingrédients, ce qui change, étapes…), jusqu'au titre suivant du même niveau. Pour l'encadré végé en haut de la recette.
+ */
+export function variantSection(blocks: unknown): { heading: string; intro: string; parts: VariantPart[] } | null {
+  const flat: BlockLike[] = []
+  const walk = (l: BlockLike[]) => { for (const b of l) { flat.push(b); if (b.children?.length) walk(b.children) } }
+  walk((Array.isArray(blocks) ? blocks : []) as BlockLike[])
+  const i = flat.findIndex((b) => b.type === 'heading' && fold(textOf(b.content)).startsWith('version sans'))
+  if (i < 0) return null
+  const level = flat[i].props?.level ?? 2
+  let intro = ''
+  const parts: VariantPart[] = []
+  let cur: VariantPart = { title: null, lines: [] }
+  for (const b of flat.slice(i + 1)) {
+    const text = textOf(b.content).trim()
+    if (b.type === 'heading') {
+      if ((b.props?.level ?? 2) <= level) break
+      if (cur.title !== null || cur.lines.length > 0) parts.push(cur)
+      cur = { title: text || null, lines: [] }
+      continue
+    }
+    if (!text) continue
+    if (!intro && cur.title === null && cur.lines.length === 0) { intro = text; continue }
+    cur.lines.push(text)
+  }
+  if (cur.title !== null || cur.lines.length > 0) parts.push(cur)
+  return { heading: textOf(flat[i].content).trim(), intro, parts }
 }
 
 const STOP = /\s*[(:,.;«]|\s+(?:et|ou|mijot\S*|marin\S*\s+puis|grill\S*\s+puis)\s+/

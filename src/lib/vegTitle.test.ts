@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dishTitle, swapOf, variantInfo, vegTitle } from './vegTitle'
+import { dishTitle, swapOf, variantInfo, variantSection, vegTitle } from './vegTitle'
 
 const t = (text: string) => [{ type: 'text', text }]
 const page = (heading: string, intro: string) => [
@@ -34,5 +34,30 @@ describe('nom végé', () => {
   it('une recette sans version sans viande garde son nom', () => {
     expect(dishTitle({ id: 'a', title: 'Dahl', content: JSON.stringify([{ type: 'paragraph', content: t('lentilles') }]) })).toBe('Dahl')
     expect(dishTitle({ id: 'b', title: 'Poulet tikka masala', content: JSON.stringify(page('Version sans viande', 'Le poulet est remplacé par du tofu ferme mariné.')) })).toBe('Tofu ferme tikka masala')
+  })
+})
+
+describe('encadré végé', () => {
+  it('lit toute la section : phrase, puis chaque partie, jusqu’au titre suivant du même niveau', () => {
+    const blocks = [
+      { type: 'heading', props: { level: 2 }, content: t('Ingrédients') },
+      { type: 'bulletListItem', content: t('500 g de poulet') },
+      { type: 'heading', props: { level: 2 }, content: t('Version sans viande') },
+      { type: 'paragraph', content: t('Le poulet est remplacé par du paneer.') },
+      { type: 'heading', props: { level: 3 }, content: t('Ingrédients de cette version') },
+      { type: 'bulletListItem', content: t('400 g de paneer') },
+      { type: 'heading', props: { level: 3 }, content: t('Ce qui change') },
+      { type: 'bulletListItem', content: t('Pas de marinade longue') },
+      { type: 'heading', props: { level: 2 }, content: t('Notes') },
+      { type: 'paragraph', content: t('À servir chaud') },
+    ]
+    expect(variantSection(blocks)).toEqual({
+      heading: 'Version sans viande',
+      intro: 'Le poulet est remplacé par du paneer.',
+      parts: [{ title: 'Ingrédients de cette version', lines: ['400 g de paneer'] }, { title: 'Ce qui change', lines: ['Pas de marinade longue'] }],
+    })
+  })
+  it('pas de section : rien', () => {
+    expect(variantSection([{ type: 'paragraph', content: t('Recette') }])).toBeNull()
   })
 })

@@ -3,7 +3,7 @@ import { ArrowDown, Leaf } from 'lucide-react'
 import { parseContent } from '@/lib/content'
 import { MEAT } from '@/lib/mealPrep'
 import { fold, readIngredients } from '@/lib/shoppingList'
-import { dishTitle, variantInfo } from '@/lib/vegTitle'
+import { dishTitle, variantSection } from '@/lib/vegTitle'
 import { vegSwaps } from '@/lib/vegSwaps'
 import type { ObjectRow } from '@/lib/types'
 
@@ -22,11 +22,11 @@ function scrollToHeading(heading: string) {
 export function RecipeVegBanner({ page }: { page: ObjectRow }) {
   const data = useMemo(() => {
     const blocks = parseContent(page.content) ?? []
-    const { main, variant } = readIngredients(blocks)
+    const { main } = readIngredients(blocks)
     const lines = main.flatMap((g) => g.lines)
     if (!MEAT.test(fold(lines.join(' ')))) return null
-    const info = variantInfo(blocks)
-    if (info) return { kind: 'written' as const, info, variant: variant ?? [], name: dishTitle(page) }
+    const info = variantSection(blocks)
+    if (info) return { kind: 'written' as const, info, name: dishTitle(page) }
     return { kind: 'swaps' as const, swaps: vegSwaps(lines) }
   }, [page])
   if (!data) return null
@@ -41,12 +41,15 @@ export function RecipeVegBanner({ page }: { page: ObjectRow }) {
       {data.kind === 'written' ? (
         <>
           {data.info.intro && <p className="mt-1.5 text-sm">{data.info.intro}</p>}
-          {data.variant.length > 0 && (
-            <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm">
-              {data.variant.map((l, i) => <li key={i}>{l}</li>)}
-            </ul>
-          )}
-          <button className="btn mt-3" onClick={() => scrollToHeading(data.info.heading)}><ArrowDown size={14} /> Voir toute la version végé</button>
+          {data.info.parts.map((part, i) => (
+            <div key={i} className="mt-3">
+              {part.title && <div className="text-[13px] font-semibold">{part.title}</div>}
+              <ul className="mt-1 list-disc space-y-0.5 pl-5 text-sm">
+                {part.lines.map((l, j) => <li key={j}>{l}</li>)}
+              </ul>
+            </div>
+          ))}
+          <button className="btn mt-3" onClick={() => scrollToHeading(data.info.heading)}><ArrowDown size={14} /> Aller à la section dans la recette</button>
           <p className="mt-2 text-xs text-[var(--fg-muted)]">Les courses, la nutrition et le planning utilisent déjà cette version.</p>
         </>
       ) : (
