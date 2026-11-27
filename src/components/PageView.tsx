@@ -1,3 +1,4 @@
+import { RecipeVegBanner } from '@/components/RecipeVegBanner'
 import { RecipeNutritionPanel } from '@/components/RecipeNutritionPanel'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { BlockNoteEditor } from '@blocknote/core'
@@ -382,6 +383,7 @@ export function PageView({ pageId }: { pageId?: string }) {
             </div>
           )
         })()}
+        {isRecipe && <RecipeVegBanner page={page} />}
         <div className="-mx-[var(--page-pad)]">
           <PageEditor key={page.id} editable={!ui.locked} pageId={page.id} initial={page.content} editorRef={editorRef} onChange={(json) => saveLater({ content: json })} />
         </div>
